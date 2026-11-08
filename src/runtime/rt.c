@@ -9,6 +9,7 @@
 
 bb_errstate bb_err;
 bb_errframe *bb_errtop;
+bb_cleanup *bb_cleanups;
 int32_t bb_line;
 const char *bb_file = "";
 
@@ -160,6 +161,13 @@ void bb_fatal_error(void)
 void bb_rethrow(void)
 {
     if (!bb_errtop) bb_fatal_error();
+    /* release the locals of the native procedures being unwound, while their stack
+     * frames still exist (Class_Terminate may run) */
+    while (bb_cleanups && bb_cleanups != bb_errtop->cmark) {
+        bb_cleanup *c = bb_cleanups;
+        bb_cleanups = c->prev;
+        c->fn(c->ctx);
+    }
     longjmp(bb_errtop->jb, 1);
 }
 

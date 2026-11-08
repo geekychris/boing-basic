@@ -35,6 +35,9 @@ typedef struct EC {
     int *gosub_ids; int ngosub, capgosub;
     int **wev_global;       /* unused */
     int has_me;
+    Buf sdecl;              /* members of the procedure's cleanup struct (refcounted locals/temps) */
+    Buf sclean;             /* their releases, in the cleanup function */
+    int nsmem;
 } EC;
 
 /* ---------- small helpers ---------- */
@@ -195,9 +198,39 @@ static char *release_code(Type *t, const char *x)
     }
 }
 
+static char *struct_member(EC *e, Type *t, const char *name)
+{
+    char *r = release_code(t, xsprintf("c->%s", name));
+    buf_printf(&e->sdecl, "    %s %s;\n", t->kind == T_UDT ? udt_cname(t->udt) : ctype(t), name);
+    if (r) buf_printf(&e->sclean, "    %s\n", r);
+    e->nsmem++;
+    return xsprintf("bbL.%s", name);
+}
+
+/* bb_value name[n] in the cleanup struct */
+static char *varr_temp(EC *e, int n)
+{
+    char *name = xsprintf("t%d", e->ntemp++);
+    if (n < 1) n = 1;
+    buf_printf(&e->sdecl, "    bb_value %s[%d];\n", name, n);
+    buf_printf(&e->sclean, "    { int i; for (i = 0; i < %d; i++) bb_v_release(&c->%s[i]); }\n", n, name);
+    e->nsmem++;
+    return xsprintf("bbL.%s", name);
+}
+
+static int is_refty(Type *t);
+
 static char *new_temp(EC *e, Type *t, int release)
 {
-    char *n = xsprintf("t%d", e->ntemp++);
+    char *n;
+    if (is_refty(t) && release) {
+        /* owned: on the cleanup chain (borrowed temps are plain locals) */
+        char *m = struct_member(e, t, xsprintf("t%d", e->ntemp++));
+        char *r = release_code(t, m);
+        if (r) rel(e, r);
+        return m;
+    }
+    n = xsprintf("t%d", e->ntemp++);
     if (t->kind == T_UDT) buf_printf(&e->decl, "    %s %s; memset(&%s, 0, sizeof %s);\n", ctype(t), n, n, n);
     else buf_printf(&e->decl, "    %s %s = %s;\n", ctype(t), n, zero_init(t));
     if (release) {
@@ -774,8 +807,7 @@ static R builtin(EC *e, Node *n)
     }
     if (b->flags & BIF_VARARGS) {
         int start = b->params[0] ? 1 : 0, cnt = n->list.n - start;
-        char *arr = xsprintf("t%d", e->ntemp++);
-        buf_printf(&e->decl, "    bb_value %s[%d];\n", arr, cnt > 0 ? cnt : 1);
+        char *arr = varr_temp(e, cnt);
         for (i = 0; i < cnt; i++) {
             pre(e, "%s[%d] = %s;", arr, i, own(e, n->list.v[start + i]));
             rel(e, xsprintf("bb_v_release(&%s[%d]);", arr, i));
@@ -811,9 +843,8 @@ static R builtin(EC *e, Node *n)
 static R late(EC *e, Node *n)
 {
     int i, cnt = n->list.n;
-    char *arr = xsprintf("t%d", e->ntemp++);
+    char *arr = varr_temp(e, cnt);
     char *recv;
-    buf_printf(&e->decl, "    bb_value %s[%d];\n", arr, cnt > 0 ? cnt : 1);
     recv = val(e, n->a);
     for (i = 0; i < cnt; i++) {
         Node *x = n->list.v[i];
@@ -1206,9 +1237,8 @@ static void stmt(EC *e, Node *s)
         if (x->kind == E_LATE && x->name[0] == 0 && (x->argc_kind & (BB_INV_LET | BB_INV_SET)) &&
             x->a->ty->kind == T_VARIANT && is_lvalue(x->a)) {
             int cnt = x->list.n;
-            char *arr = xsprintf("t%d", e->ntemp++);
+            char *arr = varr_temp(e, cnt);
             char *target;
-            buf_printf(&e->decl, "    bb_value %s[%d];\n", arr, cnt);
             for (i = 0; i < cnt; i++) {
                 pre(e, "%s[%d] = %s;", arr, i, own(e, x->list.v[i]));
                 rel(e, xsprintf("bb_v_release(&%s[%d]);", arr, i));
@@ -1407,8 +1437,7 @@ static void stmt(EC *e, Node *s)
         } else fn = xstrdup("0");
         for (i = 0; i < s->list.n; i++) {
             Node *t = s->list.v[i];
-            char *tv = xsprintf("t%d", e->ntemp++);
-            buf_printf(&e->decl, "    bb_value %s;\n", tv);
+            char *tv = struct_member(e, &ty_variant, xsprintf("t%d", e->ntemp++));
             out(e, "%s = bb_input_field(%s, %d);", tv, fn, t->ty->kind == T_VARIANT);
             store_from_variant(e, t, tv);
         }
@@ -1424,8 +1453,7 @@ static void stmt(EC *e, Node *s)
             buf_printf(&e->decl, "    int %s;\n", fn);
             action(e, "%s = (int)%s;", fn, x);
         } else fn = xstrdup("0");
-        tv = xsprintf("t%d", e->ntemp++);
-        buf_printf(&e->decl, "    bb_value %s;\n", tv);
+        tv = struct_member(e, &ty_variant, xsprintf("t%d", e->ntemp++));
         out(e, "%s = bb_v_str(bb_input_line(%s));", tv, fn);
         store_from_variant(e, s->c, tv);
         return;
@@ -1498,8 +1526,7 @@ static void stmt(EC *e, Node *s)
     }
     case S_RAISEEVENT: {
         int cnt = s->list.n;
-        char *arr = xsprintf("t%d", e->ntemp++);
-        buf_printf(&e->decl, "    bb_value %s[%d];\n", arr, cnt > 0 ? cnt : 1);
+        char *arr = varr_temp(e, cnt);
         for (i = 0; i < cnt; i++) {
             Node *a = s->list.v[i];
             if (a->flags & NF_BYREF) pre(e, "%s[%d] = bb_v_ref(%s, %s);", arr, i, vtname(a->ty), addr(e, a));
@@ -1586,6 +1613,25 @@ static void local_init(EC *e, Buf *d, Sym *s, int vol)
     }
 }
 
+/* initialisation of a local kept in the cleanup struct (zeroed by memset) */
+static void local_init_struct(EC *e, Buf *d, Sym *s)
+{
+    Type *t = s->ty;
+    char *n = sym_cname(e, s);
+    if (t->kind == T_UDT) { buf_printf(d, "    bb_udt_init(&%s_desc, (void *)&%s);\n", udt_cname(t->udt), n); return; }
+    if (t->kind == T_STRING && t->fixlen) buf_printf(d, "    %s = bb_str_fixlen(NULL, %d);\n", n, t->fixlen);
+    if (t->kind == T_ARRAY && s->fixed_array) {
+        Buf lb = {0, 0, 0}, ub = {0, 0, 0};
+        int k;
+        for (k = 0; k < s->ndims; k++) {
+            buf_printf(&lb, "%s%lld", k ? ", " : "", (long long)s->bounds.v[2 * k]->cv.i);
+            buf_printf(&ub, "%s%lld", k ? ", " : "", (long long)s->bounds.v[2 * k + 1]->cv.i);
+        }
+        buf_printf(d, "    %s = bb_arr_new(%s, %s, %d, (const int32_t[]){%s}, (const int32_t[]){%s}); %s->fixed = 1;\n",
+                   n, vtname(t->elem), udt_desc_ref(t), s->ndims, lb.p, ub.p, n);
+    }
+}
+
 static void emit_proc(EC *e, Proc *pr)
 {
     Buf d = {0, 0, 0};
@@ -1599,21 +1645,49 @@ static void emit_proc(EC *e, Proc *pr)
     e->ngosub = 0;
     e->line = -1;
     e->file = -1;
+    Buf sinit = {0, 0, 0};
     buf_free(&e->body);
     buf_free(&e->decl);
+    buf_free(&e->sdecl);
+    buf_free(&e->sclean);
+    e->nsmem = 0;
     e->pre.n = 0;
     e->rel.n = 0;
     e->indent = 1;
+    /* refcounted locals live in a struct on the cleanup chain (released if an error unwinds) */
+    for (i = 0; i < pr->nlocals; i++) {
+        Sym *s = pr->locals[i];
+        if (s->storage != ST_LOCAL || s->byref || !is_refty(s->ty)) continue;
+        s->cname = struct_member(e, s->ty, sym_cname(e, s));
+        local_init_struct(e, &sinit, s);
+    }
     block(e, &pr->body);
-    /* locals (params are in the signature) */
+    /* other locals (params are in the signature) */
     for (i = 0; i < pr->nlocals; i++) {
         Sym *s = pr->locals[i];
         if (s->storage == ST_PARAM) continue;
+        if (s->storage == ST_LOCAL && !s->byref && is_refty(s->ty)) continue;
         local_init(e, &d, s, e->handler && !s->byref);
     }
+    if (e->nsmem) {
+        buf_printf(e->out, "\nstruct L%d {\n", pr->index);
+        buf_put(e->out, e->sdecl.p, e->sdecl.n);
+        buf_printf(e->out, "};\nstatic void cleanup%d(void *ctx)\n{\n    struct L%d *c = (struct L%d *)ctx;\n", pr->index, pr->index, pr->index);
+        buf_put(e->out, e->sclean.p, e->sclean.n);
+        buf_puts(e->out, "}\n");
+    }
     buf_printf(e->out, "\n%s\n{\n", proc_sig(e, pr, 1));
+    if (e->nsmem) {
+        buf_printf(e->out, "    %sstruct L%d bbL;\n    bb_cleanup bbC;\n", e->handler ? "volatile " : "", pr->index);
+        buf_puts(e->out, "    memset((void *)&bbL, 0, sizeof bbL);\n");
+    }
     buf_put(e->out, d.p ? d.p : "", d.n);
     buf_put(e->out, e->decl.p ? e->decl.p : "", e->decl.n);
+    if (e->nsmem) {
+        buf_put(e->out, sinit.p ? sinit.p : "", sinit.n);
+        buf_printf(e->out, "    bbC.prev = bb_cleanups; bbC.fn = cleanup%d; bbC.ctx = (void *)&bbL; bb_cleanups = &bbC;\n", pr->index);
+    }
+    buf_free(&sinit);
     if (pr->has_gosub) buf_puts(e->out, "    int bb_gs[64]; int bb_gsp = 0;\n");
     if (e->handler) {
         buf_puts(e->out, "    bb_errframe bb_ef;\n    volatile int bb_mode = 0, bb_hlabel = -1, bb_inh = 0, bb_stmt = 0, bb_estmt = 0, bb_rs = 0;\n");
@@ -1642,6 +1716,7 @@ static void emit_proc(EC *e, Proc *pr)
         buf_puts(e->out, "    }\n");
     }
     buf_puts(e->out, "bb_exit: ;\n");
+    if (e->nsmem) buf_puts(e->out, "    bb_cleanups = bbC.prev;\n");
     if (e->handler) buf_puts(e->out, "    bb_frame_pop(&bb_ef);\n    if (bb_inh) bb_err_clear();\n");
     for (i = 0; i < pr->nlocals; i++) {
         Sym *s = pr->locals[i];

@@ -108,6 +108,8 @@ counter ends at the first value past the limit.
 `vbObjectError` is -2147221504. An unhandled error prints `file:line: runtime error n: message`
 on stderr and exits with code 20. Errors propagate to the caller's handler. An error inside a
 handler goes to the next handler up. `Exit Sub/Function` in a handler clears `Err`.
+Procedures unwound by an error release their locals (objects' `Class_Terminate` runs) in
+both back ends.
 
 ## Classes (`.cls`)
 
@@ -199,6 +201,5 @@ error 48/453.
 - `DefInt` and the other `Def` statements; `AddressOf`; `Friend` is treated as `Public`.
 - `As New` creates the object when the `Dim` runs, not on first use.
 - Late-bound calls pass arguments by value (no ByRef through `Object`).
-- Errors that unwind through native procedures do not release those procedures' local
-  strings and objects (memory is reclaimed at exit; `Class_Terminate` of such objects does
-  not run).
+- Native stack overflow (very deep recursion) is not detected in built programs (the VM raises
+  error 28).

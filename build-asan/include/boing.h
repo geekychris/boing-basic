@@ -94,8 +94,17 @@ typedef struct bb_value {
 /* Errors: VB's Err object and the handler-frame stack                 */
 /* ------------------------------------------------------------------ */
 
+/* Cleanups of native procedures' locals, run when an error unwinds past them. */
+typedef struct bb_cleanup {
+    struct bb_cleanup *prev;
+    void (*fn)(void *ctx);
+    void *ctx;
+} bb_cleanup;
+extern bb_cleanup *bb_cleanups;
+
 typedef struct bb_errframe {
     struct bb_errframe *prev;
+    bb_cleanup *cmark;          /* cleanups registered before this frame */
     jmp_buf jb;
 } bb_errframe;
 
@@ -126,7 +135,7 @@ const char *bb_error_message(int32_t num);  /* standard VB message text */
 void bb_err_clear(void);                     /* Err.Clear */
 void bb_fatal_error(void) BB_NORETURN;       /* report bb_err and exit(20) */
 
-BB_INLINE void bb_frame_push(bb_errframe *f) { f->prev = bb_errtop; bb_errtop = f; }
+BB_INLINE void bb_frame_push(bb_errframe *f) { f->prev = bb_errtop; f->cmark = bb_cleanups; bb_errtop = f; }
 BB_INLINE void bb_frame_pop(bb_errframe *f) { bb_errtop = f->prev; }
 
 /* ------------------------------------------------------------------ */
