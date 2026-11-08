@@ -1,0 +1,384 @@
+#!/usr/bin/env python3
+"""genbind - write Boing BASIC bindings (bindings/*.bi) from the AmigaOS 4 SDK.
+
+    tools/genbind [--sdk DIR] [--out DIR] [--slots FILE] [lib ...]
+
+Reads the SDK's interface descriptions (Include/interfaces/*.xml) for the Declare lines and
+the C headers (Include/include_h) for the numeric #defines, which become Consts.
+
+Every Declare names its interface slot with `Alias "#n"` (n = the function's index in the
+interface's function table, Obtain = 0), so the runtime calls through the table without a
+name lookup. Functions that can't be called with 32-bit integer arguments (float, double,
+64-bit or struct-by-value arguments or results) and variadic ones (use the TagList form of the
+function instead: AllocDosObject, not AllocDosObjectTags) are left out with a comment.
+
+--slots also writes a C table (lib, interface, function, slot, argc) the OS4 runtime uses for
+Declares written by hand without a "#n" alias.
+"""
+import argparse
+import ast
+import os
+import re
+import sys
+import xml.etree.ElementTree as ET
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_SDK = os.path.normpath(os.path.join(HERE, "../../refs/os4-sdk/base/Include"))
+
+# Words a Declare or argument may not be called (BASIC keywords and builtins). A function with
+# one of these names gets its library's prefix (Dos_Open); an argument gets a trailing _.
+RESERVED = set("""
+abs access alias and any append array as asc atn base beep binary boolean byref byte byval call
+case cbool cbyte ccur cdate cdbl chdir chr cint circle class clear clng close cls command compare
+const cos createobject csng cstr currency curdir cvar date dateadd datediff dateserial day debug
+declare deftype dim dir do doevents double each else elseif empty end enum environ eof eqv erase
+err error event exit exp explicit false filecopy filelen fix for format freefile friend function
+get global gosub goto hex hour if imp implements in input instr instrrev int integer is isarray
+isdate isempty isnull isnumeric join kill lbound lcase left len let lib like line load loc lock
+lof log long loop lset ltrim me mid minute mkdir mod month msgbox name new next not nothing now
+null object oct on open option optional or output paramarray preserve print private property
+public put raiseevent random randomize read redim rem replace reset resume return right rmdir rnd
+round rset rtrim second seek select set sgn shell sin single space split sqr static step stop
+str strcomp string strreverse sub tab tan then time timer to trim true type typename ubound ucase
+unload unlock until val variant vartype version weekday wend while with withevents write xor year
+interface
+""".split())
+
+INT_TYPES = set("""
+LONG ULONG int uint32 int32 WORD UWORD BYTE UBYTE BOOL Tag BPTR size_t long unsigned short char
+uint16 int16 uint8 int8 ssize_t Object ClassID LONGBITS UBYTEBITS WORDBITS IPTR SIPTR off_t
+time_t uint int32_t uint32_t int16_t uint16_t int8_t uint8_t bool TEXT PLANEPTR APTR CONST_APTR
+STRPTR CONST_STRPTR BSTR SHORT USHORT RAWARG BOOLEAN uintptr_t intptr_t socklen_t sa_family_t
+in_addr_t in_port_t mode_t pid_t clock_t
+""".split())
+WIDE_TYPES = set("""
+float double FLOAT DOUBLE int64 uint64 QUAD UQUAD int64_t uint64_t long long DOUBLEFLOAT
+""".split())
+STRING_IN = {"CONST_STRPTR", "const char *", "const unsigned char *", "CONST_STRPTR*"}
+
+# Header directory -> library, where the names differ.
+DIR_LIB = {"rexx": "rexxsyslib", "workbench": "wb", "cybergraphx": "cybergraphics"}
+BASENAME_DIRS = {"libraries", "gadgets", "images", "classes", "devices", "resources"}
+
+
+def clean_type(t):
+    t = t.replace("DEPRECATED", "").replace("APICALL", "").strip()
+    t = re.sub(r"\s+", " ", t)
+    t = re.sub(r"\s*\*", " *", t).replace("* *", "**").replace(" * *", " **")
+    return t.strip()
+
+
+def basic_type(t):
+    """'Long', 'String' (in) or None (not callable with 32-bit words). t is the C type."""
+    t = clean_type(t)
+    if t in STRING_IN or t.replace(" ", "") in ("constchar*", "constunsignedchar*"):
+        return "String"
+    if "*" in t:
+        return "Long"                      # any pointer
+    if "(" in t:
+        return "Long"                      # function pointer typedefs spelled inline
+    words = [w for w in t.split() if w not in ("const", "volatile", "signed", "unsigned", "struct", "enum", "union")]
+    if not words:
+        return "Long"                      # "unsigned"
+    if t.startswith("struct ") or t.startswith("union "):
+        return None                        # struct by value
+    if any(w in WIDE_TYPES for w in words) or t.count("long") >= 2:
+        return None
+    return "Long"                          # typedef'd integers / handles (all 32 bit on OS4)
+
+
+def safe_name(n, used):
+    o = re.sub(r"[^A-Za-z0-9_]", "_", n)
+    if not o or o[0].isdigit() or o[0] == "_":
+        o = "a" + o
+    if o.lower() in RESERVED:
+        o += "_"
+    while o.lower() in used:
+        o += "_"
+    used.add(o.lower())
+    return o
+
+
+def lib_prefix(lib):
+    return lib[:1].upper() + lib[1:]
+
+
+def parse_xml(path):
+    root = ET.parse(path).getroot()
+    lib = os.path.splitext(os.path.basename(path))[0]
+    openname = root.get("openname", "none")
+    ifaces = []
+    for itf in root.findall("interface"):
+        if itf.get("flags") in ("private",):
+            continue
+        methods = []
+        for slot, m in enumerate(itf.findall("method")):
+            args = [(a.get("name"), a.get("type")) for a in m.findall("arg")]
+            methods.append({
+                "name": m.get("name"), "result": m.get("result", "void"), "slot": slot,
+                "args": args, "vararg": m.find("vararg") is not None,
+                "status": m.get("status", "implemented"),
+            })
+        ifaces.append({"name": itf.get("name"), "version": itf.get("version", "1.0"),
+                       "flags": itf.get("flags", "none"), "methods": methods})
+    return lib, openname, ifaces
+
+
+# --- constants -------------------------------------------------------------------------------
+
+DEFINE_RE = re.compile(r"^\s*#\s*define\s+([A-Za-z_][A-Za-z0-9_]*)\s+(.+?)\s*$")
+CAST_RE = re.compile(r"\(\s*(?:const\s+)?(?:unsigned\s+|signed\s+)?(?:ULONG|LONG|UWORD|WORD|UBYTE|BYTE|uint32|int32|"
+                     r"uint16|int16|uint8|int8|int|long|short|char|Tag|BPTR|APTR|STRPTR|IPTR|uint32_t|int32_t|"
+                     r"BOOL|unsigned)\s*\)")
+
+
+def strip_comments(text):
+    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
+
+
+def header_owner(rel, libs):
+    parts = rel.split("/")
+    if len(parts) != 2:
+        return None
+    d, base = parts[0], os.path.splitext(parts[1])[0]
+    if d in BASENAME_DIRS:
+        return base if base in libs else None
+    if d == "workbench" and base == "icon":
+        return "icon" if "icon" in libs else None
+    lib = DIR_LIB.get(d, d)
+    return lib if lib in libs else None
+
+
+def eval_expr(expr, known):
+    e = CAST_RE.sub(" ", expr)
+    e = re.sub(r"\b(0[xX][0-9A-Fa-f]+|\d+)[uUlL]+\b", r"\1", e)
+    if re.search(r"['\"]", e):
+        return None
+
+    def sub(m):
+        w = m.group(0)
+        if re.fullmatch(r"0[xX][0-9A-Fa-f]+|\d+", w):
+            return w
+        if w in known:
+            return "(%d)" % known[w]
+        raise KeyError(w)
+    try:
+        e = re.sub(r"\b[A-Za-z_][A-Za-z0-9_]*\b|\b0[xX][0-9A-Fa-f]+\b|\b\d+\b", sub, e)
+    except KeyError:
+        return None
+    e = e.replace("~", " ~").replace("/", "//")
+    if re.search(r"[^0-9xXa-fA-F()+\-*/%<>&|^~ ]", e):
+        return None
+    try:
+        tree = ast.parse(e.strip(), mode="eval")
+    except SyntaxError:
+        return None
+    for n in ast.walk(tree):
+        if not isinstance(n, (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.operator,
+                              ast.unaryop)):
+            return None
+    try:
+        v = eval(compile(tree, "<c>", "eval"), {"__builtins__": {}})
+    except Exception:
+        return None
+    if not isinstance(v, int):
+        return None
+    v &= 0xFFFFFFFF
+    return v - (1 << 32) if v >= 1 << 31 else v
+
+
+def collect_constants(inc_dir, libs):
+    """{lib: [(name, value, header)]}, each name once (first definition wins)."""
+    files = []
+    for d in sorted(os.listdir(inc_dir)):
+        p = os.path.join(inc_dir, d)
+        if not os.path.isdir(p) or d in ("clib", "inline", "inline4", "interfaces", "proto", "pragma", "pragmas",
+                                         "defines", "openssl", "amissl", "lzma"):
+            continue
+        for f in sorted(os.listdir(p)):
+            if f.endswith(".h"):
+                files.append(d + "/" + f)
+    raw = []
+    for rel in files:
+        try:
+            text = open(os.path.join(inc_dir, rel), encoding="latin-1").read()
+        except OSError:
+            continue
+        text = strip_comments(text).replace("\\\n", " ")
+        for line in text.split("\n"):
+            m = DEFINE_RE.match(line)
+            if m and "(" not in m.group(1):
+                raw.append((m.group(1), m.group(2), rel))
+    known, where, pending = {}, {}, list(raw)
+    # resolve in passes: later defines may refer to earlier ones in other headers
+    for _ in range(8):
+        left = []
+        for name, expr, rel in pending:
+            if name in known:
+                continue
+            v = eval_expr(expr, known)
+            if v is None:
+                left.append((name, expr, rel))
+            else:
+                known[name] = v
+                where[name] = rel
+        if len(left) == len(pending):
+            break
+        pending = left
+    out = {}
+    for name, expr, rel in raw:
+        if where.get(name) != rel:
+            continue
+        lib = header_owner(rel, libs)
+        if lib:
+            out.setdefault(lib, []).append((name, known[name], rel))
+            where[name] = None     # once
+    return out
+
+
+# --- output ----------------------------------------------------------------------------------
+
+def write_bi(lib, openname, ifaces, consts, clash, out_dir, slots):
+    L = []
+    L.append("' %s.bi - %s, generated by tools/genbind from the AmigaOS 4 SDK. Don't edit." % (lib, openname))
+    L.append("' Functions that can't be called with 32-bit integer arguments, and variadic ones")
+    L.append("' (use the TagList form), are left out.")
+    L.append("")
+    names_used = set()
+    for itf in ifaces:
+        iname = itf["name"]
+        ver = itf["version"].split(".")[0]
+        L.append("' --- interface \"%s\" ---" % iname)
+        for m in itf["methods"]:
+            slot_entry = None
+            if m["slot"] < 4 and m["name"] in ("Obtain", "Release", "Expunge", "Clone"):
+                continue
+            if m["status"] == "unimplemented" or re.match(r"(PRIVATE|OBSOLETE|Reserved|Private)", m["name"]):
+                continue
+            if m["vararg"]:
+                L.append("' %s: variadic, left out" % m["name"])
+                continue
+            res = clean_type(m["result"])
+            is_sub = res == "void"
+            rtype = None if is_sub else basic_type(res)
+            if not is_sub and rtype is None:
+                L.append("' %s: returns %s, left out" % (m["name"], res))
+                continue
+            if rtype == "String":
+                rtype = "Long"           # a returned C string is a pointer: PeekS(p)
+            bad = [t for _, t in m["args"] if basic_type(t) is None]
+            if bad:
+                L.append("' %s: argument of type %s, left out" % (m["name"], bad[0]))
+                continue
+            if len(m["args"]) > 12:
+                L.append("' %s: more than 12 arguments, left out" % m["name"])
+                continue
+            bname = m["name"]
+            if iname != "main":
+                bname = lib_prefix(iname) + "_" + bname
+            if bname.lower() in RESERVED or bname.lower() in clash:
+                bname = lib_prefix(lib) + "_" + bname
+            bname = re.sub(r"[^A-Za-z0-9_]", "_", bname)
+            if bname.lower() in names_used:
+                continue
+            names_used.add(bname.lower())
+            argnames = set()
+            args = []
+            for an, at in m["args"]:
+                bt = basic_type(at)
+                args.append("ByVal %s As %s" % (safe_name(an or "arg", argnames), bt))
+            kw = "Sub" if is_sub else "Function"
+            s = '%sDeclare %s %s Lib "%s"' % ("", kw, bname, openname)
+            if iname != "main":
+                s += ' Interface "%s"' % iname
+            s += ' Alias "#%d" (%s)' % (m["slot"], ", ".join(args))
+            if not is_sub:
+                s += " As " + rtype
+            L.append(s)
+            slots.append((openname, iname, m["name"], m["slot"], len(m["args"])))
+        L.append("")
+    if consts:
+        L.append("' --- constants ---")
+        last = None
+        for name, v, rel in consts:
+            if rel != last:
+                L.append("' %s" % rel)
+                last = rel
+            cname = name
+            if cname.lower() in RESERVED:
+                cname = cname + "_"
+            L.append("Const %s = %s" % (cname, ("&H%08X" % (v & 0xFFFFFFFF)) if v < 0 else "%d" % v))
+        L.append("")
+    with open(os.path.join(out_dir, lib + ".bi"), "w", encoding="latin-1") as f:
+        f.write("\n".join(L))
+
+
+def write_slots(path, slots):
+    with open(path, "w") as f:
+        f.write("/* Generated by tools/genbind from the AmigaOS 4 SDK interfaces: the slot (index in the\n"
+                " * interface's function table) of every function, for Declares without an Alias \"#n\".\n"
+                " * Sorted by library, interface, function name (case-insensitive) for bsearch. */\n")
+        f.write('#include "os4_slots.h"\n\nconst struct bb_slot bb_slots[] = {\n')
+        for lib, itf, name, slot, argc in sorted(slots, key=lambda s: (s[0].lower(), s[1].lower(), s[2].lower())):
+            f.write('    { "%s", "%s", "%s", %d, %d },\n' % (lib, itf, name, slot, argc))
+        f.write("};\nconst int bb_num_slots = %d;\n" % len(slots))
+
+
+# Libraries whose functions are commonly used together: a name in two of them gets the
+# library prefix in both, so their .bi files can be included together.
+COMMON = ["exec", "dos", "intuition", "graphics", "utility", "icon", "wb", "asl", "locale", "diskfont",
+          "layers", "keymap", "gadtools", "datatypes", "commodities", "iffparse", "rexxsyslib",
+          "application", "timer", "layout", "window", "listbrowser", "chooser", "clicktab", "requester"]
+SKIP = {"amissl", "amisslmaster", "bsdsocket", "z", "bzip2", "usergroup"}   # huge or POSIX-like
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--sdk", default=DEFAULT_SDK, help="the SDK's Include directory")
+    ap.add_argument("--out", default=os.path.join(HERE, "..", "bindings"))
+    ap.add_argument("--slots", help="also write the C slot table here")
+    ap.add_argument("libs", nargs="*")
+    a = ap.parse_args()
+    idir = os.path.join(a.sdk, "interfaces")
+    parsed = {}
+    for f in sorted(os.listdir(idir)):
+        if not f.endswith(".xml"):
+            continue
+        lib = f[:-4]
+        if lib in SKIP and lib not in a.libs:
+            continue
+        if a.libs and lib not in a.libs:
+            continue
+        try:
+            parsed[lib] = parse_xml(os.path.join(idir, f))
+        except ET.ParseError as e:
+            print("genbind: %s: %s" % (f, e), file=sys.stderr)
+    # names in more than one common library
+    seen, clash = {}, set()
+    for lib in COMMON:
+        if lib not in parsed:
+            continue
+        for itf in parsed[lib][2]:
+            if itf["name"] != "main":
+                continue
+            for m in itf["methods"]:
+                k = m["name"].lower()
+                if k in seen and seen[k] != lib:
+                    clash.add(k)
+                seen.setdefault(k, lib)
+    consts = collect_constants(os.path.join(a.sdk, "include_h"), set(parsed))
+    os.makedirs(a.out, exist_ok=True)
+    slots = []
+    for lib, (_, openname, ifaces) in sorted(parsed.items()):
+        if openname == "none":
+            openname = lib + ".library"
+        write_bi(lib, openname, ifaces, consts.get(lib, []), clash, a.out, slots)
+    if a.slots:
+        write_slots(a.slots, slots)
+    print("genbind: %d libraries, %d functions, %d constants" %
+          (len(parsed), len(slots), sum(len(v) for k, v in consts.items() if k in parsed)))
+
+
+if __name__ == "__main__":
+    main()
