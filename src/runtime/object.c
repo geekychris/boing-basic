@@ -42,10 +42,21 @@ int32_t bb_member_id(bb_obj *o, const char *name)
 bb_value bb_invoke_id(bb_obj *o, int32_t id, int kind, int argc, bb_value *argv)
 {
     bb_value r = bb_v_empty();
+    bb_errframe f;
     bb_obj_check(o);
     if (!o->cls->invoke) bb_raise(438, NULL);
+    /* keep the object alive during the call; drop that reference again if it raises */
     bb_obj_retain(o);
-    o->cls->invoke(o, id, kind, argc, argv, &r);
+    bb_frame_push(&f);
+    if (setjmp(f.jb) == 0) {
+        o->cls->invoke(o, id, kind, argc, argv, &r);
+        bb_frame_pop(&f);
+    } else {
+        bb_frame_pop(&f);
+        bb_v_release(&r);
+        bb_obj_release(o);
+        bb_rethrow();
+    }
     bb_obj_release(o);
     return r;
 }
@@ -128,11 +139,20 @@ void bb_event_disconnect(bb_obj *src, bb_sink *s)
 void bb_event_raise(bb_obj *src, int32_t event, const char *name, int argc, bb_value *argv)
 {
     bb_sink *s, *n;
+    bb_errframe f;
     if (!src) return;
     bb_obj_retain(src);
-    for (s = src->sinks; s; s = n) {
-        n = s->next;
-        s->fire(s, event, name, argc, argv);
+    bb_frame_push(&f);
+    if (setjmp(f.jb) == 0) {
+        for (s = src->sinks; s; s = n) {
+            n = s->next;
+            s->fire(s, event, name, argc, argv);
+        }
+        bb_frame_pop(&f);
+    } else {
+        bb_frame_pop(&f);
+        bb_obj_release(src);
+        bb_rethrow();
     }
     bb_obj_release(src);
 }

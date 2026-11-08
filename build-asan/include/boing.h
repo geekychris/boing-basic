@@ -568,6 +568,18 @@ int bb_dispatch_event(const char *module, const char *object, const char *event,
                       int argc, bb_value *argv);
 
 /* ------------------------------------------------------------------ */
+/* Forms (forms_rt.c, on the platform's bb_forms.h)                     */
+/* ------------------------------------------------------------------ */
+
+/* Called at start-up for every form of the project, before the startup code. */
+void bb_forms_register(const char *module, const char *form_name, const char *afg_text, const char *afg_path);
+int bb_forms_register_file(const char *module, const char *form_name, const char *afg_path);
+void bb_forms_main(const char *module);       /* Startup=Form x */
+void bb_form_load_obj(const bb_value *form);  /* Load x */
+void bb_form_unload_obj(const bb_value *form);/* Unload x */
+void bb_forms_shutdown_(void);
+
+/* ------------------------------------------------------------------ */
 /* Console and Print                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -683,6 +695,13 @@ bb_long bb_rgb(bb_long r, bb_long g, bb_long b);
 bb_long bb_erl(void);
 bb_str *bb_error_fn(const bb_value *num);    /* Error$(n) */
 bb_date bb_timevalue_(bb_date d);
+bb_str *bb_app_path(void);                   /* App.Path */
+bb_str *bb_app_exename(void);                /* App.EXEName */
+bb_str *bb_app_title(void);                  /* App.Title (project Name) */
+void bb_set_app_title(const char *t);
+bb_str *bb_clipboard_get(void);              /* Clipboard.GetText */
+void bb_clipboard_set(bb_str *s);            /* Clipboard.SetText */
+void bb_clipboard_clear(void);
 
 /* ------------------------------------------------------------------ */
 /* Files                                                                */

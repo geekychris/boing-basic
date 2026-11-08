@@ -588,7 +588,7 @@ static void store_raw(VM *vm, void *p, int vt, bb_value v, int aux)
         if (vt & BB_ARRAY) {
             bb_array **pa = (bb_array **)p;
             if (!(v.type & BB_ARRAY)) bb_raise(13, NULL);
-            if (*pa && (*pa)->fixed) { bb_v_release(&v); bb_raise(10, NULL); }
+            if (*pa && (*pa)->fixed) bb_raise(10, NULL);
             bb_arr_free(*pa);
             *pa = v.u.a;
             return;
@@ -634,7 +634,14 @@ static void vm_exec(VM *vm, int entry)
             f = &vm->frames[i];
             if (f->handler_mode != OE_NONE && !f->in_handler) {
                 int li;
-                while (vm->nframes - 1 > i) pop_frame(vm);
+                /* release what the failed statements left on the stack (vm->sp is kept
+                 * exact: ops that take ownership of popped values sync it first) */
+                while (vm->nframes - 1 > i) {
+                    Frame *t = &vm->frames[vm->nframes - 1];
+                    while (vm->sp > t->base + t->proc->nlocals) release_slot(--vm->sp);
+                    pop_frame(vm);
+                }
+                while (vm->sp > f->base + f->proc->nlocals) release_slot(--vm->sp);
                 vm->sp = f->base + f->proc->nlocals;
                 f->err_pc = (int32_t)(f->pc - code);
                 li = line_index(f->proc, f->err_pc);
@@ -649,7 +656,11 @@ static void vm_exec(VM *vm, int entry)
             }
         }
         if (!handled) {
-            while (vm->nframes > entry) pop_frame(vm);
+            while (vm->nframes > entry) {
+                Frame *t = &vm->frames[vm->nframes - 1];
+                while (vm->sp > t->base + t->proc->nlocals) release_slot(--vm->sp);
+                pop_frame(vm);
+            }
             bb_frame_pop(&ef);
             bb_rethrow();
         }
@@ -684,14 +695,14 @@ static void vm_exec(VM *vm, int entry)
             case I_LDLS: { bb_value v = L[pc[1]]; bb_str_retain(v.u.s); PUSH(v); pc += 2; break; }
             case I_LDLV: { bb_value v; bb_v_copy(&v, &L[pc[1]]); PUSH(v); pc += 2; break; }
             case I_STL: { bb_value v = POP(); bb_value *d = &L[pc[1]]; d->u = v.u; d->type = v.type; pc += 2; break; }
-            case I_STLS: { bb_value v = POP(); bb_value *d = &L[pc[1]]; bb_str_set(&d->u.s, v.type == BB_STRING ? v.u.s : NULL); d->type = BB_STRING; pc += 2; break; }
-            case I_STLV: { bb_value v = POP(); bb_v_set(&L[pc[1]], v); pc += 2; break; }
+            case I_STLS: { bb_value v = POP(); SYNC(); bb_value *d = &L[pc[1]]; bb_str_set(&d->u.s, v.type == BB_STRING ? v.u.s : NULL); d->type = BB_STRING; pc += 2; break; }
+            case I_STLV: { bb_value v = POP(); SYNC(); bb_v_set(&L[pc[1]], v); pc += 2; break; }
             case I_LDG: PUSH(G[pc[1]]); pc += 2; break;
             case I_LDGS: { bb_value v = G[pc[1]]; bb_str_retain(v.u.s); PUSH(v); pc += 2; break; }
             case I_LDGV: { bb_value v; bb_v_copy(&v, &G[pc[1]]); PUSH(v); pc += 2; break; }
             case I_STG: { bb_value v = POP(); G[pc[1]].u = v.u; G[pc[1]].type = v.type; pc += 2; break; }
-            case I_STGS: { bb_value v = POP(); bb_str_set(&G[pc[1]].u.s, v.type == BB_STRING ? v.u.s : NULL); G[pc[1]].type = BB_STRING; pc += 2; break; }
-            case I_STGV: { bb_value v = POP(); bb_v_set(&G[pc[1]], v); pc += 2; break; }
+            case I_STGS: { bb_value v = POP(); SYNC(); bb_str_set(&G[pc[1]].u.s, v.type == BB_STRING ? v.u.s : NULL); G[pc[1]].type = BB_STRING; pc += 2; break; }
+            case I_STGV: { bb_value v = POP(); SYNC(); bb_v_set(&G[pc[1]], v); pc += 2; break; }
             case I_LDF: case I_LDFV: {
                 VMObj *o = (VMObj *)L[0].u.o;
                 bb_value v;
@@ -704,6 +715,7 @@ static void vm_exec(VM *vm, int entry)
             case I_STF: case I_STFV: {
                 VMObj *o = (VMObj *)L[0].u.o;
                 bb_value v = POP();
+                SYNC();
                 if (op == I_STF) { o->f[pc[1]].u = v.u; o->f[pc[1]].type = v.type; }
                 else if (o->vc->fields[pc[1]].vt == BB_STRING) {
                     bb_str_set(&o->f[pc[1]].u.s, v.type == BB_STRING ? v.u.s : NULL);
@@ -742,6 +754,7 @@ static void vm_exec(VM *vm, int entry)
             }
             case I_STR: {
                 bb_value v = POP();
+                SYNC();
                 bb_value *r = &L[pc[1]];
                 store_raw(vm, r->u.p, pc[2], v, r->aux);
                 pc += 3;
@@ -756,6 +769,7 @@ static void vm_exec(VM *vm, int entry)
             }
             case I_STIND: {
                 bb_value v = POP(), r = POP();
+                SYNC();
                 store_raw(vm, r.u.p, pc[1], v, r.aux);
                 pc += 2;
                 break;
@@ -768,6 +782,7 @@ static void vm_exec(VM *vm, int entry)
                 void *ep;
                 for (i = n - 1; i >= 0; i--) { bb_value x = POP(); idx[i] = x.type == BB_LONG ? x.u.l : bb_v_to_long(&x); }
                 r = POP();
+                SYNC();
                 if (r.type & BB_REF) {
                     if ((r.type & BB_ARRAY)) a = *(bb_array **)r.u.p;
                     else a = bb_v_array((bb_value *)r.u.p);
@@ -786,6 +801,7 @@ static void vm_exec(VM *vm, int entry)
             }
             case I_UFIELD: {
                 bb_value r = POP();
+                SYNC();
                 VMUdt *u = &img->udts[pc[1]];
                 bb_field *f = &u->rtfields[pc[2]];
                 char *base;
@@ -799,6 +815,7 @@ static void vm_exec(VM *vm, int entry)
             }
             case I_MFIELD: {
                 bb_value o = POP(), r;
+                SYNC();
                 VMObj *ob;
                 if (o.type != BB_OBJECT || !o.u.o) { bb_v_release(&o); bb_raise(91, NULL); }
                 ob = (VMObj *)o.u.o;
@@ -939,10 +956,8 @@ static void vm_exec(VM *vm, int entry)
                 bb_value ta, tb;
                 const bb_value *x = bb_v_deref(&a, &ta), *y = bb_v_deref(&b, &tb);
                 int r;
-                if ((x->type != BB_OBJECT && x->type != BB_EMPTY) || (y->type != BB_OBJECT && y->type != BB_EMPTY)) {
-                    bb_v_release(&a); bb_v_release(&b);
-                    bb_raise(424, NULL);
-                }
+                if ((x->type != BB_OBJECT && x->type != BB_EMPTY) || (y->type != BB_OBJECT && y->type != BB_EMPTY))
+                    bb_raise(424, NULL);     /* a and b are still on the stack: released there */
                 r = (x->type == BB_OBJECT ? x->u.o : NULL) == (y->type == BB_OBJECT ? y->u.o : NULL);
                 bb_v_release(&a);
                 bb_v_release(&b);
@@ -1311,6 +1326,7 @@ static void vm_exec(VM *vm, int entry)
             }
             case I_FEBEGIN: {
                 bb_value c = POP();
+                SYNC();
                 FeObj *f = (FeObj *)bb_obj_new(&fe_class);
                 bb_value view;
                 bb_v_set(&L[pc[1]], bb_v_obj(&f->hdr));
