@@ -941,7 +941,7 @@ static Node *parse_onerror_or_goto(P *p, Token *t)
     else if (accept_kw(p, KW_GOSUB)) n->op = 1;
     else perr(p, tk(p), "expected GoTo or GoSub, found %s", NULL);
     for (;;) {
-        Node *l = mk(p, S_LABEL, tk(p));
+        Node *l = mk(p, S_GOTO, tk(p));
         if (is(p, TK_INT)) l->name = xsprintf("%lld", (long long)adv(p)->ival);
         else l->name = ident(p, NULL);
         nl_push(&n->list, l);

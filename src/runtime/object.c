@@ -357,3 +357,84 @@ bb_array *bb_v_array(const bb_value *v0)
     if (!(v->type & BB_ARRAY)) bb_raise(13, NULL);
     return v->u.a;
 }
+
+bb_array *bb_v_to_array(const bb_value *v0, int etype)
+{
+    bb_value t;
+    const bb_value *v = bb_v_deref(v0, &t);
+    if (!(v->type & BB_ARRAY)) bb_raise(13, NULL);
+    if (!v->u.a) return NULL;
+    if (etype != BB_VARIANT && v->u.a->etype != etype) bb_raise(13, NULL);
+    return bb_arr_copy(v->u.a);
+}
+
+void bb_arr_set(bb_array **dst, bb_array *owned)
+{
+    if (*dst && (*dst)->fixed) { bb_arr_free(owned); bb_raise(10, NULL); }
+    bb_arr_free(*dst);
+    *dst = owned;
+}
+
+void bb_v_redim(bb_value *v, int etype, const bb_udt_desc *udt, int ndims, const int32_t *lb, const int32_t *ub, int preserve)
+{
+    if (v->type & BB_ARRAY) {
+        bb_arr_redim(&v->u.a, v->u.a ? v->u.a->etype : etype, v->u.a ? v->u.a->udt : udt, ndims, lb, ub, preserve);
+        if (v->u.a) v->type = (uint16_t)(BB_ARRAY | v->u.a->etype);
+    } else {
+        bb_array *a = NULL;
+        bb_arr_redim(&a, etype, udt, ndims, lb, ub, 0);
+        bb_v_set(v, bb_v_arr(a));
+    }
+}
+
+void bb_v_erase(bb_value *v)
+{
+    if (v->type & BB_ARRAY) bb_arr_erase(&v->u.a);
+    else bb_raise(13, NULL);
+}
+
+void bb_v_mid_assign(bb_value *v, bb_long start, bb_long len, bb_str *repl)
+{
+    if (v->type != BB_STRING) bb_raise(13, NULL);
+    bb_mid_assign(&v->u.s, start, len, repl);
+}
+
+int bb_for_done_v(const bb_value *ctr, const bb_value *lim, const bb_value *step)
+{
+    bb_value zero = bb_v_int(0);
+    int sg = bb_v_compare(step, &zero, 0), c = bb_v_compare(ctr, lim, 0);
+    return sg >= 0 ? c == 1 : c == -1;
+}
+
+bb_bool bb_v_is(const bb_value *a0, const bb_value *b0)
+{
+    bb_value ta, tb;
+    const bb_value *a = bb_v_deref(a0, &ta), *b = bb_v_deref(b0, &tb);
+    if ((a->type != BB_OBJECT && a->type != BB_EMPTY) || (b->type != BB_OBJECT && b->type != BB_EMPTY)) bb_raise(424, NULL);
+    return (a->type == BB_OBJECT ? a->u.o : NULL) == (b->type == BB_OBJECT ? b->u.o : NULL) ? BB_TRUE : BB_FALSE;
+}
+
+bb_obj *bb_chkcls(bb_obj *o, const bb_class *cls)
+{
+    if (o && !bb_obj_is(o, cls)) bb_raise(13, NULL);
+    return o;
+}
+
+void bb_wev_disconnect(bb_wevconn *c)
+{
+    if (c->src) {
+        bb_event_disconnect(c->src, c->sink);
+        bb_obj_release(c->src);
+    }
+    c->src = NULL;
+    c->sink = NULL;
+}
+
+void bb_wev_connect(bb_wevconn *c, bb_obj *src, void (*fire)(bb_sink *, int32_t, const char *, int, bb_value *),
+                    void *ctx, int32_t tag)
+{
+    bb_wev_disconnect(c);
+    if (!src) return;
+    c->src = bb_obj_retain(src);
+    c->sink = bb_event_connect(src, fire, ctx, tag);
+}

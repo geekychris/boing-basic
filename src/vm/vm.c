@@ -381,10 +381,6 @@ static Frame *push_frame(VM *vm, int32_t pidx, bb_value *base)
             h++;
         }
         for (i = p->nparams; i < p->hidden; i++) init_slot(vm, &base[i], &p->slots[i]);
-        for (i = p->hidden; i < p->nlocals; i++) {
-            /* hidden slots of params that were real refs stay Empty */
-            if (base + i >= vm->sp) base[i] = bb_v_empty();
-        }
     }
     vm->sp = base + p->nlocals;
     return f;

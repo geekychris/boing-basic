@@ -68,10 +68,24 @@ static int32_t col_of(int fn) { return fn <= 0 ? concol : getfile(fn)->col; }
 void bb_print_cstr(int fn, const char *s) { out(fn, s, strlen(s)); }
 void bb_print_str(int fn, const bb_str *s) { out(fn, bb_str_ptr(s), (size_t)bb_str_len(s)); }
 
+/* Print / Str style: no leading zero before the decimal point (" .5", "-.25") */
+const char *bb_num_strip0_(const bb_str *s, int32_t *len)
+{
+    const char *p = bb_str_ptr(s);
+    int32_t n = bb_str_len(s);
+    if (n >= 2 && p[0] == '0' && p[1] == '.') { *len = n - 1; return p + 1; }
+    if (n >= 3 && p[0] == '-' && p[1] == '0' && p[2] == '.') { *len = n - 1; return NULL; }
+    *len = n;
+    return p;
+}
+
 static void print_num(int fn, bb_str *s)
 {
+    int32_t n;
+    const char *p = bb_num_strip0_(s, &n);
     if (bb_str_len(s) && s->data[0] != '-') out(fn, " ", 1);
-    bb_print_str(fn, s);
+    if (p) out(fn, p, (size_t)n);
+    else { out(fn, "-", 1); out(fn, s->data + 2, (size_t)(n - 1)); }
     out(fn, " ", 1);
     bb_str_release(s);
 }

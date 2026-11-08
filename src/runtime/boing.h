@@ -259,6 +259,18 @@ bb_double bb_chk_double(bb_double d);   /* error 6 on inf/nan */
 
 void bb_overflow(void) BB_NORETURN;     /* bb_raise(6) */
 
+/* inline fast paths for generated C */
+BB_INLINE double bb_dchk(double d) { if (BB_UNLIKELY(d - d != 0)) bb_overflow(); return d; }
+BB_INLINE double bb_div_d(double a, double b) { if (BB_UNLIKELY(b == 0)) return bb_fdiv(a, b); return bb_dchk(a / b); }
+BB_INLINE bb_long bb_idiv_lx(bb_long a, bb_long b) { if (BB_UNLIKELY(b == 0 || b == -1)) return bb_idiv_l(a, b); return a / b; }
+BB_INLINE bb_long bb_mod_lx(bb_long a, bb_long b) { if (BB_UNLIKELY(b == 0 || b == -1)) return bb_mod_l(a, b); return a % b; }
+BB_INLINE bb_int bb_idiv_ix(bb_int a, bb_int b) { if (BB_UNLIKELY(b == 0 || b == -1)) return bb_idiv_i(a, b); return (bb_int)(a / b); }
+BB_INLINE bb_int bb_mod_ix(bb_int a, bb_int b) { if (BB_UNLIKELY(b == 0 || b == -1)) return bb_mod_i(a, b); return (bb_int)(a % b); }
+BB_INLINE bb_int bb_l2i(bb_long l) { if (BB_UNLIKELY(l < -32768 || l > 32767)) bb_overflow(); return (bb_int)l; }
+BB_INLINE bb_byte bb_l2by(bb_long l) { if (BB_UNLIKELY(l < 0 || l > 255)) bb_overflow(); return (bb_byte)l; }
+BB_INLINE bb_single bb_add_f(bb_single a, bb_single b) { return bb_csng((double)a + b); }
+BB_INLINE bb_bool bb_tobool(double d) { return d != 0 ? BB_TRUE : BB_FALSE; }
+
 BB_INLINE bb_int bb_add_i(bb_int a, bb_int b) { int32_t r = (int32_t)a + b; if (BB_UNLIKELY(r < -32768 || r > 32767)) bb_overflow(); return (bb_int)r; }
 BB_INLINE bb_int bb_sub_i(bb_int a, bb_int b) { int32_t r = (int32_t)a - b; if (BB_UNLIKELY(r < -32768 || r > 32767)) bb_overflow(); return (bb_int)r; }
 BB_INLINE bb_int bb_mul_i(bb_int a, bb_int b) { int32_t r = (int32_t)a * b; if (BB_UNLIKELY(r < -32768 || r > 32767)) bb_overflow(); return (bb_int)r; }
@@ -487,6 +499,20 @@ void bb_foreach_end(bb_foreach *fe);
 bb_value bb_v_index(const bb_value *v, int argc, bb_value *argv);
 void bb_v_index_store(bb_value *v, int argc, bb_value *argv, const bb_value *val);
 bb_array *bb_v_array(const bb_value *v);    /* borrowed array inside a Variant; error 13 */
+bb_array *bb_v_to_array(const bb_value *v, int etype);  /* owned copy; element type checked unless BB_VARIANT */
+void bb_arr_set(bb_array **dst, bb_array *owned);       /* a = <owned array> (move) */
+void bb_v_redim(bb_value *v, int etype, const bb_udt_desc *udt, int ndims, const int32_t *lb, const int32_t *ub, int preserve);
+void bb_v_erase(bb_value *v);
+void bb_v_mid_assign(bb_value *v, bb_long start, bb_long len, bb_str *repl);
+int bb_for_done_v(const bb_value *ctr, const bb_value *lim, const bb_value *step);
+bb_bool bb_v_is(const bb_value *a, const bb_value *b);  /* Is on Variants */
+bb_obj *bb_chkcls(bb_obj *o, const bb_class *cls);     /* Set x = o, x As Class: error 13 */
+
+/* WithEvents connection (used by the VM and generated C) */
+typedef struct bb_wevconn { bb_obj *src; bb_sink *sink; } bb_wevconn;
+void bb_wev_connect(bb_wevconn *c, bb_obj *src, void (*fire)(bb_sink *, int32_t, const char *, int, bb_value *),
+                    void *ctx, int32_t tag);
+void bb_wev_disconnect(bb_wevconn *c);
 
 /* Err object accessors */
 bb_long bb_err_number(void);

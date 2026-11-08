@@ -135,6 +135,19 @@ bb_str *bb_str_fn(const bb_value *v0)
     }
     s = bb_v_to_str(v);
     if (v->type == BB_BOOLEAN || v->type == BB_DATE) return s;
+    {
+        /* no leading zero: Str(0.5) = " .5" */
+        const char *p = bb_str_ptr(s);
+        int32_t n = bb_str_len(s);
+        if (n >= 2 && p[0] == '0' && p[1] == '.') { bb_str *t = bb_str_new(p + 1, n - 1); bb_str_release(s); s = t; }
+        else if (n >= 3 && p[0] == '-' && p[1] == '0' && p[2] == '.') {
+            bb_str *t = bb_str_alloc(n - 1);
+            t->data[0] = '-';
+            memcpy(t->data + 1, p + 2, (size_t)(n - 2));
+            bb_str_release(s);
+            s = t;
+        }
+    }
     if (bb_str_len(s) && s->data[0] == '-') return s;
     {
         bb_str *sp = bb_str_from_c(" ");

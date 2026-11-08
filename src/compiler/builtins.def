@@ -42,7 +42,7 @@ BI(LSETF, "__lset", T_STRING, 2, 2, "ss", ",", "bb_lset", 0, RS(bb_lset(S(0), S(
 BI(RSETF, "__rset", T_STRING, 2, 2, "ss", ",", "bb_rset", 0, RS(bb_rset(S(0), S(1))))
 
 BI(ABS, "Abs", T_VARIANT, 1, 1, "v", "", "bb_abs", BIF_SPECIAL, RV(bb_abs(V(0))))
-BI(SGN, "Sgn", T_INTEGER, 1, 1, "v", "", "bb_sgn", BIF_SPECIAL, RV(bb_sgn(V(0))))
+BI(SGN, "Sgn", T_VARIANT, 1, 1, "v", "", "bb_sgn", BIF_SPECIAL, RV(bb_sgn(V(0))))
 BI(INT, "Int", T_VARIANT, 1, 1, "v", "", "bb_int_fn", BIF_SPECIAL, RV(bb_int_fn(V(0))))
 BI(FIX, "Fix", T_VARIANT, 1, 1, "v", "", "bb_fix", BIF_SPECIAL, RV(bb_fix(V(0))))
 BI(ROUND, "Round", T_VARIANT, 1, 2, "vl", ",0", "bb_round", BIF_SPECIAL, RV(bb_round(V(0), L(1))))
