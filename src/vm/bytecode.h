@@ -6,7 +6,7 @@
 #include "../runtime/boing.h"
 
 #define BBC_MAGIC "BBC1"
-#define BBC_VERSION 2
+#define BBC_VERSION 3
 
 /* OP(name, number of operand words) */
 #define BB_OPCODES(OP) \
@@ -41,7 +41,21 @@
     OP(OPEN, 1) OP(CLOSE, 0) OP(CLOSEALL, 0) OP(GETREC, 2) OP(PUTREC, 2) OP(SEEK, 0) OP(NAMEF, 0) \
     OP(REDIM, 4) OP(ERASE, 0) OP(MIDSET, 0) \
     OP(FEBEGIN, 1) OP(FENEXT, 2) OP(FEEND, 1) \
-    OP(RAISEEV, 3) OP(WEVCONN, 3) OP(ARRLIT, 1) OP(SWAP, 0) OP(LINE, 1) OP(UNKEEP, 0) OP(LDE1, 1)
+    OP(RAISEEV, 3) OP(WEVCONN, 3) OP(ARRLIT, 1) OP(SWAP, 0) OP(LINE, 1) OP(UNKEEP, 0) OP(LDE1, 1) \
+    /* register forms (operands are frame slots, I immediates, K constants): must stay last */ \
+    OP(R_MOV, 2) OP(R_MOVI_I, 2) OP(R_MOVI_L, 2) OP(R_MOVK, 2) \
+    OP(R_ADD_LRR, 3) OP(R_ADD_LRI, 3) OP(R_SUB_LRR, 3) OP(R_SUB_LRI, 3) OP(R_SUB_LIR, 3) \
+    OP(R_MUL_LRR, 3) OP(R_MUL_LRI, 3) OP(R_IDIV_LRR, 3) OP(R_IDIV_LRI, 3) OP(R_MOD_LRR, 3) OP(R_MOD_LRI, 3) \
+    OP(R_AND_LRR, 3) OP(R_AND_LRI, 3) OP(R_OR_LRR, 3) OP(R_OR_LRI, 3) OP(R_XOR_LRR, 3) OP(R_XOR_LRI, 3) OP(R_NEG_L, 2) \
+    OP(R_ADD_IRR, 3) OP(R_ADD_IRI, 3) OP(R_SUB_IRR, 3) OP(R_SUB_IRI, 3) OP(R_SUB_IIR, 3) \
+    OP(R_MUL_IRR, 3) OP(R_MUL_IRI, 3) OP(R_IDIV_IRR, 3) OP(R_IDIV_IRI, 3) OP(R_MOD_IRR, 3) OP(R_MOD_IRI, 3) \
+    OP(R_AND_IRR, 3) OP(R_AND_IRI, 3) OP(R_OR_IRR, 3) OP(R_OR_IRI, 3) OP(R_XOR_IRR, 3) OP(R_XOR_IRI, 3) OP(R_NEG_I, 2) \
+    OP(R_ADD_DRR, 3) OP(R_ADD_DRK, 3) OP(R_SUB_DRR, 3) OP(R_SUB_DRK, 3) OP(R_SUB_DKR, 3) \
+    OP(R_MUL_DRR, 3) OP(R_MUL_DRK, 3) OP(R_DIV_DRR, 3) OP(R_DIV_DRK, 3) OP(R_DIV_DKR, 3) OP(R_NEG_D, 2) \
+    OP(R_CVT_LD, 2) OP(R_CVT_ID, 2) OP(R_CVT_IL, 2) \
+    OP(R_JCMP_LRR, 4) OP(R_JCMP_LRI, 4) OP(R_JCMP_IRR, 4) OP(R_JCMP_IRI, 4) OP(R_JCMP_DRR, 4) OP(R_JCMP_DRK, 4) \
+    OP(R_LDE1, 4) OP(R_STE1, 4) OP(R_LDE2, 5) OP(R_STE2, 5) OP(R_LDEF1, 5) OP(R_STEF1, 5) OP(R_LDF, 4) OP(R_STF, 4) \
+    OP(R_JNZ, 2) OP(R_JZ, 2)
 
 enum {
 #define OP_ENUM(n, k) I_##n,
@@ -49,6 +63,7 @@ enum {
 #undef OP_ENUM
     I__COUNT
 };
+#define I_R_FIRST I_R_MOV
 
 /* ERROP sub-operations */
 enum { EO_NUMBER, EO_DESC, EO_SOURCE, EO_SETNUMBER, EO_SETDESC, EO_SETSOURCE, EO_CLEAR, EO_RAISE, EO_ERROR };

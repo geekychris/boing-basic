@@ -620,6 +620,40 @@ static void vm_poll(VM *vm)
 }
 #define POLL() do { if (BB_UNLIKELY(--bb_poll_count < 0)) { fr->pc = pc; vm->sp = sp; vm_poll(vm); } } while (0)
 
+/* register-form helpers */
+BB_INLINE bb_array *rarr(bb_value *L, bb_value *G, int32_t o)
+{
+    bb_value *v = o >= 0 ? &L[o] : &G[-1 - o];
+    return (v->type & BB_REF) ? *(bb_array **)v->u.p : v->u.a;
+}
+
+BB_INLINE char *rudt(VM *vm, bb_value *L, bb_value *G, int32_t o, const bb_udt_desc **d)
+{
+    bb_value *v = o >= 0 ? &L[o] : &G[-1 - o];
+    if (v->type & BB_REF) { *d = &vm->img->udts[v->aux].desc; return (char *)v->u.p; }
+    *d = ((bb_udtbox *)v->u.p)->desc;
+    return (char *)bb_v_udt_data(v);
+}
+
+BB_INLINE void rload(bb_value *d, int vt, void *p)
+{
+    switch (vt) {
+    case BB_LONG: d->type = BB_LONG; d->u.l = *(int32_t *)p; break;
+    case BB_DOUBLE: d->type = BB_DOUBLE; d->u.d = *(double *)p; break;
+    case BB_BOOLEAN: d->type = BB_BOOLEAN; d->u.b = *(bb_bool *)p; break;
+    default: d->type = BB_INTEGER; d->u.i = *(bb_int *)p; break;
+    }
+}
+
+BB_INLINE void rstore(int vt, void *p, const bb_value *s)
+{
+    switch (vt) {
+    case BB_LONG: *(int32_t *)p = s->u.l; break;
+    case BB_DOUBLE: *(double *)p = s->u.d; break;
+    default: *(bb_int *)p = s->u.i; break;
+    }
+}
+
 /* ---------- the interpreter ---------- */
 
 #define PUSH(v) (*sp++ = (v))
@@ -686,6 +720,187 @@ static void vm_exec(VM *vm, int entry)
 #define RELOAD() (fr = &vm->frames[vm->nframes - 1], pc = fr->pc, sp = vm->sp, L = fr->base)
         for (;;) {
             int32_t op = *pc;
+            if (op >= I_R_FIRST) {
+                /* register forms: no stack, no tags to check; errors sync pc/sp first */
+#if defined(__GNUC__) && !defined(BB_NO_THREADED)
+#define RCASE(x) L_##x:
+#define RNEXT() do { op = *pc; if (op >= I_R_FIRST) goto *rtab[op - I_R_FIRST]; goto rdone; } while (0)
+                static void *const rtab[] = {
+        &&L_R_MOV,
+        &&L_R_MOVI_I,
+        &&L_R_MOVI_L,
+        &&L_R_MOVK,
+        &&L_R_ADD_LRR,
+        &&L_R_ADD_LRI,
+        &&L_R_SUB_LRR,
+        &&L_R_SUB_LRI,
+        &&L_R_SUB_LIR,
+        &&L_R_MUL_LRR,
+        &&L_R_MUL_LRI,
+        &&L_R_IDIV_LRR,
+        &&L_R_IDIV_LRI,
+        &&L_R_MOD_LRR,
+        &&L_R_MOD_LRI,
+        &&L_R_AND_LRR,
+        &&L_R_AND_LRI,
+        &&L_R_OR_LRR,
+        &&L_R_OR_LRI,
+        &&L_R_XOR_LRR,
+        &&L_R_XOR_LRI,
+        &&L_R_NEG_L,
+        &&L_R_ADD_IRR,
+        &&L_R_ADD_IRI,
+        &&L_R_SUB_IRR,
+        &&L_R_SUB_IRI,
+        &&L_R_SUB_IIR,
+        &&L_R_MUL_IRR,
+        &&L_R_MUL_IRI,
+        &&L_R_IDIV_IRR,
+        &&L_R_IDIV_IRI,
+        &&L_R_MOD_IRR,
+        &&L_R_MOD_IRI,
+        &&L_R_AND_IRR,
+        &&L_R_AND_IRI,
+        &&L_R_OR_IRR,
+        &&L_R_OR_IRI,
+        &&L_R_XOR_IRR,
+        &&L_R_XOR_IRI,
+        &&L_R_NEG_I,
+        &&L_R_ADD_DRR,
+        &&L_R_ADD_DRK,
+        &&L_R_SUB_DRR,
+        &&L_R_SUB_DRK,
+        &&L_R_SUB_DKR,
+        &&L_R_MUL_DRR,
+        &&L_R_MUL_DRK,
+        &&L_R_DIV_DRR,
+        &&L_R_DIV_DRK,
+        &&L_R_DIV_DKR,
+        &&L_R_NEG_D,
+        &&L_R_CVT_LD,
+        &&L_R_CVT_ID,
+        &&L_R_CVT_IL,
+        &&L_R_JCMP_LRR,
+        &&L_R_JCMP_LRI,
+        &&L_R_JCMP_IRR,
+        &&L_R_JCMP_IRI,
+        &&L_R_JCMP_DRR,
+        &&L_R_JCMP_DRK,
+        &&L_R_LDE1,
+        &&L_R_STE1,
+        &&L_R_LDE2,
+        &&L_R_STE2,
+        &&L_R_LDEF1,
+        &&L_R_STEF1,
+        &&L_R_LDF,
+        &&L_R_STF,
+        &&L_R_JNZ,
+        &&L_R_JZ
+                };
+                goto *rtab[op - I_R_FIRST];
+#else
+#define RCASE(x) case I_##x:
+#define RNEXT() goto rdone
+                switch (op) {
+#endif
+#define RSL(n) (L[pc[n]])
+#define RERR(stmt) do { fr->pc = pc; vm->sp = sp; stmt; } while (0)
+#define SETL(D_, V_) do { bb_value *d_ = &L[D_]; d_->type = BB_LONG; d_->u.l = (V_); } while (0)
+#define SETI(D_, V_) do { bb_value *d_ = &L[D_]; d_->type = BB_INTEGER; d_->u.i = (bb_int)(V_); } while (0)
+#define SETD(D_, V_) do { bb_value *d_ = &L[D_]; d_->type = BB_DOUBLE; d_->u.d = (V_); } while (0)
+#define LOVF(r, x, y, OP) if (BB_UNLIKELY(OP(x, y, &r))) RERR(bb_overflow())
+#define IFIT(r) if (BB_UNLIKELY(r < -32768 || r > 32767)) RERR(bb_overflow())
+#define DCHK(r) if (BB_UNLIKELY(r - r != 0)) RERR(bb_overflow())
+                RCASE(R_MOV) L[pc[1]] = L[pc[2]]; pc += 3; RNEXT();
+                RCASE(R_MOVI_I) SETI(pc[1], pc[2]); pc += 3; RNEXT();
+                RCASE(R_MOVI_L) SETL(pc[1], pc[2]); pc += 3; RNEXT();
+                RCASE(R_MOVK) L[pc[1]] = img->consts[pc[2]]; pc += 3; RNEXT();
+#define LBIN(NAME, A, B, EXPR) RCASE(NAME) { int32_t x = (A), y = (B), r; EXPR; SETL(pc[1], r); pc += 4; RNEXT(); }
+                LBIN(R_ADD_LRR, RSL(2).u.l, RSL(3).u.l, LOVF(r, x, y, __builtin_add_overflow))
+                LBIN(R_ADD_LRI, RSL(2).u.l, pc[3], LOVF(r, x, y, __builtin_add_overflow))
+                LBIN(R_SUB_LRR, RSL(2).u.l, RSL(3).u.l, LOVF(r, x, y, __builtin_sub_overflow))
+                LBIN(R_SUB_LRI, RSL(2).u.l, pc[3], LOVF(r, x, y, __builtin_sub_overflow))
+                LBIN(R_SUB_LIR, pc[2], RSL(3).u.l, LOVF(r, x, y, __builtin_sub_overflow))
+                LBIN(R_MUL_LRR, RSL(2).u.l, RSL(3).u.l, LOVF(r, x, y, __builtin_mul_overflow))
+                LBIN(R_MUL_LRI, RSL(2).u.l, pc[3], LOVF(r, x, y, __builtin_mul_overflow))
+                LBIN(R_IDIV_LRR, RSL(2).u.l, RSL(3).u.l, if (BB_UNLIKELY(y == 0 || y == -1)) RERR(r = bb_idiv_l(x, y)); else r = x / y)
+                LBIN(R_IDIV_LRI, RSL(2).u.l, pc[3], if (BB_UNLIKELY(y == 0 || y == -1)) RERR(r = bb_idiv_l(x, y)); else r = x / y)
+                LBIN(R_MOD_LRR, RSL(2).u.l, RSL(3).u.l, if (BB_UNLIKELY(y == 0 || y == -1)) RERR(r = bb_mod_l(x, y)); else r = x % y)
+                LBIN(R_MOD_LRI, RSL(2).u.l, pc[3], if (BB_UNLIKELY(y == 0 || y == -1)) RERR(r = bb_mod_l(x, y)); else r = x % y)
+                LBIN(R_AND_LRR, RSL(2).u.l, RSL(3).u.l, r = x & y)
+                LBIN(R_AND_LRI, RSL(2).u.l, pc[3], r = x & y)
+                LBIN(R_OR_LRR, RSL(2).u.l, RSL(3).u.l, r = x | y)
+                LBIN(R_OR_LRI, RSL(2).u.l, pc[3], r = x | y)
+                LBIN(R_XOR_LRR, RSL(2).u.l, RSL(3).u.l, r = x ^ y)
+                LBIN(R_XOR_LRI, RSL(2).u.l, pc[3], r = x ^ y)
+                RCASE(R_NEG_L) { int32_t x = RSL(2).u.l; if (BB_UNLIKELY(x == INT32_MIN)) RERR(bb_overflow()); SETL(pc[1], -x); pc += 3; RNEXT(); }
+#define IBIN(NAME, A, B, EXPR) RCASE(NAME) { int32_t x = (A), y = (B), r; EXPR; SETI(pc[1], r); pc += 4; RNEXT(); }
+                IBIN(R_ADD_IRR, RSL(2).u.i, RSL(3).u.i, r = x + y; IFIT(r))
+                IBIN(R_ADD_IRI, RSL(2).u.i, pc[3], r = x + y; IFIT(r))
+                IBIN(R_SUB_IRR, RSL(2).u.i, RSL(3).u.i, r = x - y; IFIT(r))
+                IBIN(R_SUB_IRI, RSL(2).u.i, pc[3], r = x - y; IFIT(r))
+                IBIN(R_SUB_IIR, pc[2], RSL(3).u.i, r = x - y; IFIT(r))
+                IBIN(R_MUL_IRR, RSL(2).u.i, RSL(3).u.i, r = x * y; IFIT(r))
+                IBIN(R_MUL_IRI, RSL(2).u.i, pc[3], r = x * y; IFIT(r))
+                IBIN(R_IDIV_IRR, RSL(2).u.i, RSL(3).u.i, if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x / y; IFIT(r))
+                IBIN(R_IDIV_IRI, RSL(2).u.i, pc[3], if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x / y; IFIT(r))
+                IBIN(R_MOD_IRR, RSL(2).u.i, RSL(3).u.i, if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x % y)
+                IBIN(R_MOD_IRI, RSL(2).u.i, pc[3], if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x % y)
+                IBIN(R_AND_IRR, RSL(2).u.i, RSL(3).u.i, r = x & y)
+                IBIN(R_AND_IRI, RSL(2).u.i, pc[3], r = x & y)
+                IBIN(R_OR_IRR, RSL(2).u.i, RSL(3).u.i, r = x | y)
+                IBIN(R_OR_IRI, RSL(2).u.i, pc[3], r = x | y)
+                IBIN(R_XOR_IRR, RSL(2).u.i, RSL(3).u.i, r = x ^ y)
+                IBIN(R_XOR_IRI, RSL(2).u.i, pc[3], r = x ^ y)
+                RCASE(R_NEG_I) { int32_t x = RSL(2).u.i; if (BB_UNLIKELY(x == -32768)) RERR(bb_overflow()); SETI(pc[1], -x); pc += 3; RNEXT(); }
+#define DBIN(NAME, A, B, EXPR) RCASE(NAME) { double x = (A), y = (B), r; EXPR; SETD(pc[1], r); pc += 4; RNEXT(); }
+                DBIN(R_ADD_DRR, RSL(2).u.d, RSL(3).u.d, r = x + y; DCHK(r))
+                DBIN(R_ADD_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x + y; DCHK(r))
+                DBIN(R_SUB_DRR, RSL(2).u.d, RSL(3).u.d, r = x - y; DCHK(r))
+                DBIN(R_SUB_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x - y; DCHK(r))
+                DBIN(R_SUB_DKR, img->consts[pc[2]].u.d, RSL(3).u.d, r = x - y; DCHK(r))
+                DBIN(R_MUL_DRR, RSL(2).u.d, RSL(3).u.d, r = x * y; DCHK(r))
+                DBIN(R_MUL_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x * y; DCHK(r))
+                DBIN(R_DIV_DRR, RSL(2).u.d, RSL(3).u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
+                DBIN(R_DIV_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
+                DBIN(R_DIV_DKR, img->consts[pc[2]].u.d, RSL(3).u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
+                RCASE(R_NEG_D) SETD(pc[1], -RSL(2).u.d); pc += 3; RNEXT();
+                RCASE(R_CVT_LD) SETD(pc[1], (double)RSL(2).u.l); pc += 3; RNEXT();
+                RCASE(R_CVT_ID) SETD(pc[1], (double)RSL(2).u.i); pc += 3; RNEXT();
+                RCASE(R_CVT_IL) SETL(pc[1], (int32_t)RSL(2).u.i); pc += 3; RNEXT();
+#define JCMP(NAME, T, A, B) RCASE(NAME) { T x = (A), y = (B); int c_; \
+                    switch (pc[1]) { case BB_CMP_EQ: c_ = x == y; break; case BB_CMP_NE: c_ = x != y; break; \
+                    case BB_CMP_LT: c_ = x < y; break; case BB_CMP_GT: c_ = x > y; break; \
+                    case BB_CMP_LE: c_ = x <= y; break; default: c_ = x >= y; } \
+                    if (c_) { int32_t t_ = pc[4]; if (t_ <= pc - code) POLL(); pc = code + t_; } else pc += 5; RNEXT(); }
+                JCMP(R_JCMP_LRR, int32_t, RSL(2).u.l, RSL(3).u.l)
+                JCMP(R_JCMP_LRI, int32_t, RSL(2).u.l, pc[3])
+                JCMP(R_JCMP_IRR, int32_t, RSL(2).u.i, RSL(3).u.i)
+                JCMP(R_JCMP_IRI, int32_t, RSL(2).u.i, pc[3])
+                JCMP(R_JCMP_DRR, double, RSL(2).u.d, RSL(3).u.d)
+                JCMP(R_JCMP_DRK, double, RSL(2).u.d, img->consts[pc[3]].u.d)
+#define RARR(o) rarr(L, G, (o))
+                RCASE(R_LDE1) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[3]); rload(&L[pc[2]], pc[1], bb_arr_elem1(A, RSL(4).u.l)); pc += 5; RNEXT(); }
+                RCASE(R_STE1) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[2]); rstore(pc[1], bb_arr_elem1(A, RSL(3).u.l), &RSL(4)); pc += 5; RNEXT(); }
+                RCASE(R_LDE2) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[3]); rload(&L[pc[2]], pc[1], bb_arr_elem2(A, RSL(4).u.l, RSL(5).u.l)); pc += 6; RNEXT(); }
+                RCASE(R_STE2) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[2]); rstore(pc[1], bb_arr_elem2(A, RSL(3).u.l, RSL(4).u.l), &RSL(5)); pc += 6; RNEXT(); }
+                RCASE(R_LDEF1) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[3]); char *ep = (char *)bb_arr_elem1(A, RSL(4).u.l);
+                    rload(&L[pc[2]], pc[1], ep + A->udt->fields[pc[5]].offset); pc += 6; RNEXT(); }
+                RCASE(R_STEF1) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[2]); char *ep = (char *)bb_arr_elem1(A, RSL(3).u.l);
+                    rstore(pc[1], ep + A->udt->fields[pc[4]].offset, &RSL(5)); pc += 6; RNEXT(); }
+                RCASE(R_LDF) { const bb_udt_desc *dd; char *p0 = rudt(vm, L, G, pc[3], &dd);
+                    rload(&L[pc[2]], pc[1], p0 + dd->fields[pc[4]].offset); pc += 5; RNEXT(); }
+                RCASE(R_STF) { const bb_udt_desc *dd; char *p0 = rudt(vm, L, G, pc[2], &dd);
+                    rstore(pc[1], p0 + dd->fields[pc[3]].offset, &RSL(4)); pc += 5; RNEXT(); }
+                RCASE(R_JNZ) if (RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) POLL(); pc = code + t_; } else pc += 3; RNEXT();
+                RCASE(R_JZ) if (!RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) POLL(); pc = code + t_; } else pc += 3; RNEXT();
+#if !(defined(__GNUC__) && !defined(BB_NO_THREADED))
+                default: break;
+                }
+#endif
+            rdone:
+                continue;
+            }
             fr->pc = pc;
             vm->sp = sp;
             switch (op) {
@@ -705,13 +920,13 @@ static void vm_exec(VM *vm, int entry)
             case I_LDL: PUSH(L[pc[1]]); pc += 2; break;
             case I_LDLS: { bb_value v = L[pc[1]]; bb_str_retain(v.u.s); PUSH(v); pc += 2; break; }
             case I_LDLV: { bb_value v; bb_v_copy(&v, &L[pc[1]]); PUSH(v); pc += 2; break; }
-            case I_STL: { bb_value v = POP(); bb_value *d = &L[pc[1]]; d->u = v.u; d->type = v.type; pc += 2; break; }
+            case I_STL: { L[pc[1]] = POP(); pc += 2; break; }
             case I_STLS: { bb_value v = POP(); SYNC(); bb_value *d = &L[pc[1]]; bb_str_set(&d->u.s, v.type == BB_STRING ? v.u.s : NULL); d->type = BB_STRING; pc += 2; break; }
             case I_STLV: { bb_value v = POP(); SYNC(); bb_v_set(&L[pc[1]], v); pc += 2; break; }
             case I_LDG: PUSH(G[pc[1]]); pc += 2; break;
             case I_LDGS: { bb_value v = G[pc[1]]; bb_str_retain(v.u.s); PUSH(v); pc += 2; break; }
             case I_LDGV: { bb_value v; bb_v_copy(&v, &G[pc[1]]); PUSH(v); pc += 2; break; }
-            case I_STG: { bb_value v = POP(); G[pc[1]].u = v.u; G[pc[1]].type = v.type; pc += 2; break; }
+            case I_STG: { G[pc[1]] = POP(); pc += 2; break; }
             case I_STGS: { bb_value v = POP(); SYNC(); bb_str_set(&G[pc[1]].u.s, v.type == BB_STRING ? v.u.s : NULL); G[pc[1]].type = BB_STRING; pc += 2; break; }
             case I_STGV: { bb_value v = POP(); SYNC(); bb_v_set(&G[pc[1]], v); pc += 2; break; }
             case I_LDF: case I_LDFV: {
@@ -727,7 +942,7 @@ static void vm_exec(VM *vm, int entry)
                 VMObj *o = (VMObj *)L[0].u.o;
                 bb_value v = POP();
                 SYNC();
-                if (op == I_STF) { o->f[pc[1]].u = v.u; o->f[pc[1]].type = v.type; }
+                if (op == I_STF) o->f[pc[1]] = v;
                 else if (o->vc->fields[pc[1]].vt == BB_STRING) {
                     bb_str_set(&o->f[pc[1]].u.s, v.type == BB_STRING ? v.u.s : NULL);
                     o->f[pc[1]].type = BB_STRING;

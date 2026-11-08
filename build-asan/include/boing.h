@@ -27,7 +27,9 @@ extern "C" {
 #define BB_LIKELY(x) __builtin_expect(!!(x), 1)
 #define BB_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define BB_INLINE static inline __attribute__((always_inline))
+#define BB_UNUSED __attribute__((unused))
 #else
+#define BB_UNUSED
 #define BB_NORETURN
 #define BB_LIKELY(x) (x)
 #define BB_UNLIKELY(x) (x)
@@ -147,6 +149,12 @@ void bb_rt_shutdown(void);                   /* flush/close files */
 void bb_end(void) BB_NORETURN;               /* the End statement: exit(0) */
 void bb_exit(int code) BB_NORETURN;
 void *bb_alloc(size_t n);                    /* zeroed; error 7 on failure */
+void bb_set_error_file(const char *path);    /* also write the runtime-error line here (IDE) */
+/* Ctrl-C: generated loops and the VM poll this cheaply; a break prints
+ * "file:line: ***Break" and ends the program with 20 */
+extern int32_t bb_poll_count;
+void bb_poll_slow(void);
+BB_INLINE void bb_poll(void) { if (BB_UNLIKELY(--bb_poll_count < 0)) bb_poll_slow(); }
 void *bb_realloc(void *p, size_t n);
 void bb_free(void *p);
 
@@ -677,6 +685,7 @@ bb_date bb_now(void);
 bb_date bb_date_fn(void);
 bb_date bb_time_fn(void);
 bb_single bb_timer(void);
+bb_double bb_timer_ms(void);                /* TimerMs(): monotonic milliseconds, high resolution */
 bb_date bb_dateserial(bb_long y, bb_long m, bb_long d);
 bb_date bb_timeserial(bb_long h, bb_long m, bb_long s);
 bb_long bb_year(bb_date d);

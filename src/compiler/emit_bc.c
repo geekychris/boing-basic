@@ -33,6 +33,8 @@ typedef struct E {
     int *wev_of_global;         /* per global: wev index */
     int **wev_of_field;
     int used_keep;              /* statement used the frame's keep-alive slot */
+    /* register temporaries: slots per kind (0 Integer, 1 Long, 2 Double), reused per statement */
+    int *rtmp[3]; int nrtmp[3], caprtmp[3], usedrtmp[3];
 } E;
 
 static int emit_w(E *e, int32_t w)
@@ -519,6 +521,383 @@ static int has_value(Node *n)
     }
 }
 
+
+/* ---------- register forms for typed Integer / Long / Double expressions ----------
+ * Instead of pushing and popping 16-byte values, these evaluate into frame slots:
+ * operands are slots (variables or temporaries), immediates (Integer/Long) or constants
+ * (Double). Anything else in the tree is computed on the stack and stored in a temp. */
+
+static int rkind(Type *t)
+{
+    switch (t->kind) {
+    case T_INTEGER: return 0;
+    case T_LONG: return 1;
+    case T_DOUBLE: return 2;
+    default: return -1;
+    }
+}
+
+static int rtemp(E *e, int k)
+{
+    int s;
+    if (e->usedrtmp[k] < e->nrtmp[k]) return e->rtmp[k][e->usedrtmp[k]++];
+    s = e->vp->nlocals++;
+    e->vp->slots = (VMSlot *)xrealloc(e->vp->slots, sizeof(VMSlot) * (size_t)(e->vp->nlocals + 1));
+    memset(&e->vp->slots[s], 0, sizeof(VMSlot));
+    e->vp->slots[s].vt = BB_EMPTY;
+    e->vp->slots[s].name = "$r";
+    if (e->nrtmp[k] == e->caprtmp[k]) {
+        e->caprtmp[k] = e->caprtmp[k] ? e->caprtmp[k] * 2 : 8;
+        e->rtmp[k] = (int *)xrealloc(e->rtmp[k], sizeof(int) * (size_t)e->caprtmp[k]);
+    }
+    e->rtmp[k][e->nrtmp[k]++] = s;
+    e->usedrtmp[k]++;
+    return s;
+}
+
+static int reg_var(E *e, Node *n, int k)
+{
+    Sym *s;
+    if (n->kind != E_VAR || rkind(n->ty) != k) return -1;
+    s = n->sym;
+    if ((s->storage != ST_LOCAL && s->storage != ST_PARAM) || is_ref_slot(s)) return -1;
+    return slot_of(e, s);
+}
+
+static int is_int_const(Node *n, int k, int32_t *v)
+{
+    if (n->kind != E_CONST || rkind(n->ty) != k || k == 2) return 0;
+    if (n->cv.type != T_INTEGER && n->cv.type != T_LONG && n->cv.type != T_BYTE && n->cv.type != T_BOOLEAN) return 0;
+    *v = (int32_t)n->cv.i;
+    return 1;
+}
+
+static int is_dbl_const(Node *n) { return n->kind == E_CONST && n->ty->kind == T_DOUBLE && n->cv.type == T_DOUBLE; }
+
+/* can evaluating n have side effects (calls)? */
+static int impure(Node *n)
+{
+    int i;
+    if (!n) return 0;
+    switch (n->kind) {
+    case E_CONST: case E_VAR: return 0;
+    case E_BIN: case E_UN: case E_CONV: return impure(n->a) || impure(n->b);
+    case E_INDEX:
+        for (i = 0; i < n->list.n; i++) if (impure(n->list.v[i])) return 1;
+        return impure(n->a);
+    case E_FIELD: return impure(n->a);
+    default: return 1;
+    }
+}
+
+static int rop_l(int op, int ri)
+{
+    switch (op) {
+    case OP_ADD: return ri ? I_R_ADD_LRI : I_R_ADD_LRR;
+    case OP_SUB: return ri ? I_R_SUB_LRI : I_R_SUB_LRR;
+    case OP_MUL: return ri ? I_R_MUL_LRI : I_R_MUL_LRR;
+    case OP_IDIV: return ri ? I_R_IDIV_LRI : I_R_IDIV_LRR;
+    case OP_MOD: return ri ? I_R_MOD_LRI : I_R_MOD_LRR;
+    case OP_AND: return ri ? I_R_AND_LRI : I_R_AND_LRR;
+    case OP_OR: return ri ? I_R_OR_LRI : I_R_OR_LRR;
+    case OP_XOR: return ri ? I_R_XOR_LRI : I_R_XOR_LRR;
+    default: return -1;
+    }
+}
+
+static int rop_i(int op, int ri)
+{
+    switch (op) {
+    case OP_ADD: return ri ? I_R_ADD_IRI : I_R_ADD_IRR;
+    case OP_SUB: return ri ? I_R_SUB_IRI : I_R_SUB_IRR;
+    case OP_MUL: return ri ? I_R_MUL_IRI : I_R_MUL_IRR;
+    case OP_IDIV: return ri ? I_R_IDIV_IRI : I_R_IDIV_IRR;
+    case OP_MOD: return ri ? I_R_MOD_IRI : I_R_MOD_IRR;
+    case OP_AND: return ri ? I_R_AND_IRI : I_R_AND_IRR;
+    case OP_OR: return ri ? I_R_OR_IRI : I_R_OR_IRR;
+    case OP_XOR: return ri ? I_R_XOR_IRI : I_R_XOR_IRR;
+    default: return -1;
+    }
+}
+
+static int rop_d(int op, int rk)
+{
+    switch (op) {
+    case OP_ADD: return rk ? I_R_ADD_DRK : I_R_ADD_DRR;
+    case OP_SUB: return rk ? I_R_SUB_DRK : I_R_SUB_DRR;
+    case OP_MUL: return rk ? I_R_MUL_DRK : I_R_MUL_DRR;
+    case OP_DIV: return rk ? I_R_DIV_DRK : I_R_DIV_DRR;
+    default: return -1;
+    }
+}
+
+static int commutes(int op) { return op == OP_ADD || op == OP_MUL || op == OP_AND || op == OP_OR || op == OP_XOR; }
+
+/* is n an arithmetic node the register forms implement (of kind k)? */
+static int reg_arith(Node *n, int k)
+{
+    if (n->kind == E_BIN && rkind(n->ty) == k && rkind(n->a->ty) == k && rkind(n->b->ty) == k) {
+        if (k == 2) return rop_d(n->op, 0) >= 0;
+        return rop_l(n->op, 0) >= 0;
+    }
+    if (n->kind == E_UN && n->op == OP_NEG && rkind(n->ty) == k && rkind(n->a->ty) == k) return 1;
+    if (n->kind == E_CONV && !(n->flags & NF_PARENARG)) {
+        int fk = rkind(n->a->ty);
+        if (k == 2 && (fk == 0 || fk == 1)) return 1;
+        if (k == 1 && fk == 0) return 1;
+    }
+    return 0;
+}
+
+
+/* array / UDT operands of the register forms: local slot (>= 0) or global (-1 - index) */
+#define NO_OPND (-0x40000000)
+static int arr_opnd(E *e, Node *a)
+{
+    Sym *s;
+    if (a->kind != E_VAR || a->ty->kind != T_ARRAY) return NO_OPND;
+    s = a->sym;
+    if (s->storage == ST_LOCAL || s->storage == ST_PARAM) return slot_of(e, s);
+    if (s->storage == ST_GLOBAL || s->storage == ST_STATIC) return -1 - s->index;
+    return NO_OPND;
+}
+
+static int udt_opnd(E *e, Node *a)
+{
+    Sym *s;
+    if (a->kind != E_VAR || a->ty->kind != T_UDT) return NO_OPND;
+    s = a->sym;
+    if (s->storage == ST_LOCAL || s->storage == ST_PARAM) return slot_of(e, s);
+    if (s->storage == ST_GLOBAL || s->storage == ST_STATIC) return -1 - s->index;
+    return NO_OPND;
+}
+
+/* element types the register loads/stores handle */
+static int rvt(Type *t)
+{
+    switch (t->kind) {
+    case T_INTEGER: return BB_INTEGER;
+    case T_BOOLEAN: return BB_BOOLEAN;
+    case T_LONG: return BB_LONG;
+    case T_DOUBLE: return BB_DOUBLE;
+    default: return 0;
+    }
+}
+
+/* n is an element or field the register forms can load or store */
+static int reg_mem(E *e, Node *n)
+{
+    if (!rvt(n->ty)) return 0;
+    if (n->kind == E_INDEX && (n->list.n == 1 || n->list.n == 2) && arr_opnd(e, n->a) != NO_OPND) return 1;
+    if (n->kind == E_FIELD) {
+        Node *b = n->a;
+        if (n->udt->fields[n->field].ty->kind != n->ty->kind) return 0;
+        if (b->kind == E_VAR && udt_opnd(e, b) != NO_OPND) return 1;
+        if (b->kind == E_INDEX && b->list.n == 1 && arr_opnd(e, b->a) != NO_OPND) return 1;
+    }
+    return 0;
+}
+
+static int rx(E *e, Node *n, int dst);
+
+/* load element/field n into slot d */
+static void reg_load(E *e, Node *n, int d)
+{
+    int vt = rvt(n->ty);
+    if (n->kind == E_INDEX) {
+        int a = arr_opnd(e, n->a), i = rx(e, n->list.v[0], -1);
+        if (n->list.n == 1) { emit_w(e, I_R_LDE1); emit_w(e, vt); emit_w(e, d); emit_w(e, a); emit_w(e, i); }
+        else {
+            int j = rx(e, n->list.v[1], -1);
+            emit_w(e, I_R_LDE2); emit_w(e, vt); emit_w(e, d); emit_w(e, a); emit_w(e, i); emit_w(e, j);
+        }
+        return;
+    }
+    if (n->a->kind == E_VAR) {
+        emit_w(e, I_R_LDF); emit_w(e, vt); emit_w(e, d); emit_w(e, udt_opnd(e, n->a)); emit_w(e, n->field);
+        return;
+    }
+    {
+        int a = arr_opnd(e, n->a->a), i = rx(e, n->a->list.v[0], -1);
+        emit_w(e, I_R_LDEF1); emit_w(e, vt); emit_w(e, d); emit_w(e, a); emit_w(e, i); emit_w(e, n->field);
+    }
+}
+
+static void reg_store(E *e, Node *n, int src)
+{
+    int vt = rvt(n->ty);
+    if (n->kind == E_INDEX) {
+        int a = arr_opnd(e, n->a), i = rx(e, n->list.v[0], -1);
+        if (n->list.n == 1) { emit_w(e, I_R_STE1); emit_w(e, vt); emit_w(e, a); emit_w(e, i); emit_w(e, src); }
+        else {
+            int j = rx(e, n->list.v[1], -1);
+            emit_w(e, I_R_STE2); emit_w(e, vt); emit_w(e, a); emit_w(e, i); emit_w(e, j); emit_w(e, src);
+        }
+        return;
+    }
+    if (n->a->kind == E_VAR) {
+        emit_w(e, I_R_STF); emit_w(e, vt); emit_w(e, udt_opnd(e, n->a)); emit_w(e, n->field); emit_w(e, src);
+        return;
+    }
+    {
+        int a = arr_opnd(e, n->a->a), i = rx(e, n->a->list.v[0], -1);
+        emit_w(e, I_R_STEF1); emit_w(e, vt); emit_w(e, a); emit_w(e, i); emit_w(e, n->field); emit_w(e, src);
+    }
+}
+
+/* operand b of a binary node: slot, or immediate / constant index */
+static void rx_bin(E *e, Node *n, int k, int dst, int *out)
+{
+    Node *a = n->a, *b = n->b;
+    int32_t iv;
+    int sa, sb, d;
+    if (k != 2 && commutes(n->op) && is_int_const(a, k, &iv) && !is_int_const(b, k, &iv)) { Node *t = a; a = b; b = t; }
+    if (k == 2 && commutes(n->op) && is_dbl_const(a) && !is_dbl_const(b)) { Node *t = a; a = b; b = t; }
+    if (k != 2 && is_int_const(b, k, &iv)) {
+        sa = rx(e, a, -1);
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, k == 1 ? rop_l(n->op, 1) : rop_i(n->op, 1), d, sa, iv);
+        *out = d;
+        return;
+    }
+    if (k != 2 && n->op == OP_SUB && is_int_const(a, k, &iv)) {
+        sb = rx(e, b, -1);
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, k == 1 ? I_R_SUB_LIR : I_R_SUB_IIR, d, iv, sb);
+        *out = d;
+        return;
+    }
+    if (k == 2 && is_dbl_const(b)) {
+        sa = rx(e, a, -1);
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, rop_d(n->op, 1), d, sa, add_const(e, bb_v_double(b->cv.d)));
+        *out = d;
+        return;
+    }
+    if (k == 2 && is_dbl_const(a) && (n->op == OP_SUB || n->op == OP_DIV)) {
+        sb = rx(e, b, -1);
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, n->op == OP_SUB ? I_R_SUB_DKR : I_R_DIV_DKR, d, add_const(e, bb_v_double(a->cv.d)), sb);
+        *out = d;
+        return;
+    }
+    sa = rx(e, a, -1);
+    /* a variable read must not see side effects of evaluating b */
+    if (impure(b) && a->kind == E_VAR) {
+        int t = rtemp(e, k);
+        op2(e, I_R_MOV, t, sa);
+        sa = t;
+    }
+    sb = rx(e, b, -1);
+    d = dst >= 0 ? dst : rtemp(e, k);
+    op3(e, k == 2 ? rop_d(n->op, 0) : k == 1 ? rop_l(n->op, 0) : rop_i(n->op, 0), d, sa, sb);
+    *out = d;
+}
+
+/* evaluate typed n (kind k = rkind(n->ty)) into a slot; dst >= 0 asks for that slot */
+static int rx(E *e, Node *n, int dst)
+{
+    int k = rkind(n->ty), s, d;
+    int32_t iv;
+    s = reg_var(e, n, k);
+    if (s >= 0) {
+        if (dst >= 0 && dst != s) { op2(e, I_R_MOV, dst, s); return dst; }
+        return s;
+    }
+    if (is_int_const(n, k, &iv)) {
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op2(e, k == 1 ? I_R_MOVI_L : I_R_MOVI_I, d, iv);
+        return d;
+    }
+    if (k >= 0 && reg_mem(e, n) && rkind(n->ty) == k) {
+        d = dst >= 0 ? dst : rtemp(e, k);
+        reg_load(e, n, d);
+        return d;
+    }
+    if (reg_arith(n, k)) {
+        if (n->kind == E_BIN) { rx_bin(e, n, k, dst, &d); return d; }
+        if (n->kind == E_UN) {
+            int a = rx(e, n->a, -1);
+            d = dst >= 0 ? dst : rtemp(e, k);
+            op2(e, k == 2 ? I_R_NEG_D : k == 1 ? I_R_NEG_L : I_R_NEG_I, d, a);
+            return d;
+        }
+        {
+            int fk = rkind(n->a->ty), a = rx(e, n->a, -1);
+            d = dst >= 0 ? dst : rtemp(e, k);
+            op2(e, k == 2 ? (fk == 1 ? I_R_CVT_LD : I_R_CVT_ID) : I_R_CVT_IL, d, a);
+            return d;
+        }
+    }
+    /* anything else: on the stack, then into a slot */
+    expr(e, n);
+    d = dst >= 0 ? dst : rtemp(e, k);
+    op1(e, I_STL, d);
+    return d;
+}
+
+/* conditional jump on a comparison of typed operands; sense = jump when the condition is true */
+static int cmp_negate(int c)
+{
+    switch (c) {
+    case BB_CMP_EQ: return BB_CMP_NE;
+    case BB_CMP_NE: return BB_CMP_EQ;
+    case BB_CMP_LT: return BB_CMP_GE;
+    case BB_CMP_GE: return BB_CMP_LT;
+    case BB_CMP_GT: return BB_CMP_LE;
+    default: return BB_CMP_GT;
+    }
+}
+
+static int reg_cmp_ok(Node *c)
+{
+    return c->kind == E_BIN && c->op >= OP_EQ && c->op <= OP_GE && c->ty->kind == T_BOOLEAN &&
+           rkind(c->a->ty) >= 0 && rkind(c->a->ty) == rkind(c->b->ty);
+}
+
+static void reg_cmp_jump(E *e, Node *c, int sense, Patch *p)
+{
+    int k = rkind(c->a->ty), cm = cmp_code(c->op), sa, at;
+    int32_t iv;
+    Node *a = c->a, *b = c->b;
+    if (!sense) cm = cmp_negate(cm);
+    sa = rx(e, a, -1);
+    if (k != 2 && is_int_const(b, k, &iv)) {
+        emit_w(e, k == 1 ? I_R_JCMP_LRI : I_R_JCMP_IRI); emit_w(e, cm); emit_w(e, sa); emit_w(e, iv);
+    } else if (k == 2 && is_dbl_const(b)) {
+        emit_w(e, I_R_JCMP_DRK); emit_w(e, cm); emit_w(e, sa); emit_w(e, add_const(e, bb_v_double(b->cv.d)));
+    } else {
+        int sb;
+        if (impure(b) && a->kind == E_VAR) { int t = rtemp(e, k); op2(e, I_R_MOV, t, sa); sa = t; }
+        sb = rx(e, b, -1);
+        emit_w(e, k == 2 ? I_R_JCMP_DRR : k == 1 ? I_R_JCMP_LRR : I_R_JCMP_IRR); emit_w(e, cm); emit_w(e, sa); emit_w(e, sb);
+    }
+    at = emit_w(e, 0);
+    patch_add(p, at);
+}
+
+static int reg_assign(E *e, Node *t, Node *v)
+{
+    int k = rkind(t->ty), slot;
+    if (reg_mem(e, t) && (t->kind != E_INDEX || !impure(t->list.v[0])) ) {
+        int src;
+        if (k >= 0 && rkind(v->ty) == k) src = rx(e, v, -1);
+        else if (t->ty->kind == T_BOOLEAN && v->ty->kind == T_BOOLEAN) {
+            expr(e, v);
+            src = rtemp(e, 0);
+            op1(e, I_STL, src);
+        } else return 0;
+        reg_store(e, t, src);
+        return 1;
+    }
+    if (k < 0 || t->kind != E_VAR || rkind(v->ty) != k) return 0;
+    slot = reg_var(e, t, k);
+    if (slot < 0) return 0;
+    if (!reg_arith(v, k) && reg_var(e, v, k) < 0) return 0;
+    rx(e, v, slot);
+    return 1;
+}
+
 /* ---------- assignment ---------- */
 
 static int simple_target(Node *t)
@@ -528,6 +907,7 @@ static int simple_target(Node *t)
 
 static void assign(E *e, Node *t, Node *v)
 {
+    if (reg_assign(e, t, v)) return;
     if (simple_target(t)) {
         expr(e, v);
         store_var(e, t->sym);
@@ -583,10 +963,51 @@ static void block(E *e, NodeList *b)
     for (i = 0; i < b->n; i++) stmt(e, b->v[i]);
 }
 
+static int bool_slot(E *e, Node *c)
+{
+    int t;
+    if (c->ty->kind != T_BOOLEAN) return -1;
+    if (c->kind == E_VAR) {
+        Sym *s = c->sym;
+        if ((s->storage == ST_LOCAL || s->storage == ST_PARAM) && !is_ref_slot(s)) return slot_of(e, s);
+        return -1;
+    }
+    if (!reg_mem(e, c)) return -1;
+    t = rtemp(e, 0);
+    reg_load(e, c, t);
+    return t;
+}
+
 static void cond_jump_false(E *e, Node *c, Patch *p)
 {
+    int bs;
+    if (reg_cmp_ok(c)) { reg_cmp_jump(e, c, 0, p); return; }
+    if ((bs = bool_slot(e, c)) >= 0) { emit_w(e, I_R_JZ); emit_w(e, bs); patch_add(p, emit_w(e, 0)); return; }
+    if (c->kind == E_UN && c->op == OP_NOT && (bs = bool_slot(e, c->a)) >= 0) { emit_w(e, I_R_JNZ); emit_w(e, bs); patch_add(p, emit_w(e, 0)); return; }
+    /* And of side-effect-free comparisons: test each (no short-circuit is visible) */
+    if (c->kind == E_BIN && c->op == OP_AND && c->ty->kind == T_BOOLEAN && !impure(c->a) && !impure(c->b) &&
+        reg_cmp_ok(c->a) && reg_cmp_ok(c->b)) {
+        reg_cmp_jump(e, c->a, 0, p);
+        reg_cmp_jump(e, c->b, 0, p);
+        return;
+    }
     expr(e, c);
     patch_add(p, jump(e, I_JF));
+}
+
+static void cond_jump_true(E *e, Node *c, Patch *p)
+{
+    int bs;
+    if (reg_cmp_ok(c)) { reg_cmp_jump(e, c, 1, p); return; }
+    if ((bs = bool_slot(e, c)) >= 0) { emit_w(e, I_R_JNZ); emit_w(e, bs); patch_add(p, emit_w(e, 0)); return; }
+    if (c->kind == E_BIN && c->op == OP_OR && c->ty->kind == T_BOOLEAN && !impure(c->a) && !impure(c->b) &&
+        reg_cmp_ok(c->a) && reg_cmp_ok(c->b)) {
+        reg_cmp_jump(e, c->a, 1, p);
+        reg_cmp_jump(e, c->b, 1, p);
+        return;
+    }
+    expr(e, c);
+    patch_add(p, jump(e, I_JT));
 }
 
 static int fast_for_kind(Node *ctr)
@@ -725,11 +1146,12 @@ static void label_ref(E *e, Sym *l, int at)
 static void stmt1(E *e, Node *s);
 static void stmt(E *e, Node *s)
 {
-    int outer = e->used_keep;
+    int outer = e->used_keep, u0 = e->usedrtmp[0], u1 = e->usedrtmp[1], u2 = e->usedrtmp[2];
     e->used_keep = 0;
     stmt1(e, s);
     if (e->used_keep) op0(e, I_UNKEEP);
     e->used_keep = outer;
+    e->usedrtmp[0] = u0; e->usedrtmp[1] = u1; e->usedrtmp[2] = u2;
 }
 
 static void stmt1(E *e, Node *s)
@@ -811,15 +1233,16 @@ static void stmt1(E *e, Node *s)
     case S_DO: {
         Loop *l = push_loop(e, EXIT_DO);
         int top = here(e);
-        if (s->op == DO_PRE_WHILE || s->op == DO_PRE_UNTIL) {
-            expr(e, s->a);
-            patch_add(&l->exits, jump(e, s->op == DO_PRE_WHILE ? I_JF : I_JT));
-        }
+        if (s->op == DO_PRE_WHILE) cond_jump_false(e, s->a, &l->exits);
+        else if (s->op == DO_PRE_UNTIL) cond_jump_true(e, s->a, &l->exits);
         block(e, &s->list);
         if (s->op == DO_POST_WHILE || s->op == DO_POST_UNTIL) {
+            Patch back = {0, 0, 0};
             line(e, s->a);
-            expr(e, s->a);
-            op1(e, s->op == DO_POST_WHILE ? I_JT : I_JF, top);
+            if (s->op == DO_POST_WHILE) cond_jump_true(e, s->a, &back);
+            else cond_jump_false(e, s->a, &back);
+            patch_all(e, &back, top);
+            free(back.v);
         } else op1(e, I_JMP, top);
         pop_loop(e, here(e));
         return;
@@ -985,6 +1408,7 @@ static void emit_proc(E *e, Proc *pr, VMProc *vp)
     e->vp = vp;
     e->me = pr->cls ? 1 : 0;
     e->nloops = 0;
+    { int k; for (k = 0; k < 3; k++) { e->nrtmp[k] = 0; e->usedrtmp[k] = 0; } }
     e->nlines = 0;
     e->caplines = 0;
     e->lines = NULL;

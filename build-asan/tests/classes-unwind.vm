@@ -1,0 +1,11 @@
+release inner0
+release inner1
+release inner2
+caught 77 boom
+release outer
+release inner0
+release inner1
+release inner2
+caught 77 boom
+release outer
+done

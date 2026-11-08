@@ -28,6 +28,8 @@ int bb_plat_read_line(char **line, size_t *len);         /* malloc'ed, no newlin
 void bb_plat_localtime(bb_tm *tm);
 double bb_plat_seconds(void);                            /* monotonic-ish, seconds */
 void bb_plat_sleep_ms(long ms);
+/* Ctrl-C: nonzero if a break was requested since the last call (clears it) */
+int bb_plat_break(void);
 /* file system: 0 = ok, otherwise a VB error number (53, 75, 76, ...) */
 int bb_plat_remove(const char *path);
 int bb_plat_rename(const char *from, const char *to);
