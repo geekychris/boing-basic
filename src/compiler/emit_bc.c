@@ -1006,6 +1006,15 @@ static void cond_jump_true(E *e, Node *c, Patch *p)
         reg_cmp_jump(e, c->b, 1, p);
         return;
     }
+    if (c->kind == E_BIN && c->op == OP_AND && c->ty->kind == T_BOOLEAN && !impure(c->a) && !impure(c->b) &&
+        reg_cmp_ok(c->a) && reg_cmp_ok(c->b)) {
+        Patch skip = {0, 0, 0};
+        reg_cmp_jump(e, c->a, 0, &skip);
+        reg_cmp_jump(e, c->b, 1, p);
+        patch_all(e, &skip, here(e));
+        free(skip.v);
+        return;
+    }
     expr(e, c);
     patch_add(p, jump(e, I_JT));
 }
@@ -1212,10 +1221,7 @@ static void stmt1(E *e, Node *s)
             {
                 Patch body = {0, 0, 0};
                 int k, skip;
-                for (k = 0; k < cs->list.n; k++) {
-                    expr(e, cs->list.v[k]);
-                    patch_add(&body, jump(e, I_JT));
-                }
+                for (k = 0; k < cs->list.n; k++) cond_jump_true(e, cs->list.v[k], &body);
                 skip = jump(e, I_JMP);
                 patch_all(e, &body, here(e));
                 free(body.v);
