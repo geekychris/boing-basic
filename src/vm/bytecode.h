@@ -6,7 +6,7 @@
 #include "../runtime/boing.h"
 
 #define BBC_MAGIC "BBC1"
-#define BBC_VERSION 8
+#define BBC_VERSION 9
 
 /* array operands of the register forms: slot >= 0, global -1 - index, field of Me BB_ME_OPND - index */
 #define BB_ME_OPND (-0x20000000)
@@ -60,7 +60,7 @@
     OP(R_LDE1, 4) OP(R_STE1, 4) OP(R_LDE2, 5) OP(R_STE2, 5) OP(R_LDEF1, 5) OP(R_STEF1, 5) OP(R_LDF, 4) OP(R_STF, 4) \
     OP(R_JNZ, 2) OP(R_JZ, 2) \
     OP(R_FORCHK_I, 4) OP(R_FORINC_I, 4) OP(R_FORCHK_L, 4) OP(R_FORINC_L, 4) OP(R_FORCHK_D, 4) OP(R_FORINC_D, 4) \
-    OP(R_LDREF, 3) OP(R_STREF, 3) OP(R_JMP, 1) OP(R_SQRT_D, 2) OP(R_CALLS, 11) OP(R_RET, 0) OP(R_LDMF, 3) OP(R_STMF, 3) OP(R_LDG, 3) OP(R_STG, 3) \
+    OP(R_LDREF, 3) OP(R_STREF, 3) OP(R_JMP, 1) OP(R_SQRT_D, 2) OP(R_CALLS, 11) OP(R_RET, 0) OP(R_LDMF, 3) OP(R_STMF, 3) OP(R_LDG, 3) OP(R_STG, 3) OP(R_JF1Z, 5) OP(R_JCMPF1_LI, 6) OP(R_FORSKIPF, 7) \
     /* Single (computed in double, rounded with a range check, as VB and the C back end do); the JIT stops at these */ \
     OP(R_ADD_FRR, 3) OP(R_SUB_FRR, 3) OP(R_MUL_FRR, 3) OP(R_DIV_FRR, 3) OP(R_NEG_F, 2) \
     OP(R_CVT_IF, 2) OP(R_CVT_LF, 2) OP(R_CVT_DF, 2) OP(R_CVT_FD, 2) OP(R_JCMP_FRR, 4)

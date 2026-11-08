@@ -556,7 +556,7 @@ static int translate(T *t, int32_t pc)
     case I_R_FORCHK_I: for_test(t, K_I, pc, w[1], w[2], w[3], w[4], 0); return 1;
     case I_R_FORCHK_L: for_test(t, K_L, pc, w[1], w[2], w[3], w[4], 0); return 1;
     case I_R_FORINC_I: for_test(t, K_I, pc, w[1], w[2], w[3], w[4], 1); return 1;
-    case I_R_FORINC_L: for_test(t, K_L, pc, w[1], w[2], w[3], w[4], 1); return 1;
+    case I_R_FORINC_L: case I_R_FORSKIPF: for_test(t, K_L, pc, w[1], w[2], w[3], w[4], 1); return 1;   /* FORSKIPF: the If at w[4] skips */
     case I_R_FORCHK_D: for_test_d(t, pc, w[1], w[2], w[3], w[4], 0); return 1;
     case I_R_FORINC_D: for_test_d(t, pc, w[1], w[2], w[3], w[4], 1); return 1;
     case I_R_LDE1: case I_R_STE1: {
@@ -600,6 +600,36 @@ static int translate(T *t, int32_t pc)
             b2->addp_idx(a, JP1, JP1, JI3, vt_shift(vt));
         }
         if (st) store_elem(t, vt, w[5]); else load_elem(t, vt, w[2]);
+        return 1;
+    }
+    case I_R_JF1Z: case I_R_JCMPF1_LI: {
+        /* field of arr(i) tested and branched on */
+        int u = arr_udt(t, w[2]), skip;
+        ex = exit_to(t, pc);
+        load_array(t, w[2], ex);
+        be->ld32(a, JI0, JB_L, SLOT_U(w[3]));
+        if (u >= 0) {
+            const bb_udt_desc *d = &t->img->udts[u].desc;
+            elem1_size(t, JI0, d->size, ex);
+            be->addp_off(a, JP1, JP1, d->fields[w[4]].offset);
+        } else {
+            elem1(t, JI0, BB_UDT, ex);
+            be->ldp(a, JP2, JP0, (int32_t)offsetof(bb_array, udt));
+            field_off(t, w[4]);
+        }
+        skip = ja_label(a);
+        if (op == I_R_JF1Z) {
+            be->ld16s(a, JI0, JP1, 0);
+            be->cmpi(a, JI0, 0);
+            be->bcond(a, w[1] ? JC_EQ : JC_NE, skip);
+            branch_to(t, pc, w[5]);
+        } else {
+            be->ld32(a, JI0, JP1, 0);
+            be->cmpi(a, JI0, w[5]);
+            be->bcond(a, cond_neg(cond_of(w[1])), skip);
+            branch_to(t, pc, w[6]);
+        }
+        be->bind(a, skip);
         return 1;
     }
     case I_R_LDEF1: case I_R_STEF1: {
@@ -694,6 +724,9 @@ static int32_t rbranch_target(const int32_t *w)
     case I_R_JCMP_FRR: case I_R_FORINC_I: case I_R_FORINC_L: case I_R_FORINC_D: return w[4];
     case I_R_JNZ: case I_R_JZ: return w[2];
     case I_R_JMP: return w[1];
+    case I_R_JF1Z: return w[5];
+    case I_R_FORSKIPF: return w[4];
+    case I_R_JCMPF1_LI: return w[6];
     default: return -1;
     }
 }
@@ -757,9 +790,7 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
             switch (w[0]) {
             case I_R_JCMP_LRR: case I_R_JCMP_LRI: case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: case I_R_JCMP_FRR: tg = w[4]; break;
             case I_R_FORINC_I: case I_R_FORINC_L: case I_R_FORINC_D: tg = w[4]; break;
-            case I_R_JNZ: case I_R_JZ: tg = w[2]; break;
-            case I_R_JMP: tg = w[1]; break;
-            default: break;
+            default: tg = rbranch_target(w); break;
             }
             if (tg == start) back = 1;
             if (tg >= 0 && tg <= pc) backward = 1;

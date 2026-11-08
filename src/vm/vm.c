@@ -90,6 +90,8 @@ static bb_obj *new_object(VM *vm, int cls);
 /* build with -DBB_OPSTATS -DBB_NO_THREADED: dynamic opcode counts on stderr at exit */
 static unsigned long long vm_opstats[I__COUNT];
 static unsigned long long *vm_pcstats;     /* per bytecode offset */
+static unsigned long long *vm_pairs;       /* consecutive op pairs */
+static int vm_prevop;
 static VMImage *vm_stats_img;
 static void vm_opstats_dump(void)
 {
@@ -101,6 +103,19 @@ static void vm_opstats_dump(void)
             if (vm_opstats[idx[j]] > vm_opstats[idx[i]]) { int t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
     for (i = 0; i < 40 && vm_opstats[idx[i]]; i++)
         fprintf(stderr, "%-12s %12llu %5.1f%%\n", bb_opnames[idx[i]], vm_opstats[idx[i]], 100.0 * (double)vm_opstats[idx[i]] / (double)tot);
+    if (vm_pairs) {
+        int a, b, k;
+        for (k = 0; k < 25; k++) {
+            unsigned long long best = 0;
+            int ba = 0, bb = 0;
+            for (a = 0; a < I__COUNT; a++)
+                for (b = 0; b < I__COUNT; b++)
+                    if (vm_pairs[a * I__COUNT + b] > best) { best = vm_pairs[a * I__COUNT + b]; ba = a; bb = b; }
+            if (!best) break;
+            fprintf(stderr, "pair %-12s %-12s %12llu %5.1f%%\n", bb_opnames[ba], bb_opnames[bb], best, 100.0 * (double)best / (double)tot);
+            vm_pairs[ba * I__COUNT + bb] = 0;
+        }
+    }
     if (vm_pcstats && vm_stats_img) {
         /* per procedure */
         VMImage *img = vm_stats_img;
@@ -860,6 +875,7 @@ static void vm_exec(VM *vm, int entry)
 #ifdef BB_OPSTATS
             vm_opstats[op]++;
             if (vm_pcstats) vm_pcstats[pc - code]++;
+            if (vm_pairs) { vm_pairs[vm_prevop * I__COUNT + op]++; vm_prevop = op; }
 #endif
             if (op >= I_R_FIRST) {
                 /* register forms: no stack, no tags to check; errors sync pc/sp first */
@@ -954,6 +970,9 @@ static void vm_exec(VM *vm, int entry)
         [I_R_LDMF] = &&L_R_LDMF,
         [I_R_STMF] = &&L_R_STMF,
         [I_R_LDG] = &&L_R_LDG,
+        [I_R_JF1Z] = &&L_R_JF1Z,
+        [I_R_FORSKIPF] = &&L_R_FORSKIPF,
+        [I_R_JCMPF1_LI] = &&L_R_JCMPF1_LI,
         [I_R_STG] = &&L_R_STG,
         [I_R_ADD_FRR] = &&L_R_ADD_FRR,
         [I_R_SUB_FRR] = &&L_R_SUB_FRR,
@@ -1163,6 +1182,41 @@ static void vm_exec(VM *vm, int entry)
                 RCASE(R_LDMF) L[pc[2]] = ((VMObj *)L[0].u.o)->f[pc[3]]; pc += 4; RNEXT();
                 RCASE(R_STMF) ((VMObj *)L[0].u.o)->f[pc[2]].u = L[pc[3]].u; pc += 4; RNEXT();
                 RCASE(R_LDG) L[pc[2]] = G[pc[3]]; pc += 4; RNEXT();
+                /* superinstructions: test a field of arr(i) and branch (For i: If arr(i).active ...) */
+                RCASE(R_JF1Z) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[2]); char *ep = (char *)bb_arr_elem1(A, RSL(3).u.l);
+                    if ((*(bb_int *)(ep + A->udt->fields[pc[4]].offset) != 0) == (pc[1] != 0)) {
+                        int32_t t_ = pc[5]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } else pc += 6; RNEXT(); }
+                RCASE(R_FORSKIPF) {
+                    /* Next of `For i ...: If arr(i).flag Then ...: Next`: step past the entries whose
+                       flag is 0 without dispatching (pc[4] body start = that If, pc[5] its body,
+                       pc[6] array, pc[7] field). With the JIT on it is a plain FORINC_L. */
+                    bb_value *cv = &L[pc[1]]; int32_t l = L[pc[2]].u.l, st = L[pc[3]].u.l, r;
+                    if (BB_UNLIKELY(jit_on)) {
+                        if (BB_UNLIKELY(__builtin_add_overflow(cv->u.l, st, &r))) RERR(bb_overflow());
+                        cv->u.l = r;
+                        if ((st >= 0) ? r > l : r < l) pc += 8; else BACKJUMP(pc[4])
+                        RNEXT();
+                    }
+                    for (;;) {
+                        bb_array *A;
+                        int32_t k;
+                        if (BB_UNLIKELY(__builtin_add_overflow(cv->u.l, st, &r))) RERR(bb_overflow());
+                        cv->u.l = r;
+                        if ((st >= 0) ? r > l : r < l) { pc += 8; break; }
+                        POLL();
+                        A = RARR(pc[6]);
+                        k = r - (A ? A->dims[0].lbound : 0);
+                        if (!A || A->ndims != 1 || k < 0 || k >= A->dims[0].count) { pc = code + pc[4]; break; }  /* the If raises it */
+                        if (*(bb_int *)((char *)A->data + (size_t)k * A->esize + A->udt->fields[pc[7]].offset) != 0) { pc = code + pc[5]; break; }
+                    }
+                    RNEXT();
+                }
+                RCASE(R_JCMPF1_LI) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[2]); char *ep = (char *)bb_arr_elem1(A, RSL(3).u.l);
+                    int32_t x = *(int32_t *)(ep + A->udt->fields[pc[4]].offset), y = pc[5]; int c_;
+                    switch (pc[1]) { case BB_CMP_EQ: c_ = x == y; break; case BB_CMP_NE: c_ = x != y; break;
+                    case BB_CMP_LT: c_ = x < y; break; case BB_CMP_GT: c_ = x > y; break;
+                    case BB_CMP_LE: c_ = x <= y; break; default: c_ = x >= y; }
+                    if (c_) { int32_t t_ = pc[6]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } else pc += 7; RNEXT(); }
                 RCASE(R_STG) G[pc[2]].u = L[pc[3]].u; pc += 4; RNEXT();
                 RCASE(R_LDREF) rload(&L[pc[2]], pc[1], L[pc[3]].u.p); pc += 4; RNEXT();
                 RCASE(R_STREF) rstore(pc[1], L[pc[2]].u.p, &L[pc[3]]); pc += 4; RNEXT();
@@ -2084,6 +2138,7 @@ int vm_run(VMImage *img, int argc, char **argv)
     atexit(vm_opstats_dump);
     vm_pcstats = (unsigned long long *)xcalloc((size_t)img->ncode + 1, sizeof(unsigned long long));
     vm_stats_img = img;
+    vm_pairs = (unsigned long long *)xcalloc((size_t)I__COUNT * I__COUNT, sizeof(unsigned long long));
 #endif
     bb_rt_init(argc, argv);
     jit_init();

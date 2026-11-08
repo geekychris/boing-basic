@@ -1165,6 +1165,14 @@ static void reg_cmp_jump(E *e, Node *c, int sense, Patch *p)
     int32_t iv;
     Node *a = c->a, *b = c->b;
     if (!sense) cm = cmp_negate(cm);
+    if (k == 1 && a->kind == E_FIELD && a->a->kind == E_INDEX && a->a->list.n == 1 && reg_mem(e, a) &&
+        a->ty->kind == T_LONG && !impure(a) && is_int_const(b, k, &iv)) {
+        /* If arr(i).n > 5: one superinstruction */
+        int ar = arr_opnd(e, a->a->a), ix = rx(e, a->a->list.v[0], -1);
+        emit_w(e, I_R_JCMPF1_LI); emit_w(e, cm); emit_w(e, ar); emit_w(e, ix); emit_w(e, a->field); emit_w(e, iv);
+        patch_add(p, emit_w(e, 0));
+        return;
+    }
     sa = rx(e, a, -1);
     if (k != 2 && is_int_const(b, k, &iv)) {
         emit_w(e, k == 1 ? I_R_JCMP_LRI : I_R_JCMP_IRI); emit_w(e, cm); emit_w(e, sa); emit_w(e, iv);
@@ -1378,6 +1386,14 @@ static void cond_tree_jump(E *e, Node *c, int sense, Patch *p)
         }
         return;
     }
+    if (c->kind == E_FIELD && c->a->kind == E_INDEX && c->a->list.n == 1 && reg_mem(e, c) &&
+        (c->ty->kind == T_BOOLEAN || c->ty->kind == T_INTEGER) && !impure(c)) {
+        /* If arr(i).flag: one superinstruction */
+        int a = arr_opnd(e, c->a->a), i = rx(e, c->a->list.v[0], -1);
+        emit_w(e, I_R_JF1Z); emit_w(e, sense); emit_w(e, a); emit_w(e, i); emit_w(e, c->field);
+        patch_add(p, emit_w(e, 0));
+        return;
+    }
     bs = bool_slot(e, c);
     emit_w(e, sense ? I_R_JNZ : I_R_JZ); emit_w(e, bs); patch_add(p, emit_w(e, 0));
 }
@@ -1432,7 +1448,17 @@ static void for_stmt(E *e, Node *s)
             patch_add(&l->exits, chk);
             top = here(e);
             block(e, &s->list);
-            emit_w(e, incop); emit_w(e, c); emit_w(e, lm); emit_w(e, st); emit_w(e, top);
+            {
+                int32_t *cd = e->img->code;
+                if (kind == 2 && here(e) - top > 6 && cd[top] == I_R_JF1Z && cd[top + 1] == 0 && cd[top + 3] == c && cd[top + 5] == here(e)) {
+                    /* For i: If arr(i).flag Then ... : Next -> skip entries with flag 0 in one op */
+                    int32_t arr = cd[top + 2], fld = cd[top + 4];
+                    emit_w(e, I_R_FORSKIPF); emit_w(e, c); emit_w(e, lm); emit_w(e, st); emit_w(e, top);
+                    emit_w(e, top + 6); emit_w(e, arr); emit_w(e, fld);
+                } else {
+                    emit_w(e, incop); emit_w(e, c); emit_w(e, lm); emit_w(e, st); emit_w(e, top);
+                }
+            }
             pop_loop(e, here(e));
         }
         return;
