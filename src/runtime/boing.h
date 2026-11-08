@@ -27,7 +27,9 @@ extern "C" {
 #define BB_LIKELY(x) __builtin_expect(!!(x), 1)
 #define BB_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define BB_INLINE static inline __attribute__((always_inline))
+#define BB_UNUSED __attribute__((unused))
 #else
+#define BB_UNUSED
 #define BB_NORETURN
 #define BB_LIKELY(x) (x)
 #define BB_UNLIKELY(x) (x)
