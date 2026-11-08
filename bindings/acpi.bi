@@ -10,4 +10,4 @@ Declare Sub Shutdown Lib "acpi.resource" Alias "#6" ()
 
 ' --- constants ---
 ' resources/acpi.h
-Const ACPIA_ShutdownSupported = &H80000001
+Public Const ACPIA_ShutdownSupported = &H80000001

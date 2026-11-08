@@ -8,21 +8,21 @@ Declare Function PENMAP_GetClass Lib "images/penmap.image" Alias "#4" () As Long
 
 ' --- constants ---
 ' images/penmap.h
-Const PENMAP_Dummy = &H85018000
-Const PENMAP_SelectBGPen = &H85018001
-Const PENMAP_SelectData = &H85018002
-Const PENMAP_RenderBGPen = &H80020006
-Const PENMAP_RenderData = &H80020007
-Const PENMAP_Palette = &H85018003
-Const PENMAP_Screen = &H85018004
-Const PENMAP_ImageType = &H85018005
-Const PENMAP_Transparent = &H85018006
-Const PENMAP_Precision = &H85018008
-Const PENMAP_ColorMap = &H85018009
-Const PENMAP_MaskBlit = &H8501800A
-Const PENMAP_Compressed = &H8501800B
-Const PENMAP_MaskPlane = &H8501800C
-Const PENMAP_SelectMaskPlane = &H8501800D
-Const IMAGE_CHUNKY = 0
-Const IMAGE_IMAGE = 1
-Const IMAGE_DRAWLIST = 2
+Public Const PENMAP_Dummy = &H85018000
+Public Const PENMAP_SelectBGPen = &H85018001
+Public Const PENMAP_SelectData = &H85018002
+Public Const PENMAP_RenderBGPen = &H80020006
+Public Const PENMAP_RenderData = &H80020007
+Public Const PENMAP_Palette = &H85018003
+Public Const PENMAP_Screen = &H85018004
+Public Const PENMAP_ImageType = &H85018005
+Public Const PENMAP_Transparent = &H85018006
+Public Const PENMAP_Precision = &H85018008
+Public Const PENMAP_ColorMap = &H85018009
+Public Const PENMAP_MaskBlit = &H8501800A
+Public Const PENMAP_Compressed = &H8501800B
+Public Const PENMAP_MaskPlane = &H8501800C
+Public Const PENMAP_SelectMaskPlane = &H8501800D
+Public Const IMAGE_CHUNKY = 0
+Public Const IMAGE_IMAGE = 1
+Public Const IMAGE_DRAWLIST = 2

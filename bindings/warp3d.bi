@@ -104,5 +104,5 @@ Declare Function W3D_SetDrawRegionTexture Lib "Warp3D.library" Alias "#100" (ByV
 
 ' --- constants ---
 ' warp3d/warp3d.h
-Const W3D_TRUE = 1
-Const W3D_FALSE = 0
+Public Const W3D_TRUE = 1
+Public Const W3D_FALSE = 0

@@ -9,7 +9,7 @@ Declare Sub FreeResource Lib "xena.resource" Alias "#5" (ByVal unitNum As Long)
 
 ' --- constants ---
 ' resources/xena.h
-Const XR_XTAGPORT = 0
-Const XR_DATABUS = 1
-Const XR_INTERRUPT = 2
-Const XR_LONELYBIT = 3
+Public Const XR_XTAGPORT = 0
+Public Const XR_DATABUS = 1
+Public Const XR_INTERRUPT = 2
+Public Const XR_LONELYBIT = 3

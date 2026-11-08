@@ -17,5 +17,5 @@ Declare Function RL_SetResourceScreen Lib "resource.library" Alias "#13" (ByVal 
 
 ' --- constants ---
 ' libraries/resource.h
-Const RL_GADGETMASK = 1023
-Const RL_GROUPMASK = 64512
+Public Const RL_GADGETMASK = 1023
+Public Const RL_GROUPMASK = 64512

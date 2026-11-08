@@ -8,15 +8,15 @@ Declare Function PeekQualifier Lib "input.device" Alias "#4" () As Long
 
 ' --- constants ---
 ' devices/input.h
-Const IDERR_BadName = 1
-Const IDERR_OutOfMemory = 2
-Const IDERR_NameTooLong = 3
-Const IDERR_AlreadyInstalled = 4
-Const IDERR_NotInstalled = 5
-Const IDNOTIFY_Threshold = 1
-Const IDNOTIFY_Period = 2
-Const IDNOTIFY_MousePort = 3
-Const IDNOTIFY_MouseType = 4
-Const IDNOTIFY_MouseTrigger = 5
-Const IDNOTIFY_MouseDevice = 6
-Const IDNOTIFY_KeyboardDevice = 7
+Public Const IDERR_BadName = 1
+Public Const IDERR_OutOfMemory = 2
+Public Const IDERR_NameTooLong = 3
+Public Const IDERR_AlreadyInstalled = 4
+Public Const IDERR_NotInstalled = 5
+Public Const IDNOTIFY_Threshold = 1
+Public Const IDNOTIFY_Period = 2
+Public Const IDNOTIFY_MousePort = 3
+Public Const IDNOTIFY_MouseType = 4
+Public Const IDNOTIFY_MouseTrigger = 5
+Public Const IDNOTIFY_MouseDevice = 6
+Public Const IDNOTIFY_KeyboardDevice = 7

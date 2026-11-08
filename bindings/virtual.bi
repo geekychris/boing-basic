@@ -10,22 +10,22 @@ Declare Function RethinkVirtualSize Lib "gadgets/virtual.gadget" Alias "#6" (ByV
 
 ' --- constants ---
 ' gadgets/virtual.h
-Const VIRTUALA_Base = &H85024500
-Const VIRTUALA_Contents = &H85024500
-Const VIRTUALA_Scroller = &H85024501
-Const VIRTUALA_ScrollX = &H85024502
-Const VIRTUALA_ScrollY = &H85024503
-Const VIRTUALA_VisibleX = &H85024504
-Const VIRTUALA_VisibleY = &H85024505
-Const VIRTUALA_TopX = &H85024506
-Const VIRTUALA_TopY = &H85024507
-Const VIRTUALA_TotalX = &H85024508
-Const VIRTUALA_TotalY = &H85024509
-Const VIRTUALA_ScrollerX = &H8502450A
-Const VIRTUALA_ScrollerY = &H8502450B
-Const VIRTUALA_InputScroll = &H8502450C
-Const VIRTUALA_NoDispose = &H8502450D
-Const VIRTUALA_TargetX = &H8502450E
-Const VIRTUALA_TargetY = &H8502450F
-Const VIRTUALA_MapX = &H85024510
-Const VIRTUALA_MapY = &H85024511
+Public Const VIRTUALA_Base = &H85024500
+Public Const VIRTUALA_Contents = &H85024500
+Public Const VIRTUALA_Scroller = &H85024501
+Public Const VIRTUALA_ScrollX = &H85024502
+Public Const VIRTUALA_ScrollY = &H85024503
+Public Const VIRTUALA_VisibleX = &H85024504
+Public Const VIRTUALA_VisibleY = &H85024505
+Public Const VIRTUALA_TopX = &H85024506
+Public Const VIRTUALA_TopY = &H85024507
+Public Const VIRTUALA_TotalX = &H85024508
+Public Const VIRTUALA_TotalY = &H85024509
+Public Const VIRTUALA_ScrollerX = &H8502450A
+Public Const VIRTUALA_ScrollerY = &H8502450B
+Public Const VIRTUALA_InputScroll = &H8502450C
+Public Const VIRTUALA_NoDispose = &H8502450D
+Public Const VIRTUALA_TargetX = &H8502450E
+Public Const VIRTUALA_TargetY = &H8502450F
+Public Const VIRTUALA_MapX = &H85024510
+Public Const VIRTUALA_MapY = &H85024511

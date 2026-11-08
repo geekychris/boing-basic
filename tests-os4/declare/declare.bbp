@@ -1,0 +1,7 @@
+# Boing BASIC project: Declare + the generated bindings on AmigaOS 4 (tools/os4guest.py)
+Name=DeclareTest
+Startup=Sub Main
+Module=declare.bas
+Module=../../bindings/exec.bi
+Module=../../bindings/dos.bi
+Module=../../bindings/utility.bi

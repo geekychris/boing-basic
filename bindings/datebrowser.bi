@@ -11,17 +11,17 @@ Declare Function JulianLeapYear Lib "gadgets/datebrowser.gadget" Alias "#7" (ByV
 
 ' --- constants ---
 ' gadgets/datebrowser.h
-Const DATEBROWSER_Dummy = &H85061000
-Const DATEBROWSER_Day = &H85061000
-Const DATEBROWSER_Month = &H85061001
-Const DATEBROWSER_Year = &H85061002
-Const DATEBROWSER_SelectedDays = &H85061003
-Const DATEBROWSER_WeekDay = &H85061004
-Const DATEBROWSER_FirstWDay = &H85061005
-Const DATEBROWSER_NumDays = &H85061006
-Const DATEBROWSER_ShowTitle = &H85061007
-Const DATEBROWSER_ShowWeek = &H8506100A
-Const DATEBROWSER_MultiSelect = &H85061008
-Const DATEBROWSER_DayTitles = &H85061009
-Const DATEBROWSER_WeekTitle = &H8506100B
-Const DATEBROWSER_CalendarType = &H8506100C
+Public Const DATEBROWSER_Dummy = &H85061000
+Public Const DATEBROWSER_Day = &H85061000
+Public Const DATEBROWSER_Month = &H85061001
+Public Const DATEBROWSER_Year = &H85061002
+Public Const DATEBROWSER_SelectedDays = &H85061003
+Public Const DATEBROWSER_WeekDay = &H85061004
+Public Const DATEBROWSER_FirstWDay = &H85061005
+Public Const DATEBROWSER_NumDays = &H85061006
+Public Const DATEBROWSER_ShowTitle = &H85061007
+Public Const DATEBROWSER_ShowWeek = &H8506100A
+Public Const DATEBROWSER_MultiSelect = &H85061008
+Public Const DATEBROWSER_DayTitles = &H85061009
+Public Const DATEBROWSER_WeekTitle = &H8506100B
+Public Const DATEBROWSER_CalendarType = &H8506100C

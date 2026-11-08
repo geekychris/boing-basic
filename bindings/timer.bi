@@ -14,4 +14,4 @@ Declare Sub MicroDelay Lib "timer.device" Alias "#10" (ByVal microseconds As Lon
 
 ' --- constants ---
 ' devices/timer.h
-Const DEVICES_TIMER_H = 1
+Public Const DEVICES_TIMER_H = 1

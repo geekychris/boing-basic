@@ -8,17 +8,17 @@ Declare Function SCROLLER_GetClass Lib "gadgets/scroller.gadget" Alias "#4" () A
 
 ' --- constants ---
 ' gadgets/scroller.h
-Const SCROLLER_Dummy = &H85005000
-Const SCROLLER_Top = &H85005001
-Const SCROLLER_Visible = &H85005002
-Const SCROLLER_Total = &H85005003
-Const SCROLLER_Orientation = &H85005004
-Const SCROLLER_Arrows = &H85005005
-Const SCROLLER_Stretch = &H85005006
-Const SCROLLER_ArrowDelta = &H85005007
-Const SCROLLER_SignalTask = &H8500500A
-Const SCROLLER_SignalTaskBit = &H8500500B
-Const SORIENT_HORIZ = 2
-Const SORIENT_VERT = 4
-Const SCROLLER_HORIZONTAL = 2
-Const SCROLLER_VERTICAL = 4
+Public Const SCROLLER_Dummy = &H85005000
+Public Const SCROLLER_Top = &H85005001
+Public Const SCROLLER_Visible = &H85005002
+Public Const SCROLLER_Total = &H85005003
+Public Const SCROLLER_Orientation = &H85005004
+Public Const SCROLLER_Arrows = &H85005005
+Public Const SCROLLER_Stretch = &H85005006
+Public Const SCROLLER_ArrowDelta = &H85005007
+Public Const SCROLLER_SignalTask = &H8500500A
+Public Const SCROLLER_SignalTaskBit = &H8500500B
+Public Const SORIENT_HORIZ = 2
+Public Const SORIENT_VERT = 4
+Public Const SCROLLER_HORIZONTAL = 2
+Public Const SCROLLER_VERTICAL = 4

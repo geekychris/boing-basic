@@ -9,19 +9,19 @@ Declare Sub ConvertRGBToHSB Lib "gadgets/colorwheel.gadget" Alias "#5" (ByVal rg
 
 ' --- constants ---
 ' gadgets/colorwheel.h
-Const WHEEL_Dummy = &H84000000
-Const WHEEL_Hue = &H84000001
-Const WHEEL_Saturation = &H84000002
-Const WHEEL_Brightness = &H84000003
-Const WHEEL_HSB = &H84000004
-Const WHEEL_Red = &H84000005
-Const WHEEL_Green = &H84000006
-Const WHEEL_Blue = &H84000007
-Const WHEEL_RGB = &H84000008
-Const WHEEL_Screen = &H84000009
-Const WHEEL_Abbrv = &H8400000A
-Const WHEEL_Donation = &H8400000B
-Const WHEEL_BevelBox = &H8400000C
-Const WHEEL_GradientSlider = &H8400000D
-Const WHEEL_MaxPens = &H8400000E
-Const WHEEL_KeepAspect = &H8400000F
+Public Const WHEEL_Dummy = &H84000000
+Public Const WHEEL_Hue = &H84000001
+Public Const WHEEL_Saturation = &H84000002
+Public Const WHEEL_Brightness = &H84000003
+Public Const WHEEL_HSB = &H84000004
+Public Const WHEEL_Red = &H84000005
+Public Const WHEEL_Green = &H84000006
+Public Const WHEEL_Blue = &H84000007
+Public Const WHEEL_RGB = &H84000008
+Public Const WHEEL_Screen = &H84000009
+Public Const WHEEL_Abbrv = &H8400000A
+Public Const WHEEL_Donation = &H8400000B
+Public Const WHEEL_BevelBox = &H8400000C
+Public Const WHEEL_GradientSlider = &H8400000D
+Public Const WHEEL_MaxPens = &H8400000E
+Public Const WHEEL_KeepAspect = &H8400000F

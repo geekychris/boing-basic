@@ -13,23 +13,23 @@ Declare Function SetTimezoneAttrsA Lib "timezone.library" Alias "#8" (ByVal unus
 
 ' --- constants ---
 ' libraries/timezone.h
-Const TZA_Timezone = &H80000001
-Const TZA_TimezoneSTD = &H8000000A
-Const TZA_TimezoneDST = &H80000012
-Const TZA_UTCOffset = &H80000002
-Const TZA_UTCOffsetSTD = &H8000000B
-Const TZA_UTCOffsetDST = &H8000000F
-Const TZA_TimeFlag = &H80000003
-Const TZA_UTCOffsetRFC = &H8000000D
-Const TZA_DSTStart = &H80000010
-Const TZA_DSTEnd = &H80000011
-Const TZA_NextDSTSwitch = &H8000000C
-Const TZA_CountryCode = &H8000000E
-Const TZA_CountryName = &H80000017
-Const TZA_RuleName = &H80000013
-Const TFLG_ISSTD = 0
-Const TFLG_ISDST = 1
-Const TFLG_UNKNOWN = &HFFFFFFFF
-Const MAX_TZSIZE = 6
-Const MAX_RFCSIZE = 6
-Const MAX_ZONESIZE = 129
+Public Const TZA_Timezone = &H80000001
+Public Const TZA_TimezoneSTD = &H8000000A
+Public Const TZA_TimezoneDST = &H80000012
+Public Const TZA_UTCOffset = &H80000002
+Public Const TZA_UTCOffsetSTD = &H8000000B
+Public Const TZA_UTCOffsetDST = &H8000000F
+Public Const TZA_TimeFlag = &H80000003
+Public Const TZA_UTCOffsetRFC = &H8000000D
+Public Const TZA_DSTStart = &H80000010
+Public Const TZA_DSTEnd = &H80000011
+Public Const TZA_NextDSTSwitch = &H8000000C
+Public Const TZA_CountryCode = &H8000000E
+Public Const TZA_CountryName = &H80000017
+Public Const TZA_RuleName = &H80000013
+Public Const TFLG_ISSTD = 0
+Public Const TFLG_ISDST = 1
+Public Const TFLG_UNKNOWN = &HFFFFFFFF
+Public Const MAX_TZSIZE = 6
+Public Const MAX_RFCSIZE = 6
+Public Const MAX_ZONESIZE = 129

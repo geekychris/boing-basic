@@ -10,7 +10,7 @@ Declare Function Docky_DockyProcess Lib "docky.library" Interface "docky" Alias 
 
 ' --- constants ---
 ' libraries/docky.h
-Const DOCKYVERSION = 3473409
-Const DOCKYINITSTAGE_ZERO = 0
-Const DOCKYINITSTAGE_ONE = 1
-Const DOCKYPROCESS_ADDVALUE = 134217727
+Public Const DOCKYVERSION = 3473409
+Public Const DOCKYINITSTAGE_ZERO = 0
+Public Const DOCKYINITSTAGE_ONE = 1
+Public Const DOCKYPROCESS_ADDVALUE = 134217727

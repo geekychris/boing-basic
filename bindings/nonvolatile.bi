@@ -17,11 +17,11 @@ Declare Sub FreeUBootVar Lib "nonvolatile.library" Alias "#13" (ByVal value As S
 
 ' --- constants ---
 ' libraries/nonvolatile.h
-Const NVEB_DELETE = 0
-Const NVEB_APPNAME = 31
-Const NVEF_DELETE = 1
-Const NVEF_APPNAME = &H80000000
-Const NVERR_BADNAME = 1
-Const NVERR_WRITEPROT = 2
-Const NVERR_FAIL = 3
-Const NVERR_FATAL = 4
+Public Const NVEB_DELETE = 0
+Public Const NVEB_APPNAME = 31
+Public Const NVEF_DELETE = 1
+Public Const NVEF_APPNAME = &H80000000
+Public Const NVERR_BADNAME = 1
+Public Const NVERR_WRITEPROT = 2
+Public Const NVERR_FAIL = 3
+Public Const NVERR_FATAL = 4

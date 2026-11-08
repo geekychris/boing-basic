@@ -8,24 +8,24 @@ Declare Function GETCOLOR_GetClass Lib "gadgets/getcolor.gadget" Alias "#4" () A
 
 ' --- constants ---
 ' gadgets/getcolor.h
-Const GETCOLOR_Dummy = &H85043000
-Const GETCOLOR_TitleText = &H85043001
-Const GETCOLOR_Screen = &H85043002
-Const GETCOLOR_Color = &H85043003
-Const GETCOLOR_Red = &H85043004
-Const GETCOLOR_Green = &H85043005
-Const GETCOLOR_Blue = &H85043006
-Const GETCOLOR_Hue = &H85043007
-Const GETCOLOR_Saturation = &H85043008
-Const GETCOLOR_Brightness = &H85043009
-Const GETCOLOR_RGB = &H8504300A
-Const GETCOLOR_HSB = &H8504300B
-Const GETCOLOR_ColorWheel = &H8504300C
-Const GETCOLOR_RGBSliders = &H8504300D
-Const GETCOLOR_HSBSliders = &H8504300E
-Const GETCOLOR_SwitchMode = &H8504300F
-Const GETCOLOR_Initial = &H85043010
-Const GETCOLOR_ShowRGB = &H85043011
-Const GETCOLOR_ShowHSB = &H85043012
-Const GETCOLOR_SmallTextAttr = &H85043013
-Const GCOLOR_REQUEST = 6488065
+Public Const GETCOLOR_Dummy = &H85043000
+Public Const GETCOLOR_TitleText = &H85043001
+Public Const GETCOLOR_Screen = &H85043002
+Public Const GETCOLOR_Color = &H85043003
+Public Const GETCOLOR_Red = &H85043004
+Public Const GETCOLOR_Green = &H85043005
+Public Const GETCOLOR_Blue = &H85043006
+Public Const GETCOLOR_Hue = &H85043007
+Public Const GETCOLOR_Saturation = &H85043008
+Public Const GETCOLOR_Brightness = &H85043009
+Public Const GETCOLOR_RGB = &H8504300A
+Public Const GETCOLOR_HSB = &H8504300B
+Public Const GETCOLOR_ColorWheel = &H8504300C
+Public Const GETCOLOR_RGBSliders = &H8504300D
+Public Const GETCOLOR_HSBSliders = &H8504300E
+Public Const GETCOLOR_SwitchMode = &H8504300F
+Public Const GETCOLOR_Initial = &H85043010
+Public Const GETCOLOR_ShowRGB = &H85043011
+Public Const GETCOLOR_ShowHSB = &H85043012
+Public Const GETCOLOR_SmallTextAttr = &H85043013
+Public Const GCOLOR_REQUEST = 6488065

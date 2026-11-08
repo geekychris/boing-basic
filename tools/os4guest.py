@@ -6,6 +6,9 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
     tools/os4guest.py push LOCAL AMIGA_PATH [LOCAL AMIGA_PATH ...]
     tools/os4guest.py dos 'AmigaDOS command'
     tools/os4guest.py test LOCAL_TEST_BINARY [args]   push to RAM:bbtest/ and run it, exit 1 on FAIL
+    tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|native|both]
+                                                      run a BASIC test with build/os4/boing (VM)
+                                                      and/or natively built; exit 1 unless PASS
     tools/os4guest.py tool NAME '{json args}'          any devbench MCP tool
 
 Env: OS4_MCP (default http://localhost:3010/mcp; :3000 can be shadowed, see amiga_mcp memory),
@@ -86,6 +89,65 @@ def push(m, local, dest):
             os.unlink(tmp.name)
 
 
+ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+
+def run_bg(m, cmd, outf, limit=None):
+    """Run cmd in the background on the guest (its output to outf) and poll until a PASS/FAIL line."""
+    import time
+    limit = limit or float(os.environ.get("BB_TEST_TIMEOUT", "180"))
+    m.tool("amiga_dos_command", command="delete %s QUIET" % outf)
+    m.tool("amiga_dos_command", command="run >NIL: %s >%s" % (cmd, outf))
+    t0, out = time.time(), ""
+    while time.time() - t0 < limit:
+        time.sleep(2)
+        out = m.tool("amiga_dos_command", command="type %s" % outf)
+        if re.search(r"^(PASS|FAIL)\b", out, re.M):
+            return out
+    return out + "\nFAIL (timed out after %ds; still running on the guest)" % limit
+
+
+def bas(m, src, mode):
+    """Push a project (files beside it + the Module= paths, kept relative to the repo) to
+    RAM:bbt/ and run it."""
+    import subprocess
+    src = os.path.abspath(src)
+    rel = os.path.relpath(src, ROOT)
+    files = []
+    d = os.path.dirname(src)
+    for f in sorted(os.listdir(d)):
+        if os.path.splitext(f)[1].lower() in (".bas", ".bbp", ".afg", ".cls", ".bi", ".in"):
+            files.append(os.path.join(d, f))
+    if src.endswith(".bbp"):
+        for line in open(src, encoding="latin-1"):
+            mm = re.match(r"\s*(Module|Form|Class)\s*=\s*(\S+)", line, re.I)
+            if mm:
+                p = os.path.normpath(os.path.join(d, mm.group(2)))
+                if p not in files and os.path.exists(p):
+                    files.append(p)
+    amiga = lambda p: "RAM:bbt/" + os.path.relpath(p, ROOT)
+    dirs = sorted({os.path.dirname(amiga(p)) for p in files})
+    m.tool("amiga_dos_command", command="makedir RAM:bbt " + " ".join(
+        sorted({"/".join(x.split("/")[:i]) for x in dirs for i in range(2, x.count("/") + 2)})) + " QUIET")
+    ok = True
+    for f in files:
+        push(m, f, amiga(f))
+    rdir = os.path.dirname(amiga(src))
+    if mode in ("vm", "both"):
+        push(m, os.path.join(ROOT, "build/os4/boing"), "RAM:bbt/boing")
+        out = run_bg(m, "RAM:bbt/boing run %s" % amiga(src), "RAM:bbt/vm.out")
+        print("== vm\n" + out)
+        ok &= bool(re.search(r"^PASS", out, re.M))
+    if mode in ("native", "both"):
+        exe = os.path.join(ROOT, "build/os4", os.path.splitext(os.path.basename(src))[0] + ".exe")
+        subprocess.check_call([os.path.join(ROOT, "build/boing"), "build", src, "--target", "os4", "-o", exe])
+        push(m, exe, rdir + "/native")
+        out = run_bg(m, rdir + "/native", "RAM:bbt/native.out")
+        print("== native\n" + out)
+        ok &= bool(re.search(r"^PASS", out, re.M))
+    return ok
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -101,6 +163,8 @@ def main():
                 print(push(m, args[i], args[i + 1]))
         elif cmd == "dos":
             print(m.tool("amiga_dos_command", command=args[0]))
+        elif cmd == "bas":
+            return 0 if bas(m, args[0], args[1] if len(args) > 1 else "both") else 1
         elif cmd == "test":
             # run it in the background with its output in a file, and poll: a test stuck in a
             # requester must not block the bridge's shell
@@ -110,6 +174,10 @@ def main():
             m.tool("amiga_dos_command", command="makedir RAM:bbtest")
             push(m, args[0], "RAM:bbtest/" + name)
             m.tool("amiga_dos_command", command="delete %s QUIET" % outf)
+            if os.environ.get("BB_SYNC") == "1":
+                # in the bridge's own shell (its stack, no background CLI); a hang blocks the bridge
+                print(m.tool("amiga_dos_command", command=" ".join(["RAM:bbtest/" + name] + args[1:])))
+                return 0
             m.tool("amiga_dos_command", command="run >NIL: %s >%s" % (" ".join(["RAM:bbtest/" + name] + args[1:]), outf))
             limit = float(os.environ.get("BB_TEST_TIMEOUT", "180"))
             t0, out = time.time(), ""

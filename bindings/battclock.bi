@@ -12,4 +12,4 @@ Declare Sub WriteBattClockMem Lib "battclock.resource" Alias "#8" (ByVal data As
 
 ' --- constants ---
 ' resources/battclock.h
-Const RESOURCES_BATTCLOCK_H = 1
+Public Const RESOURCES_BATTCLOCK_H = 1

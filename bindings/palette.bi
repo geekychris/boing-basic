@@ -8,21 +8,21 @@ Declare Function PALETTE_GetClass Lib "gadgets/palette.gadget" Alias "#4" () As 
 
 ' --- constants ---
 ' gadgets/palette.h
-Const PALETTE_Dummy = &H85004000
-Const PALETTE_Colour = &H85004001
-Const PALETTE_ColourOffset = &H85004002
-Const PALETTE_ColourTable = &H85004003
-Const PALETTE_NumColours = &H85004004
-Const PALETTE_MinColours = &H85004005
-Const PALETTE_RenderHook = &H85004007
-Const PB_DRAW = 514
-Const PBCB_OK = 0
-Const PBCB_UNKNOWN = 1
-Const PBR_NORMAL = 0
-Const PBR_SELECTED = 1
-Const PBR_NORMALDISABLED = 2
-Const PBR_SELECTEDDISABLED = 8
-Const PALETTE_Color = &H85004001
-Const PALETTE_ColorOffset = &H85004002
-Const PALETTE_ColorTable = &H85004003
-Const PALETTE_NumColors = &H85004004
+Public Const PALETTE_Dummy = &H85004000
+Public Const PALETTE_Colour = &H85004001
+Public Const PALETTE_ColourOffset = &H85004002
+Public Const PALETTE_ColourTable = &H85004003
+Public Const PALETTE_NumColours = &H85004004
+Public Const PALETTE_MinColours = &H85004005
+Public Const PALETTE_RenderHook = &H85004007
+Public Const PB_DRAW = 514
+Public Const PBCB_OK = 0
+Public Const PBCB_UNKNOWN = 1
+Public Const PBR_NORMAL = 0
+Public Const PBR_SELECTED = 1
+Public Const PBR_NORMALDISABLED = 2
+Public Const PBR_SELECTEDDISABLED = 8
+Public Const PALETTE_Color = &H85004001
+Public Const PALETTE_ColorOffset = &H85004002
+Public Const PALETTE_ColorTable = &H85004003
+Public Const PALETTE_NumColors = &H85004004

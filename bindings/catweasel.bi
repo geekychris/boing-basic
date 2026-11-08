@@ -29,17 +29,17 @@ Declare Sub Cw3floppy_OutByte Lib "catweasel.resource" Interface "cw3floppy" Ali
 
 ' --- constants ---
 ' resources/catweasel.h
-Const JoyDat = 192
-Const PaddleSelect = 196
-Const Joybutton = 200
-Const Joybuttondir = 204
-Const KeyDat = 208
-Const KeyStatus = 212
-Const SidDat = 216
-Const SidCommand = 220
-Const CatMem = 224
-Const CatAbort = 228
-Const CatControl = 232
-Const CatOption = 236
-Const CatStartA = 240
-Const CatStartB = 244
+Public Const JoyDat = 192
+Public Const PaddleSelect = 196
+Public Const Joybutton = 200
+Public Const Joybuttondir = 204
+Public Const KeyDat = 208
+Public Const KeyStatus = 212
+Public Const SidDat = 216
+Public Const SidCommand = 220
+Public Const CatMem = 224
+Public Const CatAbort = 228
+Public Const CatControl = 232
+Public Const CatOption = 236
+Public Const CatStartA = 240
+Public Const CatStartB = 244

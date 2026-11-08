@@ -11,4 +11,4 @@ Declare Function SetICR Lib "cia.resource" Alias "#7" (ByVal resource As Long, B
 
 ' --- constants ---
 ' resources/cia.h
-Const RESOURCES_CIA_H = 1
+Public Const RESOURCES_CIA_H = 1

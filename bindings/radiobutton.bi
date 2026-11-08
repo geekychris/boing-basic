@@ -15,15 +15,15 @@ Declare Sub GetRadioButtonNodeAttrsA Lib "gadgets/radiobutton.gadget" Alias "#10
 
 ' --- constants ---
 ' gadgets/radiobutton.h
-Const RBNA_Dummy = &H80020000
-Const RBNA_UserData = &H80020001
-Const RBNA_Label = &H80020002
-Const RBNA_HintInfo = &H80020003
-Const RBNA_Disabled = &H80020004
-Const RADIOBUTTON_Dummy = &H85014000
-Const RADIOBUTTON_Labels = &H85014001
-Const RADIOBUTTON_Strings = &H85014002
-Const RADIOBUTTON_Spacing = &H85014003
-Const RADIOBUTTON_Selected = &H85014004
-Const RADIOBUTTON_LabelPlace = &H85014005
-Const RADIOBUTTON_LabelArray = &H85014006
+Public Const RBNA_Dummy = &H80020000
+Public Const RBNA_UserData = &H80020001
+Public Const RBNA_Label = &H80020002
+Public Const RBNA_HintInfo = &H80020003
+Public Const RBNA_Disabled = &H80020004
+Public Const RADIOBUTTON_Dummy = &H85014000
+Public Const RADIOBUTTON_Labels = &H85014001
+Public Const RADIOBUTTON_Strings = &H85014002
+Public Const RADIOBUTTON_Spacing = &H85014003
+Public Const RADIOBUTTON_Selected = &H85014004
+Public Const RADIOBUTTON_LabelPlace = &H85014005
+Public Const RADIOBUTTON_LabelArray = &H85014006

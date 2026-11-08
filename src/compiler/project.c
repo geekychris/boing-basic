@@ -111,6 +111,21 @@ static void read_afg(Program *p, Module *m, const char *afgpath)
 
 static char *join_dir(const char *dir, const char *rel)
 {
+#ifdef __amigaos4__
+    /* .bbp files are written with Unix-style relative paths; AmigaDOS has no "." or "..":
+       "../x" is "/x" (the parent), "./x" is "x" */
+    if (!strchr(rel, ':') && (rel[0] == '.' )) {
+        char buf[1024];
+        size_t o = 0;
+        while (rel[0] == '.') {
+            if (rel[1] == '/') rel += 2;
+            else if (rel[1] == '.' && rel[2] == '/') { if (o < sizeof buf - 1) buf[o++] = '/'; rel += 3; }
+            else break;
+        }
+        snprintf(buf + o, sizeof buf - o, "%s", rel);
+        return xsprintf("%s%s", dir, buf);
+    }
+#endif
     if (!dir[0] || rel[0] == '/' || strchr(rel, ':')) return xstrdup(rel);
     return xsprintf("%s%s", dir, rel);
 }

@@ -8,25 +8,25 @@ Declare Function STRING_GetClass Lib "gadgets/string.gadget" Alias "#4" () As Lo
 
 ' --- constants ---
 ' gadgets/string.h
-Const STRINGA_MinVisible = &H85055000
-Const STRINGA_HookType = &H85055001
-Const STRINGA_RelVerifySpecial = &H8505500A
-Const STRINGA_GetBlockPos = &H85055010
-Const STRINGA_Mark = &H85055011
-Const STRINGA_AllowMarking = &H85055012
-Const STRINGA_ASLTags = &H85055013
-Const STRINGA_MarkActive = &H85055014
-Const STRINGA_DisablePopup = &H85055015
-Const STRINGA_MinVal = &H85055016
-Const STRINGA_MaxVal = &H85055017
-Const SHK_CUSTOM = 0
-Const SHK_PASSWORD = 1
-Const SHK_IPADDRESS = 2
-Const SHK_FLOAT = 3
-Const SHK_HEXIDECIMAL = 4
-Const SHK_TELEPHONE = 5
-Const SHK_POSTALCODE = 6
-Const SHK_AMOUNT = 7
-Const SHK_UPPERCASE = 8
-Const SHK_HOTKEY = 9
-Const SHK_HEXADECIMAL = 4
+Public Const STRINGA_MinVisible = &H85055000
+Public Const STRINGA_HookType = &H85055001
+Public Const STRINGA_RelVerifySpecial = &H8505500A
+Public Const STRINGA_GetBlockPos = &H85055010
+Public Const STRINGA_Mark = &H85055011
+Public Const STRINGA_AllowMarking = &H85055012
+Public Const STRINGA_ASLTags = &H85055013
+Public Const STRINGA_MarkActive = &H85055014
+Public Const STRINGA_DisablePopup = &H85055015
+Public Const STRINGA_MinVal = &H85055016
+Public Const STRINGA_MaxVal = &H85055017
+Public Const SHK_CUSTOM = 0
+Public Const SHK_PASSWORD = 1
+Public Const SHK_IPADDRESS = 2
+Public Const SHK_FLOAT = 3
+Public Const SHK_HEXIDECIMAL = 4
+Public Const SHK_TELEPHONE = 5
+Public Const SHK_POSTALCODE = 6
+Public Const SHK_AMOUNT = 7
+Public Const SHK_UPPERCASE = 8
+Public Const SHK_HOTKEY = 9
+Public Const SHK_HEXADECIMAL = 4

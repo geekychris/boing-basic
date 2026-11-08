@@ -8,11 +8,11 @@ Declare Function CHECKBOX_GetClass Lib "gadgets/checkbox.gadget" Alias "#4" () A
 
 ' --- constants ---
 ' gadgets/checkbox.h
-Const CHECKBOX_Dummy = &H85011000
-Const CHECKBOX_TextPen = &H85011001
-Const CHECKBOX_FillTextPen = &H85011002
-Const CHECKBOX_BackgroundPen = &H85011003
-Const CHECKBOX_BevelStyle = &H85011004
-Const CHECKBOX_TextPlace = &H85011005
-Const CHECKBOX_Checked = &H80030013
-Const CHECKBOX_Invert = &H85011006
+Public Const CHECKBOX_Dummy = &H85011000
+Public Const CHECKBOX_TextPen = &H85011001
+Public Const CHECKBOX_FillTextPen = &H85011002
+Public Const CHECKBOX_BackgroundPen = &H85011003
+Public Const CHECKBOX_BevelStyle = &H85011004
+Public Const CHECKBOX_TextPlace = &H85011005
+Public Const CHECKBOX_Checked = &H80030013
+Public Const CHECKBOX_Invert = &H85011006

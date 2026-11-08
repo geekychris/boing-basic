@@ -11,4 +11,4 @@ Declare Function WriteBattMem Lib "battmem.resource" Alias "#7" (ByVal buffer As
 
 ' --- constants ---
 ' resources/battmem.h
-Const RESOURCES_BATTMEM_H = 1
+Public Const RESOURCES_BATTMEM_H = 1

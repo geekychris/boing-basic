@@ -9,7 +9,7 @@ Declare Sub FreeMiscResource Lib "misc.resource" Alias "#5" (ByVal unitNum As Lo
 
 ' --- constants ---
 ' resources/misc.h
-Const MR_SERIALPORT = 0
-Const MR_SERIALBITS = 1
-Const MR_PARALLELPORT = 2
-Const MR_PARALLELBITS = 3
+Public Const MR_SERIALPORT = 0
+Public Const MR_SERIALBITS = 1
+Public Const MR_PARALLELPORT = 2
+Public Const MR_PARALLELBITS = 3

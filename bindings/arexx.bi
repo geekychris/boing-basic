@@ -8,20 +8,20 @@ Declare Function AREXX_GetClass Lib "arexx.class" Alias "#4" () As Long
 
 ' --- constants ---
 ' classes/arexx.h
-Const AREXX_Dummy = &H85030000
-Const AREXX_HostName = &H85030001
-Const AREXX_DefExtension = &H85030002
-Const AREXX_Commands = &H85030003
-Const AREXX_ErrorCode = &H85030004
-Const AREXX_SigMask = &H85030005
-Const AREXX_NoSlot = &H85030006
-Const AREXX_ReplyHook = &H85030007
-Const AREXX_MsgPort = &H85030008
-Const RXERR_NO_COMMAND_LIST = 1
-Const RXERR_NO_PORT_NAME = 2
-Const RXERR_PORT_ALREADY_EXISTS = 3
-Const RXERR_OUT_OF_MEMORY = 4
-Const AREXX_DefExtention = &H85030002
-Const AM_HANDLEEVENT = 5832705
-Const AM_EXECUTE = 5832706
-Const AM_FLUSH = 5832707
+Public Const AREXX_Dummy = &H85030000
+Public Const AREXX_HostName = &H85030001
+Public Const AREXX_DefExtension = &H85030002
+Public Const AREXX_Commands = &H85030003
+Public Const AREXX_ErrorCode = &H85030004
+Public Const AREXX_SigMask = &H85030005
+Public Const AREXX_NoSlot = &H85030006
+Public Const AREXX_ReplyHook = &H85030007
+Public Const AREXX_MsgPort = &H85030008
+Public Const RXERR_NO_COMMAND_LIST = 1
+Public Const RXERR_NO_PORT_NAME = 2
+Public Const RXERR_PORT_ALREADY_EXISTS = 3
+Public Const RXERR_OUT_OF_MEMORY = 4
+Public Const AREXX_DefExtention = &H85030002
+Public Const AM_HANDLEEVENT = 5832705
+Public Const AM_EXECUTE = 5832706
+Public Const AM_FLUSH = 5832707

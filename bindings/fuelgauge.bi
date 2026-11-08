@@ -8,24 +8,24 @@ Declare Function FUELGAUGE_GetClass Lib "gadgets/fuelgauge.gadget" Alias "#4" ()
 
 ' --- constants ---
 ' gadgets/fuelgauge.h
-Const FUELGAUGE_Dummy = &H85012000
-Const FUELGAUGE_Min = &H85012001
-Const FUELGAUGE_Max = &H85012002
-Const FUELGAUGE_Level = &H85012003
-Const FUELGAUGE_Orientation = &H85012004
-Const FUELGAUGE_Percent = &H85012005
-Const FUELGAUGE_Ticks = &H85012006
-Const FUELGAUGE_ShortTicks = &H85012007
-Const FUELGAUGE_TickSize = &H85012008
-Const FUELGAUGE_TickPen = &H85012009
-Const FUELGAUGE_PercentPen = &H8501200A
-Const FUELGAUGE_FillPen = &H8501200B
-Const FUELGAUGE_EmptyPen = &H8501200C
-Const FUELGAUGE_VarArgs = &H8501200D
-Const FUELGAUGE_Justification = &H8501200E
-Const FGORIENT_HORIZ = 0
-Const FGORIENT_VERT = 1
-Const FGJ_LEFT = 0
-Const FGJ_CENTER = 1
-Const FUELGAUGE_HORIZONTAL = 0
-Const FUELGAUGE_VERTICAL = 1
+Public Const FUELGAUGE_Dummy = &H85012000
+Public Const FUELGAUGE_Min = &H85012001
+Public Const FUELGAUGE_Max = &H85012002
+Public Const FUELGAUGE_Level = &H85012003
+Public Const FUELGAUGE_Orientation = &H85012004
+Public Const FUELGAUGE_Percent = &H85012005
+Public Const FUELGAUGE_Ticks = &H85012006
+Public Const FUELGAUGE_ShortTicks = &H85012007
+Public Const FUELGAUGE_TickSize = &H85012008
+Public Const FUELGAUGE_TickPen = &H85012009
+Public Const FUELGAUGE_PercentPen = &H8501200A
+Public Const FUELGAUGE_FillPen = &H8501200B
+Public Const FUELGAUGE_EmptyPen = &H8501200C
+Public Const FUELGAUGE_VarArgs = &H8501200D
+Public Const FUELGAUGE_Justification = &H8501200E
+Public Const FGORIENT_HORIZ = 0
+Public Const FGORIENT_VERT = 1
+Public Const FGJ_LEFT = 0
+Public Const FGJ_CENTER = 1
+Public Const FUELGAUGE_HORIZONTAL = 0
+Public Const FUELGAUGE_VERTICAL = 1

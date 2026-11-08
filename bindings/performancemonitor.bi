@@ -21,12 +21,12 @@ Declare Sub SetBreakpoint Lib "performancemonitor.resource" Alias "#17" (ByVal t
 
 ' --- constants ---
 ' resources/performancemonitor.h
-Const PMECT_Disable = &H80000001
-Const PMECT_Enable = &H80000002
-Const PMMCT_FreezeCounters = &H80000001
-Const PMMCT_RTCBitSelect = &H80000003
-Const PMMCT_Threshold = &H80000004
-Const PMMCT_GetThreshold = &H80000005
-Const PMMCT_Trigger = &H80000006
-Const PMIV_RTCEvent = &H80000001
-Const PMIV_Monitor = &H80000002
+Public Const PMECT_Disable = &H80000001
+Public Const PMECT_Enable = &H80000002
+Public Const PMMCT_FreezeCounters = &H80000001
+Public Const PMMCT_RTCBitSelect = &H80000003
+Public Const PMMCT_Threshold = &H80000004
+Public Const PMMCT_GetThreshold = &H80000005
+Public Const PMMCT_Trigger = &H80000006
+Public Const PMIV_RTCEvent = &H80000001
+Public Const PMIV_Monitor = &H80000002

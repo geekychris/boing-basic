@@ -8,11 +8,11 @@ Declare Function INTEGER_GetClass Lib "gadgets/integer.gadget" Alias "#4" () As 
 
 ' --- constants ---
 ' gadgets/integer.h
-Const INTEGER_Dummy = &H85002000
-Const INTEGER_Number = &H85002001
-Const INTEGER_MaxChars = &H85002002
-Const INTEGER_Minimum = &H85002003
-Const INTEGER_Maximum = &H85002004
-Const INTEGER_Arrows = &H85002005
-Const INTEGER_MinVisible = &H85002006
-Const INTEGER_SkipVal = &H85002007
+Public Const INTEGER_Dummy = &H85002000
+Public Const INTEGER_Number = &H85002001
+Public Const INTEGER_MaxChars = &H85002002
+Public Const INTEGER_Minimum = &H85002003
+Public Const INTEGER_Maximum = &H85002004
+Public Const INTEGER_Arrows = &H85002005
+Public Const INTEGER_MinVisible = &H85002006
+Public Const INTEGER_SkipVal = &H85002007

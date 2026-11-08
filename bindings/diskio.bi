@@ -24,21 +24,21 @@ Declare Sub RemDiskChangeHandler Lib "diskio.library" Alias "#20" (ByVal dch As 
 
 ' --- constants ---
 ' libraries/diskio.h
-Const DIOS_Dummy = &H80000000
-Const DIOS_Cache = &H80000001
-Const DIOS_WriteCache = &H80000002
-Const DIOS_Inhibit = &H80000003
-Const DIOS_DOSType = &H80000004
-Const DIOS_DOSTypeMask = &H80000005
-Const DIOS_Error = &H80000006
-Const DIOS_ReadOnly = &H80000007
-Const DIOQ_Dummy = &H80000000
-Const DIOQ_DiskPresent = &H80000001
-Const DIOQ_WriteProtected = &H80000002
-Const DIOQ_DiskValid = &H80000003
-Const DIOQ_TotalSectors = &H80000004
-Const DIOQ_BytesPerSector = &H80000005
-Const DIOQ_SectorShift = &H80000006
-Const DIOQ_SectorMask = &H80000007
-Const DIOQ_TotalBytes = &H80000008
-Const DIOQ_DOSDevName = &H80000009
+Public Const DIOS_Dummy = &H80000000
+Public Const DIOS_Cache = &H80000001
+Public Const DIOS_WriteCache = &H80000002
+Public Const DIOS_Inhibit = &H80000003
+Public Const DIOS_DOSType = &H80000004
+Public Const DIOS_DOSTypeMask = &H80000005
+Public Const DIOS_Error = &H80000006
+Public Const DIOS_ReadOnly = &H80000007
+Public Const DIOQ_Dummy = &H80000000
+Public Const DIOQ_DiskPresent = &H80000001
+Public Const DIOQ_WriteProtected = &H80000002
+Public Const DIOQ_DiskValid = &H80000003
+Public Const DIOQ_TotalSectors = &H80000004
+Public Const DIOQ_BytesPerSector = &H80000005
+Public Const DIOQ_SectorShift = &H80000006
+Public Const DIOQ_SectorMask = &H80000007
+Public Const DIOQ_TotalBytes = &H80000008
+Public Const DIOQ_DOSDevName = &H80000009

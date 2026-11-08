@@ -8,14 +8,14 @@ Declare Function SPACE_GetClass Lib "gadgets/space.gadget" Alias "#4" () As Long
 
 ' --- constants ---
 ' gadgets/space.h
-Const SPACE_Dummy = &H85009000
-Const SPACE_MinHeight = &H85009001
-Const SPACE_MinWidth = &H85009002
-Const SPACE_MouseX = &H85009003
-Const SPACE_MouseY = &H85009004
-Const SPACE_Transparent = &H85009005
-Const SPACE_AreaBox = &H85009006
-Const SPACE_RenderHook = &H85009007
-Const SPACE_BevelStyle = &H85009008
-Const SPACE_DomainBevel = &H85009009
-Const SPACE_RenderBox = &H8500900A
+Public Const SPACE_Dummy = &H85009000
+Public Const SPACE_MinHeight = &H85009001
+Public Const SPACE_MinWidth = &H85009002
+Public Const SPACE_MouseX = &H85009003
+Public Const SPACE_MouseY = &H85009004
+Public Const SPACE_Transparent = &H85009005
+Public Const SPACE_AreaBox = &H85009006
+Public Const SPACE_RenderHook = &H85009007
+Public Const SPACE_BevelStyle = &H85009008
+Public Const SPACE_DomainBevel = &H85009009
+Public Const SPACE_RenderBox = &H8500900A

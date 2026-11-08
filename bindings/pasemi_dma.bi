@@ -26,4 +26,4 @@ Declare Sub FreeFunction Lib "PASemi_DMA.resource" Alias "#18" (ByVal funcID As 
 
 ' --- constants ---
 ' resources/pasemi_dma.h
-Const RESOURCES_PASEMI_DMA_H = 1
+Public Const RESOURCES_PASEMI_DMA_H = 1

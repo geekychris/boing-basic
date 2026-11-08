@@ -23,5 +23,5 @@ Declare Sub I2c_Unlock Lib "i2c.resource" Interface "i2c" Alias "#15" ()
 
 ' --- constants ---
 ' resources/i2c.h
-Const RESOURCES_I2C_H = 1
-Const I2CRWT_AddressLength = &H80000001
+Public Const RESOURCES_I2C_H = 1
+Public Const I2CRWT_AddressLength = &H80000001

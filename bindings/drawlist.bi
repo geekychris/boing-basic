@@ -8,24 +8,24 @@ Declare Function DRAWLIST_GetClass Lib "images/drawlist.image" Alias "#4" () As 
 
 ' --- constants ---
 ' images/drawlist.h
-Const DRAWLIST_Dummy = &H85017000
-Const DRAWLIST_Directives = &H85017001
-Const DRAWLIST_RefHeight = &H85017002
-Const DRAWLIST_RefWidth = &H85017003
-Const DRAWLIST_DrawInfo = &H85017004
-Const DLST_END = 0
-Const DLST_LINE = 1
-Const DLST_RECT = 2
-Const DLST_FILL = 3
-Const DLST_ELLIPSE = 4
-Const DLST_CIRCLE = 5
-Const DLST_LINEPAT = 6
-Const DLST_FILLPAT = 7
-Const DLST_AMOVE = 8
-Const DLST_ADRAW = 9
-Const DLST_AFILL = 10
-Const DLST_BEVELBOX = 11
-Const DLST_ARC = 12
-Const DLST_START = 13
-Const DLST_BOUNDS = 13
-Const DLST_LINESIZE = 14
+Public Const DRAWLIST_Dummy = &H85017000
+Public Const DRAWLIST_Directives = &H85017001
+Public Const DRAWLIST_RefHeight = &H85017002
+Public Const DRAWLIST_RefWidth = &H85017003
+Public Const DRAWLIST_DrawInfo = &H85017004
+Public Const DLST_END = 0
+Public Const DLST_LINE = 1
+Public Const DLST_RECT = 2
+Public Const DLST_FILL = 3
+Public Const DLST_ELLIPSE = 4
+Public Const DLST_CIRCLE = 5
+Public Const DLST_LINEPAT = 6
+Public Const DLST_FILLPAT = 7
+Public Const DLST_AMOVE = 8
+Public Const DLST_ADRAW = 9
+Public Const DLST_AFILL = 10
+Public Const DLST_BEVELBOX = 11
+Public Const DLST_ARC = 12
+Public Const DLST_START = 13
+Public Const DLST_BOUNDS = 13
+Public Const DLST_LINESIZE = 14
