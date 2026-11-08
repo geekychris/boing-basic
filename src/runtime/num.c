@@ -146,11 +146,23 @@ bb_int bb_mod_i(bb_int a, bb_int b)
 
 /* ---- formatting ---- */
 
+/* decimal digits of u into buf (no snprintf: slow with newlib on the Amiga); returns length */
+int bb_u64_to_dec_(uint64_t u, int neg, char *buf)
+{
+    char t[24];
+    int n = 0, k = 0;
+    do { t[n++] = (char)('0' + (int)(u % 10)); u /= 10; } while (u);
+    if (neg) buf[k++] = '-';
+    while (n) buf[k++] = t[--n];
+    buf[k] = 0;
+    return k;
+}
+
 bb_str *bb_str_from_long(bb_long l)
 {
     char buf[16];
-    snprintf(buf, sizeof buf, "%ld", (long)l);
-    return bb_str_from_c(buf);
+    int n = bb_u64_to_dec_(l < 0 ? (uint64_t)0 - (uint64_t)(int64_t)l : (uint64_t)l, l < 0, buf);
+    return bb_str_new(buf, n);
 }
 
 /* %G output tidied to VB's style: 1E+20, 1.5E-07, no "-0" */
@@ -158,6 +170,11 @@ static void fmt_g(char *buf, size_t n, double d, int digits)
 {
     char *e;
     if (d == 0) { strcpy(buf, "0"); return; }
+    /* integers that %G would print in full: digits only (exact) */
+    if (d == floor(d) && fabs(d) < (digits >= 15 ? 1e15 : 1e7)) {
+        bb_u64_to_dec_((uint64_t)fabs(d), d < 0, buf);
+        return;
+    }
     snprintf(buf, n, "%.*G", digits, d);
     e = strchr(buf, 'E');
     if (e) {

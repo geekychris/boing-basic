@@ -31,6 +31,21 @@ static void num_digits(double x, int dec, char *ip, size_t ipn, char *fp, size_t
 {
     char buf[400];
     char *dot;
+    if (dec >= 0 && dec <= 9 && x >= 0 && x < 1e15) {
+        /* small enough to round in integers: no snprintf (slow on newlib) */
+        static const double p10[] = {1, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9};
+        double v = x * p10[dec];
+        if (v < 1e12) {
+            uint64_t r = (uint64_t)floor(v + v * 1e-15 + 0.5), pw = (uint64_t)p10[dec];
+            uint64_t ipart = r / pw, fpart = r % pw;
+            int k;
+            if (ipart) bb_u64_to_dec_(ipart, 0, ip); else ip[0] = 0;
+            for (k = dec - 1; k >= 0; k--) { fp[k] = (char)('0' + (int)(fpart % 10)); fpart /= 10; }
+            fp[dec] = 0;
+            (void)ipn; (void)fpn;
+            return;
+        }
+    }
     snprintf(buf, sizeof buf, "%.*f", dec, x + (x > 0 ? x * 1e-15 : 0));
     dot = strchr(buf, '.');
     if (dot) {

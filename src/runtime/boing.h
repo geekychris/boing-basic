@@ -340,6 +340,7 @@ BB_INLINE bb_long bb_neg_l(bb_long a) { if (BB_UNLIKELY(a == INT32_MIN)) bb_over
 /* Number <-> string (VB formatting: CStr/Str/Print) */
 bb_str *bb_str_from_long(bb_long l);
 bb_str *bb_str_from_double(bb_double d);
+int bb_u64_to_dec_(uint64_t u, int neg, char *buf);   /* internal: digits without snprintf */
 bb_str *bb_str_from_single(bb_single f);
 bb_str *bb_str_from_cur(bb_cur c);
 bb_str *bb_str_from_date(bb_date d);
