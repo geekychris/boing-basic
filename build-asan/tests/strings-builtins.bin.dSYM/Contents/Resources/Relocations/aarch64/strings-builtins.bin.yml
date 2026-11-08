@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/chris/code/claude_world/boing_basic-core/build-asan/tests/strings-builtins.bin'
+relocations:     []
+...

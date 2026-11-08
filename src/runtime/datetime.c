@@ -155,7 +155,7 @@ static int month_from_name(const char *p, int n)
 static int parse_date(const char *p, bb_date *out)
 {
     long nums[6];
-    int nn = 0, month = 0, have_time = 0, pm = -1, i;
+    int month = 0, have_time = 0, pm = -1, i;
     long tparts[3] = {0, 0, 0};
     int nt = 0;
     long dparts[3];
@@ -179,7 +179,6 @@ static int parse_date(const char *p, bb_date *out)
                 if (*q == '-') sep_dash = 1;
                 if (*q == '/' || *q == '-' || *q == '.') q++;
             }
-            nn++;
         } else if (isalpha((unsigned char)*q)) {
             const char *st = q;
             int len;

@@ -1,0 +1,27 @@
+Hall: A dusty hall.
+> look
+Hall: A dusty hall.
+> go north
+Kitchen: It smells of old soup.
+You see: lamp
+> take lamp
+Taken: lamp
+> take key
+No key here.
+> dance
+I don't understand 'dance'.
+> s
+Hall: A dusty hall.
+> e
+Garden: Overgrown roses everywhere.
+You see: key
+> n
+The vault is locked.
+> take key
+Taken: key
+> inv
+You carry: lamp key
+> n
+Vault: Gold glitters in the dark!
+You win in 4 moves!
+Bye.

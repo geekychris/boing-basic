@@ -1,0 +1,9 @@
+[1 + 2 * 3] = 7
+[(1 + 2) * 3] = 9
+[2 ^ 3 ^ 2] = 512
+[-4 + 10 / 4] = -1.5
+[7 / 0] = error 11: Division by zero
+[(1 + 2] = error 1002: missing )
+[3 $ 4] = error: unexpected '$'
+[1.5 * (2 - -2)] = 6
+[] = error 1001: number expected at 1

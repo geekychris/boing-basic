@@ -666,11 +666,10 @@ static void for_stmt(E *e, Node *s)
 static void foreach_stmt(E *e, Node *s)
 {
     int slot = slot_of(e, s->sym), top, ex;
-    Loop *l;
     if (s->b->kind == E_VAR && s->b->ty->kind == T_ARRAY) addr(e, s->b);
     else expr(e, s->b);
     op1(e, I_FEBEGIN, slot);
-    l = push_loop(e, EXIT_FOR);
+    push_loop(e, EXIT_FOR);
     top = here(e);
     emit_w(e, I_FENEXT);
     emit_w(e, slot);

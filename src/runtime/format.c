@@ -62,7 +62,7 @@ static void fmt_numeric(sbuf *b, const char *fmt, size_t flen, double x, int neg
     /* analyse */
     for (i = 0; i < flen; i++) {
         char c = fmt[i];
-        if (c == '"') { for (i++; i < flen && fmt[i] != '"'; i++) ; continue; }
+        if (c == '"') { for (i++; i < flen && fmt[i] != '"'; i++) {} continue; }
         if (c == '\\') { i++; continue; }
         if (sci) continue;
         if (c == '0' || c == '#') {
@@ -174,7 +174,7 @@ static int is_date_fmt(const char *f)
     int has_num = 0, has_date = 0;
     for (; *f; f++) {
         char c = (char)tolower((unsigned char)*f);
-        if (*f == '"') { for (f++; *f && *f != '"'; f++) ; if (!*f) break; continue; }
+        if (*f == '"') { for (f++; *f && *f != '"'; f++) {} if (!*f) break; continue; }
         if (*f == '\\') { if (f[1]) f++; continue; }
         if (c == '0' || c == '#') has_num = 1;
         if (c == 'd' || c == 'm' || c == 'y' || c == 'h' || c == 'n' || c == 's' || c == 'w' || c == 'q' || c == 'c' || c == 't')

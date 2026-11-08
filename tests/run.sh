@@ -8,7 +8,7 @@
 # Compared output is stdout + stderr; a non-zero exit code is appended as "[exit N]".
 # Usage: sh tests/run.sh [grep-pattern]   env: JOBS (default 4), NATIVE=0 skips native builds
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-BOING="$ROOT/build/boing"; TMP="$ROOT/build/tests"; NATIVE=${NATIVE:-1}
+BOING=${BOING:-$ROOT/build/boing}; TMP=${TMP:-$ROOT/build/tests}; NATIVE=${NATIVE:-1}
 export BOING TMP NATIVE
 mkdir -p "$TMP"; rm -f "$TMP"/*.result "$TMP"/*.diff
 # tests: every .bbp, and every .bas that is not part of a project directory

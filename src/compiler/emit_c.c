@@ -941,7 +941,6 @@ static void action(EC *e, const char *fmt, ...)
     flush_rel(e);
 }
 
-static char *new_label(EC *e) { return xsprintf("bb_L%d", e->nlabel++); }
 
 /* assignment of an owned / borrowed value of n->ty to lvalue t */
 static void assign(EC *e, Node *t, Node *v)
