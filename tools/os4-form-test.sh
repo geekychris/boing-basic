@@ -18,7 +18,7 @@ TITLE = "Boing BASIC form test - running"
 def run(cmd, label):
     out_f = "RAM:bbform/%s.out" % label
     m.tool("amiga_dos_command", command="delete %s QUIET" % out_f)
-    m.tool("amiga_dos_command", command="run >NIL: %s >%s" % (cmd, out_f))
+    m.tool("amiga_dos_command", command="run >NIL: %s >%s *>%s.err" % (cmd, out_f, out_f))
     clicked, t0, out = False, time.time(), ""
     while time.time() - t0 < 90:
         time.sleep(2)
@@ -28,6 +28,10 @@ def run(cmd, label):
             clicked = True
             r = m.tool("amiga_dos_command", command="RAM:bbform/ptr %s %s click \"%s\"" % (c.group(1), c.group(2), TITLE))
         if re.search(r"^(PASS|FAIL)", out, re.M):
+            break
+        err = m.tool("amiga_dos_command", command="type %s.err" % out_f)
+        if "runtime error" in err or "error:" in err:
+            out += "\n" + err
             break
     print("== %s\n%s" % (label, out))
     return bool(re.search(r"^PASS", out, re.M))

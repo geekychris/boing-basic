@@ -97,13 +97,16 @@ def run_bg(m, cmd, outf, limit=None):
     import time
     limit = limit or float(os.environ.get("BB_TEST_TIMEOUT", "180"))
     m.tool("amiga_dos_command", command="delete %s QUIET" % outf)
-    m.tool("amiga_dos_command", command="run >NIL: %s >%s" % (cmd, outf))
+    m.tool("amiga_dos_command", command="run >NIL: %s >%s *>%s.err" % (cmd, outf, outf))
     t0, out = time.time(), ""
     while time.time() - t0 < limit:
         time.sleep(2)
         out = m.tool("amiga_dos_command", command="type %s" % outf)
         if re.search(r"^(PASS|FAIL)\b", out, re.M):
             return out
+        err = m.tool("amiga_dos_command", command="type %s.err" % outf)
+        if "runtime error" in err or "error:" in err:
+            return out + "\n" + err + "\nFAIL (error)"
     return out + "\nFAIL (timed out after %ds; still running on the guest)" % limit
 
 

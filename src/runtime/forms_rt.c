@@ -137,6 +137,18 @@ static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
         return;
     }
     c = ctl_of(o);
+    /* form.control: a control of the form by name (main.ok.Caption) */
+    if (o->is_form && *name && (kind & BB_INV_GET) && argc == 0 && bb_form_ctl(o->fd->form, name)) {
+        int type = 0;
+        void *slot = bb_find_global(o->fd->module, name, &type);
+        bb_obj *ctl = NULL;
+        if (slot && type == BB_OBJECT) ctl = *(bb_obj **)slot;
+        else if (slot && type == BB_VARIANT && ((bb_value *)slot)->type == BB_OBJECT) ctl = ((bb_value *)slot)->u.o;
+        if (ctl) {
+            *ret = bb_v_obj(bb_obj_retain(ctl));
+            return;
+        }
+    }
     if (!*name) {
         /* default property: VB's Text / Caption / Value */
         static const char *const defs[] = {"Text", "Caption", "Value", NULL};
@@ -199,6 +211,36 @@ static void ctl_terminate(bb_obj *self)
 static const bb_class ctl_class = {"Control", sizeof(ctlobj), ctl_find, ctl_invoke, ctl_terminate, NULL, NULL, 0, NULL, 0, NULL, NULL};
 static const bb_class form_class = {"Form", sizeof(ctlobj), ctl_find, ctl_invoke, ctl_terminate, NULL, NULL, 0, NULL, 0, NULL, NULL};
 
+/* TypeName(ctl): VB's names for the control kinds */
+static const char *const vb_type[AFG_NUM_KINDS] = {
+    [AFG_BUTTON] = "CommandButton", [AFG_STRING] = "TextBox", [AFG_INTEGER] = "IntegerBox",
+    [AFG_CHECKBOX] = "CheckBox", [AFG_CHOOSER] = "ComboBox", [AFG_RADIO] = "OptionGroup", [AFG_SLIDER] = "Slider",
+    [AFG_SCROLLER] = "ScrollBar", [AFG_LISTBROWSER] = "ListBox", [AFG_LABEL] = "Label", [AFG_SPACE] = "Space",
+    [AFG_FUELGAUGE] = "ProgressBar", [AFG_GETFILE] = "FileChooser", [AFG_TEXTEDITOR] = "TextEditor",
+    [AFG_TIMER] = "Timer",
+};
+static bb_class kind_classes[AFG_NUM_KINDS];
+
+static const bb_class *class_for(int kind)
+{
+    if (kind < 0 || kind >= AFG_NUM_KINDS || !vb_type[kind]) return &ctl_class;
+    if (!kind_classes[kind].name) {
+        kind_classes[kind] = ctl_class;
+        kind_classes[kind].name = vb_type[kind];
+    }
+    return &kind_classes[kind];
+}
+
+static bb_obj *new_ctlobj_kind(formdef *fd, bb_ctl *c, int is_form, const char *name, int kind)
+{
+    ctlobj *o = (ctlobj *)bb_obj_new(is_form ? &form_class : class_for(kind));
+    o->fd = fd;
+    o->ctl = c;
+    o->is_form = is_form;
+    o->name = strdup(name);
+    return &o->hdr;
+}
+
 static bb_obj *new_ctlobj(formdef *fd, bb_ctl *c, int is_form, const char *name)
 {
     ctlobj *o = (ctlobj *)bb_obj_new(is_form ? &form_class : &ctl_class);
@@ -234,7 +276,7 @@ static void fill_one(afg_node *n, void *ud)
     c = bb_form_ctl(fc->fd->form, id);
     if (c && n->kind == AFG_CANVAS)       /* canvas: its own object class (canvas.c) */
         set_global_obj(fc->fd->module, id, bb_canvas_new(afg_get_int(n, "width"), afg_get_int(n, "height"), c));
-    else if (c) set_global_obj(fc->fd->module, id, new_ctlobj(fc->fd, c, 0, id));
+    else if (c) set_global_obj(fc->fd->module, id, new_ctlobj_kind(fc->fd, c, 0, id, n->kind));
 }
 
 /* the code-behind's control variables */
