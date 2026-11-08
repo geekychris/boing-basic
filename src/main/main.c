@@ -1,6 +1,6 @@
 /* main.c - the `boing` command line */
-#include "compiler/bbc.h"
-#include "vm/bytecode.h"
+#include "../compiler/bbc.h"
+#include "../vm/bytecode.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

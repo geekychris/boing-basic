@@ -1,6 +1,7 @@
 /* rt.c - runtime start-up, memory, errors, program ops */
 #include "boing.h"
 #include "platform.h"
+#include "bb_declare.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,6 +41,7 @@ void bb_rt_shutdown(void)
 {
     bb_close_all();
     bb_console_flush();
+    bb_decl_cleanup();
     bb_plat_shutdown();
 }
 
