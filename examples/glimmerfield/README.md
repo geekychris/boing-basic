@@ -59,8 +59,10 @@ The bot plays from a fixed seed and starts a new game (seed + n) after each game
 code (Bresenham lines, midpoint circles), with "blit" being the copy to the front buffer.
 `--quiet` prints only the `state:` lines, which are the same in every build.
 
-Results: see [docs/performance.md](../../docs/performance.md#game-benchmark). On the AmigaOS 4
-guest, freshly rebooted (ms per frame):
+Results: see [docs/performance.md](../../docs/performance.md#game-benchmark). On an unloaded
+AmigaOS 4 guest (QEMU sam460ex on m1.local), the game runs at **354-365 fps native, 88 fps in
+the VM, 75-79 fps with the JIT** (`--bench 1000`; the JIT speeds up the logic by up to a third
+but slows the call-heavy drawing). On the local guest, freshly rebooted (ms per frame):
 
 | | logic | draw | blit | fps |
 |---|---:|---:|---:|---:|

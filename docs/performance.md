@@ -228,6 +228,9 @@ the particles are one `PSetMany` call.
 
 ### AmigaOS 4.1 (QEMU sam460ex, emulated PPC 460), 2026-11-08, ms per frame
 
+Unless a table says otherwise, these are from the local guest (QEMU on this Mac, shared with
+other agents' work); the m1 table further down is from an unloaded machine.
+
 Measured right after a guest reboot. (Before that, a guest that had been up for hours ran the
 same code ~10x slower, e.g. 28.8 fps for the game. The QEMU guest degrades over time; numbers
 from a degraded guest are not comparable.)
@@ -260,7 +263,7 @@ pays far more on the guest than on the Mac (25x native vs 6x). The likely cause 
 emulation of the interpreter's indirect branches, so a real PPC machine should do better.
 For the game in the VM, the per-frame BASIC in Render.bas and its ~60 Canvas calls dominate.
 
-#### VM vs JIT vs native on the guest (boing main b1c6ae6, one session, ms per frame)
+#### VM vs JIT vs native on the local guest (boing main b1c6ae6, one session, ms per frame)
 
 | | VM | VM `--jit` | native |
 |---|---:|---:|---:|
@@ -269,7 +272,25 @@ For the game in the VM, the per-frame BASIC in Render.bas and its ~60 Canvas cal
 | **the game** (`Glimmerfield.bbp --bench 1000`), fps | **60.1** | **50.6** | **187.9** |
 | the game: logic / draw / blit | 0.71 / 13.13 / 1.30 | 0.92 / 15.70 / 1.35 | 0.29 / 2.67 / 1.25 |
 
-A second session with boing 820b313: bench logic VM 1.018 / `--jit` 1.087 ms per frame; game
+#### On m1's guest (QEMU sam460ex on an unloaded Mac; boing main ea5f7ef), ms per frame
+
+The local guest above shares a heavily loaded Mac (load ~54 on 16 cores) and its speed drifts
+during a session. m1.local runs the same QEMU setup unloaded: native fps stayed at 354-365 from
+the first run of the session to the last, so this is the table to compare VM and JIT with.
+
+| | native | VM | VM `--jit` | `--jit`, `BOING_JIT_MINOPS=1000` |
+|---|---:|---:|---:|---:|
+| bench logic (`Bench.bbp --bench 3000`) | 0.152 | 0.879 | 0.669 | 0.586 |
+| bench draw on an off-screen Canvas (`--bench 1000 --canvas`) | 1.47 | 7.95 | 9.32 | 8.73 |
+| **the game** (`--bench 1000`), fps | **354-365** | **88.4** | **75.4** | **78.7** |
+| the game: logic / draw / blit | 0.22-0.25 / 1.9 / 0.6 | 1.02 / 9.14 / 0.75 | 0.90 / 11.23 / 0.73 | 0.72 / 10.82 / 0.72 |
+
+All hashes are identical. The JIT compiling whole loops only (MINOPS=1000) makes the game logic
+33% faster than the VM, but the drawing (loops of late-bound Canvas calls) is still 10-17%
+slower with the JIT than without, so the game as a whole runs best in the plain VM: 88 fps,
+4x below native. (Reported to bb-core.)
+
+A second session on the local guest with boing 820b313: bench logic VM 1.018 / `--jit` 1.087 ms per frame; game
 VM 58.5 fps / `--jit` 36.3 fps. The guest was degrading during that session (native fell to
 88.8 fps by its end), so only the order within it means much: the JIT does not yet speed up
 this code on the guest.
