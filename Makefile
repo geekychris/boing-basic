@@ -37,3 +37,8 @@ clean:
 	rm -rf $(B)
 
 .PHONY: all test clean
+
+bench: all
+	python3 tools/bench.py $(BENCH_ARGS)
+
+.PHONY: bench
