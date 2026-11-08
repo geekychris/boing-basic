@@ -908,7 +908,7 @@ static Type *conv_fn_type(const char *name)
     static const struct { const char *n; int t; } tab[] = {
         {"CInt", T_INTEGER}, {"CLng", T_LONG}, {"CSng", T_SINGLE}, {"CDbl", T_DOUBLE},
         {"CStr", T_STRING}, {"CBool", T_BOOLEAN}, {"CByte", T_BYTE}, {"CDate", T_DATE},
-        {"CVDate", T_DATE}, {"CVar", T_VARIANT}, {"CCur", T_CURRENCY}, {"CDec", T_DOUBLE},
+        {"CVDate", T_DATE}, {"CVar", T_VARIANT}, {"CCur", T_CURRENCY},
         {NULL, 0}
     };
     int i;

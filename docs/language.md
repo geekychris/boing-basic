@@ -150,7 +150,12 @@ Split Join StrComp StrReverse Chr ChrW Asc AscW Val Str Hex Oct Format` (with `$
 Maths: `Abs Sgn Int Fix Sqr Sin Cos Tan Atn Log Exp Rnd Randomize Round`. `Rnd` and
 `Randomize` use VB's own generator, so `Rnd` sequences match VB6.
 
-Conversion: `CInt CLng CSng CDbl CCur CStr CBool CByte CDate CVar CDec` (CDec gives a Double).
+Conversion: `CInt CLng CSng CDbl CCur CStr CBool CByte CDate CVar CDec`. `CDec` gives a
+Variant of subtype Decimal (VarType 14, as in VB: there are no Decimal variables): a 96-bit
+integer scaled by 10^0..10^28, about 28-29 significant digits. Arithmetic with a Decimal
+operand gives a Decimal (exact for + - *, 28 digits for /, banker's rounding when digits
+must go, error 6 beyond ±79228162514264337593543950335); Doubles convert with 15 significant
+digits, Singles with 7.
 `CInt`/`CLng`/`CByte` and `Round` use banker's rounding.
 
 Inspection: `IsNumeric IsDate IsEmpty IsNull IsObject IsArray IsMissing TypeName VarType
@@ -211,5 +216,4 @@ comparing (Declare'd calls do not exist there).
 
 ## Not implemented (yet)
 
-- `Decimal`; `CDec` returns a Double.
 - `Friend` is treated as `Public`.

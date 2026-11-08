@@ -110,6 +110,7 @@ void bb_print_value(int fn, const bb_value *v)
     case BB_SINGLE: bb_print_single(fn, v->u.f); break;
     case BB_DOUBLE: bb_print_double(fn, v->u.d); break;
     case BB_CURRENCY: bb_print_cur(fn, v->u.c); break;
+    case BB_DECIMAL: print_num(fn, bb_dec_to_str(v)); break;
     case BB_DATE: bb_print_date(fn, v->u.dt); break;
     case BB_BOOLEAN: bb_print_bool(fn, v->u.b); break;
     case BB_STRING: bb_print_str(fn, v->u.s); break;

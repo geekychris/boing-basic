@@ -21,6 +21,7 @@ bb_value bb_abs(const bb_value *v0)
     case BB_BYTE: return bb_v_byte(v->u.by);
     case BB_SINGLE: return bb_v_single(fabsf(v->u.f));
     case BB_CURRENCY: return bb_v_cur(v->u.c < 0 ? -v->u.c : v->u.c);
+    case BB_DECIMAL: return bb_dec_abs(v);
     case BB_DATE: return bb_v_date(fabs(v->u.dt));
     default: return bb_v_double(fabs(bb_v_to_double(v)));
     }
@@ -32,6 +33,7 @@ bb_value bb_sgn(const bb_value *v0)
     const bb_value *v = bb_v_deref(v0, &t);
     double d;
     if (v->type == BB_NULL) return bb_v_null();
+    if (v->type == BB_DECIMAL) { bb_value z = bb_v_int(0); return bb_v_int((bb_int)bb_dec_compare(v, &z)); }
     d = bb_v_to_double(v);
     return bb_v_int((bb_int)(d > 0 ? 1 : d < 0 ? -1 : 0));
 }
@@ -52,6 +54,7 @@ static bb_value int_fix(const bb_value *v0, int fix)
         return bb_v_cur(q * 10000);
     }
     case BB_DATE: return bb_v_date(fix ? trunc(v->u.dt) : floor(v->u.dt));
+    case BB_DECIMAL: return bb_dec_trunc(v, !fix);
     default: { double d = bb_v_to_double(v); return bb_v_double(fix ? trunc(d) : floor(d)); }
     }
 }
@@ -193,6 +196,7 @@ static const char *type_name(int t)
     case BB_SINGLE: return "Single";
     case BB_DOUBLE: return "Double";
     case BB_CURRENCY: return "Currency";
+    case BB_DECIMAL: return "Decimal";
     case BB_DATE: return "Date";
     case BB_STRING: return "String";
     case BB_OBJECT: return "Object";

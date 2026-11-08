@@ -124,6 +124,7 @@ static double num_of(const bb_value *v)
     case BB_SINGLE: return v->u.f;
     case BB_DOUBLE: case BB_DATE: return v->u.d;
     case BB_CURRENCY: return (double)v->u.c / 10000.0;
+    case BB_DECIMAL: return bb_dec_to_double(v);
     case BB_BYTE: return v->u.by;
     case BB_STRING: return bb_str_to_double(v->u.s);
     default: bb_raise(13, NULL);
@@ -235,6 +236,7 @@ bb_str *bb_v_to_str(const bb_value *v)
     case BB_SINGLE: return bb_str_from_single(v->u.f);
     case BB_DOUBLE: return bb_str_from_double(v->u.d);
     case BB_CURRENCY: return bb_str_from_cur(v->u.c);
+    case BB_DECIMAL: return bb_dec_to_str(v);
     case BB_DATE: return bb_str_from_date(v->u.dt);
     case BB_ERROR: {
         bb_str *n = bb_str_from_long(v->u.l), *p = bb_str_from_c("Error "), *r = bb_str_concat(p, n);
@@ -291,7 +293,7 @@ int bb_v_is_numeric(const bb_value *v)
     DEREF(v);
     switch (v->type) {
     case BB_EMPTY: case BB_INTEGER: case BB_LONG: case BB_SINGLE: case BB_DOUBLE:
-    case BB_CURRENCY: case BB_BOOLEAN: case BB_BYTE: return 1;
+    case BB_CURRENCY: case BB_BOOLEAN: case BB_BYTE: case BB_DECIMAL: return 1;
     case BB_STRING: return bb_parse_number(bb_str_ptr(v->u.s), bb_str_len(v->u.s), &d);
     default: return 0;
     }
@@ -300,7 +302,7 @@ int bb_v_is_numeric(const bb_value *v)
 /* ---- arithmetic ---- */
 
 /* numeric kinds, in widening order */
-enum { K_BYTE, K_INT, K_LONG, K_SINGLE, K_DOUBLE, K_CUR, K_DATE, K_STR, K_NULL, K_EMPTY };
+enum { K_BYTE, K_INT, K_LONG, K_SINGLE, K_DOUBLE, K_CUR, K_DATE, K_DEC, K_STR, K_NULL, K_EMPTY };
 
 static int kind_of(const bb_value *v)
 {
@@ -313,6 +315,7 @@ static int kind_of(const bb_value *v)
     case BB_SINGLE: return K_SINGLE;
     case BB_DOUBLE: return K_DOUBLE;
     case BB_CURRENCY: return K_CUR;
+    case BB_DECIMAL: return K_DEC;
     case BB_DATE: return K_DATE;
     case BB_STRING: return K_STR;
     case BB_OBJECT: {
@@ -330,6 +333,7 @@ static int result_kind(int ka, int kb)
     if (ka == K_STR) ka = K_DOUBLE;
     if (kb == K_STR) kb = K_DOUBLE;
     if (ka == K_DATE || kb == K_DATE) return K_DATE;
+    if (ka == K_DEC || kb == K_DEC) return K_DEC;
     if (ka == K_CUR || kb == K_CUR) {
         int o = ka == K_CUR ? kb : ka;
         return (o == K_SINGLE || o == K_DOUBLE) ? K_DOUBLE : K_CUR;
@@ -404,6 +408,9 @@ static bb_value arith(int op, const bb_value *a, const bb_value *b)
         r = bb_v_date(bb_chk_double(op == OP_ADD ? x + y : x - y));
         break;
     }
+    case K_DEC:
+        r = bb_dec_arith(op, a, b);
+        break;
     default: {
         double x = num_of(a), y = num_of(b);
         r = bb_v_double(bb_chk_double(op == OP_ADD ? x + y : op == OP_SUB ? x - y : x * y));
@@ -432,6 +439,7 @@ bb_value bb_v_div(const bb_value *a, const bb_value *b)
     a = bb_v_deref(a, &ta); b = bb_v_deref(b, &tb);
     if (a->type == BB_NULL || b->type == BB_NULL) return bb_v_null();
     ka = kind_of(a); kb = kind_of(b);
+    if (ka == K_DEC || kb == K_DEC) return bb_dec_arith(3, a, b);
     r = bb_fdiv(bb_v_to_double(a), bb_v_to_double(b));
     if ((ka == K_SINGLE && (kb == K_SINGLE || kb <= K_INT)) || (kb == K_SINGLE && ka <= K_INT))
         return bb_v_single(bb_csng(r));
@@ -484,6 +492,7 @@ bb_value bb_v_neg(const bb_value *a)
     case BB_LONG: return a->u.l == INT32_MIN ? bb_v_double(2147483648.0) : bb_v_long(-a->u.l);
     case BB_SINGLE: return bb_v_single(-a->u.f);
     case BB_CURRENCY: return bb_v_cur(bb_cur_sub(0, a->u.c));
+    case BB_DECIMAL: return bb_dec_neg(a);
     case BB_DATE: return bb_v_date(-a->u.dt);
     default: return bb_v_double(-bb_v_to_double(a));
     }
@@ -561,7 +570,7 @@ bb_value bb_v_imp(const bb_value *a, const bb_value *b) { return logic2(L_IMP, a
 
 /* ---- comparison ---- */
 
-static int is_num_kind(int k) { return k <= K_DATE || k == K_EMPTY; }
+static int is_num_kind(int k) { return k <= K_DEC || k == K_EMPTY; }
 
 int bb_v_compare(const bb_value *a, const bb_value *b, int text)
 {
@@ -585,6 +594,7 @@ int bb_v_compare(const bb_value *a, const bb_value *b, int text)
             }
         }
         if (ka == K_CUR && kb == K_CUR) { r = a->u.c < b->u.c ? -1 : a->u.c > b->u.c; goto out; }
+        if (ka == K_DEC || kb == K_DEC) { r = bb_dec_compare(a, b); goto out; }
         {
             double x = num_of(a), y = num_of(b);
             /* compare Single with Single precision */

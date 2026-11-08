@@ -54,7 +54,7 @@ extern "C" {
 enum {
     BB_EMPTY = 0, BB_NULL = 1, BB_INTEGER = 2, BB_LONG = 3, BB_SINGLE = 4,
     BB_DOUBLE = 5, BB_CURRENCY = 6, BB_DATE = 7, BB_STRING = 8, BB_OBJECT = 9,
-    BB_ERROR = 10, BB_BOOLEAN = 11, BB_VARIANT = 12, BB_BYTE = 17, BB_UDT = 36,
+    BB_ERROR = 10, BB_BOOLEAN = 11, BB_VARIANT = 12, BB_DECIMAL = 14, BB_BYTE = 17, BB_UDT = 36,
     BB_ARRAY = 0x2000,      /* or'ed with the element type */
     BB_REF = 0x4000         /* by-reference argument, see bb_value.u.p */
 };
@@ -587,6 +587,16 @@ typedef struct bb_declare {
     void *cache;            /* platform: opened interface */
 } bb_declare;
 uint32_t bb_declare_call(bb_declare *d, int argc, const uint32_t *argv);
+
+/* Decimal (decimal.c): a Variant subtype, VB's 96-bit scaled integer */
+bb_value bb_cdec(const bb_value *v);               /* CDec */
+bb_str *bb_dec_to_str(const bb_value *v);
+double bb_dec_to_double(const bb_value *v);
+int bb_dec_compare(const bb_value *a, const bb_value *b);   /* either may be any number */
+bb_value bb_dec_arith(int op, const bb_value *a, const bb_value *b);   /* 0 + 1 - 2 * 3 / */
+bb_value bb_dec_neg(const bb_value *a);
+bb_value bb_dec_abs(const bb_value *a);
+bb_value bb_dec_trunc(const bb_value *a, int floor_);          /* Fix / Int */
 
 /* Built-in classes */
 extern const bb_class bb_collection_class;
