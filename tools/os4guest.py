@@ -148,8 +148,8 @@ def testing(message):
     sys.path.insert(0, os.path.join(AMIGA_MCP, "scripts"))
     from claude_busy import claude_testing
     with fifo_ticket():
-        watchdog()
         with claude_testing(URL, message):
+            watchdog()          # timed from getting the lock, not from queueing
             yield
 
 
