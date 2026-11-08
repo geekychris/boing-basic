@@ -372,7 +372,16 @@ char *bb_sys_real_path(const char *path)
     l = IDOS->Lock(path, SHARED_LOCK);
     quiet_end(old);
     if (!l) return NULL;
-    n = lock_name(l);
+    {
+        /* the device form ("DH1:AF-basic"), not the volume name ("chris:AF-basic"): GCC's ld
+           can't search a volume-name path */
+        char buf[1024];
+        if (IDOS->DevNameFromLock(l, buf, sizeof buf, DN_FULLPATH)) {
+            size_t k = strlen(buf);
+            if (k > 1 && buf[k - 1] == '/') buf[k - 1] = 0;
+            n = xstrdup(buf);
+        } else n = lock_name(l);
+    }
     IDOS->UnLock(l);
     return n;
 }
