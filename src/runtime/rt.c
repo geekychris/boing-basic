@@ -2,6 +2,7 @@
 #include "boing.h"
 #include "platform.h"
 #include "bb_declare.h"
+#include "bb_sys.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,7 @@ void bb_rt_init(int argc, char **argv)
 {
     bb_set_args_(argc, argv);
     bb_plat_init(argc, argv);
+    bb_sys_init(argc, argv, NULL);
 }
 
 void bb_rt_shutdown(void)

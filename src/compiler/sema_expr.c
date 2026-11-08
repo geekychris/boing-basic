@@ -1215,6 +1215,22 @@ static Node *resolve_dot(Ctx *c, Node *e, NodeList *args, int mode)
     if (base->kind == E_NAME) {
         Sym *s = scope_find(c->scope, base->name);
         if (!s && name_eq(base->name, "Err")) return err_prop(c, e, e->name, args, mode);
+        if (!s && (name_eq(base->name, "App") || name_eq(base->name, "Clipboard"))) {
+            char *bn = xsprintf("__%s.%s", name_eq(base->name, "App") ? "App" : "Clipboard", e->name);
+            int bi = builtin_find(bn);
+            if (bi < 0) {
+                if (name_eq(base->name, "App") && (name_eq(e->name, "Major") || name_eq(e->name, "Minor") || name_eq(e->name, "Revision"))) {
+                    CVal z;
+                    memset(&z, 0, sizeof z);
+                    z.type = T_INTEGER;
+                    return mk_const_node(e, &z);
+                }
+                ERR(c, e, "the %s object has no member '%s'", base->name, e->name);
+                e->ty = &ty_variant;
+                return e;
+            }
+            return make_builtin(c, e, bi, args, mode, 0);
+        }
         if (s && s->kind == SK_ENUM) {
             Sym *m = scope_find(c->scope, e->name);
             if (m && m->kind == SK_CONST && m->udt == (Udt *)s) return mk_const_node(e, &m->cv);
@@ -1499,6 +1515,10 @@ Node *check_expr(Ctx *c, Node *e, int mode)
     case E_BIN:
         return check_binop(c, e);
     case E_ME:
+        if (!c->cls && c->mod->is_form && c->mod->form_name) {
+            Sym *fs = scope_find_local(c->mod->scope, c->mod->form_name);
+            if (fs) return mk_var(e, fs);
+        }
         if (!c->cls) {
             ERR(c, e, "'Me' is only valid in a class module");
             e->ty = &ty_object;

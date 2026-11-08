@@ -1,6 +1,7 @@
 /* builtins.c - maths, inspection and misc built-ins */
 #include "boing.h"
 #include "platform.h"
+#include "bb_sys.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -309,3 +310,19 @@ bb_str *bb_error_fn(const bb_value *num)
     return bb_str_from_c(bb_error_message(bb_v_to_long(num)));
 }
 bb_date bb_timevalue_(bb_date d) { return d - floor(d); }
+
+/* App and Clipboard objects (bb_sys.h) */
+bb_str *bb_app_path(void) { return bb_str_from_c(bb_sys_app_path()); }
+bb_str *bb_app_exename(void) { return bb_str_from_c(bb_sys_app_exename()); }
+static bb_str *app_title;
+void bb_set_app_title(const char *t) { bb_str_set(&app_title, bb_str_from_c(t)); }
+bb_str *bb_app_title(void) { return app_title ? bb_str_retain(app_title) : bb_app_exename(); }
+bb_str *bb_clipboard_get(void)
+{
+    char *t = bb_sys_clipboard_get();
+    bb_str *s = bb_str_from_c(t);
+    free(t);
+    return s;
+}
+void bb_clipboard_set(bb_str *s) { bb_sys_clipboard_set(bb_str_ptr(s)); }
+void bb_clipboard_clear(void) { bb_sys_clipboard_set(""); }

@@ -1275,6 +1275,8 @@ static void add_vb_constants(Program *p)
         {"vbKeyUp", T_LONG, 38, 0}, {"vbKeyRight", T_LONG, 39, 0}, {"vbKeyDown", T_LONG, 40, 0},
         {"vbKeyDelete", T_LONG, 46, 0}, {"vbShiftMask", T_LONG, 1, 0}, {"vbCtrlMask", T_LONG, 2, 0},
         {"vbAltMask", T_LONG, 4, 0},
+        {"vbUnchecked", T_LONG, 0, 0}, {"vbChecked", T_LONG, 1, 0}, {"vbGrayed", T_LONG, 2, 0},
+        {"vbLeftButton", T_LONG, 1, 0}, {"vbRightButton", T_LONG, 2, 0}, {"vbMiddleButton", T_LONG, 4, 0},
         {NULL, 0, 0, 0}
     };
     int i;

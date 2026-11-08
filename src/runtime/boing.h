@@ -683,6 +683,13 @@ bb_long bb_rgb(bb_long r, bb_long g, bb_long b);
 bb_long bb_erl(void);
 bb_str *bb_error_fn(const bb_value *num);    /* Error$(n) */
 bb_date bb_timevalue_(bb_date d);
+bb_str *bb_app_path(void);                   /* App.Path */
+bb_str *bb_app_exename(void);                /* App.EXEName */
+bb_str *bb_app_title(void);                  /* App.Title (project Name) */
+void bb_set_app_title(const char *t);
+bb_str *bb_clipboard_get(void);              /* Clipboard.GetText */
+void bb_clipboard_set(bb_str *s);            /* Clipboard.SetText */
+void bb_clipboard_clear(void);
 
 /* ------------------------------------------------------------------ */
 /* Files                                                                */
