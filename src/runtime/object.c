@@ -87,6 +87,13 @@ bb_value bb_v_invoke_site(const bb_value *v, bb_site *s, const char *name, int k
     return bb_invoke_site(v->u.o, s, name, kind, argc, argv);
 }
 
+bb_obj *bb_create_object(const bb_str *progid);    /* object_registry / canvas */
+bb_value bb_createobject(bb_str *progid, bb_str *server)
+{
+    (void)server;
+    return bb_v_obj(bb_create_object(progid));
+}
+
 bb_value bb_invoke(bb_obj *o, const char *name, int kind, int argc, bb_value *argv)
 {
     return bb_invoke_id(o, bb_member_id(o, name), kind, argc, argv);

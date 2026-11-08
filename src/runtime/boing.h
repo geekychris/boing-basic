@@ -598,6 +598,10 @@ bb_value bb_dec_neg(const bb_value *a);
 bb_value bb_dec_abs(const bb_value *a);
 bb_value bb_dec_trunc(const bb_value *a, int floor_);          /* Fix / Int */
 
+/* CreateObject(class [, server]): a runtime object by name (bb_create_object, raising 429
+   if unknown), as a Variant holding the object */
+bb_value bb_createobject(bb_str *progid, bb_str *server);
+
 /* Built-in classes */
 extern const bb_class bb_collection_class;
 bb_obj *bb_collection_new(void);

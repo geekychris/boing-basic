@@ -41,6 +41,7 @@ BI(FORMAT, "Format", T_STRING, 1, 4, "vs", ",", "bb_format", BIF_STRSUFFIX, RS(b
 BI(LSETF, "__lset", T_STRING, 2, 2, "ss", ",", "bb_lset", 0, RS(bb_lset(S(0), S(1))))
 BI(RSETF, "__rset", T_STRING, 2, 2, "ss", ",", "bb_rset", 0, RS(bb_rset(S(0), S(1))))
 
+BI(CREATEOBJECT, "CreateObject", T_VARIANT, 1, 2, "ss", ",\"\"", "bb_createobject", 0, RV(bb_createobject(S(0), S(1))))
 BI(CDEC, "CDec", T_VARIANT, 1, 1, "v", "", "bb_cdec", 0, RV(bb_cdec(V(0))))
 BI(ABS, "Abs", T_VARIANT, 1, 1, "v", "", "bb_abs", BIF_SPECIAL, RV(bb_abs(V(0))))
 BI(SGN, "Sgn", T_VARIANT, 1, 1, "v", "", "bb_sgn", BIF_SPECIAL, RV(bb_sgn(V(0))))
