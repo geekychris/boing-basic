@@ -51,7 +51,7 @@ Public Sub RunBench(ByVal n As Long, ByVal seed As Long, ByVal quiet As Boolean,
             t5 = NowMs()
             tDraw = tDraw + (t4 - t3)
             tBlit = tBlit + (t5 - t4)
-            If (f Mod 100) = 0 Then ph = (ph * 31 + cv.Hash()) Mod 1000003
+            If (f Mod 100) = 0 Then ph = (ph * 31 + cv.Hash() Mod 1000003) Mod 1000003
         Else
             t5 = t3
         End If

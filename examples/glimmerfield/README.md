@@ -10,6 +10,11 @@ succession build a combo multiplier up to x5. Clear the field for a wave bonus. 
 extra life every 25 000 points. The eight best scores are kept in `glimmerfield.scores`
 beside the program.
 
+![Four frames of the bot playing (waves 3 and 4)](docs/bench-frames.png)
+
+*Frames 2470, 4010, 4480 and 5120 of the bot's game (seed 1987), rendered by the Canvas
+engine off-screen (`Bench.bbp --canvas --shot`); the picture is the same on every platform.*
+
 Keys: Left/Right turn, Up thrust, Space fire, P pause, F1 timing overlay, Esc back to the
 title (or quit).
 
