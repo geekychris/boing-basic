@@ -103,9 +103,10 @@ static void init_slot(VM *vm, bb_value *v, const VMSlot *s)
     if (s->vt == BB_OBJECT && s->newcls) v->u.o = s->newcls < 0 ? bb_collection_new() : new_object(vm, s->newcls - 1);
 }
 
-static void release_slot(bb_value *v)
+static inline void release_slot(bb_value *v)
 {
-    if (v->type & BB_REF) { v->type = BB_EMPTY; return; }
+    uint16_t t = v->type;
+    if (t <= BB_DATE || t == BB_BOOLEAN || t == BB_BYTE || (t & BB_REF)) { v->type = BB_EMPTY; return; }
     bb_v_release(v);
 }
 
@@ -356,12 +357,28 @@ static Frame *push_frame(VM *vm, int32_t pidx, bb_value *base)
     int32_t i;
     if (vm->nframes >= vm->maxframes || base + p->nlocals + 64 >= vm->stack_end) bb_raise(28, NULL);
     f = &vm->frames[vm->nframes++];
-    memset(f, 0, sizeof *f);
     f->proc = p;
     f->pidx = pidx;
     f->base = base;
     f->pc = vm->img->code + p->code;
+    f->ret = NULL;
+    f->handler_mode = OE_NONE;
+    f->handler_pc = 0;
+    f->in_handler = 0;
+    f->err_pc = 0;
+    f->keep.type = BB_EMPTY;
+    f->fn = 0;
     f->gs_base = vm->ngosub;
+    if (p->rt_plain) {
+        /* no ByRef parameters, only simple locals */
+        for (i = p->nparams; i < p->hidden; i++) {
+            base[i].type = p->slots[i].vt == BB_VARIANT ? BB_EMPTY : p->slots[i].vt;
+            base[i].flags = 0;
+            base[i].u.c = 0;
+        }
+        vm->sp = base + p->nlocals;
+        return f;
+    }
     /* by-reference parameters that got a value: keep it in a hidden slot */
     {
         int32_t h = p->hidden;
@@ -398,12 +415,13 @@ static void prep_hidden(VM *vm, VMProc *p, bb_value *base)
     (void)vm;
 }
 
-static void pop_frame(VM *vm)
+static inline void pop_frame(VM *vm)
 {
     Frame *f = &vm->frames[vm->nframes - 1];
-    int32_t i;
-    for (i = 0; i < f->proc->nlocals; i++) release_slot(&f->base[i]);
-    bb_v_release(&f->keep);
+    int32_t i, n = f->proc->nlocals;
+    bb_value *b = f->base;
+    for (i = 0; i < n; i++) release_slot(&b[i]);
+    if (f->keep.type != BB_EMPTY) bb_v_release(&f->keep);
     vm->ngosub = f->gs_base;
     if (f->in_handler) bb_err_clear();
     vm->nframes--;
@@ -1732,6 +1750,20 @@ static void prepare(VM *vm)
         c->nifaces = vc->nifaces;
     }
     vm->globals = (bb_value *)xcalloc((size_t)img->nglobals + 1, sizeof(bb_value));
+    for (i = 0; i < img->nprocs; i++) {
+        VMProc *p = &img->procs[i];
+        int32_t k, plain = 1;
+        if (p->code < 0) continue;
+        p->rt_nbyref = 0;
+        for (k = 0; k < p->nparams; k++) if (p->param_byref[k]) p->rt_nbyref++;
+        if (p->rt_nbyref) plain = 0;
+        for (k = p->nparams; k < p->hidden; k++) {
+            VMSlot *sl = &p->slots[k];
+            int vt = sl->vt;
+            if (sl->isref || sl->ndims || sl->newcls || sl->fixlen || vt == BB_UDT || (vt & BB_ARRAY)) plain = 0;
+        }
+        p->rt_plain = plain;
+    }
 }
 
 int vm_run(VMImage *img, int argc, char **argv)

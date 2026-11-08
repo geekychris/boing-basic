@@ -109,6 +109,8 @@ typedef struct VMProc {
     VMLine *lines;          /* statement starts: pc -> line */
     int32_t is_public;
     int32_t hidden;         /* first hidden slot (by-reference temporaries) */
+    int32_t rt_nbyref;      /* run time only: number of ByRef parameters */
+    int32_t rt_plain;       /* run time only: all locals are scalars/strings/Variants (fast init) */
 } VMProc;
 
 typedef struct VMMember {

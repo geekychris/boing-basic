@@ -25,7 +25,39 @@ the work (use a smaller workload on the OS4 guest: `--scale 1` is sized for the 
 
 ## Results
 
-### macOS (Apple M-series, clang 21), baseline before VM work (2026-11-07)
+### macOS (Apple M-series, clang 21), after the register-form VM (2026-11-07)
+
+| benchmark | VM (s) | native (s) | VM/native | C (s) | native/C | same output |
+|---|---:|---:|---:|---:|---:|:---:|
+| arrays | 0.233 | 0.068 | 3.4x | - | - | yes |
+| calls | 0.253 | 0.016 | 15.8x | - | - | yes |
+| coll | 0.152 | 0.148 | 1.0x | - | - | yes |
+| double_math | 0.288 | 0.031 | 9.2x | 0.019 | 1.6x | yes |
+| fannkuch | 0.176 | 0.032 | 5.5x | 0.015 | 2.1x | yes |
+| fib | 0.139 | 0.010 | 13.5x | 0.007 | 1.4x | yes |
+| fileio | 0.155 | 0.149 | 1.0x | - | - | yes |
+| int_loop | 0.128 | 0.021 | 6.2x | 0.020 | 1.0x | yes |
+| mandelbrot | 0.027 | 0.009 | 3.2x | 0.005 | 1.6x | yes |
+| nbody | 0.362 | 0.062 | 5.8x | 0.013 | 4.8x | yes |
+| objects | 0.431 | 0.142 | 3.0x | - | - | yes |
+| select | 0.282 | 0.017 | 16.6x | - | - | yes |
+| sieve | 0.168 | 0.032 | 5.3x | 0.012 | 2.6x | yes |
+| strings | 0.222 | 0.121 | 1.8x | - | - | yes |
+| udt | 0.093 | 0.027 | 3.5x | - | - | yes |
+| variants | 0.311 | 0.201 | 1.5x | - | - | yes |
+
+What changed in the VM (vs the baseline below):
+- module variables used only by the main program are locals (fast slots);
+- typed Integer/Long/Double expressions compile to 3-address register ops on frame slots
+  (immediate and constant operands, no stack traffic, no tag checks), comparisons fused
+  with the branch, `And` of comparisons tested one by one;
+- 1-D/2-D array elements and UDT fields (of variables and of array elements) are loaded and
+  stored by register ops; For loops on typed locals are register ops;
+- threaded dispatch (computed goto, GCC/clang, also on PPC) for the register ops, one table
+  for all opcodes; register temporaries are pre-tagged so ops store no type tags;
+- frame set-up and tear-down fast paths for procedures without ByRef parameters.
+
+### macOS, baseline before VM work (2026-11-07)
 
 | benchmark | VM (s) | native (s) | VM/native | C (s) | native/C | same output |
 |---|---:|---:|---:|---:|---:|:---:|
