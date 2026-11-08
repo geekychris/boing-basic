@@ -86,6 +86,22 @@ static void *raw(bb_value *slot, int vt)
 
 static bb_obj *new_object(VM *vm, int cls);
 
+#ifdef BB_OPSTATS
+/* build with -DBB_OPSTATS -DBB_NO_THREADED: dynamic opcode counts on stderr at exit */
+static unsigned long long vm_opstats[I__COUNT];
+static void vm_opstats_dump(void)
+{
+    int i, j, idx[I__COUNT];
+    unsigned long long tot = 0;
+    for (i = 0; i < I__COUNT; i++) { idx[i] = i; tot += vm_opstats[i]; }
+    for (i = 0; i < I__COUNT; i++)
+        for (j = i + 1; j < I__COUNT; j++)
+            if (vm_opstats[idx[j]] > vm_opstats[idx[i]]) { int t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+    for (i = 0; i < 40 && vm_opstats[idx[i]]; i++)
+        fprintf(stderr, "%-12s %12llu %5.1f%%\n", bb_opnames[idx[i]], vm_opstats[idx[i]], 100.0 * (double)vm_opstats[idx[i]] / (double)tot);
+}
+#endif
+
 static void init_slot(VM *vm, bb_value *v, const VMSlot *s)
 {
     *v = bb_v_make(BB_EMPTY);
@@ -406,6 +422,28 @@ static Frame *push_frame(VM *vm, int32_t pidx, bb_value *base)
     return f;
 }
 
+/* plain procedures: one copy of a template sets up every slot after the parameters */
+static inline Frame *push_plain(VM *vm, VMProc *p, int32_t pidx, bb_value *base)
+{
+    Frame *f;
+    if (BB_UNLIKELY(vm->nframes >= vm->maxframes || base + p->nlocals + 64 >= vm->stack_end)) bb_raise(28, NULL);
+    f = &vm->frames[vm->nframes++];
+    f->proc = p;
+    f->pidx = pidx;
+    f->base = base;
+    f->pc = vm->img->code + p->code;
+    f->ret = NULL;
+    f->handler_mode = OE_NONE;
+    f->in_handler = 0;
+    f->keep.type = BB_EMPTY;
+    f->fn = 0;
+    f->retdst = -1;
+    f->gs_base = vm->ngosub;
+    memcpy(base + p->nparams, p->rt_tmpl, sizeof(bb_value) * (size_t)(p->nlocals - p->nparams));
+    vm->sp = base + p->nlocals;
+    return f;
+}
+
 /* hidden slots: initialised before params are processed */
 static void prep_hidden(VM *vm, VMProc *p, bb_value *base)
 {
@@ -413,7 +451,7 @@ static void prep_hidden(VM *vm, VMProc *p, bb_value *base)
     /* hidden by-ref slots start Empty; register temporaries carry their type tag */
     for (i = p->hidden; i < p->nlocals; i++) {
         int vt = p->slots[i].vt;
-        base[i] = bb_v_make((uint16_t)(vt == BB_INTEGER || vt == BB_LONG || vt == BB_DOUBLE ? vt : BB_EMPTY));
+        base[i] = bb_v_make((uint16_t)(vt == BB_INTEGER || vt == BB_LONG || vt == BB_DOUBLE || vt == BB_SINGLE ? vt : BB_EMPTY));
     }
     (void)vm;
 }
@@ -646,15 +684,17 @@ static void vm_poll(VM *vm)
 #define POLL() do { if (BB_UNLIKELY(--bb_poll_count < 0)) { fr->pc = pc; vm->sp = sp; vm_poll(vm); } } while (0)
 /* a taken backward branch: poll, then enter compiled code for the loop if it is hot */
 #define BACKJUMP(t_) { int32_t bt_ = (t_); POLL(); pc = code + bt_; \
-    if (BB_UNLIKELY(jit_on)) { bb_jitfn jf_ = jit_hot(img, fr->proc, bt_); \
+    if (BB_UNLIKELY(jit_on) && !img->jitno[bt_]) { bb_jitfn jf_ = jit_hot(img, fr->proc, bt_); \
         while (jf_) { int32_t np_; jc.L = L; np_ = jf_(&jc); pc = code + np_; \
             /* compiled code left for another loop head (an outer loop): continue there */ \
-            jf_ = (np_ != bt_ && bb_poll_count >= 0) ? jit_hot(img, fr->proc, np_) : NULL; bt_ = np_; } } }
+            jf_ = (np_ != bt_ && bb_poll_count >= 0 && !img->jitno[np_]) ? jit_hot(img, fr->proc, np_) : NULL; bt_ = np_; } } }
 
 /* register-form helpers */
+const int bb_vmobj_f_offset = (int)offsetof(VMObj, f);
+
 BB_INLINE bb_array *rarr(bb_value *L, bb_value *G, int32_t o)
 {
-    bb_value *v = o >= 0 ? &L[o] : &G[-1 - o];
+    bb_value *v = o >= 0 ? &L[o] : o > BB_ME_OPND ? &G[-1 - o] : &((VMObj *)L[0].u.o)->f[BB_ME_OPND - o];
     return (v->type & BB_REF) ? *(bb_array **)v->u.p : v->u.a;
 }
 
@@ -672,6 +712,7 @@ BB_INLINE void rload(bb_value *d, int vt, void *p)
     case BB_LONG: d->type = BB_LONG; d->u.l = *(int32_t *)p; break;
     case BB_DOUBLE: d->type = BB_DOUBLE; d->u.d = *(double *)p; break;
     case BB_BOOLEAN: d->type = BB_BOOLEAN; d->u.b = *(bb_bool *)p; break;
+    case BB_SINGLE: d->type = BB_SINGLE; d->u.f = *(bb_single *)p; break;
     default: d->type = BB_INTEGER; d->u.i = *(bb_int *)p; break;
     }
 }
@@ -681,6 +722,7 @@ BB_INLINE void rstore(int vt, void *p, const bb_value *s)
     switch (vt) {
     case BB_LONG: *(int32_t *)p = s->u.l; break;
     case BB_DOUBLE: *(double *)p = s->u.d; break;
+    case BB_SINGLE: *(bb_single *)p = s->u.f; break;
     default: *(bb_int *)p = s->u.i; break;
     }
 }
@@ -747,18 +789,22 @@ static void vm_exec(VM *vm, int entry)
         bb_value *sp = vm->sp;
         bb_value *L = fr->base;
         bb_value *G = vm->globals;
-        int jit_on = jit_enabled();
+        int jit_on = jit_enabled() && img->jitno;
         bb_jitctx jc;
         jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; }
 #define SYNC() (vm->sp = sp)
 #define RELOAD() (fr = &vm->frames[vm->nframes - 1], pc = fr->pc, sp = vm->sp, L = fr->base)
         for (;;) {
             int32_t op = *pc;
+#ifdef BB_OPSTATS
+            vm_opstats[op]++;
+#endif
             if (op >= I_R_FIRST) {
                 /* register forms: no stack, no tags to check; errors sync pc/sp first */
 #if defined(__GNUC__) && !defined(BB_NO_THREADED)
 #define RCASE(x) L_##x:
 #define RNEXT() do { op = *pc; goto *rtab[op]; } while (0)
+#define RSLOW(o_) do { op = (o_); goto rdone; } while (0)
                 static void *const rtab[I__COUNT] = {
                     [0 ... I_R_FIRST - 1] = &&rdone,
         [I_R_MOV] = &&L_R_MOV,
@@ -841,12 +887,24 @@ static void vm_exec(VM *vm, int entry)
         [I_R_STREF] = &&L_R_STREF,
         [I_R_JMP] = &&L_R_JMP,
         [I_R_SQRT_D] = &&L_R_SQRT_D,
-        [I_R_CALLS] = &&L_R_CALLS
+        [I_R_CALLS] = &&L_R_CALLS,
+        [I_R_RET] = &&L_R_RET,
+        [I_R_ADD_FRR] = &&L_R_ADD_FRR,
+        [I_R_SUB_FRR] = &&L_R_SUB_FRR,
+        [I_R_MUL_FRR] = &&L_R_MUL_FRR,
+        [I_R_DIV_FRR] = &&L_R_DIV_FRR,
+        [I_R_NEG_F] = &&L_R_NEG_F,
+        [I_R_CVT_IF] = &&L_R_CVT_IF,
+        [I_R_CVT_LF] = &&L_R_CVT_LF,
+        [I_R_CVT_DF] = &&L_R_CVT_DF,
+        [I_R_CVT_FD] = &&L_R_CVT_FD,
+        [I_R_JCMP_FRR] = &&L_R_JCMP_FRR
                 };
                 goto *rtab[op];
 #else
 #define RCASE(x) case I_##x:
 #define RNEXT() continue
+#define RSLOW(o_) { op = (o_); break; }
                 switch (op) {
 #endif
 #define RSL(n) (L[pc[n]])
@@ -965,9 +1023,10 @@ static void vm_exec(VM *vm, int entry)
                     for (i = 0; i < n; i++) base[i] = L[pc[4 + i]];
                     fr->pc = pc;
                     vm->sp = sp + n;
-                    prep_hidden(vm, p, base);
                     {
-                        Frame *nf = push_frame(vm, pidx, base);
+                        Frame *nf;
+                        if (BB_LIKELY(p->rt_tmpl != NULL)) nf = push_plain(vm, p, pidx, base);
+                        else { prep_hidden(vm, p, base); nf = push_frame(vm, pidx, base); }
                         nf->ret = pc + 8;
                         nf->retdst = pc[2];
                         fr = nf;
@@ -977,6 +1036,42 @@ static void vm_exec(VM *vm, int entry)
                     L = fr->base;
                     RNEXT();
                 }
+                RCASE(R_RET) {
+                    /* scalar-only frame returning to bytecode: nothing to release */
+                    VMProc *p = fr->proc;
+                    if (BB_LIKELY(p->rt_scalar && vm->nframes - 1 > entry && fr->keep.type == BB_EMPTY && !fr->in_handler)) {
+                        bb_value *base = fr->base;
+                        int32_t rd = fr->retdst, *ret = fr->ret;
+                        vm->ngosub = fr->gs_base;
+                        vm->nframes--;
+                        fr = &vm->frames[vm->nframes - 1];
+                        sp = base;
+                        if (p->ret_slot >= 0) {
+                            bb_value rv = base[p->ret_slot];
+                            if (rd >= 0) fr->base[rd] = rv;
+                            else *sp++ = rv;
+                        }
+                        L = fr->base;
+                        pc = ret;
+                        RNEXT();
+                    }
+                    RSLOW(I_RET);
+                }
+#define SETF(D_, V_) (L[D_].u.f = (V_))
+                RCASE(R_ADD_FRR) { double r_ = (double)RSL(2).u.f + RSL(3).u.f; if (BB_UNLIKELY(r_ > 3.402823466e38 || r_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)r_); pc += 4; RNEXT(); }
+                RCASE(R_SUB_FRR) { double r_ = (double)RSL(2).u.f - RSL(3).u.f; if (BB_UNLIKELY(r_ > 3.402823466e38 || r_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)r_); pc += 4; RNEXT(); }
+                RCASE(R_MUL_FRR) { double r_ = (double)RSL(2).u.f * RSL(3).u.f; if (BB_UNLIKELY(r_ > 3.402823466e38 || r_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)r_); pc += 4; RNEXT(); }
+                RCASE(R_DIV_FRR) { double y_ = RSL(3).u.f, r_;
+                    if (BB_UNLIKELY(y_ == 0)) RERR(bb_fdiv(RSL(2).u.f, y_));
+                    r_ = (double)RSL(2).u.f / y_;
+                    if (BB_UNLIKELY(r_ - r_ != 0 || r_ > 3.402823466e38 || r_ < -3.402823466e38)) RERR(bb_overflow());
+                    SETF(pc[1], (bb_single)r_); pc += 4; RNEXT(); }
+                RCASE(R_NEG_F) SETF(pc[1], -RSL(2).u.f); pc += 3; RNEXT();
+                RCASE(R_CVT_IF) SETF(pc[1], (bb_single)RSL(2).u.i); pc += 3; RNEXT();
+                RCASE(R_CVT_LF) SETF(pc[1], (bb_single)RSL(2).u.l); pc += 3; RNEXT();
+                RCASE(R_CVT_DF) { double x_ = RSL(2).u.d; if (BB_UNLIKELY(x_ > 3.402823466e38 || x_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)x_); pc += 3; RNEXT(); }
+                RCASE(R_CVT_FD) SETD(pc[1], (double)RSL(2).u.f); pc += 3; RNEXT();
+                JCMP(R_JCMP_FRR, double, RSL(2).u.f, RSL(3).u.f)
                 RCASE(R_LDREF) rload(&L[pc[2]], pc[1], L[pc[3]].u.p); pc += 4; RNEXT();
                 RCASE(R_STREF) rstore(pc[1], L[pc[2]].u.p, &L[pc[3]]); pc += 4; RNEXT();
 #if !(defined(__GNUC__) && !defined(BB_NO_THREADED))
@@ -1353,8 +1448,8 @@ static void vm_exec(VM *vm, int entry)
                 bb_value *base = sp - p->nparams;
                 int32_t *ret = pc + 2;
                 SYNC();
-                prep_hidden(vm, p, base);
-                fr = push_frame(vm, pidx, base);
+                if (BB_LIKELY(p->rt_tmpl != NULL)) fr = push_plain(vm, p, pidx, base);
+                else { prep_hidden(vm, p, base); fr = push_frame(vm, pidx, base); }
                 fr->ret = ret;
                 pc = fr->pc;
                 sp = vm->sp;
@@ -1810,6 +1905,24 @@ static void prepare(VM *vm)
             if (sl->isref || sl->ndims || sl->newcls || sl->fixlen || vt == BB_UDT || (vt & BB_ARRAY)) plain = 0;
         }
         p->rt_plain = plain;
+        p->rt_scalar = 0;
+        p->rt_tmpl = NULL;
+        if (plain) {
+            int scalar = 1;
+            p->rt_tmpl = (bb_value *)xcalloc((size_t)(p->nlocals - p->nparams) + 1, sizeof(bb_value));
+            for (k = p->nparams; k < p->nlocals; k++) {
+                int vt = p->slots[k].vt;
+                if (k < p->hidden) p->rt_tmpl[k - p->nparams].type = (uint16_t)(vt == BB_VARIANT ? BB_EMPTY : vt);
+                else p->rt_tmpl[k - p->nparams].type = (uint16_t)(vt == BB_INTEGER || vt == BB_LONG || vt == BB_DOUBLE || vt == BB_SINGLE ? vt : BB_EMPTY);
+            }
+            for (k = 0; k < p->nlocals; k++) {
+                int vt = p->slots[k].vt;
+                if (p->slots[k].isref || !(vt == BB_INTEGER || vt == BB_LONG || vt == BB_SINGLE || vt == BB_DOUBLE ||
+                      vt == BB_BOOLEAN || vt == BB_BYTE || vt == BB_CURRENCY || vt == BB_DATE)) scalar = 0;
+            }
+            if (p->cls >= 0) scalar = 0;    /* Me holds a reference */
+            p->rt_scalar = scalar;
+        }
     }
 }
 
@@ -1820,8 +1933,12 @@ int vm_run(VMImage *img, int argc, char **argv)
     memset(&vm, 0, sizeof vm);
     vm.img = img;
     g_vm = &vm;
+#ifdef BB_OPSTATS
+    atexit(vm_opstats_dump);
+#endif
     bb_rt_init(argc, argv);
     jit_init();
+    if (!img->jitno) img->jitno = (unsigned char *)xcalloc((size_t)img->ncode + 1, 1);
     prepare(&vm);
     {
         size_t n = (size_t)(img->stack > 65536 ? img->stack / 16 : 16384);

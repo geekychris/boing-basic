@@ -10,7 +10,11 @@ The VM compiles statically typed code to *register ops* (opcodes `R_*`, see
 `src/vm/bytecode.h`): 3-address Integer/Long/Double arithmetic on frame slots, compare and
 branch, For loops, 1-D/2-D array elements, UDT fields, ByRef parameter access, `Sqr`. A
 *region* is a run of consecutive register ops. A loop whose body consists only of these ops
-(which is what typed numeric loops compile to) is one region.
+(which is what typed numeric loops compile to) is one region. Arrays may be locals,
+globals or array fields of `Me` (class methods). A region ends at a call (`R_CALLS`), a
+return, and the Single ops (`R_*_F*`: Single values are loaded and stored, but Single
+arithmetic is interpreted). A loop head whose region cannot be compiled is marked, so its
+back-edges then cost one byte test.
 
 - Each backward branch counts its target. At `BOING_JIT_THRESHOLD` (default 2) the region
   starting there is compiled, if it contains its own back-edge.
@@ -51,6 +55,7 @@ with either backend, for checking the encodings on any host:
 ## Testing
 
 ```
+make test                                                        # runs every test with the JIT forced on as well
 BOING_JIT=1 BOING_JIT_THRESHOLD=1 NATIVE=0 sh tests/run.sh      # Mac: every region compiled at once
 RUNFLAGS=--jit tools/os4-core-tests.sh                           # OS4 guest
 ```

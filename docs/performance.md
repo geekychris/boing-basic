@@ -32,25 +32,29 @@ have been measured on the guest.
 
 | benchmark | VM (s) | VM+JIT (s) | native (s) | VM/native | JIT/native | C (s) | native/C | same output |
 |---|---:|---:|---:|---:|---:|---:|---:|:---:|
-| arrays | 0.246 | 0.106 | 0.048 | 5.1x | 2.2x | - | - | yes |
-| calls | 0.185 | 0.195 | 0.015 | 12.7x | 13.3x | - | - | yes |
-| coll | 0.123 | 0.126 | 0.120 | 1.0x | 1.1x | - | - | yes |
-| double_math | 0.251 | 0.078 | 0.030 | 8.4x | 2.6x | 0.019 | 1.6x | yes |
-| fannkuch | 0.106 | 0.057 | 0.027 | 3.9x | 2.1x | 0.017 | 1.6x | yes |
-| fib | 0.115 | 0.116 | 0.010 | 11.0x | 11.1x | 0.007 | 1.5x | yes |
-| fileio | 0.154 | 0.154 | 0.149 | 1.0x | 1.0x | - | - | yes |
-| int_loop | 0.133 | 0.080 | 0.021 | 6.5x | 3.9x | 0.019 | 1.1x | yes |
-| mandelbrot | 0.027 | 0.027 | 0.008 | 3.2x | 3.2x | 0.006 | 1.5x | yes |
-| nbody | 0.355 | 0.202 | 0.025 | 13.9x | 7.9x | 0.013 | 2.0x | yes |
-| objects | 0.181 | 0.187 | 0.023 | 7.8x | 8.1x | - | - | yes |
-| select | 0.127 | 0.134 | 0.017 | 7.4x | 7.8x | - | - | yes |
-| sieve | 0.134 | 0.050 | 0.030 | 4.4x | 1.6x | 0.012 | 2.4x | yes |
-| strings | 0.218 | 0.220 | 0.127 | 1.7x | 1.7x | - | - | yes |
-| udt | 0.099 | 0.057 | 0.010 | 9.4x | 5.4x | - | - | yes |
-| variants | 0.295 | 0.288 | 0.189 | 1.6x | 1.5x | - | - | yes |
+| arrays | 0.219 | 0.105 | 0.050 | 4.4x | 2.1x | - | - | yes |
+| calls | 0.156 | 0.154 | 0.015 | 10.2x | 10.1x | - | - | yes |
+| coll | 0.129 | 0.124 | 0.119 | 1.1x | 1.0x | - | - | yes |
+| double_math | 0.294 | 0.077 | 0.030 | 9.7x | 2.6x | 0.019 | 1.6x | yes |
+| fannkuch | 0.096 | 0.045 | 0.027 | 3.6x | 1.7x | 0.016 | 1.7x | yes |
+| fib | 0.063 | 0.065 | 0.012 | 5.4x | 5.5x | 0.007 | 1.6x | yes |
+| fileio | 0.155 | 0.163 | 0.151 | 1.0x | 1.1x | - | - | yes |
+| int_loop | 0.119 | 0.080 | 0.020 | 6.1x | 4.1x | 0.019 | 1.0x | yes |
+| mandelbrot | 0.027 | 0.023 | 0.009 | 3.1x | 2.6x | 0.006 | 1.4x | yes |
+| nbody | 0.325 | 0.191 | 0.025 | 12.9x | 7.5x | 0.013 | 2.0x | yes |
+| objects | 0.208 | 0.210 | 0.024 | 8.5x | 8.6x | - | - | yes |
+| select | 0.122 | 0.119 | 0.018 | 6.8x | 6.6x | - | - | yes |
+| sieve | 0.116 | 0.050 | 0.028 | 4.1x | 1.8x | 0.012 | 2.3x | yes |
+| strings | 0.226 | 0.227 | 0.119 | 1.9x | 1.9x | - | - | yes |
+| udt | 0.088 | 0.055 | 0.010 | 8.9x | 5.6x | - | - | yes |
+| variants | 0.310 | 0.313 | 0.198 | 1.6x | 1.6x | - | - | yes |
+| glimmerfield | 0.328 | 0.323 | 0.059 | 5.5x | 5.5x | - | - | yes |
+| glimmerfield_draw | 0.256 | 0.154 | 0.068 | 3.7x | 2.2x | - | - | yes |
 
-Real-world check: `examples/glimmerfield/Bench.bbp` (bb-game's game logic, 2000 frames):
-VM 0.032 ms/frame, native 0.003 ms/frame; VM, JIT and native print identical game state.
+`glimmerfield` and `glimmerfield_draw` are the real-world rows: bb-game's Glimmerfield
+(`examples/glimmerfield/Bench.bbp`), 20000 frames of game logic, and 250 frames of logic plus
+the renderer drawing into a `SoftCanvas` (a class holding the framebuffer as array fields). They
+were 0.627 s and 0.979 s in the VM before the steps below marked *(Glimmerfield)*.
 
 What changed in the VM (vs the baseline below):
 - module variables used only by the main program are locals (fast slots);
@@ -70,6 +74,18 @@ caches the member id per class (no name lookup per call), `bb_invoke_id` guards 
 a cleanup entry instead of a setjmp frame, and on macOS/BSD all error frames use
 `_setjmp` (plain `setjmp` saves the signal mask: two system calls). bb-game's
 `o.PSet x, y, c` on an `Object`: native 207 -> 16 ns, VM 519 -> 70 ns per call.
+
+Calls and the game (*(Glimmerfield)*):
+- typed procedures whose locals are all scalars return through `R_RET` (no release loop, no
+  stack-op dispatch); frames of plain procedures are set up by copying a per-procedure
+  template of pre-tagged slots; unconditional jumps are register ops (fib 0.115 -> 0.060 s);
+- Single is a register kind (its own temporaries and ops, computed in double and rounded with
+  VB's range check, as the C back end does), so Single fields/arrays stay in register forms;
+- conditions that are pure And / Or / Not trees of typed comparisons and Booleans are tested
+  piece by piece by compare-and-branch ops (VB evaluates both sides, but nothing can tell);
+- array fields of `Me` are register-form operands (and JIT-compiled), so class methods that
+  loop over member arrays run like module code (glimmerfield_draw 0.979 -> 0.256 s);
+- the JIT marks loop heads it cannot compile, so they no longer cost a lookup per back-edge.
 
 What changed in the native back end: array bounds failures go to a `noreturn` function, so
 GCC/clang can keep element addresses in registers across statements (nbody 0.061 -> 0.027 s).

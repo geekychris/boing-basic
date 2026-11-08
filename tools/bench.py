@@ -40,20 +40,26 @@ def main():
     for f in sorted(os.listdir(bdir)):
         p = os.path.join(bdir, f)
         if f.endswith(".bas"):
-            items.append((f[:-4], bdir, f))
+            items.append((f[:-4], bdir, f, [a.scale]))
         elif os.path.isdir(p) and os.path.exists(os.path.join(p, f + ".bbp")):
-            items.append((f, p, f + ".bbp"))
+            items.append((f, p, f + ".bbp", [a.scale]))
+    # real-world: bb-game's Glimmerfield (game logic; with --draw also the BASIC renderer)
+    gdir = os.path.join(ROOT, "examples", "glimmerfield")
+    if os.path.exists(os.path.join(gdir, "Bench.bbp")):
+        n = int(float(a.scale) * 20000)
+        items.append(("glimmerfield", gdir, "Bench.bbp", ["--bench", str(n), "--quiet"]))
+        items.append(("glimmerfield_draw", gdir, "Bench.bbp", ["--bench", str(n // 80), "--draw", "--quiet"]))
     if a.only:
         want = set(a.only.split(","))
         items = [i for i in items if i[0] in want]
     tmp = tempfile.mkdtemp(prefix="bbbench")
     rows = []
-    for name, cwd, src in items:
+    for name, cwd, src, args in items:
         exe = os.path.join(tmp, name)
         b = subprocess.run([a.boing, "build", src, "-o", exe], cwd=cwd, capture_output=True, text=True)
-        vm_t, vm_out = timed([a.boing, "run", "--no-jit", src, a.scale], cwd, a.runs)
-        jit_t, jit_out = timed([a.boing, "run", "--jit", src, a.scale], cwd, a.runs)
-        nat_t, nat_out = (None, b.stderr) if b.returncode else timed([exe, a.scale], cwd, a.runs)
+        vm_t, vm_out = timed([a.boing, "run", "--no-jit", src] + args, cwd, a.runs)
+        jit_t, jit_out = timed([a.boing, "run", "--jit", src] + args, cwd, a.runs)
+        nat_t, nat_out = (None, b.stderr) if b.returncode else timed([exe] + args, cwd, a.runs)
         c_t = None
         csrc = os.path.join(bdir, "c", name + ".c")
         if os.path.exists(csrc):

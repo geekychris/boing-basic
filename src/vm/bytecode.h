@@ -6,7 +6,10 @@
 #include "../runtime/boing.h"
 
 #define BBC_MAGIC "BBC1"
-#define BBC_VERSION 3
+#define BBC_VERSION 4
+
+/* array operands of the register forms: slot >= 0, global -1 - index, field of Me BB_ME_OPND - index */
+#define BB_ME_OPND (-0x20000000)
 
 /* OP(name, number of operand words) */
 #define BB_OPCODES(OP) \
@@ -57,7 +60,10 @@
     OP(R_LDE1, 4) OP(R_STE1, 4) OP(R_LDE2, 5) OP(R_STE2, 5) OP(R_LDEF1, 5) OP(R_STEF1, 5) OP(R_LDF, 4) OP(R_STF, 4) \
     OP(R_JNZ, 2) OP(R_JZ, 2) \
     OP(R_FORCHK_I, 4) OP(R_FORINC_I, 4) OP(R_FORCHK_L, 4) OP(R_FORINC_L, 4) OP(R_FORCHK_D, 4) OP(R_FORINC_D, 4) \
-    OP(R_LDREF, 3) OP(R_STREF, 3) OP(R_JMP, 1) OP(R_SQRT_D, 2) OP(R_CALLS, 7)
+    OP(R_LDREF, 3) OP(R_STREF, 3) OP(R_JMP, 1) OP(R_SQRT_D, 2) OP(R_CALLS, 7) OP(R_RET, 0) \
+    /* Single (computed in double, rounded with a range check, as VB and the C back end do); the JIT stops at these */ \
+    OP(R_ADD_FRR, 3) OP(R_SUB_FRR, 3) OP(R_MUL_FRR, 3) OP(R_DIV_FRR, 3) OP(R_NEG_F, 2) \
+    OP(R_CVT_IF, 2) OP(R_CVT_LF, 2) OP(R_CVT_DF, 2) OP(R_CVT_FD, 2) OP(R_JCMP_FRR, 4)
 
 enum {
 #define OP_ENUM(n, k) I_##n,
@@ -112,6 +118,8 @@ typedef struct VMProc {
     int32_t hidden;         /* first hidden slot (by-reference temporaries) */
     int32_t rt_nbyref;      /* run time only: number of ByRef parameters */
     int32_t rt_plain;       /* run time only: all locals are scalars/strings/Variants (fast init) */
+    int32_t rt_scalar;      /* run time only: plain, and no local needs releasing (fast return) */
+    bb_value *rt_tmpl;      /* run time only (plain procs): initial values of slots nparams.. */
 } VMProc;
 
 typedef struct VMMember {
@@ -158,7 +166,8 @@ typedef struct VMImage {
     int32_t ncode, capcode;
     bb_value *consts;
     int32_t nconsts, capconsts;
-    bb_site *sites;             /* late-bound call caches, one per constant (lazily allocated) */
+    bb_site *sites;
+    unsigned char *jitno;       /* JIT: 1 at loop heads that will not be compiled (run time) */             /* late-bound call caches, one per constant (lazily allocated) */
     VMProc *procs;
     int32_t nprocs;
     VMSlot *globals;

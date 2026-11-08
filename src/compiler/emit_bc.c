@@ -34,7 +34,7 @@ typedef struct E {
     int **wev_of_field;
     int used_keep;              /* statement used the frame's keep-alive slot */
     /* register temporaries: slots per kind (0 Integer, 1 Long, 2 Double), reused per statement */
-    int *rtmp[3]; int nrtmp[3], caprtmp[3], usedrtmp[3];
+    int *rtmp[4]; int nrtmp[4], caprtmp[4], usedrtmp[4];
 } E;
 
 static int emit_w(E *e, int32_t w)
@@ -533,6 +533,7 @@ static int rkind(Type *t)
     case T_INTEGER: return 0;
     case T_LONG: return 1;
     case T_DOUBLE: return 2;
+    case T_SINGLE: return 3;
     default: return -1;
     }
 }
@@ -544,7 +545,7 @@ static int rtemp(E *e, int k)
     s = e->vp->nlocals++;
     e->vp->slots = (VMSlot *)xrealloc(e->vp->slots, sizeof(VMSlot) * (size_t)(e->vp->nlocals + 1));
     memset(&e->vp->slots[s], 0, sizeof(VMSlot));
-    e->vp->slots[s].vt = (uint16_t)(k == 0 ? BB_INTEGER : k == 1 ? BB_LONG : BB_DOUBLE);
+    e->vp->slots[s].vt = (uint16_t)(k == 0 ? BB_INTEGER : k == 1 ? BB_LONG : k == 2 ? BB_DOUBLE : BB_SINGLE);
     e->vp->slots[s].name = "$r";
     if (e->nrtmp[k] == e->caprtmp[k]) {
         e->caprtmp[k] = e->caprtmp[k] ? e->caprtmp[k] * 2 : 8;
@@ -566,13 +567,14 @@ static int reg_var(E *e, Node *n, int k)
 
 static int is_int_const(Node *n, int k, int32_t *v)
 {
-    if (n->kind != E_CONST || rkind(n->ty) != k || k == 2) return 0;
+    if (n->kind != E_CONST || rkind(n->ty) != k || k >= 2) return 0;
     if (n->cv.type != T_INTEGER && n->cv.type != T_LONG && n->cv.type != T_BYTE && n->cv.type != T_BOOLEAN) return 0;
     *v = (int32_t)n->cv.i;
     return 1;
 }
 
 static int is_dbl_const(Node *n) { return n->kind == E_CONST && n->ty->kind == T_DOUBLE && n->cv.type == T_DOUBLE; }
+static int is_sng_const(Node *n) { return n->kind == E_CONST && n->ty->kind == T_SINGLE && (n->cv.type == T_SINGLE || n->cv.type == T_DOUBLE); }
 
 /* can evaluating n have side effects (calls)? */
 static int impure(Node *n)
@@ -631,6 +633,17 @@ static int rop_d(int op, int rk)
     }
 }
 
+static int rop_f(int op)
+{
+    switch (op) {
+    case OP_ADD: return I_R_ADD_FRR;
+    case OP_SUB: return I_R_SUB_FRR;
+    case OP_MUL: return I_R_MUL_FRR;
+    case OP_DIV: return I_R_DIV_FRR;
+    default: return -1;
+    }
+}
+
 static int commutes(int op) { return op == OP_ADD || op == OP_MUL || op == OP_AND || op == OP_OR || op == OP_XOR; }
 
 /* is n an arithmetic node the register forms implement (of kind k)? */
@@ -638,12 +651,14 @@ static int reg_arith(Node *n, int k)
 {
     if (n->kind == E_BIN && rkind(n->ty) == k && rkind(n->a->ty) == k && rkind(n->b->ty) == k) {
         if (k == 2) return rop_d(n->op, 0) >= 0;
+        if (k == 3) return rop_f(n->op) >= 0;
         return rop_l(n->op, 0) >= 0;
     }
     if (n->kind == E_UN && n->op == OP_NEG && rkind(n->ty) == k && rkind(n->a->ty) == k) return 1;
     if (n->kind == E_CONV && !(n->flags & NF_PARENARG)) {
         int fk = rkind(n->a->ty);
-        if (k == 2 && (fk == 0 || fk == 1)) return 1;
+        if (k == 2 && (fk == 0 || fk == 1 || fk == 3)) return 1;
+        if (k == 3 && (fk == 0 || fk == 1 || fk == 2)) return 1;
         if (k == 1 && fk == 0) return 1;
     }
     return 0;
@@ -659,6 +674,7 @@ static int arr_opnd(E *e, Node *a)
     s = a->sym;
     if (s->storage == ST_LOCAL || s->storage == ST_PARAM) return slot_of(e, s);
     if (s->storage == ST_GLOBAL || s->storage == ST_STATIC) return -1 - s->index;
+    if (s->storage == ST_FIELD) return BB_ME_OPND - s->index;     /* an array field of Me */
     return NO_OPND;
 }
 
@@ -680,6 +696,7 @@ static int rvt(Type *t)
     case T_BOOLEAN: return BB_BOOLEAN;
     case T_LONG: return BB_LONG;
     case T_DOUBLE: return BB_DOUBLE;
+    case T_SINGLE: return BB_SINGLE;
     default: return 0;
     }
 }
@@ -751,6 +768,15 @@ static void rx_bin(E *e, Node *n, int k, int dst, int *out)
     Node *a = n->a, *b = n->b;
     int32_t iv;
     int sa, sb, d;
+    if (k == 3) {
+        sa = rx(e, a, -1);
+        if (impure(b) && a->kind == E_VAR) { int t = rtemp(e, k); op2(e, I_R_MOV, t, sa); sa = t; }
+        sb = rx(e, b, -1);
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, rop_f(n->op), d, sa, sb);
+        *out = d;
+        return;
+    }
     if (k != 2 && commutes(n->op) && is_int_const(a, k, &iv) && !is_int_const(b, k, &iv)) { Node *t = a; a = b; b = t; }
     if (k == 2 && commutes(n->op) && is_dbl_const(a) && !is_dbl_const(b)) { Node *t = a; a = b; b = t; }
     if (k != 2 && is_int_const(b, k, &iv)) {
@@ -846,6 +872,11 @@ static int rx(E *e, Node *n, int dst)
         op2(e, I_R_MOVK, d, add_const(e, bb_v_double(n->cv.d)));
         return d;
     }
+    if (k == 3 && is_sng_const(n)) {
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op2(e, I_R_MOVK, d, add_const(e, bb_v_single((bb_single)n->cv.d)));
+        return d;
+    }
     if (k >= 0 && n->kind == E_VAR && is_ref_slot(n->sym) && rkind(n->sym->ty) == k) {
         d = dst >= 0 ? dst : rtemp(e, k);
         op3(e, I_R_LDREF, rvt(n->ty), d, slot_of(e, n->sym));
@@ -872,13 +903,17 @@ static int rx(E *e, Node *n, int dst)
         if (n->kind == E_UN) {
             int a = rx(e, n->a, -1);
             d = dst >= 0 ? dst : rtemp(e, k);
-            op2(e, k == 2 ? I_R_NEG_D : k == 1 ? I_R_NEG_L : I_R_NEG_I, d, a);
+            op2(e, k == 3 ? I_R_NEG_F : k == 2 ? I_R_NEG_D : k == 1 ? I_R_NEG_L : I_R_NEG_I, d, a);
             return d;
         }
         {
             int fk = rkind(n->a->ty), a = rx(e, n->a, -1);
             d = dst >= 0 ? dst : rtemp(e, k);
-            op2(e, k == 2 ? (fk == 1 ? I_R_CVT_LD : I_R_CVT_ID) : I_R_CVT_IL, d, a);
+            int cop;
+            if (k == 2) cop = fk == 3 ? I_R_CVT_FD : fk == 1 ? I_R_CVT_LD : I_R_CVT_ID;
+            else if (k == 3) cop = fk == 2 ? I_R_CVT_DF : fk == 1 ? I_R_CVT_LF : I_R_CVT_IF;
+            else cop = I_R_CVT_IL;
+            op2(e, cop, d, a);
             return d;
         }
     }
@@ -923,7 +958,7 @@ static void reg_cmp_jump(E *e, Node *c, int sense, Patch *p)
         int sb;
         if (impure(b) && a->kind == E_VAR) { int t = rtemp(e, k); op2(e, I_R_MOV, t, sa); sa = t; }
         sb = rx(e, b, -1);
-        emit_w(e, k == 2 ? I_R_JCMP_DRR : k == 1 ? I_R_JCMP_LRR : I_R_JCMP_IRR); emit_w(e, cm); emit_w(e, sa); emit_w(e, sb);
+        emit_w(e, k == 3 ? I_R_JCMP_FRR : k == 2 ? I_R_JCMP_DRR : k == 1 ? I_R_JCMP_LRR : I_R_JCMP_IRR); emit_w(e, cm); emit_w(e, sa); emit_w(e, sb);
     }
     at = emit_w(e, 0);
     patch_add(p, at);
@@ -1037,43 +1072,58 @@ static int bool_slot(E *e, Node *c)
     return t;
 }
 
-static void cond_jump_false(E *e, Node *c, Patch *p)
+/* a side-effect-free Boolean condition made of register-form comparisons and Boolean
+   slots joined by And / Or / Not: tested piece by piece (no short-circuit is visible) */
+static int cond_tree_ok(E *e, Node *c)
+{
+    if (c->ty->kind != T_BOOLEAN) return 0;
+    if (reg_cmp_ok(c)) return 1;
+    if (c->kind == E_VAR) {
+        Sym *s = c->sym;
+        return (s->storage == ST_LOCAL || s->storage == ST_PARAM) && !is_ref_slot(s);
+    }
+    if (reg_mem(e, c)) return !impure(c);
+    if (c->kind == E_UN && c->op == OP_NOT) return cond_tree_ok(e, c->a);
+    if (c->kind == E_BIN && (c->op == OP_AND || c->op == OP_OR))
+        return !impure(c->a) && !impure(c->b) && cond_tree_ok(e, c->a) && cond_tree_ok(e, c->b);
+    return 0;
+}
+
+/* jump to p when c == sense (c passed cond_tree_ok) */
+static void cond_tree_jump(E *e, Node *c, int sense, Patch *p)
 {
     int bs;
-    if (reg_cmp_ok(c)) { reg_cmp_jump(e, c, 0, p); return; }
-    if ((bs = bool_slot(e, c)) >= 0) { emit_w(e, I_R_JZ); emit_w(e, bs); patch_add(p, emit_w(e, 0)); return; }
-    if (c->kind == E_UN && c->op == OP_NOT && (bs = bool_slot(e, c->a)) >= 0) { emit_w(e, I_R_JNZ); emit_w(e, bs); patch_add(p, emit_w(e, 0)); return; }
-    /* And of side-effect-free comparisons: test each (no short-circuit is visible) */
-    if (c->kind == E_BIN && c->op == OP_AND && c->ty->kind == T_BOOLEAN && !impure(c->a) && !impure(c->b) &&
-        reg_cmp_ok(c->a) && reg_cmp_ok(c->b)) {
-        reg_cmp_jump(e, c->a, 0, p);
-        reg_cmp_jump(e, c->b, 0, p);
+    if (reg_cmp_ok(c)) { reg_cmp_jump(e, c, sense, p); return; }
+    if (c->kind == E_UN && c->op == OP_NOT) { cond_tree_jump(e, c->a, !sense, p); return; }
+    if (c->kind == E_BIN && (c->op == OP_AND || c->op == OP_OR)) {
+        int conj = c->op == OP_AND;
+        if (conj != sense) {
+            /* And, jump if false / Or, jump if true: either operand decides */
+            cond_tree_jump(e, c->a, sense, p);
+            cond_tree_jump(e, c->b, sense, p);
+        } else {
+            Patch skip = {0, 0, 0};
+            cond_tree_jump(e, c->a, !sense, &skip);
+            cond_tree_jump(e, c->b, sense, p);
+            patch_all(e, &skip, here(e));
+            free(skip.v);
+        }
         return;
     }
+    bs = bool_slot(e, c);
+    emit_w(e, sense ? I_R_JNZ : I_R_JZ); emit_w(e, bs); patch_add(p, emit_w(e, 0));
+}
+
+static void cond_jump_false(E *e, Node *c, Patch *p)
+{
+    if (cond_tree_ok(e, c)) { cond_tree_jump(e, c, 0, p); return; }
     expr(e, c);
     patch_add(p, jump(e, I_JF));
 }
 
 static void cond_jump_true(E *e, Node *c, Patch *p)
 {
-    int bs;
-    if (reg_cmp_ok(c)) { reg_cmp_jump(e, c, 1, p); return; }
-    if ((bs = bool_slot(e, c)) >= 0) { emit_w(e, I_R_JNZ); emit_w(e, bs); patch_add(p, emit_w(e, 0)); return; }
-    if (c->kind == E_BIN && c->op == OP_OR && c->ty->kind == T_BOOLEAN && !impure(c->a) && !impure(c->b) &&
-        reg_cmp_ok(c->a) && reg_cmp_ok(c->b)) {
-        reg_cmp_jump(e, c->a, 1, p);
-        reg_cmp_jump(e, c->b, 1, p);
-        return;
-    }
-    if (c->kind == E_BIN && c->op == OP_AND && c->ty->kind == T_BOOLEAN && !impure(c->a) && !impure(c->b) &&
-        reg_cmp_ok(c->a) && reg_cmp_ok(c->b)) {
-        Patch skip = {0, 0, 0};
-        reg_cmp_jump(e, c->a, 0, &skip);
-        reg_cmp_jump(e, c->b, 1, p);
-        patch_all(e, &skip, here(e));
-        free(skip.v);
-        return;
-    }
+    if (cond_tree_ok(e, c)) { cond_tree_jump(e, c, 1, p); return; }
     expr(e, c);
     patch_add(p, jump(e, I_JT));
 }
@@ -1173,7 +1223,7 @@ static void for_stmt(E *e, Node *s)
             store_top(e, ctr);
         }
     }
-    op1(e, I_JMP, top);
+    op1(e, I_R_JMP, top);
     pop_loop(e, here(e));
 }
 
@@ -1197,7 +1247,7 @@ static void foreach_stmt(E *e, Node *s)
     store_top(e, s->a);
     if (s->a->kind == E_VAR && s->a->sym->withevents) { /* rare */ }
     block(e, &s->list);
-    op1(e, I_JMP, top);
+    op1(e, I_R_JMP, top);
     set_target(e, ex, here(e));
     pop_loop(e, here(e));
     op1(e, I_FEEND, slot);
@@ -1212,12 +1262,12 @@ static void label_ref(E *e, Sym *l, int at)
 static void stmt1(E *e, Node *s);
 static void stmt(E *e, Node *s)
 {
-    int outer = e->used_keep, u0 = e->usedrtmp[0], u1 = e->usedrtmp[1], u2 = e->usedrtmp[2];
+    int outer = e->used_keep, u0 = e->usedrtmp[0], u1 = e->usedrtmp[1], u2 = e->usedrtmp[2], u3 = e->usedrtmp[3];
     e->used_keep = 0;
     stmt1(e, s);
     if (e->used_keep) op0(e, I_UNKEEP);
     e->used_keep = outer;
-    e->usedrtmp[0] = u0; e->usedrtmp[1] = u1; e->usedrtmp[2] = u2;
+    e->usedrtmp[0] = u0; e->usedrtmp[1] = u1; e->usedrtmp[2] = u2; e->usedrtmp[3] = u3;
 }
 
 static void stmt1(E *e, Node *s)
@@ -1259,7 +1309,7 @@ static void stmt1(E *e, Node *s)
             Patch nx = {0, 0, 0};
             cond_jump_false(e, br->a, &nx);
             block(e, &br->list);
-            if (i < s->list.n - 1 || s->list2.n) patch_add(&ends, jump(e, I_JMP));
+            if (i < s->list.n - 1 || s->list2.n) patch_add(&ends, jump(e, I_R_JMP));
             patch_all(e, &nx, here(e));
             free(nx.v);
         }
@@ -1280,11 +1330,11 @@ static void stmt1(E *e, Node *s)
                 Patch body = {0, 0, 0};
                 int k, skip;
                 for (k = 0; k < cs->list.n; k++) cond_jump_true(e, cs->list.v[k], &body);
-                skip = jump(e, I_JMP);
+                skip = jump(e, I_R_JMP);
                 patch_all(e, &body, here(e));
                 free(body.v);
                 block(e, &cs->list2);
-                patch_add(&ends, jump(e, I_JMP));
+                patch_add(&ends, jump(e, I_R_JMP));
                 set_target(e, skip, here(e));
             }
         }
@@ -1315,12 +1365,12 @@ static void stmt1(E *e, Node *s)
         if (s->op == EXIT_FOR || s->op == EXIT_DO) {
             int k;
             for (k = e->nloops - 1; k >= 0; k--)
-                if (e->loops[k].kind == s->op) { patch_add(&e->loops[k].exits, jump(e, I_JMP)); break; }
+                if (e->loops[k].kind == s->op) { patch_add(&e->loops[k].exits, jump(e, I_R_JMP)); break; }
             return;
         }
-        patch_add(&e->exitp, jump(e, I_JMP));
+        patch_add(&e->exitp, jump(e, I_R_JMP));
         return;
-    case S_GOTO: label_ref(e, s->sym, jump(e, I_JMP)); return;
+    case S_GOTO: label_ref(e, s->sym, jump(e, I_R_JMP)); return;
     case S_GOSUB: label_ref(e, s->sym, jump(e, I_GOSUB)); return;
     case S_RETURN: op0(e, I_RETSUB); return;
     case S_LABEL:
@@ -1472,7 +1522,7 @@ static void emit_proc(E *e, Proc *pr, VMProc *vp)
     e->vp = vp;
     e->me = pr->cls ? 1 : 0;
     e->nloops = 0;
-    { int k; for (k = 0; k < 3; k++) { e->nrtmp[k] = 0; e->usedrtmp[k] = 0; } }
+    { int k; for (k = 0; k < 4; k++) { e->nrtmp[k] = 0; e->usedrtmp[k] = 0; } }
     e->nlines = 0;
     e->caplines = 0;
     e->lines = NULL;
@@ -1536,7 +1586,7 @@ static void emit_proc(E *e, Proc *pr, VMProc *vp)
         if (endn.line <= 0) endn.line = pr->line;
         line(e, &endn);
     }
-    op0(e, I_RET);
+    op0(e, I_R_RET);
     for (i = 0; i < pr->nlabels; i++) patch_all(e, &e->label_refs[i], e->label_pc[i]);
     vp->lines = e->lines;
     vp->nlines = e->nlines;

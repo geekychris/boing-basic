@@ -108,11 +108,20 @@ static void branch_to(T *t, int32_t from, int32_t target)
     else be->b(t->a, exit_to(t, target));
 }
 
-static void base_of(int32_t opnd, int *base, int32_t *off)
+extern const int bb_vmobj_f_offset;
+
+/* base register and offset of an operand's bb_value; a field of Me loads Me into JP2 */
+static void base_of_t(T *t, int32_t opnd, int *base, int32_t *off)
 {
     if (opnd >= 0) { *base = JB_L; *off = opnd * 16; }
-    else { *base = JB_G; *off = (-1 - opnd) * 16; }
+    else if (opnd > BB_ME_OPND) { *base = JB_G; *off = (-1 - opnd) * 16; }
+    else {
+        t->be->ldp(t->a, JP2, JB_L, 8);             /* slot 0 holds Me */
+        *base = JP2;
+        *off = bb_vmobj_f_offset + (BB_ME_OPND - opnd) * 16;
+    }
 }
+#define base_of(o, b, f) base_of_t(t, (o), (b), (f))
 
 /* JP0 = the bb_array of an array operand (exit if not allocated) */
 static void load_array(T *t, int32_t opnd, int ex)
@@ -131,7 +140,7 @@ static void load_array(T *t, int32_t opnd, int ex)
     be->bnullp(a, JP0, ex);
 }
 
-static int vt_shift(int vt) { return vt == BB_LONG ? 2 : vt == BB_DOUBLE ? 3 : 1; }
+static int vt_shift(int vt) { return vt == BB_LONG || vt == BB_SINGLE ? 2 : vt == BB_DOUBLE ? 3 : 1; }
 
 /* JP1 = address of element (i) or (i, j); JI3 index registers given */
 static void elem1(T *t, int ri, int vt, int ex)
@@ -193,7 +202,7 @@ static void udt_var(T *t, int32_t opnd)
 static void load_elem(T *t, int vt, int dslot)
 {
     const JBackend *be = t->be;
-    if (vt == BB_LONG) { be->ld32(t->a, JI0, JP1, 0); be->st32(t->a, JI0, JB_L, SLOT_U(dslot)); }
+    if (vt == BB_LONG || vt == BB_SINGLE) { be->ld32(t->a, JI0, JP1, 0); be->st32(t->a, JI0, JB_L, SLOT_U(dslot)); }
     else if (vt == BB_DOUBLE) { be->ldf(t->a, JF0, JP1, 0); be->stf(t->a, JF0, JB_L, SLOT_U(dslot)); }
     else { be->ld16s(t->a, JI0, JP1, 0); be->st16(t->a, JI0, JB_L, SLOT_U(dslot)); }
 }
@@ -201,7 +210,7 @@ static void load_elem(T *t, int vt, int dslot)
 static void store_elem(T *t, int vt, int sslot)
 {
     const JBackend *be = t->be;
-    if (vt == BB_LONG) { be->ld32(t->a, JI0, JB_L, SLOT_U(sslot)); be->st32(t->a, JI0, JP1, 0); }
+    if (vt == BB_LONG || vt == BB_SINGLE) { be->ld32(t->a, JI0, JB_L, SLOT_U(sslot)); be->st32(t->a, JI0, JP1, 0); }
     else if (vt == BB_DOUBLE) { be->ldf(t->a, JF0, JB_L, SLOT_U(sslot)); be->stf(t->a, JF0, JP1, 0); }
     else { be->ld16s(t->a, JI0, JB_L, SLOT_U(sslot)); be->st16(t->a, JI0, JP1, 0); }
 }
@@ -558,7 +567,7 @@ static int region_end(VMImage *img, VMProc *p, int32_t start)
         int op = img->code[pc];
         if (op < I_R_FIRST || op >= I__COUNT) break;
         if (op == I_R_SQRT_D && g_be_for_scan && !g_be_for_scan->fsqrt) break;
-        if (op == I_R_CALLS) break;
+        if (op == I_R_CALLS || op == I_R_RET || op >= I_R_ADD_FRR) break;
         pc += 1 + bb_opwords[op];
     }
     return pc;
@@ -723,6 +732,7 @@ bb_jitfn jit_get(VMImage *img, VMProc *p, int32_t start)
         e->fn = (bb_jitfn)install(a);
         e->state = e->fn ? 1 : 2;
     } else e->state = 2;
+    if (e->state == 2 && img->jitno) img->jitno[start] = 1;
     if (getenv("BOING_JIT_TRACE"))
         fprintf(stderr, "jit: %s @%ld: %s (%d bytes)\n", p->name, (long)start, e->state == 1 ? "compiled" : "not compiled", a->n);
     free(a->buf);
