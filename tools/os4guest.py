@@ -246,8 +246,16 @@ _have_fetch = None
 def have_fetch(m):
     global _have_fetch
     if _have_fetch is None:
-        out = m.tool("amiga_dos_command", command="list %s LFORMAT %%n" % FETCH)
-        _have_fetch = out.strip().endswith("bbfetch")
+        import time
+        for _ in range(5):          # a busy guest answers "[RUNNING] ..." first: ask again
+            out = m.tool("amiga_dos_command", command="list DH1:bbtools")
+            if "[RUNNING]" in out or "did not respond" in out:
+                time.sleep(5)
+                continue
+            _have_fetch = bool(re.search(r"^bbfetch\s+\d+", out, re.M))
+            break
+        else:
+            _have_fetch = False
     return _have_fetch
 
 
