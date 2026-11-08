@@ -32,6 +32,7 @@ $(B)/include/boing.h: $(wildcard src/runtime/*.h)
 
 test: all
 	@sh tools/stackcheck.sh
+	@sh tools/os4-build-check.sh
 	@for f in tests/c/*.c; do $(CC) $(WARN) $(CFLAGS) -I$(B)/include -o $(B)/ctest_$$(basename $$f .c) $$f $(B)/libboing.a -lm && $(B)/ctest_$$(basename $$f .c) || exit 1; done
 	@sh tests/run.sh
 
