@@ -23,7 +23,7 @@ is left from the middle more often than not (after 32 entries) is switched off, 
 hot path keeps leaving compiled code runs in the interpreter, never slower than without the
 JIT. `BOING_JIT_STATS=1` prints the entries per region at exit. Without a back-edge (e.g. at a
 call's return point), a run of compilable ops is compiled; a loop body cut by a call or `Sqr` is compiled in pieces (each piece that is not a whole loop
-needs at least `BOING_JIT_MINOPS` register ops, default 8: on the QEMU guest every entry into
+needs at least `BOING_JIT_MINOPS` register ops; the default, 1000, means whole loops only, which measured best on the m1 guest (8 was the earlier default): on the QEMU guest every entry into
 and exit from compiled code is expensive, and short pieces between calls made call-heavy code
 slower): from the loop head to the call,
 and from the instruction after the call (a *resume point*: the VM looks there for compiled
@@ -75,6 +75,18 @@ loops 2-3x there. On field-heavy game code (Glimmerfield) it compiles almost eve
 2x faster on the Mac, but about 40 % slower than the interpreter under QEMU's TCG, which charges
 more per guest branch and memory access than the interpreter's dispatch saves. Real PowerPC
 hardware is expected to behave like the Mac but is untested. The JIT is opt-in (`--jit`).
+
+m1's unloaded guest (bb-game, Glimmerfield, ms/frame; hashes identical everywhere):
+
+| | native | VM | VM+JIT (MINOPS 8) | VM+JIT (whole loops, default) |
+|---|---:|---:|---:|---:|
+| bench logic | 0.152 | 0.879 | 0.669 | 0.586 |
+| bench canvas draw | 1.47 | 7.95 | 9.32 | 8.73 |
+| form game, fps | 354-365 | 88.4 | 75.4 | 78.7 |
+
+The JIT gains 33 % on the logic there but still loses 10 % on the drawing (Render.bas: loops of
+late-bound Canvas calls with array arguments and small helper calls), so the game as a whole is
+slower with it. The local guest, more loaded, showed the JIT slower on the logic as well.
 
 ## Testing
 

@@ -706,7 +706,7 @@ static const JBackend *g_be_for_scan;
 static const char *jit_why = "";
 static int32_t jit_last_end;        /* end of the region compiled last */   /* why the last region was not compiled (trace) */
 int jit_no_fsqrt;
-int jit_min_ops = 8;            /* BOING_JIT_MINOPS: smallest compiled piece that is not a whole loop */             /* BOING_JIT_NOSQRT=1: compile as for a CPU without fsqrt (testing) */
+int jit_min_ops = 1000;         /* BOING_JIT_MINOPS: smallest compiled piece that is not a whole loop (default: whole loops only, best on the m1 guest) */             /* BOING_JIT_NOSQRT=1: compile as for a CPU without fsqrt (testing) */
 
 /* words of the instruction at pc (ONGOTO carries its targets) */
 static int32_t op_len(VMImage *img, int32_t pc)

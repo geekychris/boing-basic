@@ -146,6 +146,10 @@ arithmetic loops gain 2-3x (table above). Each guest branch and memory access co
 than the equivalent host work; real PowerPC hardware executes the JIT's code directly and should
 behave like the Mac (untested: no real machine available). So the JIT stays opt-in.
 
+On m1's unloaded guest (bb-game, ms/frame): bench logic native 0.152, VM 0.879, VM+JIT 0.586
+(whole loops only, now the default); canvas draw native 1.47, VM 7.95, VM+JIT 8.73; form game
+native 354-365 fps, VM 88.4, VM+JIT 78.7. Real PowerPC hardware: untested.
+
 VM superinstructions for the commonest pairs (Glimmerfield): field-test-and-branch (`R_JF1Z`,
 `R_JCMPF1_LI`) and the skip loop `R_FORSKIPF` (`For i ...: If arr(i).flag Then ... : Next` steps
 past entries with flag 0 without dispatching): 31 % fewer dispatches (28.8M -> 19.8M for 3000
