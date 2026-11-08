@@ -71,6 +71,10 @@ void bb_forms_doevents(void);
 int bb_ui_msgbox(const char *prompt, int buttons, const char *title);
 char *bb_ui_inputbox(const char *prompt, const char *title, const char *def);
 
+/* Canvas (canvas.c): the OS window (struct Window * on AmigaOS) of a control and the control's
+ * box inside it. 0 when the form isn't open or the platform has no windows. */
+int bb_ctl_os_window(bb_ctl *c, void **window, int *x, int *y, int *w, int *h);
+
 /* Test support: the screen rectangle of a control (for input injection). 0 if not shown. */
 int bb_ctl_screen_box(bb_ctl *c, int *x, int *y, int *w, int *h);
 

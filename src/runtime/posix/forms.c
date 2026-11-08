@@ -27,6 +27,11 @@ int bb_ctl_get(bb_ctl *c, const char *p, int i, bb_fval *o) { (void)c; (void)p; 
 int bb_ctl_set(bb_ctl *c, const char *p, int i, const bb_fval *v) { (void)c; (void)p; (void)i; (void)v; return 364; }
 int bb_ctl_call(bb_ctl *c, const char *m, int n, const bb_fval *a, bb_fval *r) { (void)c; (void)m; (void)n; (void)a; (void)r; return 364; }
 int bb_forms_run(void) { return 0; }
+int bb_ctl_os_window(bb_ctl *c, void **window, int *x, int *y, int *w, int *h)    /* canvas */
+{
+    (void)c; (void)window; (void)x; (void)y; (void)w; (void)h;
+    return 0;
+}
 void bb_forms_end(void) {}
 void bb_forms_cleanup(void) {}
 void bb_forms_doevents(void) {}

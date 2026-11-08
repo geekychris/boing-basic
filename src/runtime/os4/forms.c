@@ -9,6 +9,7 @@
  * RethinkLayout). */
 #include "../bb_forms.h"
 #include "../afg.h"
+#include "../canvas.h"     /* canvas */
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -417,6 +418,11 @@ static Object *build(bb_form *f, afg_node *n)
     case AFG_SPACE:
         o = new_obj(C_SPACE, &t);
         break;
+    case AFG_CANVAS:             /* canvas: a space of the canvas size; canvas_os4.c blits into it */
+        tg(&t, SPACE_MinWidth, afg_get_int(n, "width"));
+        tg(&t, SPACE_MinHeight, afg_get_int(n, "height"));
+        o = new_obj(C_SPACE, &t);
+        break;
     case AFG_FUELGAUGE:
         tg(&t, GA_ID, c->gid);
         tg(&t, FUELGAUGE_Min, afg_get_int(n, "min"));
@@ -548,6 +554,7 @@ static void form_free(bb_form *f)
 {
     for (int i = 0; i < f->nctls; i++) {
         bb_ctl *c = f->ctls[i];
+        if (c->kind == AFG_CANVAS) bb_canvas_ctl_gone(c);     /* canvas */
         if (c->kind == AFG_TIMER) {
             timer_stop(c);
             if (c->tio) IExec->FreeSysObject(ASOT_IOREQUEST, c->tio);
@@ -660,6 +667,13 @@ bb_ctl *bb_form_ctl(bb_form *f, const char *name)
 
 const char *bb_ctl_kind(bb_ctl *c) { return afg_kind_name(c->kind); }
 
+/* canvas: show every canvas control's last picture again (window opened or resized) */
+static void canvas_refresh_all(bb_form *f)
+{
+    for (int i = 0; i < f->nctls; i++)
+        if (f->ctls[i]->kind == AFG_CANVAS) bb_canvas_ctl_refresh(f->ctls[i]);
+}
+
 int bb_form_show(bb_form *f)
 {
     if (!f->loaded) return 364;
@@ -672,6 +686,7 @@ int bb_form_show(bb_form *f)
     f->self.visible = 1;
     f->lastw = f->win->Width;
     f->lasth = f->win->Height;
+    canvas_refresh_all(f);       /* canvas */
     fire(f, "Form", "Activate", 0, NULL);
     fire(f, "Form", "Resize", 0, NULL);
     return 0;
@@ -1221,6 +1236,7 @@ static void raw_key(bb_form *f, int code)
     int up = code & IECODE_UP_PREFIX, raw = code & 0x7F;
     if (raw >= 0x60 && raw <= 0x67) return;            /* qualifier keys alone */
     int32_t a[2] = { vb_key(raw), vb_shift(q) };
+    bb_canvas_key_event(a[0], !up);      /* canvas: Canvas.KeyDown(k) */
     fire(f, "Form", up ? "KeyUp" : "KeyDown", 2, a);
     if (up || ending) return;
     if (!IKM) {
@@ -1317,6 +1333,7 @@ static void handle_form(bb_form *f)
             if (f->win && (f->win->Width != f->lastw || f->win->Height != f->lasth)) {
                 f->lastw = f->win->Width;
                 f->lasth = f->win->Height;
+                canvas_refresh_all(f);       /* canvas */
                 fire(f, "Form", "Resize", 0, NULL);
             }
             break;
@@ -1505,6 +1522,20 @@ int bb_ctl_screen_box(bb_ctl *c, int *x, int *y, int *w, int *h)
     if (!g) return 0;
     *x = win->LeftEdge + g->LeftEdge;
     *y = win->TopEdge + g->TopEdge;
+    *w = g->Width;
+    *h = g->Height;
+    return 1;
+}
+
+/* canvas: the window and the control's box inside it, for canvas_os4.c */
+int bb_ctl_os_window(bb_ctl *c, void **window, int *x, int *y, int *w, int *h)
+{
+    struct Window *win = c->form->win;
+    struct Gadget *g = (struct Gadget *)c->obj;
+    if (!win || !g || !c->form->loaded) return 0;
+    *window = win;
+    *x = g->LeftEdge;
+    *y = g->TopEdge;
     *w = g->Width;
     *h = g->Height;
     return 1;
