@@ -1,0 +1,18 @@
+Glimmerfield bench: 2500 frames, seed 1987
+state: games 0 best 27315 score 27315 wave 3 lives 4 hash 679200
+state: shards avg 8.39 particles avg 59.01 max 174 hud chars 99415
+Glimmerfield bench: 600 frames, seed 7
+state: games 0 best 8085 score 8085 wave 1 lives 3 hash 149224
+state: shards avg 7.29 particles avg 69.74 max 184 hud chars 24766
+rank of 12000:  4  of 99: -1 
+inserted at  4 
+saved True
+ 1.  NOVA....  0020000
+ 2.  QUILL...  0017500
+ 3.  EMBER...  0015000
+ 4.  SABLE...  0012500
+ 5.  TESTER..  0012345
+ 6.  TIDE....  0010000
+ 7.  MOTH....  0007500
+ 8.  FERN....  0005000
+missing file: NOVA  20000 

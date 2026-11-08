@@ -390,7 +390,11 @@ static Frame *push_frame(VM *vm, int32_t pidx, bb_value *base)
 static void prep_hidden(VM *vm, VMProc *p, bb_value *base)
 {
     int32_t i;
-    for (i = p->hidden; i < p->nlocals; i++) base[i] = bb_v_empty();
+    /* hidden by-ref slots start Empty; register temporaries carry their type tag */
+    for (i = p->hidden; i < p->nlocals; i++) {
+        int vt = p->slots[i].vt;
+        base[i] = bb_v_make((uint16_t)(vt == BB_INTEGER || vt == BB_LONG || vt == BB_DOUBLE ? vt : BB_EMPTY));
+    }
     (void)vm;
 }
 
@@ -724,90 +728,97 @@ static void vm_exec(VM *vm, int entry)
                 /* register forms: no stack, no tags to check; errors sync pc/sp first */
 #if defined(__GNUC__) && !defined(BB_NO_THREADED)
 #define RCASE(x) L_##x:
-#define RNEXT() do { op = *pc; if (op >= I_R_FIRST) goto *rtab[op - I_R_FIRST]; goto rdone; } while (0)
-                static void *const rtab[] = {
-        &&L_R_MOV,
-        &&L_R_MOVI_I,
-        &&L_R_MOVI_L,
-        &&L_R_MOVK,
-        &&L_R_ADD_LRR,
-        &&L_R_ADD_LRI,
-        &&L_R_SUB_LRR,
-        &&L_R_SUB_LRI,
-        &&L_R_SUB_LIR,
-        &&L_R_MUL_LRR,
-        &&L_R_MUL_LRI,
-        &&L_R_IDIV_LRR,
-        &&L_R_IDIV_LRI,
-        &&L_R_MOD_LRR,
-        &&L_R_MOD_LRI,
-        &&L_R_AND_LRR,
-        &&L_R_AND_LRI,
-        &&L_R_OR_LRR,
-        &&L_R_OR_LRI,
-        &&L_R_XOR_LRR,
-        &&L_R_XOR_LRI,
-        &&L_R_NEG_L,
-        &&L_R_ADD_IRR,
-        &&L_R_ADD_IRI,
-        &&L_R_SUB_IRR,
-        &&L_R_SUB_IRI,
-        &&L_R_SUB_IIR,
-        &&L_R_MUL_IRR,
-        &&L_R_MUL_IRI,
-        &&L_R_IDIV_IRR,
-        &&L_R_IDIV_IRI,
-        &&L_R_MOD_IRR,
-        &&L_R_MOD_IRI,
-        &&L_R_AND_IRR,
-        &&L_R_AND_IRI,
-        &&L_R_OR_IRR,
-        &&L_R_OR_IRI,
-        &&L_R_XOR_IRR,
-        &&L_R_XOR_IRI,
-        &&L_R_NEG_I,
-        &&L_R_ADD_DRR,
-        &&L_R_ADD_DRK,
-        &&L_R_SUB_DRR,
-        &&L_R_SUB_DRK,
-        &&L_R_SUB_DKR,
-        &&L_R_MUL_DRR,
-        &&L_R_MUL_DRK,
-        &&L_R_DIV_DRR,
-        &&L_R_DIV_DRK,
-        &&L_R_DIV_DKR,
-        &&L_R_NEG_D,
-        &&L_R_CVT_LD,
-        &&L_R_CVT_ID,
-        &&L_R_CVT_IL,
-        &&L_R_JCMP_LRR,
-        &&L_R_JCMP_LRI,
-        &&L_R_JCMP_IRR,
-        &&L_R_JCMP_IRI,
-        &&L_R_JCMP_DRR,
-        &&L_R_JCMP_DRK,
-        &&L_R_LDE1,
-        &&L_R_STE1,
-        &&L_R_LDE2,
-        &&L_R_STE2,
-        &&L_R_LDEF1,
-        &&L_R_STEF1,
-        &&L_R_LDF,
-        &&L_R_STF,
-        &&L_R_JNZ,
-        &&L_R_JZ
+#define RNEXT() do { op = *pc; goto *rtab[op]; } while (0)
+                static void *const rtab[I__COUNT] = {
+                    [0 ... I_R_FIRST - 1] = &&rdone,
+        [I_R_MOV] = &&L_R_MOV,
+        [I_R_MOVI_I] = &&L_R_MOVI_I,
+        [I_R_MOVI_L] = &&L_R_MOVI_L,
+        [I_R_MOVK] = &&L_R_MOVK,
+        [I_R_ADD_LRR] = &&L_R_ADD_LRR,
+        [I_R_ADD_LRI] = &&L_R_ADD_LRI,
+        [I_R_SUB_LRR] = &&L_R_SUB_LRR,
+        [I_R_SUB_LRI] = &&L_R_SUB_LRI,
+        [I_R_SUB_LIR] = &&L_R_SUB_LIR,
+        [I_R_MUL_LRR] = &&L_R_MUL_LRR,
+        [I_R_MUL_LRI] = &&L_R_MUL_LRI,
+        [I_R_IDIV_LRR] = &&L_R_IDIV_LRR,
+        [I_R_IDIV_LRI] = &&L_R_IDIV_LRI,
+        [I_R_MOD_LRR] = &&L_R_MOD_LRR,
+        [I_R_MOD_LRI] = &&L_R_MOD_LRI,
+        [I_R_AND_LRR] = &&L_R_AND_LRR,
+        [I_R_AND_LRI] = &&L_R_AND_LRI,
+        [I_R_OR_LRR] = &&L_R_OR_LRR,
+        [I_R_OR_LRI] = &&L_R_OR_LRI,
+        [I_R_XOR_LRR] = &&L_R_XOR_LRR,
+        [I_R_XOR_LRI] = &&L_R_XOR_LRI,
+        [I_R_NEG_L] = &&L_R_NEG_L,
+        [I_R_ADD_IRR] = &&L_R_ADD_IRR,
+        [I_R_ADD_IRI] = &&L_R_ADD_IRI,
+        [I_R_SUB_IRR] = &&L_R_SUB_IRR,
+        [I_R_SUB_IRI] = &&L_R_SUB_IRI,
+        [I_R_SUB_IIR] = &&L_R_SUB_IIR,
+        [I_R_MUL_IRR] = &&L_R_MUL_IRR,
+        [I_R_MUL_IRI] = &&L_R_MUL_IRI,
+        [I_R_IDIV_IRR] = &&L_R_IDIV_IRR,
+        [I_R_IDIV_IRI] = &&L_R_IDIV_IRI,
+        [I_R_MOD_IRR] = &&L_R_MOD_IRR,
+        [I_R_MOD_IRI] = &&L_R_MOD_IRI,
+        [I_R_AND_IRR] = &&L_R_AND_IRR,
+        [I_R_AND_IRI] = &&L_R_AND_IRI,
+        [I_R_OR_IRR] = &&L_R_OR_IRR,
+        [I_R_OR_IRI] = &&L_R_OR_IRI,
+        [I_R_XOR_IRR] = &&L_R_XOR_IRR,
+        [I_R_XOR_IRI] = &&L_R_XOR_IRI,
+        [I_R_NEG_I] = &&L_R_NEG_I,
+        [I_R_ADD_DRR] = &&L_R_ADD_DRR,
+        [I_R_ADD_DRK] = &&L_R_ADD_DRK,
+        [I_R_SUB_DRR] = &&L_R_SUB_DRR,
+        [I_R_SUB_DRK] = &&L_R_SUB_DRK,
+        [I_R_SUB_DKR] = &&L_R_SUB_DKR,
+        [I_R_MUL_DRR] = &&L_R_MUL_DRR,
+        [I_R_MUL_DRK] = &&L_R_MUL_DRK,
+        [I_R_DIV_DRR] = &&L_R_DIV_DRR,
+        [I_R_DIV_DRK] = &&L_R_DIV_DRK,
+        [I_R_DIV_DKR] = &&L_R_DIV_DKR,
+        [I_R_NEG_D] = &&L_R_NEG_D,
+        [I_R_CVT_LD] = &&L_R_CVT_LD,
+        [I_R_CVT_ID] = &&L_R_CVT_ID,
+        [I_R_CVT_IL] = &&L_R_CVT_IL,
+        [I_R_JCMP_LRR] = &&L_R_JCMP_LRR,
+        [I_R_JCMP_LRI] = &&L_R_JCMP_LRI,
+        [I_R_JCMP_IRR] = &&L_R_JCMP_IRR,
+        [I_R_JCMP_IRI] = &&L_R_JCMP_IRI,
+        [I_R_JCMP_DRR] = &&L_R_JCMP_DRR,
+        [I_R_JCMP_DRK] = &&L_R_JCMP_DRK,
+        [I_R_LDE1] = &&L_R_LDE1,
+        [I_R_STE1] = &&L_R_STE1,
+        [I_R_LDE2] = &&L_R_LDE2,
+        [I_R_STE2] = &&L_R_STE2,
+        [I_R_LDEF1] = &&L_R_LDEF1,
+        [I_R_STEF1] = &&L_R_STEF1,
+        [I_R_LDF] = &&L_R_LDF,
+        [I_R_STF] = &&L_R_STF,
+        [I_R_JNZ] = &&L_R_JNZ,
+        [I_R_JZ] = &&L_R_JZ,
+        [I_R_FORCHK_I] = &&L_R_FORCHK_I,
+        [I_R_FORINC_I] = &&L_R_FORINC_I,
+        [I_R_FORCHK_L] = &&L_R_FORCHK_L,
+        [I_R_FORINC_L] = &&L_R_FORINC_L,
+        [I_R_FORCHK_D] = &&L_R_FORCHK_D,
+        [I_R_FORINC_D] = &&L_R_FORINC_D
                 };
-                goto *rtab[op - I_R_FIRST];
+                goto *rtab[op];
 #else
 #define RCASE(x) case I_##x:
-#define RNEXT() goto rdone
+#define RNEXT() continue
                 switch (op) {
 #endif
 #define RSL(n) (L[pc[n]])
 #define RERR(stmt) do { fr->pc = pc; vm->sp = sp; stmt; } while (0)
-#define SETL(D_, V_) do { bb_value *d_ = &L[D_]; d_->type = BB_LONG; d_->u.l = (V_); } while (0)
-#define SETI(D_, V_) do { bb_value *d_ = &L[D_]; d_->type = BB_INTEGER; d_->u.i = (bb_int)(V_); } while (0)
-#define SETD(D_, V_) do { bb_value *d_ = &L[D_]; d_->type = BB_DOUBLE; d_->u.d = (V_); } while (0)
+#define SETL(D_, V_) (L[D_].u.l = (V_))
+#define SETI(D_, V_) (L[D_].u.i = (bb_int)(V_))
+#define SETD(D_, V_) (L[D_].u.d = (V_))
 #define LOVF(r, x, y, OP) if (BB_UNLIKELY(OP(x, y, &r))) RERR(bb_overflow())
 #define IFIT(r) if (BB_UNLIKELY(r < -32768 || r > 32767)) RERR(bb_overflow())
 #define DCHK(r) if (BB_UNLIKELY(r - r != 0)) RERR(bb_overflow())
@@ -894,13 +905,31 @@ static void vm_exec(VM *vm, int entry)
                     rstore(pc[1], p0 + dd->fields[pc[3]].offset, &RSL(4)); pc += 5; RNEXT(); }
                 RCASE(R_JNZ) if (RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) POLL(); pc = code + t_; } else pc += 3; RNEXT();
                 RCASE(R_JZ) if (!RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) POLL(); pc = code + t_; } else pc += 3; RNEXT();
+                RCASE(R_FORCHK_I) { bb_int c = L[pc[1]].u.i, l = L[pc[2]].u.i, st = L[pc[3]].u.i; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
+                RCASE(R_FORCHK_L) { bb_long c = L[pc[1]].u.l, l = L[pc[2]].u.l, st = L[pc[3]].u.l; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
+                RCASE(R_FORCHK_D) { double c = L[pc[1]].u.d, l = L[pc[2]].u.d, st = L[pc[3]].u.d; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
+                RCASE(R_FORINC_I) { bb_value *cv = &L[pc[1]]; int32_t l = L[pc[2]].u.i, st = L[pc[3]].u.i, r = cv->u.i + st;
+                    if (BB_UNLIKELY(r < -32768 || r > 32767)) RERR(bb_overflow());
+                    cv->u.i = (bb_int)r;
+                    if ((st >= 0) ? r > l : r < l) pc += 5; else { POLL(); pc = code + pc[4]; } RNEXT(); }
+                RCASE(R_FORINC_L) { bb_value *cv = &L[pc[1]]; int32_t l = L[pc[2]].u.l, st = L[pc[3]].u.l, r;
+                    if (BB_UNLIKELY(__builtin_add_overflow(cv->u.l, st, &r))) RERR(bb_overflow());
+                    cv->u.l = r;
+                    if ((st >= 0) ? r > l : r < l) pc += 5; else { POLL(); pc = code + pc[4]; } RNEXT(); }
+                RCASE(R_FORINC_D) { bb_value *cv = &L[pc[1]]; double l = L[pc[2]].u.d, st = L[pc[3]].u.d;
+                    cv->u.d += st;
+                    if ((st >= 0) ? cv->u.d > l : cv->u.d < l) pc += 5; else { POLL(); pc = code + pc[4]; } RNEXT(); }
 #if !(defined(__GNUC__) && !defined(BB_NO_THREADED))
                 default: break;
                 }
 #endif
-            rdone:
-                continue;
             }
+#if defined(__GNUC__) && !defined(BB_NO_THREADED)
+            if (0) {
+            rdone:
+                ;
+            }
+#endif
             fr->pc = pc;
             vm->sp = sp;
             switch (op) {

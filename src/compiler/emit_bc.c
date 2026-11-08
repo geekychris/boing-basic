@@ -544,7 +544,7 @@ static int rtemp(E *e, int k)
     s = e->vp->nlocals++;
     e->vp->slots = (VMSlot *)xrealloc(e->vp->slots, sizeof(VMSlot) * (size_t)(e->vp->nlocals + 1));
     memset(&e->vp->slots[s], 0, sizeof(VMSlot));
-    e->vp->slots[s].vt = BB_EMPTY;
+    e->vp->slots[s].vt = (uint16_t)(k == 0 ? BB_INTEGER : k == 1 ? BB_LONG : BB_DOUBLE);
     e->vp->slots[s].name = "$r";
     if (e->nrtmp[k] == e->caprtmp[k]) {
         e->caprtmp[k] = e->caprtmp[k] ? e->caprtmp[k] * 2 : 8;
@@ -1039,8 +1039,8 @@ static void for_stmt(E *e, Node *s)
         expr(e, s->d);
         store_var(e, stp->sym);
         {
-            int chkop = kind == 1 ? I_FORCHK_I : kind == 2 ? I_FORCHK_L : I_FORCHK_D;
-            int incop = kind == 1 ? I_FORINC_I : kind == 2 ? I_FORINC_L : I_FORINC_D;
+            int chkop = kind == 1 ? I_R_FORCHK_I : kind == 2 ? I_R_FORCHK_L : I_R_FORCHK_D;
+            int incop = kind == 1 ? I_R_FORINC_I : kind == 2 ? I_R_FORINC_L : I_R_FORINC_D;
             int c = slot_of(e, ctr->sym), lm = slot_of(e, lim->sym), st = slot_of(e, stp->sym);
             emit_w(e, chkop); emit_w(e, c); emit_w(e, lm); emit_w(e, st);
             chk = emit_w(e, 0);
