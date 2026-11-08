@@ -27,6 +27,7 @@ def run(cmd, label):
         if c and not clicked:
             clicked = True
             r = m.tool("amiga_dos_command", command="RAM:bbform/ptr %s %s click \"%s\"" % (c.group(1), c.group(2), TITLE))
+            print("# ptr:", r.strip()[:200])
         if re.search(r"^(PASS|FAIL)", out, re.M):
             break
         err = m.tool("amiga_dos_command", command="type %s.err" % out_f)
