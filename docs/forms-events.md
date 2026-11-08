@@ -56,6 +56,7 @@ but no `Enabled`, `ToolTipText` or `SetFocus`.
 | `Show` | creates (fires `Form_Load` the first time) and opens the window |
 | `Hide` | closes the window, the form and its controls stay loaded |
 | `Refresh` | redraws |
+| `SetFocus` | brings the window to the front and activates it |
 | `Move left [, top [, width [, height]]]` | |
 
 `Load main` loads a form without showing it; `Unload main` (or `Unload Me`) fires

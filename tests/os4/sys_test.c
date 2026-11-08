@@ -6,6 +6,9 @@
 
 #include "bb_sys.h"
 
+/* run from a background CLI (run >NIL:) the default stack is only a few KB */
+static const char __attribute__((used)) stack_cookie[] = "$STACK: 262144";
+
 static int fails, n;
 static void check(int ok, const char *what)
 {
@@ -23,6 +26,7 @@ static int streq(char *s, const char *want)
 
 int main(int argc, char **argv)
 {
+    setvbuf(stdout, NULL, _IOLBF, 0);   /* progress shows when redirected to a file */
     bb_sys_init(argc, argv, NULL);
     check(!strcmp(bb_sys_command(), argc > 2 ? "one \"two three\"" : bb_sys_command()), "Command() joins the arguments");
     check(strchr(bb_sys_app_path(), ':') != NULL, "App.Path is an absolute AmigaDOS path");

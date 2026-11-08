@@ -13,6 +13,7 @@ AMIGA_MCP (the amiga_mcp checkout, for scripts/claude_busy.py), BB_BANNER=0 to s
 """
 import contextlib
 import json
+import re
 import os
 import shutil
 import sys
@@ -101,12 +102,26 @@ def main():
         elif cmd == "dos":
             print(m.tool("amiga_dos_command", command=args[0]))
         elif cmd == "test":
+            # run it in the background with its output in a file, and poll: a test stuck in a
+            # requester must not block the bridge's shell
+            import time
             name = os.path.basename(args[0])
+            outf = "RAM:bbtest/%s.out" % name
             m.tool("amiga_dos_command", command="makedir RAM:bbtest")
             push(m, args[0], "RAM:bbtest/" + name)
-            out = m.tool("amiga_dos_command", command=" ".join(["RAM:bbtest/" + name] + args[1:]))
+            m.tool("amiga_dos_command", command="delete %s QUIET" % outf)
+            m.tool("amiga_dos_command", command="run >NIL: %s >%s" % (" ".join(["RAM:bbtest/" + name] + args[1:]), outf))
+            limit = float(os.environ.get("BB_TEST_TIMEOUT", "180"))
+            t0, out = time.time(), ""
+            while time.time() - t0 < limit:
+                time.sleep(2)
+                out = m.tool("amiga_dos_command", command="type %s" % outf)
+                if re.search(r"^(PASS|FAIL)\b", out, re.M):
+                    break
+            else:
+                out += "\nFAIL (timed out after %ds; the test is still running on the guest)" % limit
             print(out)
-            return 1 if "PASS" not in out else 0
+            return 0 if re.search(r"^PASS\b", out, re.M) else 1
         else:
             print(__doc__)
             return 2

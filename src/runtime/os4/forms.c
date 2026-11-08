@@ -22,6 +22,7 @@
 #include <intuition/intuition.h>
 #include <intuition/gadgetclass.h>
 #include <intuition/icclass.h>
+#include <intuition/sghooks.h>
 #include <devices/inputevent.h>
 #include <proto/exec.h>
 #include <proto/dos.h>
@@ -30,6 +31,7 @@
 #include <proto/listbrowser.h>
 #include <proto/chooser.h>
 #include <proto/layout.h>
+#include <proto/utility.h>
 #include <classes/window.h>
 #include <classes/requester.h>
 #include <gadgets/layout.h>
@@ -125,9 +127,12 @@ struct bb_ctl {
     int nitems, capitems;
     STRPTR *labelarray;      /* radio */
     int32 sel;               /* ListIndex */
+    int32 lastval;           /* slider/scroller value of the last Scroll event */
+    volatile int edited;     /* string: set by the edit hook (input.device's task) */
     char *tagstr, *hint, *text, *extra;
     int visible;
     /* timer */
+    struct Hook edit_hook;
     struct TimeRequest *tio;
     int interval, enabled, pending;
 };
@@ -147,6 +152,9 @@ struct bb_form {
     char *ret;               /* the last string returned */
     int loaded, unloading, enabled;
     int16 lastw, lasth;
+    struct Hook idcmp_hook;  /* IDCMPUPDATE: per-keystroke Change, slider Scroll */
+    uint16 upd[32];          /* gadget ids reported by the hook, handled after it */
+    int nupd;
 };
 
 static bb_form *forms;
@@ -268,6 +276,27 @@ static void gadget_tags(bb_ctl *c, tags *t)
     }
 }
 
+/* Per-keystroke Change: string.gadget sends no IDCMPUPDATE while typing, and window.class
+ * gets no IntuiTicks while a gadget is active. An edit hook runs (in input.device's task)
+ * after every edit: it marks the control and signals the program's task, whose event loop
+ * then compares the text and fires Change. */
+static struct Task *main_task;
+static int8 edit_sigbit = -1;
+
+volatile int bb_forms_dbg_hook, bb_forms_dbg_key;
+static uint32 edit_hook_func(struct Hook *h, struct SGWork *sgw, uint32 *msg)
+{
+    bb_forms_dbg_hook++;
+    if (*msg != SGH_KEY) return 0;
+    bb_forms_dbg_key++;
+    bb_ctl *c = h->h_Data;
+    if (sgw->Actions & (SGA_USE | SGA_END)) {
+        c->edited = 1;
+        if (main_task && edit_sigbit >= 0) IExec->Signal(main_task, 1u << edit_sigbit);
+    }
+    return ~0u;
+}
+
 static bb_ctl *ctl_for(bb_form *f, afg_node *n)
 {
     for (int i = 0; i < f->nctls; i++)
@@ -339,6 +368,13 @@ static Object *build(bb_form *f, afg_node *n)
     case AFG_STRING:
         gadget_tags(c, &t);
         tg(&t, GA_TabCycle, TRUE);
+        if (c != &tmp) {
+            if (!main_task) main_task = IExec->FindTask(NULL);
+            if (edit_sigbit < 0) edit_sigbit = IExec->AllocSignal(-1);
+            c->edit_hook.h_Entry = (HOOKFUNC)edit_hook_func;
+            c->edit_hook.h_Data = c;
+            tg(&t, STRINGA_EditHook, (uint32)&c->edit_hook);
+        }
         tg(&t, STRINGA_MaxChars, afg_get_int(n, "maxchars"));
         tg(&t, STRINGA_TextVal, (uint32)afg_get(n, "text"));
         c->text = xstrdup(afg_get(n, "text"));
@@ -381,6 +417,8 @@ static Object *build(bb_form *f, afg_node *n)
         break;
     case AFG_SLIDER:
         gadget_tags(c, &t);
+        tg(&t, ICA_TARGET, ICTARGET_IDCMP);
+        c->lastval = afg_get_int(n, "level");
         tg(&t, SLIDER_Min, afg_get_int(n, "min"));
         tg(&t, SLIDER_Max, afg_get_int(n, "max"));
         tg(&t, SLIDER_Level, afg_get_int(n, "level"));
@@ -389,6 +427,8 @@ static Object *build(bb_form *f, afg_node *n)
         break;
     case AFG_SCROLLER:
         gadget_tags(c, &t);
+        tg(&t, ICA_TARGET, ICTARGET_IDCMP);
+        c->lastval = afg_get_int(n, "top");
         tg(&t, SCROLLER_Total, afg_get_int(n, "total"));
         tg(&t, SCROLLER_Visible, afg_get_int(n, "visible"));
         tg(&t, SCROLLER_Top, afg_get_int(n, "top"));
@@ -585,6 +625,20 @@ static void form_free(bb_form *f)
     free(f);
 }
 
+/* window.class calls this inside WM_HANDLEINPUT: only note the gadget, events come after */
+static uint32 idcmp_func(struct Hook *h, Object *wobj, struct IntuiMessage *m)
+{
+    (void)wobj;
+    bb_form *f = h->h_Data;
+    if (m->Class == IDCMP_IDCMPUPDATE) {
+        uint16 gid = (uint16)IUtility->GetTagData(GA_ID, 0, (struct TagItem *)m->IAddress);
+        for (int i = 0; i < f->nupd; i++)
+            if (f->upd[i] == gid) return 0;
+        if (gid && f->nupd < 32) f->upd[f->nupd++] = gid;
+    }
+    return 0;
+}
+
 bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn fn, bb_form_has_event_fn has,
                       void *ud, char *err, int errlen)
 {
@@ -627,6 +681,10 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
                          IDCMP_INACTIVEWINDOW);
     tg(&t, WINDOW_Position, WPOS_CENTERSCREEN);
     tg(&t, WINDOW_GadgetHelp, TRUE);
+    f->idcmp_hook.h_Entry = (HOOKFUNC)idcmp_func;
+    f->idcmp_hook.h_Data = f;
+    tg(&t, WINDOW_IDCMPHook, (uint32)&f->idcmp_hook);
+    tg(&t, WINDOW_IDCMPHookBits, IDCMP_IDCMPUPDATE);
     tg(&t, WINDOW_Layout, (uint32)f->root);
     f->winobj = new_obj(C_WINDOW, &t);
     f->self.obj = f->winobj;
@@ -1066,6 +1124,7 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         break;
     case AFG_SLIDER:
         if (IS("Value")) {
+            c->lastval = vint(v);       /* the gadget's notification isn't a user Scroll */
             set_attr(c, SLIDER_Level, vint(v));
             fire0(c, "Change");
             return 0;
@@ -1074,7 +1133,7 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         if (IS("Max")) { set_attr(c, SLIDER_Max, vint(v)); return 0; }
         break;
     case AFG_SCROLLER:
-        if (IS("Value")) { set_attr(c, SCROLLER_Top, vint(v)); fire0(c, "Change"); return 0; }
+        if (IS("Value")) { c->lastval = vint(v); set_attr(c, SCROLLER_Top, vint(v)); fire0(c, "Change"); return 0; }
         if (IS("Max")) { set_attr(c, SCROLLER_Total, vint(v)); return 0; }
         if (IS("LargeChange")) { set_attr(c, SCROLLER_Visible, vint(v)); return 0; }
         break;
@@ -1132,6 +1191,13 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
         if (IS("Show")) return bb_form_show(f);
         if (IS("Hide")) return bb_form_hide(f);
         if (IS("Refresh")) { relayout(f); return 0; }
+        if (IS("SetFocus")) {
+            if (f->win) {
+                IIntuition->WindowToFront(f->win);
+                IIntuition->ActivateWindow(f->win);
+            }
+            return 0;
+        }
         if (IS("Move")) {
             static const char *const p[4] = { "Left", "Top", "Width", "Height" };
             for (int i = 0; i < argc && i < 4; i++) form_set(f, p[i], &argv[i]);
@@ -1283,9 +1349,15 @@ static void gadget_up(bb_form *f, bb_ctl *c, uint16 code)
         }
         break;
     }
-    case AFG_INTEGER:
     case AFG_SLIDER:
     case AFG_SCROLLER:
+        c->lastval = (int32)get_attr(c, c->kind == AFG_SLIDER ? SLIDER_Level : SCROLLER_Top);
+        for (int i = 0; i < f->nupd;)           /* the release is a Change, not another Scroll */
+            if (f->upd[i] == c->gid) memmove(f->upd + i, f->upd + i + 1, (--f->nupd - i) * sizeof *f->upd);
+            else i++;
+        fire0(c, "Change");
+        break;
+    case AFG_INTEGER:
     case AFG_TEXTEDITOR:
         fire0(c, "Change");
         break;
@@ -1301,6 +1373,31 @@ static void gadget_up(bb_form *f, bb_ctl *c, uint16 code)
         break;
     default:
         break;
+    }
+}
+
+static void updates(bb_form *f)
+{
+    while (f->nupd && f->loaded && !ending) {
+        uint16 gid = f->upd[0];
+        memmove(f->upd, f->upd + 1, --f->nupd * sizeof *f->upd);
+        bb_ctl *c = ctl_by_gid(f, gid);
+        if (!c) continue;
+        if (c->kind == AFG_STRING) {
+            const char *now = (const char *)get_attr(c, STRINGA_TextVal);
+            if (!now) now = "";
+            if (!c->text || strcmp(c->text, now)) {
+                free(c->text);
+                c->text = xstrdup(now);
+                fire0(c, "Change");
+            }
+        } else if (c->kind == AFG_SLIDER || c->kind == AFG_SCROLLER) {
+            int32 v = (int32)get_attr(c, c->kind == AFG_SLIDER ? SLIDER_Level : SCROLLER_Top);
+            if (v != c->lastval) {
+                c->lastval = v;
+                fire0(c, "Scroll");
+            }
+        }
     }
 }
 
@@ -1338,7 +1435,26 @@ static void handle_form(bb_form *f)
             }
             break;
         }
+        updates(f);
     }
+    updates(f);
+}
+
+static void check_edits(bb_form *f)
+{
+    for (int i = 0; i < f->nctls && f->loaded && !ending; i++) {
+        bb_ctl *c = f->ctls[i];
+        if (c->kind != AFG_STRING || !c->edited) continue;
+        c->edited = 0;
+        if (f->nupd < 32) f->upd[f->nupd++] = (uint16)c->gid;
+    }
+    updates(f);
+}
+
+static void edits_handle(void)
+{
+    for (bb_form *f = forms; f && !ending; f = f->next)
+        if (f->loaded) check_edits(f);
 }
 
 static int any_loaded(void)
@@ -1358,7 +1474,9 @@ static void pump(int wait)
             sigs |= s;
         }
     if (timer_port) sigs |= 1u << timer_port->mp_SigBit;
+    if (edit_sigbit >= 0) sigs |= 1u << edit_sigbit;
     uint32 got = wait ? IExec->Wait(sigs) : IExec->SetSignal(0, sigs) & sigs;
+    if (edit_sigbit >= 0 && (got & (1u << edit_sigbit))) edits_handle();
     if (got & SIGBREAKF_CTRL_C) {
         ending = 1;
         end_code = 0;
@@ -1401,6 +1519,8 @@ void bb_forms_cleanup(void)
         timer_master = NULL;
         timer_port = NULL;
     }
+    if (edit_sigbit >= 0) IExec->FreeSignal(edit_sigbit);
+    edit_sigbit = -1;
     if (IKM) IExec->DropInterface((struct Interface *)IKM);
     if (KeymapLib) IExec->CloseLibrary(KeymapLib);
     IKM = NULL;
@@ -1486,25 +1606,122 @@ int bb_ui_msgbox(const char *prompt, int buttons, const char *title)
     return codes[type][idx];
 }
 
+/* InputBox: a small form of its own (requester.class's string requester doesn't end on
+ * Return on OS 4.1 FE, whatever REQS_ReturnEnds says). Modal: the other forms' windows get
+ * a busy pointer and their events wait until it closes. */
+struct ibox {
+    int done, ok, focused;
+};
+
+static int ibox_event(void *ud, bb_form *f, const char *ctl, const char *event, int argc, int32_t *args)
+{
+    struct ibox *b = ud;
+    if (getenv("BB_DEBUG_FORMS")) printf("# inputbox event %s_%s %ld\n", ctl, event, argc ? (long)args[0] : 0L);
+    if ((!strcmp(ctl, "ok") && !strcmp(event, "Click")) ||
+        (!strcmp(ctl, "answer") && !strcmp(event, "KeyPress") && argc && args[0] == 13))
+        b->done = b->ok = 1;
+    else if (!strcmp(ctl, "cancel") && !strcmp(event, "Click"))
+        b->done = 1;
+    else if (!strcmp(ctl, "Form") && !strcmp(event, "Unload"))
+        b->done = 1;
+    else if (!strcmp(ctl, "Form") && !strcmp(event, "KeyDown") && argc && args[0] == 27)
+        b->done = 1;
+    else if (!strcmp(ctl, "Form") && !strcmp(event, "Activate") && !b->focused) {
+        /* typing goes to the field; only once: activating it again selects its text */
+        b->focused = 1;
+        bb_ctl_call(bb_form_ctl(f, "answer"), "SetFocus", 0, NULL, NULL);
+    }
+    return 0;
+}
+
+static void afg_quote(char *out, size_t n, const char *s)
+{
+    size_t o = 0;
+    if (o < n - 1) out[o++] = '"';
+    for (; *s && o < n - 3; s++) {
+        if (*s == '"' || *s == '\\') out[o++] = '\\';
+        if (*s == '\n') {
+            out[o++] = '\\';
+            out[o++] = 'n';
+            continue;
+        }
+        out[o++] = *s;
+    }
+    out[o++] = '"';
+    out[o] = 0;
+}
+
 char *bb_ui_inputbox(const char *prompt, const char *title, const char *def)
 {
-    char *buf = calloc(1, 1024);
-    if (!buf) return NULL;
-    if (def) strncpy(buf, def, 1023);
-    tags t = { 0 };
-    tg(&t, REQ_Type, REQTYPE_STRING);
-    tg(&t, REQ_TitleText, (uint32)(title && *title ? title : prog_name()));
-    tg(&t, REQ_BodyText, (uint32)prompt);
-    tg(&t, REQ_GadgetText, (uint32)"_OK|_Cancel");
-    tg(&t, REQS_Buffer, (uint32)buf);
-    tg(&t, REQS_MaxChars, 1023);
-    tg(&t, REQS_AllowEmpty, TRUE);
-    uint32 r = open_req(&t);
-    if (r == 0) {
-        free(buf);
+    size_t plen = strlen(prompt ? prompt : "") + strlen(def ? def : "") + strlen(title ? title : "");
+    size_t cap = plen * 2 + 1024;
+    char *afg = malloc(cap), *q = malloc(plen * 2 + 64);
+    if (!afg || !q) {
+        free(afg);
+        free(q);
         return NULL;
     }
-    return buf;
+    afg_quote(q, plen * 2 + 64, title && *title ? title : prog_name());
+    int n = snprintf(afg, cap, "window name=_inputbox title=%s width=320 resizable=0\nvlayout id=root\n", q);
+    /* one label per line of the prompt */
+    const char *p = prompt ? prompt : "";
+    do {
+        const char *nl = strchr(p, '\n');
+        size_t len = nl ? (size_t)(nl - p) : strlen(p);
+        char *line = malloc(len + 2);
+        memcpy(line, p, len);
+        line[len] = 0;
+        if (!len) strcpy(line, " ");
+        afg_quote(q, plen * 2 + 64, line);
+        free(line);
+        n += snprintf(afg + n, cap - n, "  label text=%s weight=0\n", q);
+        p = nl ? nl + 1 : NULL;
+    } while (p);
+    afg_quote(q, plen * 2 + 64, def ? def : "");
+    n += snprintf(afg + n, cap - n,
+                  "  string id=answer text=%s maxchars=1023 weight=0\n"
+                  "  hlayout weight=0 even=1\n    button id=ok text=_OK\n    space\n    button id=cancel text=_Cancel\n", q);
+    free(q);
+
+    struct ibox box = { 0, 0 };
+    char err[200];
+    bb_form *f = bb_form_load(afg, "InputBox", ibox_event, NULL, &box, err, sizeof err);
+    free(afg);
+    if (!f) return NULL;
+    for (bb_form *o = forms; o; o = o->next)
+        if (o != f && o->win) IIntuition->SetAttrs(o->winobj, WA_BusyPointer, TRUE, TAG_DONE);
+    char *result = NULL;
+    if (bb_form_show(f) == 0) {
+        bb_ctl *a = bb_form_ctl(f, "answer");
+        IIntuition->ActivateWindow(f->win);
+        uint32 sig = 0;
+        IIntuition->GetAttr(WINDOW_SigMask, f->winobj, &sig);
+        int was_ending = ending;
+        uint32 esig = edit_sigbit >= 0 ? 1u << edit_sigbit : 0;
+        while (!box.done && f->loaded && f->win && !ending) {
+            uint32 got = IExec->Wait(sig | esig | SIGBREAKF_CTRL_C);
+            if (got & SIGBREAKF_CTRL_C) break;
+            if (got & esig) check_edits(f);
+            handle_form(f);
+        }
+        if (box.ok) {
+            const char *t = (const char *)get_attr(a, STRINGA_TextVal);
+            result = xstrdup(t ? t : "");
+        }
+        ending = was_ending;
+    }
+    /* free it now, without events */
+    f->fn = NULL;
+    f->loaded = 0;
+    for (bb_form **pp = &forms; *pp; pp = &(*pp)->next)
+        if (*pp == f) {
+            *pp = f->next;
+            break;
+        }
+    form_free(f);
+    for (bb_form *o = forms; o; o = o->next)
+        if (o->win) IIntuition->SetAttrs(o->winobj, WA_BusyPointer, !o->enabled, TAG_DONE);
+    return result;
 }
 
 int bb_ctl_screen_box(bb_ctl *c, int *x, int *y, int *w, int *h)
