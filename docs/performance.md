@@ -95,7 +95,12 @@ Calls and the game (*(Glimmerfield)*):
   file, called from a procedure without On Error, is compiled into the caller with its locals
   in fresh slots. The inlined statements keep their own line numbers, so run-time error
   messages are the same as without inlining (`BOING_NO_INLINE=1` turns it off)
-  (calls 0.136 -> 0.079 s).
+  (calls 0.136 -> 0.079 s);
+- scalar fields of `Me` are register operands (`R_LDMF` / `R_STMF`, also in the JIT); class
+  methods get the fast frame (early-bound `CALLM`) and the fast return, which drops `Me`
+  itself (objects VM 0.219 -> 0.156 s). Native method calls on a receiver that is not a
+  local now hold a reference for the call, as VB does (objects native 0.024 -> 0.030 s:
+  correctness first; `Set g = Nothing` inside a method of g's object freed it mid-call).
 
 What changed in the native back end: array bounds failures go to a `noreturn` function, so
 GCC/clang can keep element addresses in registers across statements (nbody 0.061 -> 0.027 s).

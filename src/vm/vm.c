@@ -900,6 +900,8 @@ static void vm_exec(VM *vm, int entry)
         [I_R_SQRT_D] = &&L_R_SQRT_D,
         [I_R_CALLS] = &&L_R_CALLS,
         [I_R_RET] = &&L_R_RET,
+        [I_R_LDMF] = &&L_R_LDMF,
+        [I_R_STMF] = &&L_R_STMF,
         [I_R_ADD_FRR] = &&L_R_ADD_FRR,
         [I_R_SUB_FRR] = &&L_R_SUB_FRR,
         [I_R_MUL_FRR] = &&L_R_MUL_FRR,
@@ -1061,6 +1063,15 @@ static void vm_exec(VM *vm, int entry)
                     VMProc *p = fr->proc;
                     if (BB_LIKELY(p->rt_scalar && vm->nframes - 1 > entry && fr->keep.type == BB_EMPTY && !fr->in_handler)) {
                         bb_value *base = fr->base;
+                        if (p->cls >= 0) {
+                            /* Me (slot 0): the only reference to drop; the result is copied first */
+                            bb_value me_ = base[0];
+                            if (p->ret_slot >= 0) { bb_value rv_ = base[p->ret_slot]; base[0].type = BB_EMPTY; base[p->ret_slot] = rv_; }
+                            if (me_.type == BB_OBJECT && me_.u.o) {
+                                fr->pc = pc; vm->sp = sp;
+                                bb_obj_release(me_.u.o);
+                            }
+                        }
                         int32_t rd = fr->retdst, *ret = fr->ret;
                         vm->ngosub = fr->gs_base;
                         vm->nframes--;
@@ -1096,6 +1107,8 @@ static void vm_exec(VM *vm, int entry)
                 RCASE(R_CVT_DF) { double x_ = RSL(2).u.d; if (BB_UNLIKELY(x_ > 3.402823466e38 || x_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)x_); pc += 3; RNEXT(); }
                 RCASE(R_CVT_FD) SETD(pc[1], (double)RSL(2).u.f); pc += 3; RNEXT();
                 JCMP(R_JCMP_FRR, double, RSL(2).u.f, RSL(3).u.f)
+                RCASE(R_LDMF) L[pc[2]] = ((VMObj *)L[0].u.o)->f[pc[3]]; pc += 4; RNEXT();
+                RCASE(R_STMF) ((VMObj *)L[0].u.o)->f[pc[2]].u = L[pc[3]].u; pc += 4; RNEXT();
                 RCASE(R_LDREF) rload(&L[pc[2]], pc[1], L[pc[3]].u.p); pc += 4; RNEXT();
                 RCASE(R_STREF) rstore(pc[1], L[pc[2]].u.p, &L[pc[3]]); pc += 4; RNEXT();
 #if !(defined(__GNUC__) && !defined(BB_NO_THREADED))
@@ -1500,12 +1513,11 @@ static void vm_exec(VM *vm, int entry)
                     }
                 }
                 p = &img->procs[pidx];
-                (void)p;
                 SYNC();
-                prep_hidden(vm, p, base);
                 {
                     int32_t *ret = pc + 4;
-                    fr = push_frame(vm, pidx, base);
+                    if (BB_LIKELY(p->rt_plain)) fr = push_plain(vm, p, pidx, base);
+                    else { prep_hidden(vm, p, base); fr = push_frame(vm, pidx, base); }
                     fr->ret = ret;
                 }
                 pc = fr->pc;
@@ -1946,7 +1958,16 @@ static void prepare(VM *vm)
                 if ((p->slots[k].isref && !byrefp) || !(vt == BB_INTEGER || vt == BB_LONG || vt == BB_SINGLE || vt == BB_DOUBLE ||
                       vt == BB_BOOLEAN || vt == BB_BYTE || vt == BB_CURRENCY || vt == BB_DATE)) scalar = 0;
             }
-            if (p->cls >= 0) scalar = 0;    /* Me holds a reference */
+            if (p->cls >= 0 && p->slots[0].vt == BB_OBJECT) {
+                /* Me is released by R_RET itself */
+                scalar = 1;
+                for (k = 1; k < p->nlocals; k++) {
+                    int vt = p->slots[k].vt;
+                    int byrefp = k < p->nparams && p->param_byref[k];
+                    if ((p->slots[k].isref && !byrefp) || !(vt == BB_INTEGER || vt == BB_LONG || vt == BB_SINGLE || vt == BB_DOUBLE ||
+                          vt == BB_BOOLEAN || vt == BB_BYTE || vt == BB_CURRENCY || vt == BB_DATE)) scalar = 0;
+                }
+            } else if (p->cls >= 0) scalar = 0;
             p->rt_scalar = scalar;
         }
     }

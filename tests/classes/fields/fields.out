@@ -1,0 +1,6 @@
+ 501500  62562.5  2 
+k 30000  6 
+terminate keep 1 
+afterTrue
+terminate a 501500 
+end

@@ -37,6 +37,7 @@ typedef struct EC {
     int has_me;
     Buf sdecl;              /* members of the procedure's cleanup struct (refcounted locals/temps) */
     Buf sclean;             /* their releases, in the cleanup function */
+    Buf stemp;              /* releases of the statement temporaries among them (error handlers) */
     int nsmem;
 } EC;
 
@@ -214,6 +215,7 @@ static char *varr_temp(EC *e, int n)
     if (n < 1) n = 1;
     buf_printf(&e->sdecl, "    bb_value %s[%d];\n", name, n);
     buf_printf(&e->sclean, "    { int i; for (i = 0; i < %d; i++) bb_v_release(&c->%s[i]); }\n", n, name);
+    buf_printf(&e->stemp, "    { int i; for (i = 0; i < %d; i++) bb_v_release(&c->%s[i]); }\n", n, name);
     e->nsmem++;
     return xsprintf("bbL.%s", name);
 }
@@ -225,8 +227,11 @@ static char *new_temp(EC *e, Type *t, int release)
     char *n;
     if (is_refty(t) && release) {
         /* owned: on the cleanup chain (borrowed temps are plain locals) */
-        char *m = struct_member(e, t, xsprintf("t%d", e->ntemp++));
+        char *nm = xsprintf("t%d", e->ntemp++);
+        char *m = struct_member(e, t, nm);
         char *r = release_code(t, m);
+        char *rc = release_code(t, xsprintf("c->%s", nm));
+        if (rc) buf_printf(&e->stemp, "    %s\n", rc);
         if (r) rel(e, r);
         return m;
     }
@@ -763,9 +768,19 @@ static R call(EC *e, Node *n)
 static R mcall(EC *e, Node *n)
 {
     Proc *pr = n->proc;
-    char *obj = val(e, n->a), *args, *callx;
-    char *ot = new_temp(e, &ty_object, 0);
-    pre(e, "%s = bb_obj_check(%s);", ot, obj);
+    char *obj = val(e, n->a), *args, *callx, *ot;
+    Node *rv = n->a;
+    /* VB keeps the object alive for the call: unless the receiver is a local variable (which
+       the method cannot reach), hold a reference, so `Set g = Nothing` inside it is safe */
+    int local = (rv->kind == E_VAR && (rv->sym->storage == ST_LOCAL || rv->sym->storage == ST_PARAM) && !rv->sym->byref) ||
+                rv->kind == E_ME;
+    if (local) {
+        ot = new_temp(e, &ty_object, 0);
+        pre(e, "%s = bb_obj_check(%s);", ot, obj);
+    } else {
+        ot = new_temp(e, &ty_object, 1);
+        pre(e, "%s = bb_obj_retain(bb_obj_check(%s));", ot, obj);
+    }
     args = call_args(e, pr, n, ot);
     if (pr->cls->is_interface && pr->vslot >= 0)
         callx = xsprintf("((const struct V%d *)bb_vtbl(%s, &%s_class))->m%d(%s)", pr->cls->index, ot, cls_cname(pr->cls), pr->vslot, args);
@@ -1656,6 +1671,7 @@ static void emit_proc(EC *e, Proc *pr)
     buf_free(&e->decl);
     buf_free(&e->sdecl);
     buf_free(&e->sclean);
+    buf_free(&e->stemp);
     e->nsmem = 0;
     e->pre.n = 0;
     e->rel.n = 0;
@@ -1681,6 +1697,12 @@ static void emit_proc(EC *e, Proc *pr)
         buf_printf(e->out, "};\nstatic void cleanup%d(void *ctx)\n{\n    struct L%d *c = (struct L%d *)ctx;\n", pr->index, pr->index, pr->index);
         buf_put(e->out, e->sclean.p, e->sclean.n);
         buf_puts(e->out, "}\n");
+        if (e->handler && e->stemp.n) {
+            /* an error caught here: the failing statement's temporaries */
+            buf_printf(e->out, "static void cleanup%d_t(struct L%d *c)\n{\n", pr->index, pr->index);
+            buf_put(e->out, e->stemp.p, e->stemp.n);
+            buf_puts(e->out, "}\n");
+        }
     }
     buf_printf(e->out, "\n%s\n{\n", proc_sig(e, pr, 1));
     if (e->nsmem) {
@@ -1700,6 +1722,7 @@ static void emit_proc(EC *e, Proc *pr)
         buf_puts(e->out, "    (void)bb_estmt; (void)bb_rs;\n    bb_frame_push(&bb_ef);\n");
         buf_puts(e->out, "    if (BB_SETJMP(bb_ef.jb)) {\n");
         buf_puts(e->out, "        bb_errtop = &bb_ef;\n");
+        if (e->nsmem && e->stemp.n) buf_printf(e->out, "        cleanup%d_t(&bbL);\n", pr->index);
         buf_puts(e->out, "        if (bb_mode == 0 || bb_inh) { bb_frame_pop(&bb_ef); bb_rethrow(); }\n");
         buf_puts(e->out, "        bb_estmt = bb_stmt;\n");
         if (e->resume) buf_puts(e->out, "        if (bb_mode == 2) { bb_rs = bb_estmt + 1; goto bb_resume; }\n");

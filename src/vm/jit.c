@@ -543,6 +543,15 @@ static int translate(T *t, int32_t pc)
         be->ldp(a, JP1, JB_L, SLOT_U(w[2]));
         store_elem(t, w[1], w[3]);
         return 1;
+    case I_R_LDMF: case I_R_STMF: {
+        /* scalar field of Me: f[idx] of the VMObj in slot 0 */
+        int vt = w[1], st = op == I_R_STMF, base;
+        int32_t off;
+        base_of(BB_ME_OPND - (st ? w[2] : w[3]), &base, &off);
+        be->addp_off(a, JP1, base, off + 8);
+        if (st) store_elem(t, vt, w[3]); else load_elem(t, vt, w[2]);
+        return 1;
+    }
     case I_R_LDF: case I_R_STF: {
         int vt = w[1], st = op == I_R_STF;
         udt_var(t, st ? w[2] : w[3]);

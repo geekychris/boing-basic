@@ -971,6 +971,7 @@ static int inline_call(E *e, Node *n)
 }
 
 static int rx(E *e, Node *n, int dst);
+static int me_field(E *e, Node *n, int k);
 static void reg_call(E *e, Node *n, int dst)
 {
     int s[4] = {0, 0, 0, 0}, i;
@@ -1017,6 +1018,11 @@ static int rx(E *e, Node *n, int dst)
     if (k == 3 && is_sng_const(n)) {
         d = dst >= 0 ? dst : rtemp(e, k);
         op2(e, I_R_MOVK, d, add_const(e, bb_v_single((bb_single)n->cv.d)));
+        return d;
+    }
+    if (me_field(e, n, k)) {
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, I_R_LDMF, rvt(n->ty), d, n->sym->index);
         return d;
     }
     if (k >= 0 && n->kind == E_VAR && is_ref_slot(n->sym) && rkind(n->sym->ty) == k) {
@@ -1106,9 +1112,26 @@ static void reg_cmp_jump(E *e, Node *c, int sense, Patch *p)
     patch_add(p, at);
 }
 
+/* a scalar field of Me (in a class method) */
+static int me_field(E *e, Node *n, int k)
+{
+    return e->me && n->kind == E_VAR && n->sym->storage == ST_FIELD && k >= 0 && rkind(n->ty) == k;
+}
+
+static int reg_value_ok(E *e, Node *v, int k)
+{
+    return reg_arith(v, k) || reg_var(e, v, k) >= 0 || reg_mem(e, v) || v->kind == E_CONST || reg_sqrt(v) || reg_call_ok(v) ||
+           (v->kind == E_VAR && is_ref_slot(v->sym)) || me_field(e, v, k);
+}
+
 static int reg_assign(E *e, Node *t, Node *v)
 {
     int k = rkind(t->ty), slot;
+    if (me_field(e, t, k) && rkind(v->ty) == k && reg_value_ok(e, v, k)) {
+        int src = rx(e, v, -1);
+        op3(e, I_R_STMF, rvt(t->ty), t->sym->index, src);
+        return 1;
+    }
     if (k >= 0 && t->kind == E_VAR && is_ref_slot(t->sym) && rkind(v->ty) == k && (reg_arith(v, k) || v->kind == E_VAR || v->kind == E_CONST)) {
         int src = rx(e, v, -1);
         op3(e, I_R_STREF, rvt(t->ty), slot_of(e, t->sym), src);
@@ -1128,8 +1151,7 @@ static int reg_assign(E *e, Node *t, Node *v)
     if (k < 0 || t->kind != E_VAR || rkind(v->ty) != k) return 0;
     slot = reg_var(e, t, k);
     if (slot < 0) return 0;
-    if (!reg_arith(v, k) && reg_var(e, v, k) < 0 && !reg_mem(e, v) && v->kind != E_CONST && !reg_sqrt(v) && !reg_call_ok(v) &&
-        !(v->kind == E_VAR && is_ref_slot(v->sym))) return 0;
+    if (!reg_value_ok(e, v, k)) return 0;
     rx(e, v, slot);
     return 1;
 }
