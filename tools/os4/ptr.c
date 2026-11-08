@@ -56,6 +56,13 @@ int ptr_main(int argc, char **argv)
             if (w->Title && !strcmp((const char *)w->Title, argv[4])) found = w;
         IIntuition->UnlockIBase(lock);
         if (!found) return 5;
+        /* the point must be inside the window, and the window in front of the others there */
+        int px = atoi(argv[1]), py = atoi(argv[2]);
+        if (px < found->LeftEdge || py < found->TopEdge || px >= found->LeftEdge + found->Width ||
+            py >= found->TopEdge + found->Height)
+            return 5;
+        IIntuition->WindowToFront(found);
+        IDOS->Delay(10);
         for (int i = 0; i < 10 && ib->ActiveWindow != found; i++) {
             IIntuition->ActivateWindow(found);
             IDOS->Delay(10);
