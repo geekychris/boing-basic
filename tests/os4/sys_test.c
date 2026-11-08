@@ -7,7 +7,7 @@
 #include "bb_sys.h"
 
 /* run from a background CLI (run >NIL:) the default stack is only a few KB */
-static const char __attribute__((used)) stack_cookie[] = "$STACK: 262144";
+static const char __attribute__((used)) stack_cookie[] = "$STACK:262144";
 
 static int fails, n;
 static void check(int ok, const char *what)

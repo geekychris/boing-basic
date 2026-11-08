@@ -51,6 +51,11 @@
 #include <images/label.h>
 #include <images/bevel.h>
 
+/* ReAction's layout code is stack hungry, and a program started from a background CLI (or
+ * Workbench) may get only a few KB: every program linking the forms gets 256 KB. (A
+ * project's Stack= setting, emitted by the compiler, comes first in the file and wins.) */
+static const char __attribute__((used)) bb_stack_cookie[] = "$STACK:262144";
+
 /* --- classes ---------------------------------------------------------------------------- */
 
 enum { C_WINDOW, C_LAYOUT, C_BUTTON, C_STRING, C_INTEGER, C_CHECKBOX, C_CHOOSER, C_RADIO, C_SLIDER, C_SCROLLER,
@@ -283,12 +288,9 @@ static void gadget_tags(bb_ctl *c, tags *t)
 static struct Task *main_task;
 static int8 edit_sigbit = -1;
 
-volatile int bb_forms_dbg_hook, bb_forms_dbg_key;
 static uint32 edit_hook_func(struct Hook *h, struct SGWork *sgw, uint32 *msg)
 {
-    bb_forms_dbg_hook++;
     if (*msg != SGH_KEY) return 0;
-    bb_forms_dbg_key++;
     bb_ctl *c = h->h_Data;
     if (sgw->Actions & (SGA_USE | SGA_END)) {
         c->edited = 1;

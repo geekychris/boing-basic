@@ -62,3 +62,8 @@ clean:
 	rm -rf $(OUT)
 
 .PHONY: all check-cpu clean
+
+# tools run on the guest by the test scripts
+$(OUT)/ptr: tools/os4/ptr.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS)
+all: $(OUT)/ptr

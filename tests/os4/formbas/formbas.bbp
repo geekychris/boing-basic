@@ -1,0 +1,5 @@
+# Boing BASIC project: the forms runtime from BASIC (run by tools/os4-form-test.sh)
+Name=FormBas
+Startup=Form formbas
+Form=formbas.afg
+Stack=262144

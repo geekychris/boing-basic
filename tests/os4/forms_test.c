@@ -20,7 +20,7 @@
 #include "bb_forms.h"
 
 /* run from a background CLI (run >NIL:) the default stack is only a few KB */
-static const char __attribute__((used)) stack_cookie[] = "$STACK: 262144";
+static const char __attribute__((used)) stack_cookie[] = "$STACK:262144";
 
 static const char *afg =
     "# AmiForge GUI\n"
@@ -317,8 +317,7 @@ static void script(void)
         break;
     case 3:
         check(!strcmp(gets_("name", "Text", -1), "hi"), "typing replaced the text: name.Text = \"hi\"");
-        { extern volatile int bb_forms_dbg_hook, bb_forms_dbg_key;
-          printf("# name_Change count %d, edit hook calls %d, keys %d\n", changes, bb_forms_dbg_hook, bb_forms_dbg_key); }
+        printf("# name_Change count %d\n", changes);
         check(changes >= 7, "name_Change on every keystroke (code once + 5 Backspaces + h + i)");
         check(keypress13 >= 1, "name_KeyPress(13) on Return");
         click_ctl("list", 6, 0);           /* first row */

@@ -10,7 +10,7 @@
 #include "bb_forms.h"
 
 /* run from a background CLI (run >NIL:) the default stack is only a few KB */
-static const char __attribute__((used)) stack_cookie[] = "$STACK: 262144";
+static const char __attribute__((used)) stack_cookie[] = "$STACK:262144";
 
 static bb_form *form;
 static int secs = 10, ticks;

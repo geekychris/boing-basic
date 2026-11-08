@@ -1,0 +1,14 @@
+# AmiForge GUI
+window name=formbas title="Boing BASIC form test" width=320 height=0
+vlayout id=root
+  hlayout
+    string id=name label="Name" text="Amiga"
+    checkbox id=fast text="_Fast"
+  hlayout
+    listbrowser id=list items="Zero|One" minheight=50
+    vlayout weight=0
+      chooser id=pick items="Red|Green|Blue" selected=2
+      slider id=speed min=0 max=10 level=3
+  label id=status text="Ready"
+  button id=ok text="_OK"
+  timer id=tick interval=400
