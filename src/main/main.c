@@ -55,7 +55,8 @@ static char *exe_dir(const char *argv0)
     (void)argv0; (void)slash;
     {
         /* gcc and its tools don't know PROGDIR: (it's per process): hand them the real path */
-        const char *assign = access("BOING:include/boing.h", R_OK) == 0 ? "BOING:" : "PROGDIR:";
+        /* never access() a volume that may not exist: AmigaDOS asks the user to insert it */
+        const char *assign = bb_sys_probe("BOING:include/boing.h") ? "BOING:" : "PROGDIR:";
         char *real = bb_sys_real_path(assign);
         (void)buf;
         return real ? real : xstrdup(assign);
@@ -126,7 +127,7 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
     if (!cc || !*cc) {
 #ifdef __amigaos4__
         /* the SDK's native GCC 11; a shell without sdk-startup has no path to it */
-        cc = access("SDK:gcc/bin/gcc", X_OK) == 0 ? "SDK:gcc/bin/gcc" : "gcc";
+        cc = bb_sys_probe("SDK:gcc/bin/gcc") ? "SDK:gcc/bin/gcc" : "gcc";
 #else
         cc = "cc";
 #endif

@@ -252,6 +252,8 @@ int bb_sys_getattr(const char *path)
     return a;
 }
 
+int bb_sys_probe(const char *path) { return access(path, F_OK) == 0; }
+
 char *bb_sys_real_path(const char *path)
 {
     char buf[PATH_MAX];

@@ -319,11 +319,60 @@ int bb_sys_getattr(const char *path)
     return a;
 }
 
+/* the device/assign/volume part of a path exists in the DOS list (never touches it) */
+static int volume_known(const char *path)
+{
+    const char *colon = strchr(path, ':');
+    char name[64];
+    struct DosList *dl;
+    int found;
+    size_t n;
+    if (!colon) return 1;                       /* relative path */
+    n = (size_t)(colon - path);
+    if (n == 0) return 1;                       /* ":" = root of the current volume */
+    if (n >= sizeof name) return 0;
+    if (n == 7 && !strncasecmp(path, "PROGDIR", 7)) return 1;
+    memcpy(name, path, n);
+    name[n] = 0;
+    dl = IDOS->LockDosList(LDF_ALL | LDF_READ);
+    found = IDOS->FindDosEntry(dl, name, LDF_ALL) != NULL;
+    IDOS->UnLockDosList(LDF_ALL | LDF_READ);
+    return found;
+}
+
+/* requesters off while probing (pr_WindowPtr = -1), restored afterwards */
+static APTR quiet_begin(void)
+{
+    struct Process *me = (struct Process *)IExec->FindTask(NULL);
+    APTR old = me->pr_WindowPtr;
+    me->pr_WindowPtr = (APTR)-1;
+    return old;
+}
+static void quiet_end(APTR old) { ((struct Process *)IExec->FindTask(NULL))->pr_WindowPtr = old; }
+
+int bb_sys_probe(const char *path)
+{
+    APTR old;
+    BPTR l;
+    if (!volume_known(path)) return 0;
+    old = quiet_begin();
+    l = IDOS->Lock(path, SHARED_LOCK);
+    quiet_end(old);
+    if (l) IDOS->UnLock(l);
+    return l != 0;
+}
+
 char *bb_sys_real_path(const char *path)
 {
-    BPTR l = IDOS->Lock(path, SHARED_LOCK);
+    APTR old;
+    BPTR l;
+    char *n;
+    if (!volume_known(path)) return NULL;
+    old = quiet_begin();
+    l = IDOS->Lock(path, SHARED_LOCK);
+    quiet_end(old);
     if (!l) return NULL;
-    char *n = lock_name(l);
+    n = lock_name(l);
     IDOS->UnLock(l);
     return n;
 }

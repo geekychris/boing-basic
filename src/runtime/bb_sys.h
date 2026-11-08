@@ -45,5 +45,9 @@ int bb_sys_getattr(const char *path);       /* GetAttr: vbDirectory 16, vbReadOn
 /* The full path of a file or directory ("PROGDIR:" -> "Work:Boing"); malloc'd, NULL if
  * it doesn't exist. */
 char *bb_sys_real_path(const char *path);
+/* Does "path" name an existing file on a mounted volume? Never asks the user: on AmigaOS a
+   missing assign/volume ("BOING:...") is looked up in the DOS list first (no "Please insert
+   volume" requester), and requesters are off while probing. */
+int bb_sys_probe(const char *path);
 
 #endif
