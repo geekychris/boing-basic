@@ -129,8 +129,14 @@ def watchdog():
                 try:
                     d = json.load(urllib.request.urlopen(status_url, timeout=5))
                     s = d.get("bridgeSilentSec")
+                    if s is None:       # devbench gives null after a reconnect: use the heartbeat
+                        import datetime
+                        hb = (d.get("lastHeartbeat") or {}).get("timestamp")
+                        if hb:
+                            t = datetime.datetime.fromisoformat(hb.replace("Z", "+00:00"))
+                            s = (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds()
                     if not d.get("connected") or (s is not None and s > silent_max):
-                        why = "bridge silent (%s s) or disconnected" % s
+                        why = "bridge silent (%s s) or disconnected" % (int(s) if s is not None else "?")
                 except Exception:
                     pass
             if why:
@@ -138,6 +144,19 @@ def watchdog():
                 sys.stderr.flush()
                 os._exit(3)
     threading.Thread(target=run, daemon=True).start()
+
+
+def bridge_alive(max_age=60):
+    import datetime
+    try:
+        d = json.load(urllib.request.urlopen(URL.rsplit("/mcp", 1)[0] + "/api/status", timeout=5))
+    except Exception:
+        return False
+    hb = (d.get("lastHeartbeat") or {}).get("timestamp")
+    if not d.get("connected") or not hb:
+        return False
+    t = datetime.datetime.fromisoformat(hb.replace("Z", "+00:00"))
+    return (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() < max_age
 
 
 @contextlib.contextmanager
@@ -150,6 +169,9 @@ def testing(message):
     with fifo_ticket():
         with claude_testing(URL, message):
             watchdog()          # timed from getting the lock, not from queueing
+            if not bridge_alive():
+                sys.stderr.write("os4guest: the guest's bridge isn't answering (no heartbeat): not starting\n")
+                os._exit(3)
             yield
 
 
