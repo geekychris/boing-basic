@@ -26,6 +26,12 @@ rm -rf "$work"; mkdir -p "$work"; cp -R ./ "$work/" 2>/dev/null
 ( cd "$work" && "$BOING" run "$src" < "$input" > "$TMP/$id.vm" 2>&1; rc=$?; [ $rc -ne 0 ] && echo "[exit $rc]" >> "$TMP/$id.vm" )
 vm=ok
 cmp -s "$TMP/$id.vm" "$base.out" || { vm=bad; diff "$base.out" "$TMP/$id.vm" > "$TMP/$id.vm.diff"; }
+# the VM again with the JIT compiling every loop it can (no effect where there is no JIT)
+if [ "${JIT:-1}" = 1 ]; then
+    rm -rf "$work"; mkdir -p "$work"; cp -R ./ "$work/" 2>/dev/null
+    ( cd "$work" && BOING_JIT=1 BOING_JIT_THRESHOLD=1 "$BOING" run "$src" < "$input" > "$TMP/$id.jit" 2>&1; rc=$?; [ $rc -ne 0 ] && echo "[exit $rc]" >> "$TMP/$id.jit" )
+    cmp -s "$TMP/$id.jit" "$base.out" || { vm="$vm/jit-bad"; diff "$base.out" "$TMP/$id.jit" > "$TMP/$id.jit.diff"; }
+fi
 nat=ok
 if [ "$NATIVE" = 1 ]; then
     rm -rf "$work"; mkdir -p "$work"; cp -R ./ "$work/" 2>/dev/null
