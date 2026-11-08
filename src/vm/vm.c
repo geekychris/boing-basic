@@ -1024,7 +1024,12 @@ static void vm_exec(VM *vm, int entry)
                     cv->u.d += st;
                     if ((st >= 0) ? cv->u.d > l : cv->u.d < l) pc += 5; else BACKJUMP(pc[4]) RNEXT(); }
                 RCASE(R_JMP) { int32_t t_ = pc[1]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } RNEXT();
-                RCASE(R_SQRT_D) { double x = RSL(2).u.d; if (BB_UNLIKELY(x < 0)) RERR(bb_raise(5, NULL)); SETD(pc[1], sqrt(x)); pc += 3; RNEXT(); }
+                RCASE(R_SQRT_D) { double x = RSL(2).u.d; if (BB_UNLIKELY(x < 0)) RERR(bb_raise(5, NULL)); SETD(pc[1], sqrt(x)); pc += 3;
+                    /* a JIT without a square root instruction stops at Sqr: continue in the compiled rest */
+                    if (BB_UNLIKELY(jit_on)) { int32_t rp_ = (int32_t)(pc - code); bb_jitfn j0_ = img->jitcode[rp_];
+                        if (!j0_ && !img->jitno[rp_]) j0_ = jit_hot(img, fr->proc, rp_);
+                        JITCHAIN(rp_, j0_) }
+                    RNEXT(); }
                 RCASE(R_CALLS) {
                     /* call with ByVal scalar arguments from slots; result into slot pc[2] */
                     int32_t pidx = pc[1], n = pc[3], i;
@@ -1068,6 +1073,10 @@ static void vm_exec(VM *vm, int entry)
                         }
                         L = fr->base;
                         pc = ret;
+                        /* back in a loop body that was cut by this call: its compiled rest */
+                        if (BB_UNLIKELY(jit_on)) { int32_t rp_ = (int32_t)(ret - code); bb_jitfn j0_ = img->jitcode[rp_];
+                            if (!j0_ && !img->jitno[rp_]) j0_ = jit_hot(img, fr->proc, rp_);
+                            JITCHAIN(rp_, j0_) }
                         RNEXT();
                     }
                     RSLOW(I_RET);

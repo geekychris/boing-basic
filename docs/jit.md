@@ -12,9 +12,14 @@ branch, For loops, 1-D/2-D array elements, UDT fields, ByRef parameter access, `
 *region* is a run of consecutive register ops. A loop whose body consists only of these ops
 (which is what typed numeric loops compile to) is one region. Arrays may be locals,
 globals or array fields of `Me` (class methods). A region ends at a call (`R_CALLS`), a
-return, and the Single ops (`R_*_F*`: Single values are loaded and stored, but Single
-arithmetic is interpreted). A loop head whose region cannot be compiled is marked, so its
-back-edges then cost one byte test.
+return, `Sqr` on a backend without a square root instruction (PPC), and the Single ops
+(`R_*_F*`: Single values are loaded and stored, but Single arithmetic is interpreted).
+A loop body cut by a call or `Sqr` is compiled in pieces: from the loop head to the call,
+and from the instruction after the call (a *resume point*: the VM looks there for compiled
+code when the call returns or after it computed `Sqr`) to the back-edge, which continues in
+the loop head's code. Compiled loops are also entered straight from their `For` check. A
+loop head or resume point whose region cannot be compiled is marked, so it then costs one
+byte test.
 
 - Each backward branch counts its target. At `BOING_JIT_THRESHOLD` (default 2) the region
   starting there is compiled, if it contains its own back-edge.
@@ -63,4 +68,6 @@ RUNFLAGS=--jit tools/os4-core-tests.sh                           # OS4 guest
 The JIT must give byte-identical output to the interpreter on the whole suite. `make bench`
 has a VM+JIT column (docs/performance.md).
 
-`BOING_JIT_TRACE=1` prints every region compiled.
+`BOING_JIT_TRACE=1` prints every region compiled. `BOING_JIT_NOSQRT=1` makes the host JIT
+compile as for a CPU without `fsqrt` (the PPC region shapes), to test them on the Mac:
+`BOING_JIT_NOSQRT=1 make test`.

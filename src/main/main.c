@@ -192,9 +192,12 @@ int main(int argc, char **argv)
                 case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: tg = w[4]; break;
                 case I_R_JNZ: case I_R_JZ: tg = w[2]; break;
                 case I_R_JMP: tg = w[1]; break;
+                /* resume points after a call / Sqr (the VM re-enters compiled code there) */
+                case I_R_CALLS: case I_R_SQRT_D: tg = pc + 1 + bb_opwords[w[0]]; break;
                 default: break;
                 }
-                if (tg < 0 || tg > pc) continue;
+                if (tg < 0 || (tg > pc && w[0] != I_R_CALLS && w[0] != I_R_SQRT_D)) continue;
+                a.buf = NULL;
                 if (jit_compile_region(be, img, vp, tg, &a, NULL)) {
                     fprintf(stderr, "%s @%ld: %d bytes at offset %ld\n", vp->name, (long)tg, a.n, ftell(f));
                     fwrite(a.buf, 1, (size_t)a.n, f);

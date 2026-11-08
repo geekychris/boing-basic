@@ -114,5 +114,6 @@ void jit_init(void);
 int jit_enabled(void);
 void jit_set_enabled(int on);
 extern int jit_threshold;
+extern int jit_no_fsqrt;
 
 #endif

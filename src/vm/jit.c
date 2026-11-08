@@ -525,7 +525,7 @@ static int translate(T *t, int32_t pc)
     case I_R_SQRT_D: {
         int ok = ja_label(a);
         ex = exit_to(t, pc);
-        if (!be->fsqrt) return 0;
+        if (!be->fsqrt || jit_no_fsqrt) return 0;
         be->ldf(a, JF0, JB_L, SLOT_U(w[2]));
         be->ldf(a, JF1, JB_CTX, (int32_t)offsetof(bb_jitctx, zero));
         be->fcmp_b(a, JC_GE, JF0, JF1, ok);
@@ -556,6 +556,8 @@ static int translate(T *t, int32_t pc)
 }
 
 static const JBackend *g_be_for_scan;
+int jit_no_fsqrt;             /* BOING_JIT_NOSQRT=1: compile as for a CPU without fsqrt (testing) */
+
 static int region_end(VMImage *img, VMProc *p, int32_t start)
 {
     int32_t pc = start, limit = img->ncode, i;
@@ -566,7 +568,7 @@ static int region_end(VMImage *img, VMProc *p, int32_t start)
     while (pc < limit) {
         int op = img->code[pc];
         if (op < I_R_FIRST || op >= I__COUNT) break;
-        if (op == I_R_SQRT_D && g_be_for_scan && !g_be_for_scan->fsqrt) break;
+        if (op == I_R_SQRT_D && g_be_for_scan && (!g_be_for_scan->fsqrt || jit_no_fsqrt)) break;
         if (op == I_R_CALLS || op == I_R_RET || op >= I_R_ADD_FRR) break;
         pc += 1 + bb_opwords[op];
     }
@@ -583,11 +585,14 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
     (void)0;
     if (end <= start) return 0;
     {
-        /* worth it only if the loop's back-edge is inside the region */
-        int back = 0;
+        /* worth it if the loop's back-edge is inside the region, or the region is a loop
+           body cut by a call: from the head to the call, or from the call's return point
+           to a backward branch (then the code continues at the loop head's code) */
+        int back = 0, backward = 0, nops = 0;
         for (pc = start; pc < end; pc += 1 + bb_opwords[img->code[pc]]) {
             const int32_t *w = img->code + pc;
             int32_t tg = -1;
+            nops++;
             switch (w[0]) {
             case I_R_JCMP_LRR: case I_R_JCMP_LRI: case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: tg = w[4]; break;
             case I_R_FORINC_I: case I_R_FORINC_L: case I_R_FORINC_D: tg = w[4]; break;
@@ -596,8 +601,9 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
             default: break;
             }
             if (tg == start) back = 1;
+            if (tg >= 0 && tg <= pc) backward = 1;
         }
-        if (!back) return 0;
+        if (!back && !(nops >= 2 && (backward || (end < img->ncode && (img->code[end] == I_R_CALLS || img->code[end] == I_R_SQRT_D))))) return 0;
     }
     memset(&t, 0, sizeof t);
     memset(a, 0, sizeof *a);
@@ -713,6 +719,7 @@ void jit_init(void)
 {
     const char *e = getenv("BOING_JIT");
     const char *th = getenv("BOING_JIT_THRESHOLD");
+    if (getenv("BOING_JIT_NOSQRT")) jit_no_fsqrt = atoi(getenv("BOING_JIT_NOSQRT")) != 0;
     if (e) g_enabled = atoi(e) != 0;
     if (th) jit_threshold = atoi(th);
 }
@@ -745,7 +752,7 @@ bb_jitfn jit_get(VMImage *img, VMProc *p, int32_t start)
 bb_jitfn jit_hot(VMImage *img, VMProc *p, int32_t target)
 {
     JE *e = find(target);
-    if (!e) return NULL;
+    if (!e) { if (img->jitno) img->jitno[target] = 1; return NULL; }   /* table full */
     if (e->state == 1) return e->fn;
     if (e->state == 2) return NULL;
     if (++e->count < jit_threshold) return NULL;
