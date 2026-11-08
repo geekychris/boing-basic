@@ -42,4 +42,8 @@ int bb_sys_filecopy(const char *from, const char *to);
 long bb_sys_filelen(const char *path);      /* -1 if not found */
 int bb_sys_getattr(const char *path);       /* GetAttr: vbDirectory 16, vbReadOnly 1, -1 = not found */
 
+/* The full path of a file or directory ("PROGDIR:" -> "Work:Boing"); malloc'd, NULL if
+ * it doesn't exist. */
+char *bb_sys_real_path(const char *path);
+
 #endif

@@ -6,9 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#ifdef __amigaos4__
-#include <proto/dos.h>
-#endif
+#include "../runtime/bb_sys.h"
 
 #ifndef BOING_VERSION
 #define BOING_VERSION "0.1"
@@ -58,13 +56,9 @@ static char *exe_dir(const char *argv0)
     {
         /* gcc and its tools don't know PROGDIR: (it's per process): hand them the real path */
         const char *assign = access("BOING:include/boing.h", R_OK) == 0 ? "BOING:" : "PROGDIR:";
-        BPTR l = IDOS->Lock(assign, SHARED_LOCK);
-        if (l && IDOS->NameFromLock(l, buf, sizeof buf)) {
-            IDOS->UnLock(l);
-            return xstrdup(buf);
-        }
-        if (l) IDOS->UnLock(l);
-        return xstrdup(assign);
+        char *real = bb_sys_real_path(assign);
+        (void)buf;
+        return real ? real : xstrdup(assign);
     }
 #endif
     if (strchr(argv0, '/') || strchr(argv0, ':')) snprintf(buf, sizeof buf, "%s", argv0);

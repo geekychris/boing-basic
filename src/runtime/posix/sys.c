@@ -251,3 +251,9 @@ int bb_sys_getattr(const char *path)
     if (access(path, W_OK)) a |= 1;
     return a;
 }
+
+char *bb_sys_real_path(const char *path)
+{
+    char buf[PATH_MAX];
+    return realpath(path, buf) ? xstrdup(buf) : NULL;
+}

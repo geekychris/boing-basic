@@ -318,3 +318,12 @@ int bb_sys_getattr(const char *path)
     IDOS->FreeDosObject(DOS_EXAMINEDATA, d);
     return a;
 }
+
+char *bb_sys_real_path(const char *path)
+{
+    BPTR l = IDOS->Lock(path, SHARED_LOCK);
+    if (!l) return NULL;
+    char *n = lock_name(l);
+    IDOS->UnLock(l);
+    return n;
+}
