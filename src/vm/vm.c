@@ -1,5 +1,6 @@
 /* vm.c - the Boing BASIC bytecode interpreter */
 #include "bytecode.h"
+#include "jit.h"
 #include "../compiler/bbc.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -641,6 +642,12 @@ static void vm_poll(VM *vm)
     bb_poll_slow();
 }
 #define POLL() do { if (BB_UNLIKELY(--bb_poll_count < 0)) { fr->pc = pc; vm->sp = sp; vm_poll(vm); } } while (0)
+/* a taken backward branch: poll, then enter compiled code for the loop if it is hot */
+#define BACKJUMP(t_) { int32_t bt_ = (t_); POLL(); pc = code + bt_; \
+    if (BB_UNLIKELY(jit_on)) { bb_jitfn jf_ = jit_hot(img, fr->proc, bt_); \
+        while (jf_) { int32_t np_; jc.L = L; np_ = jf_(&jc); pc = code + np_; \
+            /* compiled code left for another loop head (an outer loop): continue there */ \
+            jf_ = (np_ != bt_ && bb_poll_count >= 0) ? jit_hot(img, fr->proc, np_) : NULL; bt_ = np_; } } }
 
 /* register-form helpers */
 BB_INLINE bb_array *rarr(bb_value *L, bb_value *G, int32_t o)
@@ -738,6 +745,9 @@ static void vm_exec(VM *vm, int entry)
         bb_value *sp = vm->sp;
         bb_value *L = fr->base;
         bb_value *G = vm->globals;
+        int jit_on = jit_enabled();
+        bb_jitctx jc;
+        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0;
 #define SYNC() (vm->sp = sp)
 #define RELOAD() (fr = &vm->frames[vm->nframes - 1], pc = fr->pc, sp = vm->sp, L = fr->base)
         for (;;) {
@@ -824,7 +834,11 @@ static void vm_exec(VM *vm, int entry)
         [I_R_FORCHK_L] = &&L_R_FORCHK_L,
         [I_R_FORINC_L] = &&L_R_FORINC_L,
         [I_R_FORCHK_D] = &&L_R_FORCHK_D,
-        [I_R_FORINC_D] = &&L_R_FORINC_D
+        [I_R_FORINC_D] = &&L_R_FORINC_D,
+        [I_R_LDREF] = &&L_R_LDREF,
+        [I_R_STREF] = &&L_R_STREF,
+        [I_R_JMP] = &&L_R_JMP,
+        [I_R_SQRT_D] = &&L_R_SQRT_D
                 };
                 goto *rtab[op];
 #else
@@ -901,7 +915,7 @@ static void vm_exec(VM *vm, int entry)
                     switch (pc[1]) { case BB_CMP_EQ: c_ = x == y; break; case BB_CMP_NE: c_ = x != y; break; \
                     case BB_CMP_LT: c_ = x < y; break; case BB_CMP_GT: c_ = x > y; break; \
                     case BB_CMP_LE: c_ = x <= y; break; default: c_ = x >= y; } \
-                    if (c_) { int32_t t_ = pc[4]; if (t_ <= pc - code) POLL(); pc = code + t_; } else pc += 5; RNEXT(); }
+                    if (c_) { int32_t t_ = pc[4]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } else pc += 5; RNEXT(); }
                 JCMP(R_JCMP_LRR, int32_t, RSL(2).u.l, RSL(3).u.l)
                 JCMP(R_JCMP_LRI, int32_t, RSL(2).u.l, pc[3])
                 JCMP(R_JCMP_IRR, int32_t, RSL(2).u.i, RSL(3).u.i)
@@ -921,22 +935,26 @@ static void vm_exec(VM *vm, int entry)
                     rload(&L[pc[2]], pc[1], p0 + dd->fields[pc[4]].offset); pc += 5; RNEXT(); }
                 RCASE(R_STF) { const bb_udt_desc *dd; char *p0 = rudt(vm, L, G, pc[2], &dd);
                     rstore(pc[1], p0 + dd->fields[pc[3]].offset, &RSL(4)); pc += 5; RNEXT(); }
-                RCASE(R_JNZ) if (RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) POLL(); pc = code + t_; } else pc += 3; RNEXT();
-                RCASE(R_JZ) if (!RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) POLL(); pc = code + t_; } else pc += 3; RNEXT();
+                RCASE(R_JNZ) if (RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } else pc += 3; RNEXT();
+                RCASE(R_JZ) if (!RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } else pc += 3; RNEXT();
                 RCASE(R_FORCHK_I) { bb_int c = L[pc[1]].u.i, l = L[pc[2]].u.i, st = L[pc[3]].u.i; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
                 RCASE(R_FORCHK_L) { bb_long c = L[pc[1]].u.l, l = L[pc[2]].u.l, st = L[pc[3]].u.l; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
                 RCASE(R_FORCHK_D) { double c = L[pc[1]].u.d, l = L[pc[2]].u.d, st = L[pc[3]].u.d; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
                 RCASE(R_FORINC_I) { bb_value *cv = &L[pc[1]]; int32_t l = L[pc[2]].u.i, st = L[pc[3]].u.i, r = cv->u.i + st;
                     if (BB_UNLIKELY(r < -32768 || r > 32767)) RERR(bb_overflow());
                     cv->u.i = (bb_int)r;
-                    if ((st >= 0) ? r > l : r < l) pc += 5; else { POLL(); pc = code + pc[4]; } RNEXT(); }
+                    if ((st >= 0) ? r > l : r < l) pc += 5; else BACKJUMP(pc[4]) RNEXT(); }
                 RCASE(R_FORINC_L) { bb_value *cv = &L[pc[1]]; int32_t l = L[pc[2]].u.l, st = L[pc[3]].u.l, r;
                     if (BB_UNLIKELY(__builtin_add_overflow(cv->u.l, st, &r))) RERR(bb_overflow());
                     cv->u.l = r;
-                    if ((st >= 0) ? r > l : r < l) pc += 5; else { POLL(); pc = code + pc[4]; } RNEXT(); }
+                    if ((st >= 0) ? r > l : r < l) pc += 5; else BACKJUMP(pc[4]) RNEXT(); }
                 RCASE(R_FORINC_D) { bb_value *cv = &L[pc[1]]; double l = L[pc[2]].u.d, st = L[pc[3]].u.d;
                     cv->u.d += st;
-                    if ((st >= 0) ? cv->u.d > l : cv->u.d < l) pc += 5; else { POLL(); pc = code + pc[4]; } RNEXT(); }
+                    if ((st >= 0) ? cv->u.d > l : cv->u.d < l) pc += 5; else BACKJUMP(pc[4]) RNEXT(); }
+                RCASE(R_JMP) { int32_t t_ = pc[1]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } RNEXT();
+                RCASE(R_SQRT_D) { double x = RSL(2).u.d; if (BB_UNLIKELY(x < 0)) RERR(bb_raise(5, NULL)); SETD(pc[1], sqrt(x)); pc += 3; RNEXT(); }
+                RCASE(R_LDREF) rload(&L[pc[2]], pc[1], L[pc[3]].u.p); pc += 4; RNEXT();
+                RCASE(R_STREF) rstore(pc[1], L[pc[2]].u.p, &L[pc[3]]); pc += 4; RNEXT();
 #if !(defined(__GNUC__) && !defined(BB_NO_THREADED))
                 default: break;
                 }
@@ -1283,7 +1301,7 @@ static void vm_exec(VM *vm, int entry)
                 break;
             }
 
-            case I_JMP: if (pc[1] <= pc - code) POLL(); pc = code + pc[1]; break;
+            case I_JMP: if (pc[1] <= pc - code) BACKJUMP(pc[1]) else pc = code + pc[1]; break;
             case I_JF: { bb_value v = POP(); int t = truth(&v); release_slot(&v); pc = t ? pc + 2 : code + pc[1]; break; }
             case I_JT: { bb_value v; if (pc[1] <= pc - code) POLL(); v = POP(); int t = truth(&v); release_slot(&v); pc = t ? code + pc[1] : pc + 2; break; }
 
@@ -1774,6 +1792,7 @@ int vm_run(VMImage *img, int argc, char **argv)
     vm.img = img;
     g_vm = &vm;
     bb_rt_init(argc, argv);
+    jit_init();
     prepare(&vm);
     {
         size_t n = (size_t)(img->stack > 65536 ? img->stack / 16 : 16384);

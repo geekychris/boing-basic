@@ -51,7 +51,8 @@ def main():
     for name, cwd, src in items:
         exe = os.path.join(tmp, name)
         b = subprocess.run([a.boing, "build", src, "-o", exe], cwd=cwd, capture_output=True, text=True)
-        vm_t, vm_out = timed([a.boing, "run", src, a.scale], cwd, a.runs)
+        vm_t, vm_out = timed([a.boing, "run", "--no-jit", src, a.scale], cwd, a.runs)
+        jit_t, jit_out = timed([a.boing, "run", "--jit", src, a.scale], cwd, a.runs)
         nat_t, nat_out = (None, b.stderr) if b.returncode else timed([exe, a.scale], cwd, a.runs)
         c_t = None
         csrc = os.path.join(bdir, "c", name + ".c")
@@ -59,12 +60,12 @@ def main():
             cexe = os.path.join(tmp, name + "_c")
             if subprocess.run([a.cc, "-O2", "-o", cexe, csrc, "-lm"], capture_output=True).returncode == 0:
                 c_t, _ = timed([cexe, a.scale], cwd, a.runs)
-        ok = vm_t is not None and nat_t is not None and vm_out == nat_out
+        ok = vm_t is not None and nat_t is not None and vm_out == nat_out and jit_out == vm_out
         if not ok:
             print(f"{name}: VM and native differ or failed", file=sys.stderr)
             print("VM:", (vm_out or "")[:300], "\nnative:", (nat_out or "")[:300], file=sys.stderr)
-        rows.append((name, vm_t, nat_t, c_t, ok))
-        print(f"  {name}: vm {vm_t} native {nat_t} c {c_t}", file=sys.stderr)
+        rows.append((name, vm_t, jit_t, nat_t, c_t, ok))
+        print(f"  {name}: vm {vm_t} jit {jit_t} native {nat_t} c {c_t}", file=sys.stderr)
     shutil.rmtree(tmp, ignore_errors=True)
 
     def f(x):
@@ -73,16 +74,16 @@ def main():
     def ratio(x, y):
         return "-" if x is None or y is None or y == 0 else f"{x / y:.1f}x"
 
-    lines = ["| benchmark | VM (s) | native (s) | VM/native | C (s) | native/C | same output |",
-             "|---|---:|---:|---:|---:|---:|:---:|"]
-    for name, v, n, c, ok in rows:
-        lines.append(f"| {name} | {f(v)} | {f(n)} | {ratio(v, n)} | {f(c)} | {ratio(n, c)} | {'yes' if ok else 'NO'} |")
+    lines = ["| benchmark | VM (s) | VM+JIT (s) | native (s) | VM/native | JIT/native | C (s) | native/C | same output |",
+             "|---|---:|---:|---:|---:|---:|---:|---:|:---:|"]
+    for name, v, j, n, c, ok in rows:
+        lines.append(f"| {name} | {f(v)} | {f(j)} | {f(n)} | {ratio(v, n)} | {ratio(j, n)} | {f(c)} | {ratio(n, c)} | {'yes' if ok else 'NO'} |")
     table = "\n".join(lines)
     print(table)
     if a.md:
         with open(a.md, "w") as fh:
             fh.write(table + "\n")
-    return 0 if all(r[4] for r in rows) else 1
+    return 0 if all(r[5] for r in rows) else 1
 
 
 if __name__ == "__main__":

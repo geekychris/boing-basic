@@ -146,6 +146,7 @@ int main(int argc, char **argv)
                 remove(argv[3]);
                 argv += 2; argc -= 2;
             } else if (!strcmp(argv[2], "--jit") || !strcmp(argv[2], "--no-jit")) {
+                setenv("BOING_JIT", argv[2][2] == 'j' ? "1" : "0", 1);
                 argv += 1; argc -= 1;
             } else { fprintf(stderr, "boing: unknown option %s\n", argv[2]); return 5; }
         }

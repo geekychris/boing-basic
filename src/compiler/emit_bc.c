@@ -795,6 +795,12 @@ static void rx_bin(E *e, Node *n, int k, int dst, int *out)
 }
 
 /* evaluate typed n (kind k = rkind(n->ty)) into a slot; dst >= 0 asks for that slot */
+/* Sqr(x) on a Double */
+static int reg_sqrt(Node *n)
+{
+    return n->kind == E_BUILTIN && name_eq(builtins[n->bi].name, "Sqr") && n->list.n == 1 && n->list.v[0]->ty->kind == T_DOUBLE;
+}
+
 static int rx(E *e, Node *n, int dst)
 {
     int k = rkind(n->ty), s, d;
@@ -809,9 +815,25 @@ static int rx(E *e, Node *n, int dst)
         op2(e, k == 1 ? I_R_MOVI_L : I_R_MOVI_I, d, iv);
         return d;
     }
+    if (k == 2 && is_dbl_const(n)) {
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op2(e, I_R_MOVK, d, add_const(e, bb_v_double(n->cv.d)));
+        return d;
+    }
+    if (k >= 0 && n->kind == E_VAR && is_ref_slot(n->sym) && rkind(n->sym->ty) == k) {
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, I_R_LDREF, rvt(n->ty), d, slot_of(e, n->sym));
+        return d;
+    }
     if (k >= 0 && reg_mem(e, n) && rkind(n->ty) == k) {
         d = dst >= 0 ? dst : rtemp(e, k);
         reg_load(e, n, d);
+        return d;
+    }
+    if (k == 2 && reg_sqrt(n)) {
+        int a0 = rx(e, n->list.v[0], -1);
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op2(e, I_R_SQRT_D, d, a0);
         return d;
     }
     if (reg_arith(n, k)) {
@@ -879,13 +901,18 @@ static void reg_cmp_jump(E *e, Node *c, int sense, Patch *p)
 static int reg_assign(E *e, Node *t, Node *v)
 {
     int k = rkind(t->ty), slot;
+    if (k >= 0 && t->kind == E_VAR && is_ref_slot(t->sym) && rkind(v->ty) == k && (reg_arith(v, k) || v->kind == E_VAR || v->kind == E_CONST)) {
+        int src = rx(e, v, -1);
+        op3(e, I_R_STREF, rvt(t->ty), slot_of(e, t->sym), src);
+        return 1;
+    }
     if (reg_mem(e, t) && (t->kind != E_INDEX || !impure(t->list.v[0])) ) {
         int src;
         if (k >= 0 && rkind(v->ty) == k) src = rx(e, v, -1);
         else if (t->ty->kind == T_BOOLEAN && v->ty->kind == T_BOOLEAN) {
-            expr(e, v);
             src = rtemp(e, 0);
-            op1(e, I_STL, src);
+            if (v->kind == E_CONST) op2(e, I_R_MOVI_I, src, (int32_t)v->cv.i);
+            else { expr(e, v); op1(e, I_STL, src); }
         } else return 0;
         reg_store(e, t, src);
         return 1;
@@ -893,7 +920,8 @@ static int reg_assign(E *e, Node *t, Node *v)
     if (k < 0 || t->kind != E_VAR || rkind(v->ty) != k) return 0;
     slot = reg_var(e, t, k);
     if (slot < 0) return 0;
-    if (!reg_arith(v, k) && reg_var(e, v, k) < 0) return 0;
+    if (!reg_arith(v, k) && reg_var(e, v, k) < 0 && !reg_mem(e, v) && v->kind != E_CONST && !reg_sqrt(v) &&
+        !(v->kind == E_VAR && is_ref_slot(v->sym))) return 0;
     rx(e, v, slot);
     return 1;
 }
@@ -1041,12 +1069,10 @@ static void for_stmt(E *e, Node *s)
     int top, chk;
     /* VB evaluates start, end and step once, before the loop */
     if (kind) {
-        expr(e, s->b);
-        store_var(e, ctr->sym);
-        expr(e, s->c);
-        store_var(e, lim->sym);
-        expr(e, s->d);
-        store_var(e, stp->sym);
+        /* start, end and step straight into their slots (register ops when possible) */
+        rx(e, s->b, slot_of(e, ctr->sym));
+        rx(e, s->c, slot_of(e, lim->sym));
+        rx(e, s->d, slot_of(e, stp->sym));
         {
             int chkop = kind == 1 ? I_R_FORCHK_I : kind == 2 ? I_R_FORCHK_L : I_R_FORCHK_D;
             int incop = kind == 1 ? I_R_FORINC_I : kind == 2 ? I_R_FORINC_L : I_R_FORINC_D;
@@ -1249,7 +1275,7 @@ static void stmt1(E *e, Node *s)
             else cond_jump_false(e, s->a, &back);
             patch_all(e, &back, top);
             free(back.v);
-        } else op1(e, I_JMP, top);
+        } else op1(e, I_R_JMP, top);
         pop_loop(e, here(e));
         return;
     }
