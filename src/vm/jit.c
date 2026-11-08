@@ -733,6 +733,7 @@ bb_jitfn jit_get(VMImage *img, VMProc *p, int32_t start)
         e->state = e->fn ? 1 : 2;
     } else e->state = 2;
     if (e->state == 2 && img->jitno) img->jitno[start] = 1;
+    if (e->state == 1 && img->jitcode) img->jitcode[start] = e->fn;
     if (getenv("BOING_JIT_TRACE"))
         fprintf(stderr, "jit: %s @%ld: %s (%d bytes)\n", p->name, (long)start, e->state == 1 ? "compiled" : "not compiled", a->n);
     free(a->buf);

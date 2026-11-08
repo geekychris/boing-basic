@@ -161,13 +161,15 @@ typedef struct VMUdt {
     bb_field *rtfields;
 } VMUdt;
 
+struct bb_jitctx;
 typedef struct VMImage {
     int32_t *code;
     int32_t ncode, capcode;
     bb_value *consts;
     int32_t nconsts, capconsts;
-    bb_site *sites;
-    unsigned char *jitno;       /* JIT: 1 at loop heads that will not be compiled (run time) */             /* late-bound call caches, one per constant (lazily allocated) */
+    bb_site *sites;             /* late-bound call caches, one per constant (lazily allocated) */
+    unsigned char *jitno;       /* JIT: 1 at loop heads that will not be compiled (run time) */
+    int32_t (**jitcode)(struct bb_jitctx *);   /* JIT: compiled code by loop head (run time) */
     VMProc *procs;
     int32_t nprocs;
     VMSlot *globals;

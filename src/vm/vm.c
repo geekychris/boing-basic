@@ -683,11 +683,22 @@ static void vm_poll(VM *vm)
 }
 #define POLL() do { if (BB_UNLIKELY(--bb_poll_count < 0)) { fr->pc = pc; vm->sp = sp; vm_poll(vm); } } while (0)
 /* a taken backward branch: poll, then enter compiled code for the loop if it is hot */
-#define BACKJUMP(t_) { int32_t bt_ = (t_); POLL(); pc = code + bt_; \
-    if (BB_UNLIKELY(jit_on) && !img->jitno[bt_]) { bb_jitfn jf_ = jit_hot(img, fr->proc, bt_); \
-        while (jf_) { int32_t np_; jc.L = L; np_ = jf_(&jc); pc = code + np_; \
-            /* compiled code left for another loop head (an outer loop): continue there */ \
-            jf_ = (np_ != bt_ && bb_poll_count >= 0 && !img->jitno[np_]) ? jit_hot(img, fr->proc, np_) : NULL; bt_ = np_; } } }
+/* run compiled code from loop head bt_ (jf_ its code), and on into other compiled loop
+   heads it leaves for (an outer loop) */
+#define JITCHAIN(bt0_, jf0_) { int32_t bt_ = (bt0_); bb_jitfn jf_ = (jf0_); \
+    while (jf_) { int32_t np_; jc.L = L; np_ = jf_(&jc); pc = code + np_; \
+        if (np_ == bt_ || bb_poll_count < 0) break; \
+        jf_ = img->jitcode[np_]; \
+        if (!jf_ && !img->jitno[np_]) jf_ = jit_hot(img, fr->proc, np_); \
+        bt_ = np_; } }
+/* a taken backward branch: poll, then enter compiled code for the loop if it is hot */
+#define BACKJUMP(t_) { int32_t tj_ = (t_); POLL(); pc = code + tj_; \
+    if (BB_UNLIKELY(jit_on)) { bb_jitfn j0_ = img->jitcode[tj_]; \
+        if (!j0_ && !img->jitno[tj_]) j0_ = jit_hot(img, fr->proc, tj_); \
+        JITCHAIN(tj_, j0_) } }
+/* entering a loop body at pc: straight into its code if it is already compiled */
+#define JITENTER() { if (BB_UNLIKELY(jit_on)) { int32_t te_ = (int32_t)(pc - code); bb_jitfn j0_ = img->jitcode[te_]; \
+        if (j0_) JITCHAIN(te_, j0_) } }
 
 /* register-form helpers */
 const int bb_vmobj_f_offset = (int)offsetof(VMObj, f);
@@ -789,7 +800,7 @@ static void vm_exec(VM *vm, int entry)
         bb_value *sp = vm->sp;
         bb_value *L = fr->base;
         bb_value *G = vm->globals;
-        int jit_on = jit_enabled() && img->jitno;
+        int jit_on = jit_enabled() && img->jitno && img->jitcode;
         bb_jitctx jc;
         jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; }
 #define SYNC() (vm->sp = sp)
@@ -998,9 +1009,9 @@ static void vm_exec(VM *vm, int entry)
                     rstore(pc[1], p0 + dd->fields[pc[3]].offset, &RSL(4)); pc += 5; RNEXT(); }
                 RCASE(R_JNZ) if (RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } else pc += 3; RNEXT();
                 RCASE(R_JZ) if (!RSL(1).u.i) { int32_t t_ = pc[2]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } else pc += 3; RNEXT();
-                RCASE(R_FORCHK_I) { bb_int c = L[pc[1]].u.i, l = L[pc[2]].u.i, st = L[pc[3]].u.i; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
-                RCASE(R_FORCHK_L) { bb_long c = L[pc[1]].u.l, l = L[pc[2]].u.l, st = L[pc[3]].u.l; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
-                RCASE(R_FORCHK_D) { double c = L[pc[1]].u.d, l = L[pc[2]].u.d, st = L[pc[3]].u.d; pc = ((st >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; RNEXT(); }
+                RCASE(R_FORCHK_I) { bb_int c = L[pc[1]].u.i, l = L[pc[2]].u.i, st = L[pc[3]].u.i; if ((st >= 0) ? c > l : c < l) pc = code + pc[4]; else { pc += 5; JITENTER() } RNEXT(); }
+                RCASE(R_FORCHK_L) { bb_long c = L[pc[1]].u.l, l = L[pc[2]].u.l, st = L[pc[3]].u.l; if ((st >= 0) ? c > l : c < l) pc = code + pc[4]; else { pc += 5; JITENTER() } RNEXT(); }
+                RCASE(R_FORCHK_D) { double c = L[pc[1]].u.d, l = L[pc[2]].u.d, st = L[pc[3]].u.d; if ((st >= 0) ? c > l : c < l) pc = code + pc[4]; else { pc += 5; JITENTER() } RNEXT(); }
                 RCASE(R_FORINC_I) { bb_value *cv = &L[pc[1]]; int32_t l = L[pc[2]].u.i, st = L[pc[3]].u.i, r = cv->u.i + st;
                     if (BB_UNLIKELY(r < -32768 || r > 32767)) RERR(bb_overflow());
                     cv->u.i = (bb_int)r;
@@ -1020,7 +1031,11 @@ static void vm_exec(VM *vm, int entry)
                     VMProc *p = &img->procs[pidx];
                     bb_value *base = sp;
                     POLL();
-                    for (i = 0; i < n; i++) base[i] = L[pc[4 + i]];
+                    for (i = 0; i < n; i++) {
+                        int32_t o_ = pc[4 + i];
+                        if (o_ >= 0) base[i] = L[o_];
+                        else { bb_value *v_ = &L[-1 - o_]; base[i] = bb_v_ref(v_->type, &v_->u); }
+                    }
                     fr->pc = pc;
                     vm->sp = sp + n;
                     {
@@ -1448,7 +1463,7 @@ static void vm_exec(VM *vm, int entry)
                 bb_value *base = sp - p->nparams;
                 int32_t *ret = pc + 2;
                 SYNC();
-                if (BB_LIKELY(p->rt_tmpl != NULL)) fr = push_plain(vm, p, pidx, base);
+                if (BB_LIKELY(p->rt_plain)) fr = push_plain(vm, p, pidx, base);
                 else { prep_hidden(vm, p, base); fr = push_frame(vm, pidx, base); }
                 fr->ret = ret;
                 pc = fr->pc;
@@ -1898,13 +1913,14 @@ static void prepare(VM *vm)
         if (p->code < 0) continue;
         p->rt_nbyref = 0;
         for (k = 0; k < p->nparams; k++) if (p->param_byref[k]) p->rt_nbyref++;
-        if (p->rt_nbyref) plain = 0;
         for (k = p->nparams; k < p->hidden; k++) {
             VMSlot *sl = &p->slots[k];
             int vt = sl->vt;
             if (sl->isref || sl->ndims || sl->newcls || sl->fixlen || vt == BB_UDT || (vt & BB_ARRAY)) plain = 0;
         }
-        p->rt_plain = plain;
+        /* plain: simple locals; rt_tmpl also serves R_CALLS, which passes every ByRef
+           argument as a reference, so ByRef parameters need no set-up there */
+        p->rt_plain = plain && !p->rt_nbyref;
         p->rt_scalar = 0;
         p->rt_tmpl = NULL;
         if (plain) {
@@ -1917,7 +1933,8 @@ static void prepare(VM *vm)
             }
             for (k = 0; k < p->nlocals; k++) {
                 int vt = p->slots[k].vt;
-                if (p->slots[k].isref || !(vt == BB_INTEGER || vt == BB_LONG || vt == BB_SINGLE || vt == BB_DOUBLE ||
+                int byrefp = k < p->nparams && p->param_byref[k];
+                if ((p->slots[k].isref && !byrefp) || !(vt == BB_INTEGER || vt == BB_LONG || vt == BB_SINGLE || vt == BB_DOUBLE ||
                       vt == BB_BOOLEAN || vt == BB_BYTE || vt == BB_CURRENCY || vt == BB_DATE)) scalar = 0;
             }
             if (p->cls >= 0) scalar = 0;    /* Me holds a reference */
@@ -1939,6 +1956,7 @@ int vm_run(VMImage *img, int argc, char **argv)
     bb_rt_init(argc, argv);
     jit_init();
     if (!img->jitno) img->jitno = (unsigned char *)xcalloc((size_t)img->ncode + 1, 1);
+    if (!img->jitcode) img->jitcode = (bb_jitfn *)xcalloc((size_t)img->ncode + 1, sizeof(bb_jitfn));
     prepare(&vm);
     {
         size_t n = (size_t)(img->stack > 65536 ? img->stack / 16 : 16384);

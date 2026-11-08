@@ -32,24 +32,24 @@ have been measured on the guest.
 
 | benchmark | VM (s) | VM+JIT (s) | native (s) | VM/native | JIT/native | C (s) | native/C | same output |
 |---|---:|---:|---:|---:|---:|---:|---:|:---:|
-| arrays | 0.219 | 0.105 | 0.050 | 4.4x | 2.1x | - | - | yes |
-| calls | 0.156 | 0.154 | 0.015 | 10.2x | 10.1x | - | - | yes |
-| coll | 0.129 | 0.124 | 0.119 | 1.1x | 1.0x | - | - | yes |
-| double_math | 0.294 | 0.077 | 0.030 | 9.7x | 2.6x | 0.019 | 1.6x | yes |
-| fannkuch | 0.096 | 0.045 | 0.027 | 3.6x | 1.7x | 0.016 | 1.7x | yes |
-| fib | 0.063 | 0.065 | 0.012 | 5.4x | 5.5x | 0.007 | 1.6x | yes |
-| fileio | 0.155 | 0.163 | 0.151 | 1.0x | 1.1x | - | - | yes |
-| int_loop | 0.119 | 0.080 | 0.020 | 6.1x | 4.1x | 0.019 | 1.0x | yes |
-| mandelbrot | 0.027 | 0.023 | 0.009 | 3.1x | 2.6x | 0.006 | 1.4x | yes |
-| nbody | 0.325 | 0.191 | 0.025 | 12.9x | 7.5x | 0.013 | 2.0x | yes |
-| objects | 0.208 | 0.210 | 0.024 | 8.5x | 8.6x | - | - | yes |
-| select | 0.122 | 0.119 | 0.018 | 6.8x | 6.6x | - | - | yes |
-| sieve | 0.116 | 0.050 | 0.028 | 4.1x | 1.8x | 0.012 | 2.3x | yes |
-| strings | 0.226 | 0.227 | 0.119 | 1.9x | 1.9x | - | - | yes |
-| udt | 0.088 | 0.055 | 0.010 | 8.9x | 5.6x | - | - | yes |
-| variants | 0.310 | 0.313 | 0.198 | 1.6x | 1.6x | - | - | yes |
-| glimmerfield | 0.328 | 0.323 | 0.059 | 5.5x | 5.5x | - | - | yes |
-| glimmerfield_draw | 0.256 | 0.154 | 0.068 | 3.7x | 2.2x | - | - | yes |
+| arrays | 0.213 | 0.106 | 0.046 | 4.6x | 2.3x | - | - | yes |
+| calls | 0.079 | 0.082 | 0.017 | 4.8x | 5.0x | - | - | yes |
+| coll | 0.122 | 0.122 | 0.118 | 1.0x | 1.0x | - | - | yes |
+| double_math | 0.242 | 0.079 | 0.030 | 8.2x | 2.7x | 0.019 | 1.6x | yes |
+| fannkuch | 0.096 | 0.045 | 0.026 | 3.6x | 1.7x | 0.016 | 1.7x | yes |
+| fib | 0.063 | 0.063 | 0.010 | 6.2x | 6.2x | 0.007 | 1.5x | yes |
+| fileio | 0.156 | 0.153 | 0.147 | 1.1x | 1.0x | - | - | yes |
+| int_loop | 0.116 | 0.079 | 0.019 | 6.1x | 4.1x | 0.019 | 1.0x | yes |
+| mandelbrot | 0.027 | 0.022 | 0.008 | 3.2x | 2.7x | 0.005 | 1.5x | yes |
+| nbody | 0.315 | 0.168 | 0.027 | 11.6x | 6.2x | 0.013 | 2.2x | yes |
+| objects | 0.219 | 0.219 | 0.023 | 9.5x | 9.5x | - | - | yes |
+| select | 0.122 | 0.127 | 0.016 | 7.4x | 7.7x | - | - | yes |
+| sieve | 0.113 | 0.048 | 0.027 | 4.2x | 1.8x | 0.012 | 2.2x | yes |
+| strings | 0.229 | 0.228 | 0.121 | 1.9x | 1.9x | - | - | yes |
+| udt | 0.089 | 0.054 | 0.010 | 9.4x | 5.7x | - | - | yes |
+| variants | 0.308 | 0.314 | 0.198 | 1.6x | 1.6x | - | - | yes |
+| glimmerfield | 0.307 | 0.298 | 0.060 | 5.1x | 4.9x | - | - | yes |
+| glimmerfield_draw | 0.252 | 0.149 | 0.069 | 3.7x | 2.2x | - | - | yes |
 
 `glimmerfield` and `glimmerfield_draw` are the real-world rows: bb-game's Glimmerfield
 (`examples/glimmerfield/Bench.bbp`), 20000 frames of game logic, and 250 frames of logic plus
@@ -85,7 +85,17 @@ Calls and the game (*(Glimmerfield)*):
   piece by piece by compare-and-branch ops (VB evaluates both sides, but nothing can tell);
 - array fields of `Me` are register-form operands (and JIT-compiled), so class methods that
   loop over member arrays run like module code (glimmerfield_draw 0.979 -> 0.256 s);
-- the JIT marks loop heads it cannot compile, so they no longer cost a lookup per back-edge.
+- the JIT marks loop heads it cannot compile, so they no longer cost a lookup per back-edge;
+  compiled loops are found through a per-offset table and entered straight from the For check
+  (nbody's 4-iteration inner loops: VM+JIT 0.191 -> 0.168 s);
+- `R_CALLS` also passes ByRef arguments (local scalar variables of the parameter's type) as
+  references, and such procedures get the fast frame and return;
+- small procedures are inlined: a Sub/Function with ByVal scalar parameters and scalar locals
+  (up to ~160 AST nodes, no On Error/GoSub/labels/With/For Each/ReDim), defined in the same
+  file, called from a procedure without On Error, is compiled into the caller with its locals
+  in fresh slots. The inlined statements keep their own line numbers, so run-time error
+  messages are the same as without inlining (`BOING_NO_INLINE=1` turns it off)
+  (calls 0.136 -> 0.079 s).
 
 What changed in the native back end: array bounds failures go to a `noreturn` function, so
 GCC/clang can keep element addresses in registers across statements (nbody 0.061 -> 0.027 s).

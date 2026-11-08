@@ -1,0 +1,11 @@
+ 1445 
+< 1 >< 2 > 30  2 
+ 3  4 
+flag 3 
+flag 4 
+ 0  500  1.5 
+show 3  .5 
+ 11  3 
+err 0  30000 
+inline.bas:44: runtime error 6: Overflow
+[exit 20]

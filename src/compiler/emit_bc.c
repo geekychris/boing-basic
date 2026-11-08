@@ -20,6 +20,7 @@ typedef struct E {
     VMImage *img;
     Proc *proc;
     VMProc *vp;
+    int inlining;               /* emitting an inlined procedure body */
     int me;                 /* 1 if slot 0 is Me */
     Loop loops[64];
     int nloops;
@@ -833,16 +834,157 @@ static int reg_call_ok(Node *n)
     if (pr->ret && rkind(pr->ret) < 0) return 0;
     for (i = 0; i < pr->nparams; i++) {
         Param *pa = &pr->params[i];
-        if (pa->byref || pa->paramarray || rkind(pa->ty) < 0 || rkind(n->list.v[i]->ty) != rkind(pa->ty)) return 0;
+        Node *x = n->list.v[i];
+        if (pa->paramarray || rkind(pa->ty) < 0 || rkind(x->ty) != rkind(pa->ty)) return 0;
+        /* ByRef: a local scalar variable of exactly the parameter's type (passed as a reference) */
+        if (pa->byref && !(x->kind == E_VAR && !(x->flags & NF_PARENARG) && x->ty->kind == pa->ty->kind &&
+                           (x->sym->storage == ST_LOCAL || x->sym->storage == ST_PARAM))) return 0;
     }
     return 1;
+}
+
+/* ---------- inlining small procedures ----------
+ * A call to a small Sub/Function with ByVal scalar parameters and scalar locals, defined in
+ * the same file, is compiled as its body with the callee's locals moved to fresh slots of the
+ * caller. Only when the caller has no On Error (nothing can Resume inside the inlined code);
+ * the inlined statements keep their own line numbers, so error messages name the same line
+ * as without inlining. */
+static void block(E *e, NodeList *l);
+static int scalar_local_type(Type *t)
+{
+    switch (t->kind) {
+    case T_INTEGER: case T_LONG: case T_SINGLE: case T_DOUBLE: case T_BOOLEAN: case T_BYTE: return 1;
+    default: return 0;
+    }
+}
+
+/* count nodes; 0 if the body has statements that need a frame of their own */
+static int inl_size(Node *n, int depth)
+{
+    int i, c = 1, k;
+    if (!n) return 0;
+    if (depth > 40) return -1000;
+    switch (n->kind) {
+    case S_FOREACH: case S_WITH: case S_ONERROR: case S_RESUME: case S_GOSUB: case S_RETURN:
+    case S_GOTO: case S_LABEL: case S_REDIM: case S_ERASE: case S_DIM:
+        return -1000;
+    default: break;
+    }
+    if (n->kind == E_LATE || n->kind == E_MCALL) return -1000;
+    k = inl_size(n->a, depth + 1); c += k;
+    k = inl_size(n->b, depth + 1); c += k;
+    k = inl_size(n->c, depth + 1); c += k;
+    k = inl_size(n->d, depth + 1); c += k;
+    for (i = 0; i < n->list.n; i++) c += inl_size(n->list.v[i], depth + 1);
+    for (i = 0; i < n->list2.n; i++) c += inl_size(n->list2.v[i], depth + 1);
+    return c;
+}
+
+static int inline_ok(E *e, Node *n)
+{
+    Proc *pr = n->proc;
+    int i, size = 0;
+    if (e->inlining || e->proc->has_onerror || e->used_keep || getenv("BOING_NO_INLINE")) return 0;
+    if (pr == e->proc || pr->cls || !pr->defined || (pr->kind != PK_SUB && pr->kind != PK_FUNCTION)) return 0;
+    if (pr->has_onerror || pr->has_resume || pr->has_gosub || pr->has_labels || pr->nlabels) return 0;
+    if (pr->mod->file != e->proc->mod->file || n->list.n != pr->nparams) return 0;
+    for (i = 0; i < pr->nparams; i++) {
+        Param *pa = &pr->params[i];
+        if (pa->byref || pa->optional || pa->paramarray || rkind(pa->ty) < 0) return 0;
+    }
+    if (pr->ret && rkind(pr->ret) < 0) return 0;
+    for (i = 0; i < pr->nlocals; i++) {
+        Sym *l = pr->locals[i];
+        if (l->storage != ST_LOCAL && l->storage != ST_PARAM) continue;
+        if (l->byref || l->fixed_array || !scalar_local_type(l->ty)) return 0;
+    }
+    for (i = 0; i < pr->body.n; i++) size += inl_size(pr->body.v[i], 0);
+    return size > 0 && size <= 160;
+}
+
+static int new_slot(E *e, Type *t)
+{
+    int s = e->vp->nlocals++;
+    e->vp->slots = (VMSlot *)xrealloc(e->vp->slots, sizeof(VMSlot) * (size_t)(e->vp->nlocals + 1));
+    fill_slot(&e->vp->slots[s], NULL, t);
+    e->vp->slots[s].name = "$inl";
+    return s;
+}
+
+static void zero_slot(E *e, int slot, Type *t)
+{
+    switch (t->kind) {
+    case T_INTEGER: op2(e, I_R_MOVI_I, slot, 0); return;
+    case T_LONG: op2(e, I_R_MOVI_L, slot, 0); return;
+    case T_DOUBLE: op2(e, I_R_MOVK, slot, add_const(e, bb_v_double(0))); return;
+    case T_SINGLE: op2(e, I_R_MOVK, slot, add_const(e, bb_v_single(0))); return;
+    case T_BOOLEAN: op2(e, I_R_MOVK, slot, add_const(e, bb_v_bool(0))); return;
+    default: op2(e, I_R_MOVK, slot, add_const(e, bb_v_byte(0))); return;
+    }
+}
+
+/* inline the call n; returns the slot holding the result (functions) or -1 */
+static int inline_call(E *e, Node *n)
+{
+    Proc *pr = n->proc;
+    int i, *saved = (int *)xcalloc((size_t)pr->nlocals + 1, sizeof(int));
+    int *slots = (int *)xcalloc((size_t)pr->nlocals + 1, sizeof(int));
+    int ret = -1, caller_line = e->nlines ? e->lines[e->nlines - 1].line : n->line;
+    Patch exitp = e->exitp;
+    /* arguments first (left to right), into the new parameter slots */
+    for (i = 0; i < pr->nlocals; i++) {
+        Sym *l = pr->locals[i];
+        if (l->storage != ST_LOCAL && l->storage != ST_PARAM) continue;
+        slots[i] = new_slot(e, l->ty);
+    }
+    for (i = 0; i < pr->nparams; i++) rx(e, n->list.v[i], slots[i]);
+    for (i = 0; i < pr->nlocals; i++) {
+        Sym *l = pr->locals[i];
+        if (l->storage != ST_LOCAL && l->storage != ST_PARAM) continue;
+        saved[i] = l->index;
+        if (i >= pr->nparams) zero_slot(e, slots[i], l->ty);
+        l->index = slots[i] - e->me;
+        if (l == pr->retvar) ret = slots[i];
+    }
+    memset(&e->exitp, 0, sizeof e->exitp);
+    e->inlining = 1;
+    block(e, &pr->body);
+    e->inlining = 0;
+    patch_all(e, &e->exitp, here(e));
+    free(e->exitp.v);
+    e->exitp = exitp;
+    for (i = 0; i < pr->nlocals; i++) {
+        Sym *l = pr->locals[i];
+        if (l->storage != ST_LOCAL && l->storage != ST_PARAM) continue;
+        l->index = saved[i];
+    }
+    /* back to the caller's line */
+    {
+        Node ln;
+        memset(&ln, 0, sizeof ln);
+        ln.line = caller_line;
+        line(e, &ln);
+    }
+    free(saved);
+    free(slots);
+    return ret;
 }
 
 static int rx(E *e, Node *n, int dst);
 static void reg_call(E *e, Node *n, int dst)
 {
     int s[4] = {0, 0, 0, 0}, i;
-    for (i = 0; i < n->list.n; i++) s[i] = rx(e, n->list.v[i], -1);
+    if (inline_ok(e, n)) {
+        int r = inline_call(e, n);
+        if (dst >= 0 && r >= 0) op2(e, I_R_MOV, dst, r);
+        return;
+    }
+    for (i = 0; i < n->list.n; i++) {
+        Node *x = n->list.v[i];
+        if (!n->proc->params[i].byref) s[i] = rx(e, x, -1);
+        else if (is_ref_slot(x->sym)) s[i] = slot_of(e, x->sym);      /* already a reference: pass it on */
+        else s[i] = -1 - slot_of(e, x->sym);                           /* a reference to this slot */
+    }
     emit_w(e, I_R_CALLS); emit_w(e, n->proc->index); emit_w(e, dst);
     emit_w(e, n->list.n); for (i = 0; i < 4; i++) emit_w(e, s[i]);
 }
