@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#ifdef __amigaos4__
+#include <proto/dos.h>
+#endif
 
 #ifndef BOING_VERSION
 #define BOING_VERSION "0.1"
@@ -51,9 +54,18 @@ static char *exe_dir(const char *argv0)
 #ifdef __amigaos4__
     /* AmigaOS: PROGDIR: is the directory boing was loaded from (no PATH variable, and "."
        isn't the current directory there); the BOING: assign, if any, wins */
-    (void)argv0; (void)buf; (void)slash;
-    if (access("BOING:include/boing.h", R_OK) == 0) return xstrdup("BOING:");
-    return xstrdup("PROGDIR:");
+    (void)argv0; (void)slash;
+    {
+        /* gcc and its tools don't know PROGDIR: (it's per process): hand them the real path */
+        const char *assign = access("BOING:include/boing.h", R_OK) == 0 ? "BOING:" : "PROGDIR:";
+        BPTR l = IDOS->Lock(assign, SHARED_LOCK);
+        if (l && IDOS->NameFromLock(l, buf, sizeof buf)) {
+            IDOS->UnLock(l);
+            return xstrdup(buf);
+        }
+        if (l) IDOS->UnLock(l);
+        return xstrdup(assign);
+    }
 #endif
     if (strchr(argv0, '/') || strchr(argv0, ':')) snprintf(buf, sizeof buf, "%s", argv0);
     else {
@@ -105,7 +117,8 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
         size_t dl = strlen(dir);
         const char *sep = dl && (dir[dl - 1] == ':' || dir[dl - 1] == '/') ? "" : "/";
         inc = xsprintf("%s%sinclude", dir, sep);
-        lib = xsprintf("%s", dir);
+        /* libboing.a in <dir>/lib/ (BOING:lib/, docs/os4.md) or beside boing */
+        lib = file_exists(xsprintf("%s%slib/libboing.a", dir, sep)) ? xsprintf("%s%slib", dir, sep) : xsprintf("%s", dir);
     }
     if (!file_exists(xsprintf("%s/boing.h", inc))) {
         /* installed layout: bin/boing, lib/libboing.a, include/boing/boing.h */
