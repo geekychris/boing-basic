@@ -30,7 +30,9 @@ reports them (BB_KILL_REAPERS=1 closes them).
 Guests: BB_GUEST=local (default, devbench :3010), m1 (:3020, QEMU on m1.local), spark (:3032,
 QEMU on spark.local): each its own lock and queue (/tmp/amiga-emu[-m1|-spark].lock/.queue); for
 remote ones the fast-deploy HTTP server runs on that machine over ssh (port 18780 on its loopback).
-Overrides: OS4_MCP, OS4_LOCK, OS4_QUEUE, OS4_SSH, OS4_REMOTE_HTTP_PORT.
+Overrides: OS4_MCP, OS4_LOCK, OS4_QUEUE, OS4_SSH, OS4_REMOTE_HTTP_PORT. On remote guests every
+push goes over HTTP once bbfetch is there (their devbench reads amiga_push_file/amiga_pull_file
+paths on the remote machine; bridge pushes copy the file there first).
 
 Env: OS4_MCP (default http://localhost:3010/mcp; :3000 can be shadowed, see amiga_mcp memory),
 AMIGA_MCP (the amiga_mcp checkout, for scripts/claude_busy.py), BB_BANNER=0 to skip the banner
@@ -330,7 +332,9 @@ def have_fetch(m):
 def push(m, local, dest):
     mkdirs(m, dest)
     size = os.path.getsize(local)
-    if size >= HTTP_MIN and have_fetch(m):
+    # a remote guest's devbench reads amiga_push_file's local_path on ITS machine: use HTTP for
+    # every size there (bridge_push copies the file over first when it has to)
+    if (size >= HTTP_MIN or SSH) and have_fetch(m):
         return http_push(m, local, dest)
     if size > BRIDGE_MAX and os.environ.get("BB_FORCE_BRIDGE") != "1":
         raise RuntimeError("%s is %d bytes: too big for the serial bridge (it has killed the guest); "
@@ -354,7 +358,19 @@ def bridge_push(m, local, dest):
             f.write(b"\0" * pad)
         src = tmp.name
     try:
-        return m.tool("amiga_push_file", local_path=os.path.abspath(src), amiga_path=dest)
+        path = os.path.abspath(src)
+        if SSH:
+            # devbench runs on the remote machine and reads the file there
+            import subprocess
+            d = "/tmp/os4serve-%s" % os.environ.get("USER", "bb")
+            rpath = "%s/bridge-%d-%s" % (d, os.getpid(), os.path.basename(local))
+            _ssh("mkdir -p %s" % d)
+            subprocess.run(["scp", "-q", "-o", "BatchMode=yes", path, "%s:%s" % (SSH, rpath)], check=True)
+            try:
+                return m.tool("amiga_push_file", local_path=rpath, amiga_path=dest)
+            finally:
+                _ssh("rm -f %s" % rpath)
+        return m.tool("amiga_push_file", local_path=path, amiga_path=dest)
     finally:
         if tmp:
             os.unlink(tmp.name)
