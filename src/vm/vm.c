@@ -1034,8 +1034,8 @@ static void vm_exec(VM *vm, int entry)
                 RCASE(R_JMP) { int32_t t_ = pc[1]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } RNEXT();
                 RCASE(R_SQRT_D) { double x = RSL(2).u.d; if (BB_UNLIKELY(x < 0)) RERR(bb_raise(5, NULL)); SETD(pc[1], sqrt(x)); pc += 3;
                     /* a JIT without a square root instruction stops at Sqr: continue in the compiled rest */
-                    if (BB_UNLIKELY(jit_on)) { int32_t rp_ = (int32_t)(pc - code); bb_jitfn j0_ = img->jitcode[rp_];
-                        if (!j0_ && !img->jitno[rp_]) j0_ = jit_hot(img, fr->proc, rp_);
+                    if (BB_UNLIKELY(jit_on) && !img->jitno[pc - code]) { int32_t rp_ = (int32_t)(pc - code); bb_jitfn j0_ = img->jitcode[rp_];
+                        if (!j0_) j0_ = jit_hot(img, fr->proc, rp_);
                         JITCHAIN(rp_, j0_) }
                     RNEXT(); }
                 RCASE(R_CALLS) {
@@ -1091,8 +1091,8 @@ static void vm_exec(VM *vm, int entry)
                         L = fr->base;
                         pc = ret;
                         /* back in a loop body that was cut by this call: its compiled rest */
-                        if (BB_UNLIKELY(jit_on)) { int32_t rp_ = (int32_t)(ret - code); bb_jitfn j0_ = img->jitcode[rp_];
-                            if (!j0_ && !img->jitno[rp_]) j0_ = jit_hot(img, fr->proc, rp_);
+                        if (BB_UNLIKELY(jit_on) && !img->jitno[ret - code]) { int32_t rp_ = (int32_t)(ret - code); bb_jitfn j0_ = img->jitcode[rp_];
+                            if (!j0_) j0_ = jit_hot(img, fr->proc, rp_);
                             JITCHAIN(rp_, j0_) }
                         RNEXT();
                     }

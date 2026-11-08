@@ -110,7 +110,31 @@ Calls and the game (*(Glimmerfield)*):
 What changed in the native back end: array bounds failures go to a `noreturn` function, so
 GCC/clang can keep element addresses in registers across statements (nbody 0.061 -> 0.027 s).
 
-### macOS, baseline before VM work (2026-11-07)
+### AmigaOS 4 guest (QEMU sam460ex, PPC JIT), 2026-11-08
+
+Wall-clock seconds per `boing run` through the devbench bridge, which adds about 3.9 s per
+command (`boing --version` takes 4.1 s), so the second pair of columns subtracts that. One
+run each, on a shared emulator (other agents' jobs run between), so expect +-20 %. Output
+is identical with and without the JIT for every program.
+
+| benchmark | VM (wall) | VM+JIT (wall) | VM (net) | VM+JIT (net) | JIT speed-up |
+|---|---:|---:|---:|---:|---:|
+| int_loop | 7.5 | 5.5 | 3.6 | 1.6 | 2.3x |
+| double_math | 20.1 | 12.3 | 16.2 | 8.4 | 1.9x |
+| sieve | 6.8 | 4.9 | 2.9 | 1.0 | 2.9x |
+| nbody | 28.1 | 18.3 | 24.2 | 14.4 | 1.7x |
+| fannkuch | 7.2 | 5.8 | 3.3 | 1.9 | 1.7x |
+| calls | 8.4 | 7.5 | 4.5 | 3.6 | 1.3x |
+| fib | 6.6 | 8.3 | 2.7 | 4.4 | 0.6x |
+| mandelbrot | 6.8 | 6.6 | (too short to measure through the bridge) | | |
+
+fib has no loops: the JIT only adds checks at calls and returns, so it gains nothing (and the
+measured loss is larger than on the Mac, 6 %, partly noise). The JIT test suite on the guest
+(BOING_JIT_THRESHOLD=1, every loop compiled, 41 single-file tests incl. tests/jit/edges.bas)
+matches the expected output except for bridge capture artefacts (trailing blanks, stderr,
+stdin redirection); it found one PPC bug, Single stores truncating (fixed: frsp before stfs).
+
+ (2026-11-07)
 
 | benchmark | VM (s) | native (s) | VM/native | C (s) | native/C | same output |
 |---|---:|---:|---:|---:|---:|:---:|
