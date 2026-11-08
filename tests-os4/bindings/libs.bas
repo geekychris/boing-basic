@@ -34,8 +34,8 @@ Private Sub TestExec()
     p = AllocVecTagList(256, TagList(AVT_Type, MEMF_PRIVATE, AVT_ClearWithValue, 0))
     Check p <> 0, "exec AllocVecTagList(256, TagList(AVT_Type, MEMF_PRIVATE, AVT_ClearWithValue, 0))"
     Check PeekL(p) = 0 And PeekL(p + 252) = 0, "the block is cleared"
-    PokeL p, &H12345678: PokeW p + 4, &HBEEF: PokeB p + 6, 65
-    Check PeekL(p) = &H12345678 And PeekW(p + 4) = &HBEEF And PeekB(p + 6) = 65, "PokeL/W/B and PeekL/W/B round trip"
+    PokeL p, &H12345678: PokeW p + 4, &HBEEF&: PokeB p + 6, 65
+    Check PeekL(p) = &H12345678 And PeekW(p + 4) = &HBEEF& And PeekB(p + 6) = 65, "PokeL/W/B and PeekL/W/B round trip"
     Check PeekB(p) = &H12, "big-endian byte order"
     q = AllocVecTagList(256, TagList(AVT_Type, MEMF_PRIVATE, AVT_ClearWithValue, 0))
     CopyMem p, q, 7
@@ -67,6 +67,7 @@ Private Sub TestDos()
     Check NameFromLock(lk, buf, 256) <> 0, "dos NameFromLock"
     Check LCase(Right(RTrim(Replace(buf, Chr(0), " ")), 15)) = "boing_bind_test", "the name ends in boing_bind_test"
     Dos_UnLock lk
+    k = IoErr()                ' (the first call of a Declare opens its library, which sets IoErr)
     Check Dos_Lock("T:boing_no_such_file", SHARED_LOCK) = 0, "Lock of a missing file = 0"
     Check IoErr() = ERROR_OBJECT_NOT_FOUND, "IoErr() = ERROR_OBJECT_NOT_FOUND"
     Kill "T:boing_bind_test"
@@ -89,7 +90,7 @@ Private Sub TestUtility()
     ti = FindTagItem(&H80001001, tags)
     Check ti <> 0 And PeekL(ti) = &H80001001 And PeekL(ti + 4) = 42, "utility FindTagItem -> struct TagItem"
     cd = AllocMem(14, True)
-    Amiga2Date 86400 * 366 + 3600 * 13 + 60 * 5 + 9, cd   ' 1979-01-02 13:05:09
+    Amiga2Date 86400& * 366 + 3600& * 13 + 60 * 5 + 9, cd   ' 1979-01-02 13:05:09
     Check PeekW(cd) = 9 And PeekW(cd + 2) = 5 And PeekW(cd + 4) = 13, "utility Amiga2Date: 13:05:09"
     Check PeekW(cd + 6) = 2 And PeekW(cd + 8) = 1 And PeekW(cd + 10) = 1979, "and 2.1.1979"
     FreeMem cd

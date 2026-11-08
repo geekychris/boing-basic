@@ -36,9 +36,12 @@ TEST_BINS := $(patsubst tests/os4/%.c,$(OUT)/tests/%,$(TEST_SRCS))
 
 all: $(OUT)/libboing.a $(if $(MAIN_SRCS),$(OUT)/boing) $(TEST_BINS)
 
+# -MMD: rebuild objects when a header or .def they include changes (builtins.def!)
 $(OUT)/obj/%.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+-include $(RT_OBJS:.o=.d) $(TOOL_OBJS:.o=.d)
 
 $(OUT)/libboing.a: $(RT_OBJS)
 	@mkdir -p $(dir $@)
