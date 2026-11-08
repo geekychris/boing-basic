@@ -1,5 +1,6 @@
 /* jit.c - region selection, translation of register ops, code memory, cache (docs/jit.md) */
 #include "jit.h"
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -790,8 +791,27 @@ static JE *find(int32_t off)
     }
 }
 
+int jit_logging;
+static FILE *jit_logf;
+static int jit_loglines;
+void jit_log(const char *fmt, ...)
+{
+    va_list ap;
+    if (!jit_logf || jit_loglines++ > 500) return;
+    va_start(ap, fmt);
+    vfprintf(jit_logf, fmt, ap);
+    va_end(ap);
+    fputc('\n', jit_logf);
+    fflush(jit_logf);
+}
+
 void jit_init(void)
 {
+    if (getenv("BOING_JIT_LOG") && !jit_logf) {
+        jit_logf = fopen(getenv("BOING_JIT_LOG"), "w");
+        jit_logging = jit_logf != NULL;
+        jit_log("jit log: backend %s", JIT_HOST_BACKEND ? JIT_HOST_BACKEND->name : "none");
+    }
     const char *e = getenv("BOING_JIT");
     const char *th = getenv("BOING_JIT_THRESHOLD");
     if (getenv("BOING_JIT_NOSQRT")) jit_no_fsqrt = atoi(getenv("BOING_JIT_NOSQRT")) != 0;
@@ -810,10 +830,12 @@ bb_jitfn jit_get(VMImage *img, VMProc *p, int32_t start)
     if (e->state == 1) return e->fn;
     if (e->state == 2) return NULL;
     a = (JA *)calloc(1, sizeof(JA));
+    jit_log("compile %s @%ld", p->name, (long)start);
     if (jit_compile_region(be, img, p, start, a, NULL)) {
         e->fn = (bb_jitfn)install(a);
         e->state = e->fn ? 1 : 2;
     } else e->state = 2;
+    jit_log("  -> %s, %d bytes at %p", e->state == 1 ? "compiled" : "not compiled", a->n, (void *)e->fn);
     if (e->state == 2 && img->jitno) img->jitno[start] = 1;
     if (e->state == 1 && img->jitcode) img->jitcode[start] = e->fn;
     if (getenv("BOING_JIT_TRACE"))

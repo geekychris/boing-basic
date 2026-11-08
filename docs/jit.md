@@ -70,6 +70,9 @@ RUNFLAGS=--jit tools/os4-core-tests.sh                           # OS4 guest
 The JIT must give byte-identical output to the interpreter on the whole suite. `make bench`
 has a VM+JIT column (docs/performance.md).
 
-`BOING_JIT_TRACE=1` prints every region compiled. `BOING_JIT_NOSQRT=1` makes the host JIT
+`BOING_JIT_TRACE=1` prints every region compiled. `BOING_JIT_LOG=file` writes each compile
+(code address, size) and the first calls into compiled code (entry, context, return pc) to a
+file, flushed per line, so the log survives a crash (for the guest, which has no debugger
+attached). `BOING_JIT_NOSQRT=1` makes the host JIT
 compile as for a CPU without `fsqrt` (the PPC region shapes), to test them on the Mac:
 `BOING_JIT_NOSQRT=1 make test`.

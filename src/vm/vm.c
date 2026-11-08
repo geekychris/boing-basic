@@ -686,7 +686,11 @@ static void vm_poll(VM *vm)
 /* run compiled code from loop head bt_ (jf_ its code), and on into other compiled loop
    heads it leaves for (an outer loop) */
 #define JITCHAIN(bt0_, jf0_) { int32_t bt_ = (bt0_); bb_jitfn jf_ = (jf0_); \
-    while (jf_) { int32_t np_; jc.L = L; np_ = jf_(&jc); pc = code + np_; \
+    while (jf_) { int32_t np_; jc.L = L; \
+        if (BB_UNLIKELY(jit_logging)) jit_log("call @%ld fn=%p ctx=%p L=%p", (long)bt_, (void *)jf_, (void *)&jc, (void *)L); \
+        np_ = jf_(&jc); \
+        if (BB_UNLIKELY(jit_logging)) jit_log("ret %ld", (long)np_); \
+        pc = code + np_; \
         if (np_ == bt_ || bb_poll_count < 0) break; \
         jf_ = img->jitcode[np_]; \
         if (!jf_ && !img->jitno[np_]) jf_ = jit_hot(img, fr->proc, np_); \

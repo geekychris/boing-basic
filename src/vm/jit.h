@@ -118,5 +118,9 @@ int jit_enabled(void);
 void jit_set_enabled(int on);
 extern int jit_threshold;
 extern int jit_no_fsqrt;
+/* BOING_JIT_LOG=file: compiles and the first calls into compiled code, flushed per line
+   (survives a crash; for debugging a JIT on a machine without a debugger) */
+void jit_log(const char *fmt, ...);
+extern int jit_logging;
 
 #endif
