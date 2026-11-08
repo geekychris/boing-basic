@@ -1,0 +1,7 @@
+# Boing BASIC project: console benchmark of the Glimmerfield game logic
+Name=GlimmerBench
+Startup=Sub Main
+Module=Game.bas
+Module=Perf.bas
+Module=BenchMain.bas
+Stack=262144
