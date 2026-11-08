@@ -16,7 +16,10 @@ return, `Sqr` on a backend without a square root instruction (PPC). Single arith
 compiled as double arithmetic followed by VB's range check (an exit) and a rounding store
 (`lfs`/`stfs` on PPC, `fcvt` on arm64), exactly what the interpreter and the C back end do.
 Module-level scalars and scalar fields of `Me` are operands too.
-A loop body cut by a call or `Sqr` is compiled in pieces: from the loop head to the call,
+A loop body cut by a call or `Sqr` is compiled in pieces (each piece that is not a whole loop
+needs at least `BOING_JIT_MINOPS` register ops, default 8: on the QEMU guest every entry into
+and exit from compiled code is expensive, and short pieces between calls made call-heavy code
+slower): from the loop head to the call,
 and from the instruction after the call (a *resume point*: the VM looks there for compiled
 code when the call returns or after it computed `Sqr`) to the back-edge, which continues in
 the loop head's code. Compiled loops are also entered straight from their `For` check. A
