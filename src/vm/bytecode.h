@@ -6,7 +6,7 @@
 #include "../runtime/boing.h"
 
 #define BBC_MAGIC "BBC1"
-#define BBC_VERSION 1
+#define BBC_VERSION 2
 
 /* OP(name, number of operand words) */
 #define BB_OPCODES(OP) \
@@ -158,6 +158,10 @@ typedef struct VMImage {
     int32_t nmodules;
     int32_t startup;            /* proc index */
     int32_t stack;
+    int32_t nforms;             /* forms: module index, window name, .afg text and path */
+    int32_t *form_mod;
+    char **form_name, **form_afg, **form_path;
+    int32_t startup_form;       /* index into forms, -1 = none */
 } VMImage;
 
 extern const char *const bb_opnames[];

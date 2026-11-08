@@ -352,6 +352,7 @@ struct Module {
     Proc **procs; int nprocs;
     char **form_controls; int ncontrols;   /* .afg ids */
     char *form_name;
+    char *afg_path;
     int index;
 };
 
@@ -377,6 +378,7 @@ struct Program {
 };
 
 Program *prog_new(void);
+char *read_file(const char *path, long *len);   /* malloc'ed, NUL terminated; NULL if unreadable */
 Module *prog_add_source(Program *p, const char *path, const char *src, int is_class);
 int prog_load_file(Program *p, const char *path);      /* .bas/.cls/.bbp */
 int prog_compile(Program *p);                           /* parse + sema; 0 = errors */

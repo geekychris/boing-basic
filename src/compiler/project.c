@@ -13,7 +13,7 @@ Program *prog_new(void)
     return p;
 }
 
-static char *read_file(const char *path, long *len)
+char *read_file(const char *path, long *len)
 {
     FILE *f = fopen(path, "rb");
     char *b;
@@ -170,7 +170,9 @@ static int load_project(Program *p, const char *path)
             if (!load_source(p, bas, 0)) continue;
             m = p->mods[p->nmods - 1];
             m->is_form = 1;
+            m->afg_path = xstrdup(afg);
             read_afg(p, m, afg);
+            if (!m->form_name) m->form_name = xstrdup(m->name);
         } else if (name_eq(key, "Startup")) startup = xstrdup(val);
         else if (name_eq(key, "Stack")) p->stack = atoi(val);
         else if (name_eq(key, "Icon") || name_eq(key, "Uses") || name_eq(key, "Version") || name_eq(key, "Title")) {

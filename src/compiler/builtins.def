@@ -124,3 +124,5 @@ BI(APPTITLE, "__App.Title", T_STRING, 0, 0, "", "", "bb_app_title", BIF_NOARGS_O
 BI(CLIPGET, "__Clipboard.GetText", T_STRING, 0, 1, "", "", "bb_clipboard_get", BIF_NOARGS_OK, RS(bb_clipboard_get()))
 BI(CLIPSET, "__Clipboard.SetText", T_VOID, 1, 2, "s", "", "bb_clipboard_set", BIF_SUB, RN(bb_clipboard_set(S(0))))
 BI(CLIPCLEAR, "__Clipboard.Clear", T_VOID, 0, 0, "", "", "bb_clipboard_clear", BIF_SUB | BIF_NOARGS_OK, RN(bb_clipboard_clear()))
+BI(LOADF, "Load", T_VOID, 1, 1, "v", "", "bb_form_load_obj", BIF_SUB, RN(bb_form_load_obj(V(0))))
+BI(UNLOADF, "Unload", T_VOID, 1, 1, "v", "", "bb_form_unload_obj", BIF_SUB, RN(bb_form_unload_obj(V(0))))

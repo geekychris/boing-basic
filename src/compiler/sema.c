@@ -1356,6 +1356,11 @@ int sema_program(Program *p)
             s->line = 1;
             scope_add(m->scope, s);
             add_global(p, s);
+            /* the form itself is visible from every module: other.Show */
+            if (m->form_name && name_eq(m->form_controls[k], m->form_name) && !scope_find_local(p->global, s->name)) {
+                s->is_public = 1;
+                scope_add(p->global, s);
+            }
         }
     }
     /* module main programs */

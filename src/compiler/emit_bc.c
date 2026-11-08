@@ -1231,5 +1231,24 @@ VMImage *emit_bytecode(Program *p)
         emit_proc(e, pr, &g->procs[i]);
     }
     g->startup = p->startup_proc ? p->startup_proc->index : -1;
+    /* forms */
+    g->startup_form = -1;
+    g->form_mod = (int32_t *)xcalloc((size_t)p->nmods + 1, sizeof(int32_t));
+    g->form_name = (char **)xcalloc((size_t)p->nmods + 1, sizeof(char *));
+    g->form_afg = (char **)xcalloc((size_t)p->nmods + 1, sizeof(char *));
+    g->form_path = (char **)xcalloc((size_t)p->nmods + 1, sizeof(char *));
+    for (i = 0; i < p->nmods; i++) {
+        Module *m = p->mods[i];
+        char *text;
+        if (!m->is_form) continue;
+        text = read_file(m->afg_path, NULL);
+        if (!text) { diag(p, m->file, 1, 1, "cannot read form file '%s'", m->afg_path); continue; }
+        if (p->startup == m && !p->startup_proc) g->startup_form = g->nforms;
+        g->form_mod[g->nforms] = i;
+        g->form_name[g->nforms] = m->form_name;
+        g->form_afg[g->nforms] = text;
+        g->form_path[g->nforms] = m->afg_path;
+        g->nforms++;
+    }
     return p->nerrors ? NULL : g;
 }

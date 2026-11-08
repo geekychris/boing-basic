@@ -568,6 +568,18 @@ int bb_dispatch_event(const char *module, const char *object, const char *event,
                       int argc, bb_value *argv);
 
 /* ------------------------------------------------------------------ */
+/* Forms (forms_rt.c, on the platform's bb_forms.h)                     */
+/* ------------------------------------------------------------------ */
+
+/* Called at start-up for every form of the project, before the startup code. */
+void bb_forms_register(const char *module, const char *form_name, const char *afg_text, const char *afg_path);
+int bb_forms_register_file(const char *module, const char *form_name, const char *afg_path);
+void bb_forms_main(const char *module);       /* Startup=Form x */
+void bb_form_load_obj(const bb_value *form);  /* Load x */
+void bb_form_unload_obj(const bb_value *form);/* Unload x */
+void bb_forms_shutdown_(void);
+
+/* ------------------------------------------------------------------ */
 /* Console and Print                                                    */
 /* ------------------------------------------------------------------ */
 

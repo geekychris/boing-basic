@@ -446,6 +446,8 @@ static void vm_call_proc(VM *vm, int32_t pidx, bb_obj *me, int argc, bb_value *a
     VMProc *p = &vm->img->procs[pidx];
     bb_value *base = vm->sp;
     int i, k = 0, me1 = p->cls >= 0 ? 1 : 0;
+    bb_value back[16];          /* ByRef through a reference of another type: copied back */
+    int nback = 0, backi[16];
     if (p->code < 0) bb_raise(35, NULL);
     if (argc > p->nparams - me1) bb_raise(450, NULL);
     if (base + p->nlocals + 64 >= vm->stack_end) bb_raise(28, NULL);
@@ -464,6 +466,13 @@ static void vm_call_proc(VM *vm, int32_t pidx, bb_obj *me, int argc, bb_value *a
             continue;
         }
         vm->sp = base + k;
+        if (p->param_byref[k] && (a->type & BB_REF) && nback < 16 && !(vt & BB_ARRAY) && vt != BB_UDT) {
+            back[nback] = vt == BB_VARIANT ? bb_v_dup(bb_v_deref(a, &tmp)) : bb_v_convert(a, vt);
+            backi[nback] = i;
+            base[k] = bb_v_ref((uint16_t)vt, raw(&back[nback], vt));
+            nback++;
+            continue;
+        }
         if (vt == BB_VARIANT) base[k] = bb_v_dup(bb_v_deref(a, &tmp));
         else if (vt & BB_ARRAY) {
             const bb_value *d = bb_v_deref(a, &tmp);
@@ -482,6 +491,10 @@ static void vm_call_proc(VM *vm, int32_t pidx, bb_obj *me, int argc, bb_value *a
     /* result left at base[0] for functions */
     if (p->ret_slot >= 0) { *ret = *base; vm->sp = base; }
     else vm->sp = base;
+    for (i = 0; i < nback; i++) {
+        bb_v_store_ref(&argv[backi[i]], &back[i]);
+        bb_v_release(&back[i]);
+    }
 }
 
 /* ---------- arithmetic helpers ---------- */
@@ -1459,7 +1472,10 @@ int vm_run(VMImage *img, int argc, char **argv)
         bb_frame_push(&f);
         if (setjmp(f.jb) == 0) {
             for (i = 0; i < img->nglobals; i++) init_slot(&vm, &vm.globals[i], &img->globals[i]);
-            if (img->startup >= 0) {
+            for (i = 0; i < img->nforms; i++)
+                bb_forms_register(img->modules[img->form_mod[i]], img->form_name[i], img->form_afg[i], img->form_path[i]);
+            if (img->startup_form >= 0) bb_forms_main(img->modules[img->form_mod[img->startup_form]]);
+            else if (img->startup >= 0) {
                 bb_value r = bb_v_empty();
                 vm_call_proc(&vm, img->startup, NULL, 0, NULL, &r);
                 bb_v_release(&r);

@@ -1759,6 +1759,22 @@ static void emit_wrapper(EC *e, Proc *pr)
         else if (pr->ret) buf_printf(o, "    { %s r = %s; bb_udt_clear(&%s_desc, &r); bb_raise(458, NULL); }\n", udt_cname(pr->ret->udt), call.p, udt_cname(pr->ret->udt));
         else buf_printf(o, "    %s;\n", call.p);
     }
+    /* ByRef through a reference of another type (an event's Long for an Integer
+     * parameter): copy the value back, as VB does for ByRef Variants */
+    for (i = 0; i < pr->nparams; i++) {
+        Param *pa = &pr->params[i];
+        Type *t = pa->ty;
+        char *cp;
+        if (!pa->byref || t->kind == T_UDT || t->kind == T_ARRAY) continue;
+        switch (t->kind) {
+        case T_STRING: cp = xsprintf("bb_v_str(bb_str_retain(v%d))", i); break;
+        case T_OBJECT: cp = xsprintf("bb_v_obj(bb_obj_retain(v%d))", i); break;
+        case T_VARIANT: cp = xsprintf("bb_v_dup(&v%d)", i); break;
+        default: cp = to_variant(t, xsprintf("v%d", i));
+        }
+        buf_printf(o, "    if (argc > %d && (argv[%d].type & BB_REF) && a%d == &v%d) { bb_value cb = %s; bb_v_store_ref(&argv[%d], &cb); bb_v_release(&cb); }\n",
+                   i, i, i, i, cp, i);
+    }
     for (i = 0; i < pr->nparams; i++) {
         Param *pa = &pr->params[i];
         char *r;
@@ -2132,7 +2148,20 @@ int emit_c(Program *p, Buf *outb, int debug)
         Sym *s = p->globals[i];
         if (s->is_new) buf_printf(outb, "    %s = %s;\n", sym_cname(e, s), s->ty->cls->builtin ? "bb_collection_new()" : xsprintf("%s_new()", cls_cname(s->ty->cls)));
     }
-    if (p->startup_proc) buf_printf(outb, "    %s();\n", proc_cname(p->startup_proc));
+    for (i = 0; i < p->nmods; i++) {
+        Module *m = p->mods[i];
+        char *text;
+        if (!m->is_form) continue;
+        text = read_file(m->afg_path, NULL);
+        if (!text) { diag(p, m->file, 1, 1, "cannot read form file '%s'", m->afg_path); continue; }
+        buf_printf(outb, "    bb_forms_register(%s, %s, %s, %s);\n", cstrlit(m->name, (int)strlen(m->name)),
+                   cstrlit(m->form_name, (int)strlen(m->form_name)), cstrlit(text, (int)strlen(text)),
+                   cstrlit(m->afg_path, (int)strlen(m->afg_path)));
+        free(text);
+    }
+    if (p->startup && p->startup->is_form && !p->startup_proc)
+        buf_printf(outb, "    bb_forms_main(%s);\n", cstrlit(p->startup->name, (int)strlen(p->startup->name)));
+    else if (p->startup_proc) buf_printf(outb, "    %s();\n", proc_cname(p->startup_proc));
     buf_puts(outb, "    bb_rt_shutdown();\n    return 0;\n}\n");
     /* literal table: insert at the placeholder */
     {

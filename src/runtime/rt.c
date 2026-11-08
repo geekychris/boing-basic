@@ -43,6 +43,7 @@ void bb_rt_shutdown(void)
 {
     bb_close_all();
     bb_console_flush();
+    bb_forms_shutdown_();
     bb_decl_cleanup();
     bb_plat_shutdown();
 }

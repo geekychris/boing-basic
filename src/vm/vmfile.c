@@ -126,6 +126,9 @@ int vm_save(VMImage *g, const char *path)
         w32(&w, p->nlines);
         for (j = 0; j < p->nlines; j++) { w32(&w, p->lines[j].pc); w32(&w, p->lines[j].line); }
     }
+    w32(&w, g->nforms);
+    w32(&w, g->startup_form);
+    for (i = 0; i < g->nforms; i++) { w32(&w, g->form_mod[i]); wstr(&w, g->form_name[i]); wstr(&w, g->form_afg[i]); wstr(&w, g->form_path[i]); }
     fwrite("END!", 1, 4, w.f);
     if (fclose(w.f) != 0) w.err = 1;
     if (w.err) fprintf(stderr, "boing: error writing %s\n", path);
@@ -312,6 +315,15 @@ VMImage *vm_load(const char *path)
         p->nlines = rcount(&r);
         p->lines = (VMLine *)rcalloc((size_t)p->nlines, sizeof(VMLine));
         for (j = 0; j < p->nlines; j++) { p->lines[j].pc = r32(&r); p->lines[j].line = r32(&r); }
+    }
+    g->nforms = rcount(&r);
+    g->startup_form = r32(&r);
+    g->form_mod = (int32_t *)rcalloc((size_t)g->nforms, sizeof(int32_t));
+    g->form_name = (char **)rcalloc((size_t)g->nforms, sizeof(char *));
+    g->form_afg = (char **)rcalloc((size_t)g->nforms, sizeof(char *));
+    g->form_path = (char **)rcalloc((size_t)g->nforms, sizeof(char *));
+    for (i = 0; i < g->nforms && !r.err; i++) {
+        g->form_mod[i] = r32(&r); g->form_name[i] = rstr(&r); g->form_afg[i] = rstr(&r); g->form_path[i] = rstr(&r);
     }
     if (r.err || r.p + 4 > r.e || memcmp(r.p, "END!", 4) != 0) {
         free(buf);
