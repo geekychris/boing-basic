@@ -252,6 +252,8 @@ static Node *parse_postfix(P *p, int stmt_start)
         if (u->kind == TK_DOT && !u->space_before) {
             Node *m = mk(p, E_DOT, u);
             adv(p);
+            m->line = tk(p)->line;
+            m->col = tk(p)->col;
             m->a = n;
             m->name = member_name(p);
             n = m;

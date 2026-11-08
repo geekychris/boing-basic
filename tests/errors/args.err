@@ -1,0 +1,5 @@
+args.bas:6:7: error: argument 'b' of 'Add' is not optional
+args.bas:7:17: error: too many arguments to 'Add' (expected 2)
+args.bas:8:5: error: 'S' is a Sub and does not return a value
+args.bas:9:7: error: wrong number of arguments to 'Len'
+args.bas:10:1: error: Exit Do outside a Do loop

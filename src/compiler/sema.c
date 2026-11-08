@@ -1240,10 +1240,62 @@ static Module *find_module(Program *p, const char *name)
     return NULL;
 }
 
+/* VB's predefined constants */
+static void add_vb_constants(Program *p)
+{
+    static const struct { const char *name; int type; long long i; const char *s; } k[] = {
+        {"vbCrLf", T_STRING, 0, "\r\n"}, {"vbNewLine", T_STRING, 0, "\n"}, {"vbCr", T_STRING, 0, "\r"},
+        {"vbLf", T_STRING, 0, "\n"}, {"vbTab", T_STRING, 0, "\t"}, {"vbBack", T_STRING, 0, "\b"},
+        {"vbFormFeed", T_STRING, 0, "\f"}, {"vbVerticalTab", T_STRING, 0, "\v"}, {"vbNullString", T_STRING, 0, ""},
+        {"vbNullChar", T_STRING, 1, ""},
+        {"vbBinaryCompare", T_LONG, 0, 0}, {"vbTextCompare", T_LONG, 1, 0},
+        {"vbOKOnly", T_LONG, 0, 0}, {"vbOKCancel", T_LONG, 1, 0}, {"vbAbortRetryIgnore", T_LONG, 2, 0},
+        {"vbYesNoCancel", T_LONG, 3, 0}, {"vbYesNo", T_LONG, 4, 0}, {"vbRetryCancel", T_LONG, 5, 0},
+        {"vbCritical", T_LONG, 16, 0}, {"vbQuestion", T_LONG, 32, 0}, {"vbExclamation", T_LONG, 48, 0},
+        {"vbInformation", T_LONG, 64, 0}, {"vbDefaultButton1", T_LONG, 0, 0}, {"vbDefaultButton2", T_LONG, 256, 0},
+        {"vbDefaultButton3", T_LONG, 512, 0}, {"vbOK", T_LONG, 1, 0}, {"vbCancel", T_LONG, 2, 0},
+        {"vbAbort", T_LONG, 3, 0}, {"vbRetry", T_LONG, 4, 0}, {"vbIgnore", T_LONG, 5, 0}, {"vbYes", T_LONG, 6, 0},
+        {"vbNo", T_LONG, 7, 0},
+        {"vbEmpty", T_LONG, 0, 0}, {"vbNull", T_LONG, 1, 0}, {"vbInteger", T_LONG, 2, 0}, {"vbLong", T_LONG, 3, 0},
+        {"vbSingle", T_LONG, 4, 0}, {"vbDouble", T_LONG, 5, 0}, {"vbCurrency", T_LONG, 6, 0}, {"vbDate", T_LONG, 7, 0},
+        {"vbString", T_LONG, 8, 0}, {"vbObject", T_LONG, 9, 0}, {"vbError", T_LONG, 10, 0}, {"vbBoolean", T_LONG, 11, 0},
+        {"vbVariant", T_LONG, 12, 0}, {"vbByte", T_LONG, 17, 0}, {"vbUserDefinedType", T_LONG, 36, 0},
+        {"vbArray", T_LONG, 8192, 0},
+        {"vbSunday", T_LONG, 1, 0}, {"vbMonday", T_LONG, 2, 0}, {"vbTuesday", T_LONG, 3, 0},
+        {"vbWednesday", T_LONG, 4, 0}, {"vbThursday", T_LONG, 5, 0}, {"vbFriday", T_LONG, 6, 0},
+        {"vbSaturday", T_LONG, 7, 0}, {"vbUseSystemDayOfWeek", T_LONG, 0, 0},
+        {"vbNormal", T_LONG, 0, 0}, {"vbReadOnly", T_LONG, 1, 0}, {"vbHidden", T_LONG, 2, 0},
+        {"vbSystem", T_LONG, 4, 0}, {"vbVolume", T_LONG, 8, 0}, {"vbDirectory", T_LONG, 16, 0},
+        {"vbArchive", T_LONG, 32, 0}, {"vbObjectError", T_LONG, -2147221504LL, 0},
+        {"vbBlack", T_LONG, 0, 0}, {"vbRed", T_LONG, 255, 0}, {"vbGreen", T_LONG, 65280, 0},
+        {"vbYellow", T_LONG, 65535, 0}, {"vbBlue", T_LONG, 16711680, 0}, {"vbMagenta", T_LONG, 16711935, 0},
+        {"vbCyan", T_LONG, 16776960, 0}, {"vbWhite", T_LONG, 16777215, 0},
+        {"vbKeyReturn", T_LONG, 13, 0}, {"vbKeyEscape", T_LONG, 27, 0}, {"vbKeySpace", T_LONG, 32, 0},
+        {"vbKeyBack", T_LONG, 8, 0}, {"vbKeyTab", T_LONG, 9, 0}, {"vbKeyLeft", T_LONG, 37, 0},
+        {"vbKeyUp", T_LONG, 38, 0}, {"vbKeyRight", T_LONG, 39, 0}, {"vbKeyDown", T_LONG, 40, 0},
+        {"vbKeyDelete", T_LONG, 46, 0}, {"vbShiftMask", T_LONG, 1, 0}, {"vbCtrlMask", T_LONG, 2, 0},
+        {"vbAltMask", T_LONG, 4, 0},
+        {NULL, 0, 0, 0}
+    };
+    int i;
+    for (i = 0; k[i].name; i++) {
+        Sym *s = new_sym(SK_CONST, k[i].name, NULL);
+        s->is_public = 1;
+        s->cv.type = k[i].type;
+        if (k[i].type == T_STRING) {
+            if (strcmp(k[i].name, "vbNullChar") == 0) { s->cv.s = xstrndup("\0", 1); s->cv.slen = 1; }
+            else { s->cv.s = xstrdup(k[i].s); s->cv.slen = (int)strlen(k[i].s); }
+        } else s->cv.i = k[i].i;
+        s->ty = type_prim(k[i].type);
+        scope_add(p->global, s);
+    }
+}
+
 int sema_program(Program *p)
 {
     int i;
     ClassInfo *coll;
+    add_vb_constants(p);
     /* built-in classes */
     coll = (ClassInfo *)xcalloc(1, sizeof(ClassInfo));
     coll->name = xstrdup("Collection");

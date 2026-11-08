@@ -1,0 +1,14 @@
+[line one]
+[value: 42 ]
+["quoted, text",3.5,#TRUE#]
+[appended]
+Ada 36 
+Bob 41 
+ 18 
+ 18 
+"Ada
+True
+test.txt
+renamed.txt
+a.txt
+err 53 

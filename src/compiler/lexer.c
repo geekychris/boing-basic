@@ -54,18 +54,23 @@ static void lex_error(Lexer *L, const char *at, const char *msg)
 
 static int looks_like_date(const char *p)
 {
-    /* p points after '#': date literal if a closing # follows on this line and the
-     * contents look like a date or time */
+    /* p points after '#': a date literal is #digits and / - : . spaces, AM/PM# */
     const char *q = p;
-    int slash = 0, colon = 0, digit = 0;
+    int sep = 0, digit = 0;
     while (*q && *q != '#' && *q != '\n' && *q != '\r') {
-        if (*q == '/' || *q == '-') slash = 1;
-        else if (*q == ':') colon = 1;
-        else if (isdigit((unsigned char)*q)) digit = 1;
-        else if (*q == ',' || *q == '"' || *q == '(' || *q == '=') return 0;
+        char c = *q;
+        if (isdigit((unsigned char)c)) digit = 1;
+        else if (c == '/' || c == '-') sep = 1;
+        else if (c == ':') {
+            if (q == p || !isdigit((unsigned char)q[-1]) || !isdigit((unsigned char)q[1])) return 0;
+            sep = 1;
+        } else if (c == ' ' || c == '.') {
+        } else if ((c == 'A' || c == 'a' || c == 'P' || c == 'p')) {
+            if (q[1] == 'M' || q[1] == 'm') q++;
+        } else return 0;
         q++;
     }
-    return *q == '#' && digit && (slash || colon);
+    return *q == '#' && digit && sep && !isalnum((unsigned char)q[1]);
 }
 
 int lex_file(Program *prog, int file, const char *src, Token **out, int *ntoks)
