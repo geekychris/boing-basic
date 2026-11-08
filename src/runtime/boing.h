@@ -357,22 +357,22 @@ void bb_elem_copy(int etype, const bb_udt_desc *udt, void *dst, const void *src)
 bb_value bb_elem_load(int etype, const void *p);       /* element -> owned Variant */
 void bb_elem_store(int etype, void *p, const bb_value *v);  /* Variant -> element (convert) */
 
+void bb_subscript_error(void) BB_NORETURN;   /* error 9 (the inline paths below never return from it) */
 BB_INLINE void *bb_arr_elem1(bb_array *a, int32_t i)
 {
     int32_t k;
-    if (BB_UNLIKELY(!a || a->ndims != 1)) return bb_arr_elem(a, 1, &i);
+    if (BB_UNLIKELY(!a || a->ndims != 1)) bb_subscript_error();
     k = i - a->dims[0].lbound;
-    if (BB_UNLIKELY((uint32_t)k >= (uint32_t)a->dims[0].count)) return bb_arr_elem(a, 1, &i);
+    if (BB_UNLIKELY((uint32_t)k >= (uint32_t)a->dims[0].count)) bb_subscript_error();
     return (char *)a->data + (size_t)k * (size_t)a->esize;
 }
 BB_INLINE void *bb_arr_elem2(bb_array *a, int32_t i, int32_t j)
 {
     int32_t k1, k2;
-    if (BB_UNLIKELY(!a || a->ndims != 2)) { int32_t ix[2]; ix[0] = i; ix[1] = j; return bb_arr_elem(a, 2, ix); }
+    if (BB_UNLIKELY(!a || a->ndims != 2)) bb_subscript_error();
     k1 = i - a->dims[0].lbound; k2 = j - a->dims[1].lbound;
-    if (BB_UNLIKELY((uint32_t)k1 >= (uint32_t)a->dims[0].count || (uint32_t)k2 >= (uint32_t)a->dims[1].count)) {
-        int32_t ix[2]; ix[0] = i; ix[1] = j; return bb_arr_elem(a, 2, ix);
-    }
+    if (BB_UNLIKELY((uint32_t)k1 >= (uint32_t)a->dims[0].count || (uint32_t)k2 >= (uint32_t)a->dims[1].count))
+        bb_subscript_error();
     return (char *)a->data + ((size_t)k2 * (size_t)a->dims[0].count + (size_t)k1) * (size_t)a->esize;
 }
 BB_INLINE bb_value bb_v_arr(bb_array *owned) { bb_value v = bb_v_make((uint16_t)(BB_ARRAY | (owned ? owned->etype : BB_VARIANT))); v.u.a = owned; return v; }

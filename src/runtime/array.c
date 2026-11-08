@@ -315,3 +315,5 @@ bb_value bb_v_udt_new(const bb_udt_desc *d)
     v.u.p = b;
     return v;
 }
+
+void bb_subscript_error(void) { bb_raise(9, NULL); }
