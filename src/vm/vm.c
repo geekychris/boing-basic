@@ -747,7 +747,7 @@ static void vm_exec(VM *vm, int entry)
         bb_value *G = vm->globals;
         int jit_on = jit_enabled();
         bb_jitctx jc;
-        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0;
+        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; }
 #define SYNC() (vm->sp = sp)
 #define RELOAD() (fr = &vm->frames[vm->nframes - 1], pc = fr->pc, sp = vm->sp, L = fr->base)
         for (;;) {

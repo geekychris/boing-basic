@@ -1,6 +1,7 @@
 /* main.c - the `boing` command line */
 #include "../compiler/bbc.h"
 #include "../vm/bytecode.h"
+#include "../vm/jit.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -161,6 +162,48 @@ int main(int argc, char **argv)
         }
         if (!strcmp(cmd, "disasm")) { vm_disasm(img, stdout); return 0; }
         return vm_run(img, argc - 2, argv + 2);
+    }
+    if (!strcmp(cmd, "jitdump")) {
+        /* boing jitdump prog.bas out.bin [ppc|arm64]: compile every loop region with a JIT
+         * backend and write the raw code (for disassembly: objdump -D -b binary) */
+        Program *p;
+        VMImage *img;
+        const JBackend *be = (argc > 4 && !strcmp(argv[4], "arm64")) ? &jit_arm64 : &jit_ppc32;
+        FILE *f;
+        int32_t i, pc;
+        if (argc < 4) usage();
+        p = load(argv[2]);
+        if (p->nerrors) return 1;
+        img = emit_bytecode(p);
+        if (!img) return 1;
+        f = fopen(argv[3], "wb");
+        if (!f) return 1;
+        for (i = 0; i < img->nprocs; i++) {
+            VMProc *vp = &img->procs[i];
+            int32_t end = img->ncode, k;
+            if (vp->code < 0) continue;
+            for (k = 0; k < img->nprocs; k++) if (img->procs[k].code > vp->code && img->procs[k].code < end) end = img->procs[k].code;
+            for (pc = vp->code; pc < end; pc += 1 + bb_opwords[img->code[pc]]) {
+                const int32_t *w = img->code + pc;
+                int32_t tg = -1;
+                JA a;
+                switch (w[0]) {
+                case I_R_FORINC_I: case I_R_FORINC_L: case I_R_FORINC_D: case I_R_JCMP_LRR: case I_R_JCMP_LRI:
+                case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: tg = w[4]; break;
+                case I_R_JNZ: case I_R_JZ: tg = w[2]; break;
+                case I_R_JMP: tg = w[1]; break;
+                default: break;
+                }
+                if (tg < 0 || tg > pc) continue;
+                if (jit_compile_region(be, img, vp, tg, &a, NULL)) {
+                    fprintf(stderr, "%s @%ld: %d bytes at offset %ld\n", vp->name, (long)tg, a.n, ftell(f));
+                    fwrite(a.buf, 1, (size_t)a.n, f);
+                }
+                free(a.buf);
+            }
+        }
+        fclose(f);
+        return 0;
     }
     if (!strcmp(cmd, "compile")) {
         const char *out = NULL;

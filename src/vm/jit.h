@@ -19,6 +19,7 @@ typedef struct bb_jitctx {
     const VMUdt *udts;          /* UDT descriptors (field offsets) */
     double scratch;             /* PPC: int <-> double conversion */
     double zero;                /* 0.0 */
+    double magic;               /* PPC: 2^52 + 2^31 (0x4330000080000000) */
 } bb_jitctx;
 
 typedef int32_t (*bb_jitfn)(bb_jitctx *ctx);
@@ -63,6 +64,8 @@ typedef struct JBackend {
     void (*fit16)(JA *a, int r, int label);      /* branch to label if r is not an Integer */
     void (*cmp)(JA *a, int x, int y);
     void (*cmpi)(JA *a, int x, int32_t imm);     /* any imm */
+    void (*cmpu)(JA *a, int x, int y);           /* unsigned, before JC_LTU / JC_GEU */
+    void (*cmpiu)(JA *a, int x, int32_t imm);
     void (*bcond)(JA *a, int cond, int label);   /* after cmp/cmpi */
     void (*b)(JA *a, int label);
     void (*bnullp)(JA *a, int p, int label);     /* branch if pointer is NULL */

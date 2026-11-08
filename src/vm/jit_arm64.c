@@ -199,6 +199,6 @@ static void a_finish(JA *a)
 const JBackend jit_arm64 = {
     "arm64", a_entry, a_ret_pc, a_ld16s, a_ld16u, a_st16, a_ld32, a_st32, a_ldp, a_ldf, a_stf, a_copy16, a_li,
     a_add_ovf, a_sub_ovf, a_mul_ovf, a_add, a_sub, a_mul, a_and, a_or, a_xor, a_neg, a_sdiv, a_srem, a_fit16,
-    a_cmp, a_cmpi, a_bcond, a_b, a_bnullp, a_addp_idx, a_addp_off, a_fop, a_fneg, a_fcvt, a_fchk, a_fbzero,
+    a_cmp, a_cmpi, a_cmp, a_cmpi, a_bcond, a_b, a_bnullp, a_addp_idx, a_addp_off, a_fop, a_fneg, a_fcvt, a_fchk, a_fbzero,
     a_fcmp_b, a_poll, a_bind, a_finish, a_fsqrt
 };

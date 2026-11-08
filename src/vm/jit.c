@@ -124,7 +124,7 @@ static void load_array(T *t, int32_t opnd, int ex)
     base_of(opnd, &base, &off);
     be->ldp(a, JP0, base, off + 8);
     be->ld16u(a, JI4, base, off);
-    be->cmpi(a, JI4, BB_REF);
+    be->cmpiu(a, JI4, BB_REF);
     be->bcond(a, JC_LTU, plain);
     be->ldp(a, JP0, JP0, 0);
     be->bind(a, plain);
@@ -144,7 +144,7 @@ static void elem1(T *t, int ri, int vt, int ex)
     be->ld32(a, JI3, JP0, (int32_t)offsetof(bb_array, dims));
     be->sub(a, JI3, ri, JI3);
     be->ld32(a, JI4, JP0, (int32_t)(offsetof(bb_array, dims) + offsetof(bb_dim, count)));
-    be->cmp(a, JI3, JI4);
+    be->cmpu(a, JI3, JI4);
     be->bcond(a, JC_GEU, ex);
     be->ldp(a, JP1, JP0, (int32_t)offsetof(bb_array, data));
     if (vt == BB_UDT) {
@@ -174,7 +174,7 @@ static void udt_var(T *t, int32_t opnd)
     base_of(opnd, &base, &off);
     be->ldp(a, JP1, base, off + 8);
     be->ld16u(a, JI4, base, off);
-    be->cmpi(a, JI4, BB_REF);
+    be->cmpiu(a, JI4, BB_REF);
     be->bcond(a, JC_LTU, box);
     /* reference: descriptor = &ctx->udts[aux].desc */
     be->ld32(a, JI4, base, off + 4);
@@ -484,12 +484,12 @@ static int translate(T *t, int32_t pc)
             b2->ld32(a, JI3, JP0, d0);
             b2->sub(a, JI3, JI0, JI3);
             b2->ld32(a, JI4, JP0, d0 + cnt);
-            b2->cmp(a, JI3, JI4);
+            b2->cmpu(a, JI3, JI4);
             b2->bcond(a, JC_GEU, ex);
             b2->ld32(a, JI1, JP0, d1);
             b2->sub(a, rj, rj, JI1);
             b2->ld32(a, JI1, JP0, d1 + cnt);
-            b2->cmp(a, rj, JI1);
+            b2->cmpu(a, rj, JI1);
             b2->bcond(a, JC_GEU, ex);
             b2->mul(a, rj, rj, JI4);
             b2->add(a, JI3, JI3, rj);
