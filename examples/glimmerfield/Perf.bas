@@ -18,11 +18,9 @@ Private winWorst As Double
 Private markT As Double
 Private frameStart As Double
 
-' Milliseconds from an arbitrary start. Timer is a Single of seconds since
-' midnight, good to ~8 ms late in the day; swap in a high-resolution clock
-' here once the runtime has one.
+' Milliseconds from an arbitrary start (monotonic, high resolution).
 Public Function NowMs() As Double
-    NowMs = CDbl(Timer) * 1000#
+    NowMs = TimerMs()
 End Function
 
 Public Sub PerfReset()

@@ -1,0 +1,8 @@
+# The Glimmerfield game logic (examples/glimmerfield): the bot plays 2500 frames
+Name=GlimmerTest
+Startup=Sub Main
+Module=../../../examples/glimmerfield/Game.bas
+Module=../../../examples/glimmerfield/Perf.bas
+Module=../../../examples/glimmerfield/Bench.bas
+Module=../../../examples/glimmerfield/HiScore.bas
+Module=gtest.bas
