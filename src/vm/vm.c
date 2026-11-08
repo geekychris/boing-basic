@@ -1368,6 +1368,20 @@ static void vm_exec(VM *vm, int entry)
                 pc += 4;
                 break;
             }
+            case I_LDE1: {
+                /* ELEM 1 + LDIND: a(i) of an array variable */
+                bb_value ix = POP(), r = POP();
+                bb_array *a;
+                int32_t i = ix.type == BB_LONG ? ix.u.l : bb_v_to_long(&ix);
+                void *ep;
+                if (r.type & BB_ARRAY) a = (r.type & BB_REF) ? *(bb_array **)r.u.p : r.u.a;
+                else a = bb_v_array((bb_value *)r.u.p);
+                ep = bb_arr_elem1(a, i);
+                PUSH(load_raw(vm, ep, pc[1], udt_index_of(vm, a->udt)));
+                if (!(r.type & BB_REF)) bb_v_release(&r);
+                pc += 2;
+                break;
+            }
             case I_UNKEEP: bb_v_set(&fr->keep, bb_v_empty()); pc++; break;
             case I_ARRLIT: {
                 int n = pc[1], i;

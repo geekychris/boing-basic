@@ -449,7 +449,17 @@ static void expr(E *e, Node *n)
     switch (n->kind) {
     case E_CONST: push_const(e, n); return;
     case E_VAR: load_var(e, n->sym); return;
-    case E_INDEX: case E_FIELD: case E_MFIELD:
+    case E_INDEX:
+        if (n->list.n == 1 && is_lvalue(n->a)) {
+            addr(e, n->a);
+            expr(e, n->list.v[0]);
+            op1(e, I_LDE1, vt_of(n->ty));
+            return;
+        }
+        addr(e, n);
+        op1(e, I_LDIND, vt_of(n->ty));
+        return;
+    case E_FIELD: case E_MFIELD:
         addr(e, n);
         op1(e, I_LDIND, vt_of(n->ty));
         return;
