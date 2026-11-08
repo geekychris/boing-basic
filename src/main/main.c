@@ -206,7 +206,7 @@ int main(int argc, char **argv)
             for (pc = vp->code; pc < end; pc += 1 + bb_opwords[img->code[pc]]) {
                 const int32_t *w = img->code + pc;
                 int32_t tg = -1;
-                JA a;
+                JA *a = (JA *)calloc(1, sizeof(JA));   /* ~112 KB: never on the stack (OS4 runs us on 64 KB) */
                 switch (w[0]) {
                 case I_R_FORINC_I: case I_R_FORINC_L: case I_R_FORINC_D: case I_R_JCMP_LRR: case I_R_JCMP_LRI:
                 case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: case I_R_JCMP_FRR: tg = w[4]; break;
@@ -216,13 +216,14 @@ int main(int argc, char **argv)
                 case I_R_CALLS: case I_R_SQRT_D: tg = pc + 1 + bb_opwords[w[0]]; break;
                 default: break;
                 }
-                if (tg < 0 || (tg > pc && w[0] != I_R_CALLS && w[0] != I_R_SQRT_D)) continue;
-                a.buf = NULL;
-                if (jit_compile_region(be, img, vp, tg, &a, NULL)) {
-                    fprintf(stderr, "%s @%ld: %d bytes at offset %ld\n", vp->name, (long)tg, a.n, ftell(f));
-                    fwrite(a.buf, 1, (size_t)a.n, f);
+                if (!a) return 7;
+                if (tg < 0 || (tg > pc && w[0] != I_R_CALLS && w[0] != I_R_SQRT_D)) { free(a); continue; }
+                if (jit_compile_region(be, img, vp, tg, a, NULL)) {
+                    fprintf(stderr, "%s @%ld: %d bytes at offset %ld\n", vp->name, (long)tg, a->n, ftell(f));
+                    fwrite(a->buf, 1, (size_t)a->n, f);
                 }
-                free(a.buf);
+                free(a->buf);
+                free(a);
             }
         }
         fclose(f);
