@@ -32,22 +32,25 @@ have been measured on the guest.
 
 | benchmark | VM (s) | VM+JIT (s) | native (s) | VM/native | JIT/native | C (s) | native/C | same output |
 |---|---:|---:|---:|---:|---:|---:|---:|:---:|
-| arrays | 0.233 | 0.109 | 0.048 | 4.8x | 2.3x | - | - | yes |
-| calls | 0.229 | 0.237 | 0.017 | 13.4x | 13.8x | - | - | yes |
-| coll | 0.157 | 0.154 | 0.152 | 1.0x | 1.0x | - | - | yes |
-| double_math | 0.290 | 0.081 | 0.031 | 9.2x | 2.6x | 0.020 | 1.6x | yes |
-| fannkuch | 0.102 | 0.058 | 0.028 | 3.7x | 2.1x | 0.016 | 1.8x | yes |
-| fib | 0.140 | 0.139 | 0.010 | 13.4x | 13.3x | 0.008 | 1.3x | yes |
-| fileio | 0.159 | 0.159 | 0.153 | 1.0x | 1.0x | - | - | yes |
-| int_loop | 0.122 | 0.082 | 0.021 | 5.9x | 4.0x | 0.019 | 1.1x | yes |
-| mandelbrot | 0.027 | 0.028 | 0.009 | 3.1x | 3.2x | 0.006 | 1.5x | yes |
-| nbody | 0.335 | 0.209 | 0.026 | 12.7x | 7.9x | 0.013 | 2.0x | yes |
-| objects | 0.438 | 0.443 | 0.142 | 3.1x | 3.1x | - | - | yes |
-| select | 0.121 | 0.139 | 0.017 | 7.1x | 8.1x | - | - | yes |
-| sieve | 0.132 | 0.053 | 0.028 | 4.7x | 1.9x | 0.013 | 2.2x | yes |
-| strings | 0.221 | 0.229 | 0.127 | 1.7x | 1.8x | - | - | yes |
-| udt | 0.092 | 0.057 | 0.011 | 8.8x | 5.4x | - | - | yes |
-| variants | 0.320 | 0.326 | 0.200 | 1.6x | 1.6x | - | - | yes |
+| arrays | 0.248 | 0.112 | 0.050 | 4.9x | 2.2x | - | - | yes |
+| calls | 0.211 | 0.231 | 0.021 | 9.9x | 10.8x | - | - | yes |
+| coll | 0.191 | 0.162 | 0.160 | 1.2x | 1.0x | - | - | yes |
+| double_math | 0.212 | 0.097 | 0.063 | 3.4x | 1.6x | 0.022 | 2.9x | yes |
+| fannkuch | 0.115 | 0.065 | 0.030 | 3.9x | 2.2x | 0.018 | 1.6x | yes |
+| fib | 0.119 | 0.121 | 0.010 | 11.3x | 11.5x | 0.008 | 1.3x | yes |
+| fileio | 0.168 | 0.168 | 0.156 | 1.1x | 1.1x | - | - | yes |
+| int_loop | 0.137 | 0.084 | 0.021 | 6.4x | 3.9x | 0.020 | 1.1x | yes |
+| mandelbrot | 0.028 | 0.028 | 0.009 | 3.2x | 3.2x | 0.006 | 1.5x | yes |
+| nbody | 0.369 | 0.217 | 0.029 | 12.9x | 7.6x | 0.013 | 2.1x | yes |
+| objects | 0.445 | 0.458 | 0.147 | 3.0x | 3.1x | - | - | yes |
+| select | 0.129 | 0.141 | 0.017 | 7.5x | 8.2x | - | - | yes |
+| sieve | 0.130 | 0.054 | 0.029 | 4.6x | 1.9x | 0.013 | 2.2x | yes |
+| strings | 0.226 | 0.227 | 0.127 | 1.8x | 1.8x | - | - | yes |
+| udt | 0.102 | 0.059 | 0.011 | 8.9x | 5.2x | - | - | yes |
+| variants | 0.309 | 0.325 | 0.217 | 1.4x | 1.5x | - | - | yes |
+
+Real-world check: `examples/glimmerfield/Bench.bbp` (bb-game's game logic, 2000 frames):
+VM 0.032 ms/frame, native 0.003 ms/frame; VM, JIT and native print identical game state.
 
 What changed in the VM (vs the baseline below):
 - module variables used only by the main program are locals (fast slots);
@@ -59,7 +62,8 @@ What changed in the VM (vs the baseline below):
 - threaded dispatch (computed goto, GCC/clang, also on PPC) for the register ops, one table
   for all opcodes; register temporaries are pre-tagged so ops store no type tags;
 - frame set-up and tear-down fast paths for procedures without ByRef parameters;
-- the JIT compiles loops made of register ops to machine code (docs/jit.md).
+- the JIT compiles loops made of register ops to machine code (docs/jit.md);
+- `R_CALLS`: calls with ByVal Integer/Long/Double arguments taken from slots, result into a slot.
 
 What changed in the native back end: array bounds failures go to a `noreturn` function, so
 GCC/clang can keep element addresses in registers across statements (nbody 0.061 -> 0.027 s).
