@@ -514,9 +514,9 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         set_target(c, 0);
         return;
     case M_PSETMANY: {
-        /* PSetMany xs(), ys(), colours() | colour, n */
+        /* PSetMany xs(), ys(), colours() | colour, n [, size] */
         bb_array *ax = arg_array(argc, argv, 0), *ay = arg_array(argc, argv, 1), *ac = NULL;
-        int32_t n = argl(argc, argv, 3), i, one = 0;
+        int32_t n = argl(argc, argv, 3), i, one = 0, sz = argl_opt(argc, argv, 4, 1);
         bb_value t;
         const bb_value *cv = missing(argc, argv, 2) ? NULL : bb_v_deref(&argv[2], &t);
         if (!cv) one = c->fore;
@@ -525,7 +525,12 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         need_count(ax, n);
         need_count(ay, n);
         if (ac) need_count(ac, n);
-        if (ax->etype == BB_LONG && ay->etype == BB_LONG && (!ac || ac->etype == BB_LONG)) {
+        if (sz > 1) {
+            for (i = 0; i < n; i++) {
+                int32_t x = elem_l(ax, i), y = elem_l(ay, i);
+                fill_rect(c, x, y, x + sz - 1, y + sz - 1, ARGB(ac ? elem_l(ac, i) : one));
+            }
+        } else if (ax->etype == BB_LONG && ay->etype == BB_LONG && (!ac || ac->etype == BB_LONG)) {
             const int32_t *xs = (const int32_t *)ax->data, *ys = (const int32_t *)ay->data;
             const int32_t *cs = ac ? (const int32_t *)ac->data : NULL;
             uint32_t col1 = ARGB(one);

@@ -64,7 +64,7 @@ Optional arguments are in brackets; a missing colour means `ForeColor` (`FillCol
 | `Rect x, y, w, h [, colour]` | a rectangle outline |
 | `Circle x, y, r [, colour [, filled]]` | a circle outline, or filled when `filled` is True |
 | `Polygon xs(), ys(), n [, colour [, filled]]` | a closed polygon of the first n points (up to 64) of two numeric arrays |
-| `PSetMany xs(), ys(), colours, n` | n pixels from Long arrays; `colours` is an array or one colour. Use it for particles and starfields |
+| `PSetMany xs(), ys(), colours, n [, size]` | n points from Long arrays; `colours` is an array or one colour; `size` > 1 draws size x size squares. Use it for particles and starfields |
 | `Point(x, y)` | the colour of a pixel, -1 outside |
 | `DrawText x, y, text [, colour]` | text in the built-in 6 x 9 font (Latin-1 32..126; others show as `?`) |
 | `Print text` | text at CurrentX/CurrentY, then on to the next line (VB's `Picture.Print`) |

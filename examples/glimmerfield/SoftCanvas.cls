@@ -60,12 +60,18 @@ Public Sub Box(ByVal x As Long, ByVal y As Long, ByVal bw As Long, ByVal bh As L
     Next j
 End Sub
 
-Public Sub Circle(ByVal cx As Long, ByVal cy As Long, ByVal r As Long, ByVal c As Long)
+Public Sub Circle(ByVal cx As Long, ByVal cy As Long, ByVal r As Long, ByVal c As Long, Optional ByVal filled As Boolean = False)
     Dim x As Long, y As Long, e As Long
     x = r
     y = 0
     e = 1 - r
     Do While x >= y
+        If filled Then
+            Box cx - x, cy + y, 2 * x + 1, 1, c
+            Box cx - x, cy - y, 2 * x + 1, 1, c
+            Box cx - y, cy + x, 2 * y + 1, 1, c
+            Box cx - y, cy - x, 2 * y + 1, 1, c
+        End If
         PSet cx + x, cy + y, c
         PSet cx + y, cy + x, c
         PSet cx - y, cy + x, c
@@ -89,13 +95,66 @@ Public Function TextWidth(ByVal s As String) As Long
 End Function
 
 ' many points in one call (the Canvas control's PSetMany)
-Public Sub PSetMany(xs() As Long, ys() As Long, cs() As Long, ByVal n As Long)
+Public Sub PSetMany(xs() As Long, ys() As Long, cs() As Long, ByVal n As Long, Optional ByVal size As Long = 1)
     Dim i As Long, x As Long, y As Long
     For i = 0 To n - 1
         x = xs(i)
         y = ys(i)
-        If x >= 0 And x < W And y >= 0 And y < H Then px(y * W + x) = cs(i)
+        If size > 1 Then
+            Box x, y, size, size, cs(i)
+        ElseIf x >= 0 And x < W And y >= 0 And y < H Then
+            px(y * W + x) = cs(i)
+        End If
     Next i
+End Sub
+
+' a closed polygon of the first n points; filled with the even-odd rule at pixel centres
+Public Sub Polygon(xs() As Long, ys() As Long, ByVal n As Long, ByVal c As Long, Optional ByVal filled As Boolean = False)
+    Dim i As Long, j As Long, k As Long, y As Long, ymin As Long, ymax As Long, nx As Long, t As Long
+    Dim xb(0 To 15) As Long, num As Long, den As Long
+    If Not filled Then
+        For i = 0 To n - 1
+            j = (i + 1) Mod n
+            Line xs(i), ys(i), xs(j), ys(j), c
+        Next i
+        Exit Sub
+    End If
+    ymin = ys(0)
+    ymax = ys(0)
+    For i = 1 To n - 1
+        If ys(i) < ymin Then ymin = ys(i)
+        If ys(i) > ymax Then ymax = ys(i)
+    Next i
+    If ymin < 0 Then ymin = 0
+    If ymax >= H Then ymax = H - 1
+    For y = ymin To ymax
+        nx = 0
+        j = n - 1
+        For i = 0 To n - 1
+            If (ys(i) <= y And ys(j) > y) Or (ys(j) <= y And ys(i) > y) Then
+                num = (2 * y + 1 - 2 * ys(i)) * (xs(j) - xs(i))
+                den = 2 * (ys(j) - ys(i))
+                If num >= 0 Then
+                    xb(nx) = xs(i) + num \ den
+                Else
+                    xb(nx) = xs(i) - ((-num + den - 1) \ den)
+                End If
+                nx = nx + 1
+            End If
+            j = i
+        Next i
+        For i = 1 To nx - 1
+            k = i
+            Do While k > 0
+                If xb(k - 1) <= xb(k) Then Exit Do
+                t = xb(k): xb(k) = xb(k - 1): xb(k - 1) = t
+                k = k - 1
+            Loop
+        Next i
+        For i = 0 To nx - 2 Step 2
+            If xb(i + 1) - 1 >= xb(i) Then Box xb(i), y, xb(i + 1) - xb(i), 1, c
+        Next i
+    Next y
 End Sub
 
 ' 6-pixel cells; a made-up 5 x 7 pattern per character (a bench, not a font)

@@ -1,0 +1,30 @@
+Canvas  320  200 
+size 64  48  back 0  fore FFFFFF
+cls 280000 280000 outside -1 
+pset FF cur  3  4 
+fore FFFF
+hline FF00 FF00
+diag FFFFFF 280000
+BF FF0000 B FFFF00 280000
+box FF00FF 280000
+circle FF 280000
+disc FF00
+polygon 1E140A edge 1E140A out 280000
+many 30201 60504
+many2 FFFFFF
+text w 18  h 10  curx 20 
+hash  1956321730 
+image 1  4  4  transparent 0
+target 1  img pixel FF
+sprite FF 0
+opaque 0
+part FF clip ok
+loaded 2  64  48 
+loaded pixel FF
+key FalseTrueFalse
+frames 1 
+freed image: error 5 
+missing picture: error 53 
+bad size: error 380 
+no member: error 438 
+unknown class: error 429 

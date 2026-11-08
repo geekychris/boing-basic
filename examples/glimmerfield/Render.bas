@@ -15,6 +15,8 @@ Private renderReady As Boolean
 Private partX(0 To 511) As Long
 Private partY(0 To 511) As Long
 Private partC(0 To 511) As Long
+Private polyX(0 To 7) As Long
+Private polyY(0 To 7) As Long
 
 
 Public Sub InitRender()
@@ -69,30 +71,21 @@ Private Function PartColour(ByVal c As Long, ByVal life As Long) As Long
     End If
 End Function
 
+' a crystal: a filled polygon in a dark tone of its hue, bright edges, and a facet line
 Private Sub DrawShardAt(cv As Object, ByVal i As Long, ByVal sx As Long, ByVal sy As Long)
-    Dim n As Long, k As Long, r As Long, a As Long, h As Long, c As Long
-    Dim x0 As Long, y0 As Long, x1 As Long, y1 As Long, xf As Long, yf As Long, rr As Long
+    Dim n As Long, k As Long, r As Long, a As Long, h As Long, rr As Long
     n = 3 + 2 * shards(i).size - (shards(i).size \ 3)     ' 5, 7, 8 sides
     r = ShardRadius(shards(i).size)
     h = shards(i).hue
-    c = pal(COL_HUE0 + h)
     For k = 0 To n - 1
         a = shards(i).ang + (k * 256) \ n
         rr = r * shapeR(h, k) \ 256
-        x1 = sx + CosA(a) * rr \ 256
-        y1 = sy + SinA(a) * rr \ 256
-        If k = 0 Then
-            xf = x1
-            yf = y1
-        Else
-            cv.Line x0, y0, x1, y1, c
-        End If
-        x0 = x1
-        y0 = y1
+        polyX(k) = sx + CosA(a) * rr \ 256
+        polyY(k) = sy + SinA(a) * rr \ 256
     Next k
-    cv.Line x0, y0, xf, yf, c
-    ' a facet line from the centre to the first corner
-    cv.Line sx, sy, xf, yf, pal(24 + h)
+    cv.Polygon polyX, polyY, n, pal(24 + h), True
+    cv.Polygon polyX, polyY, n, pal(COL_HUE0 + h)
+    cv.Line sx, sy, polyX(0), polyY(0), pal(COL_HUE0 + h)
 End Sub
 
 Private Sub DrawShards(cv As Object)
@@ -127,10 +120,12 @@ Private Sub DrawShip(cv As Object)
     rx = x + CosA(a - 100) * 7 \ 256
     ry = y + SinA(a - 100) * 7 \ 256
     c = pal(COL_SHIP)
-    cv.Line nx, ny, lx, ly, c
-    cv.Line lx, ly, x, y, c
-    cv.Line x, y, rx, ry, c
-    cv.Line rx, ry, nx, ny, c
+    polyX(0) = nx: polyY(0) = ny
+    polyX(1) = lx: polyY(1) = ly
+    polyX(2) = x: polyY(2) = y
+    polyX(3) = rx: polyY(3) = ry
+    cv.Polygon polyX, polyY, 4, pal(20), True
+    cv.Polygon polyX, polyY, 4, c
     If ship.thrust And (frame And 2) <> 0 Then
         cv.Line x, y, x - CosA(a) * 9 \ 256, y - SinA(a) * 9 \ 256, pal(COL_FLAME)
     End If
@@ -144,7 +139,8 @@ Private Sub DrawWisps(cv As Object)
             x = wisps(i).x \ FP
             y = wisps(i).y \ FP
             r = 4 + (SinA(wisps(i).phase * 2) + 256) \ 128
-            cv.Circle x, y, r, pal(COL_WISP)
+            cv.Circle x, y, r + 2, pal(19)
+            cv.Circle x, y, r, pal(COL_WISP), True
             cv.Box x - 1, y - 1, 3, 3, pal(COL_SPARK)
             If wisps(i).hp < 3 Then cv.Circle x, y, r + 3, pal(19)
         End If
@@ -171,7 +167,7 @@ Private Sub DrawParts(cv As Object)
             n = n + 1
         End If
     Next i
-    If n > 0 Then cv.PSetMany partX, partY, partC, n
+    If n > 0 Then cv.PSetMany partX, partY, partC, n, 2
 End Sub
 
 Private Sub DrawPops(cv As Object)

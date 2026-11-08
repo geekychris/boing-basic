@@ -4,10 +4,10 @@ state: shards avg 8.39 particles avg 59.01 max 174 hud chars 99415
 Glimmerfield bench: 600 frames, seed 7
 state: games 0 best 8085 score 8085 wave 1 lives 3 hash 149224
 state: shards avg 7.29 particles avg 69.74 max 184 hud chars 24766
-Glimmerfield bench: 300 frames, seed 1987, drawing
+Glimmerfield bench: 300 frames, seed 1987, drawing on a SoftCanvas
 state: games 0 best 4810 score 4810 wave 1 lives 3 hash 338753
 state: shards avg 9.54 particles avg 73.18 max 139 hud chars 12614
-state: picture hash 807923
+state: picture hash 335964
 rank of 12000:  4  of 99: -1 
 inserted at  4 
 saved True

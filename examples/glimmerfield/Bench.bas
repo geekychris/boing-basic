@@ -1,22 +1,30 @@
 ' Glimmerfield - the benchmark: the bot plays n frames from a seed
 '
-' Logic only, or (draw = True) also the full renderer onto a SoftCanvas, a
-' framebuffer drawn by BASIC code. The "state:" lines are the same in every
+' Logic only, or (draw = True) also the full renderer: onto a SoftCanvas, a
+' framebuffer drawn by BASIC code, or (realCanvas = True) onto an off-screen Canvas
+' (the Canvas control's C engine). The "state:" lines are the same in every
 ' build; the "time:" lines are left out when quiet.
 Option Explicit
 
+Public benchShot As String       ' --shot FILE: save the last frame (Canvas only) as a PPM
+
 Public Sub RunBench(ByVal n As Long, ByVal seed As Long, ByVal quiet As Boolean, _
-                    Optional ByVal draw As Boolean = False)
+                    Optional ByVal draw As Boolean = False, Optional ByVal realCanvas As Boolean = False)
     Dim f As Long, games As Long, best As Long, hud As String, hudLen As Long
     Dim t0 As Double, t1 As Double, t2 As Double, t3 As Double, t4 As Double, t5 As Double
     Dim tStart As Double, total As Double, ft As Double, worst As Double
     Dim tLogic As Double, tHash As Double, tHud As Double, tDraw As Double, tBlit As Double
     Dim sumShards As Double, sumParts As Double, maxParts As Long
     Dim h As Long, ph As Long
-    Dim cv As SoftCanvas
+    Dim cv As Object
 
     If draw Then
-        Set cv = New SoftCanvas
+        If realCanvas Then
+            Set cv = CreateObject("Boing.Canvas")     ' the Canvas control's engine, off-screen
+            cv.Resize ARENA_W, ARENA_H
+        Else
+            Set cv = New SoftCanvas                   ' the same methods written in BASIC
+        End If
         InitRender
     End If
     botMode = True
@@ -61,11 +69,14 @@ Public Sub RunBench(ByVal n As Long, ByVal seed As Long, ByVal quiet As Boolean,
         End If
     Next f
     total = NowMs() - tStart
+    If draw And realCanvas And Len(benchShot) > 0 Then cv.SaveImage benchShot
     If total <= 0# Then total = 0.001
     If score > best Then best = score
 
-    If draw Then
-        Print "Glimmerfield bench: " & CStr(n) & " frames, seed " & CStr(seed) & ", drawing"
+    If draw And realCanvas Then
+        Print "Glimmerfield bench: " & CStr(n) & " frames, seed " & CStr(seed) & ", drawing on a Canvas"
+    ElseIf draw Then
+        Print "Glimmerfield bench: " & CStr(n) & " frames, seed " & CStr(seed) & ", drawing on a SoftCanvas"
     Else
         Print "Glimmerfield bench: " & CStr(n) & " frames, seed " & CStr(seed)
     End If
