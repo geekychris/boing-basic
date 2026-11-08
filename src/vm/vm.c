@@ -40,6 +40,7 @@ typedef struct Frame {
     int32_t gs_base;
     bb_value keep;          /* keeps a temporary object alive (MFIELD on an rvalue) */
     int fn;                 /* file number register for Print/Input */
+    int32_t retdst;         /* R_CALLS: caller slot for the result (-1: push it) */
 } Frame;
 
 typedef struct VM {
@@ -369,6 +370,7 @@ static Frame *push_frame(VM *vm, int32_t pidx, bb_value *base)
     f->err_pc = 0;
     f->keep.type = BB_EMPTY;
     f->fn = 0;
+    f->retdst = -1;
     f->gs_base = vm->ngosub;
     if (p->rt_plain) {
         /* no ByRef parameters, only simple locals */
@@ -838,7 +840,8 @@ static void vm_exec(VM *vm, int entry)
         [I_R_LDREF] = &&L_R_LDREF,
         [I_R_STREF] = &&L_R_STREF,
         [I_R_JMP] = &&L_R_JMP,
-        [I_R_SQRT_D] = &&L_R_SQRT_D
+        [I_R_SQRT_D] = &&L_R_SQRT_D,
+        [I_R_CALLS] = &&L_R_CALLS
                 };
                 goto *rtab[op];
 #else
@@ -953,6 +956,27 @@ static void vm_exec(VM *vm, int entry)
                     if ((st >= 0) ? cv->u.d > l : cv->u.d < l) pc += 5; else BACKJUMP(pc[4]) RNEXT(); }
                 RCASE(R_JMP) { int32_t t_ = pc[1]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } RNEXT();
                 RCASE(R_SQRT_D) { double x = RSL(2).u.d; if (BB_UNLIKELY(x < 0)) RERR(bb_raise(5, NULL)); SETD(pc[1], sqrt(x)); pc += 3; RNEXT(); }
+                RCASE(R_CALLS) {
+                    /* call with ByVal scalar arguments from slots; result into slot pc[2] */
+                    int32_t pidx = pc[1], n = pc[3], i;
+                    VMProc *p = &img->procs[pidx];
+                    bb_value *base = sp;
+                    POLL();
+                    for (i = 0; i < n; i++) base[i] = L[pc[4 + i]];
+                    fr->pc = pc;
+                    vm->sp = sp + n;
+                    prep_hidden(vm, p, base);
+                    {
+                        Frame *nf = push_frame(vm, pidx, base);
+                        nf->ret = pc + 8;
+                        nf->retdst = pc[2];
+                        fr = nf;
+                    }
+                    pc = fr->pc;
+                    sp = vm->sp;
+                    L = fr->base;
+                    RNEXT();
+                }
                 RCASE(R_LDREF) rload(&L[pc[2]], pc[1], L[pc[3]].u.p); pc += 4; RNEXT();
                 RCASE(R_STREF) rstore(pc[1], L[pc[2]].u.p, &L[pc[3]]); pc += 4; RNEXT();
 #if !(defined(__GNUC__) && !defined(BB_NO_THREADED))
@@ -1446,10 +1470,14 @@ static void vm_exec(VM *vm, int entry)
                 int32_t *ret = fr->ret;
                 int has = p->ret_slot >= 0;
                 if (has) { rv = base[p->ret_slot]; base[p->ret_slot] = bb_v_empty(); }
+                int32_t rd = fr->retdst;
                 SYNC();
                 pop_frame(vm);
                 sp = base;
-                if (has) PUSH(rv);
+                if (has) {
+                    if (rd >= 0) vm->frames[vm->nframes - 1].base[rd] = rv;
+                    else PUSH(rv);
+                }
                 vm->sp = sp;
                 if (vm->nframes <= entry) {
                     bb_frame_pop(&ef);

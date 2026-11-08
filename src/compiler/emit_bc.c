@@ -795,6 +795,32 @@ static void rx_bin(E *e, Node *n, int k, int dst, int *out)
 }
 
 /* evaluate typed n (kind k = rkind(n->ty)) into a slot; dst >= 0 asks for that slot */
+/* a call to a plain Function/Sub with up to 4 ByVal Integer/Long/Double parameters
+ * (and an Integer/Long/Double result, or none): R_CALLS */
+static int reg_call_ok(Node *n)
+{
+    Proc *pr;
+    int i;
+    if (n->kind != E_CALL) return 0;
+    pr = n->proc;
+    if (pr->cls || pr->kind == PK_DECLARE || pr->nparams > 4 || n->list.n != pr->nparams) return 0;
+    if (pr->ret && rkind(pr->ret) < 0) return 0;
+    for (i = 0; i < pr->nparams; i++) {
+        Param *pa = &pr->params[i];
+        if (pa->byref || pa->paramarray || rkind(pa->ty) < 0 || rkind(n->list.v[i]->ty) != rkind(pa->ty)) return 0;
+    }
+    return 1;
+}
+
+static int rx(E *e, Node *n, int dst);
+static void reg_call(E *e, Node *n, int dst)
+{
+    int s[4] = {0, 0, 0, 0}, i;
+    for (i = 0; i < n->list.n; i++) s[i] = rx(e, n->list.v[i], -1);
+    emit_w(e, I_R_CALLS); emit_w(e, n->proc->index); emit_w(e, dst);
+    emit_w(e, n->list.n); for (i = 0; i < 4; i++) emit_w(e, s[i]);
+}
+
 /* Sqr(x) on a Double */
 static int reg_sqrt(Node *n)
 {
@@ -828,6 +854,11 @@ static int rx(E *e, Node *n, int dst)
     if (k >= 0 && reg_mem(e, n) && rkind(n->ty) == k) {
         d = dst >= 0 ? dst : rtemp(e, k);
         reg_load(e, n, d);
+        return d;
+    }
+    if (k >= 0 && reg_call_ok(n) && n->proc->ret && rkind(n->proc->ret) == k) {
+        d = dst >= 0 ? dst : rtemp(e, k);
+        reg_call(e, n, d);
         return d;
     }
     if (k == 2 && reg_sqrt(n)) {
@@ -920,7 +951,7 @@ static int reg_assign(E *e, Node *t, Node *v)
     if (k < 0 || t->kind != E_VAR || rkind(v->ty) != k) return 0;
     slot = reg_var(e, t, k);
     if (slot < 0) return 0;
-    if (!reg_arith(v, k) && reg_var(e, v, k) < 0 && !reg_mem(e, v) && v->kind != E_CONST && !reg_sqrt(v) &&
+    if (!reg_arith(v, k) && reg_var(e, v, k) < 0 && !reg_mem(e, v) && v->kind != E_CONST && !reg_sqrt(v) && !reg_call_ok(v) &&
         !(v->kind == E_VAR && is_ref_slot(v->sym))) return 0;
     rx(e, v, slot);
     return 1;
@@ -1216,6 +1247,7 @@ static void stmt1(E *e, Node *s)
             op1(e, I_VSTOREIDX, x->list.n - 1);
             return;
         }
+        if (reg_call_ok(x) && !x->proc->ret) { reg_call(e, x, -1); return; }
         expr(e, x);
         if (has_value(x)) op0(e, I_POP);
         return;

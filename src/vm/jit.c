@@ -558,6 +558,7 @@ static int region_end(VMImage *img, VMProc *p, int32_t start)
         int op = img->code[pc];
         if (op < I_R_FIRST || op >= I__COUNT) break;
         if (op == I_R_SQRT_D && g_be_for_scan && !g_be_for_scan->fsqrt) break;
+        if (op == I_R_CALLS) break;
         pc += 1 + bb_opwords[op];
     }
     return pc;
