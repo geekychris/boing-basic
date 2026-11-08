@@ -84,7 +84,21 @@ Public Sub Circle(ByVal cx As Long, ByVal cy As Long, ByVal r As Long, ByVal c A
     Loop
 End Sub
 
-' 8-pixel cells; a made-up 5 x 7 pattern per character (a bench, not a font)
+Public Function TextWidth(ByVal s As String) As Long
+    TextWidth = Len(s) * 6
+End Function
+
+' many points in one call (the Canvas control's PSetMany)
+Public Sub PSetMany(xs() As Long, ys() As Long, cs() As Long, ByVal n As Long)
+    Dim i As Long, x As Long, y As Long
+    For i = 0 To n - 1
+        x = xs(i)
+        y = ys(i)
+        If x >= 0 And x < W And y >= 0 And y < H Then px(y * W + x) = cs(i)
+    Next i
+End Sub
+
+' 6-pixel cells; a made-up 5 x 7 pattern per character (a bench, not a font)
 Public Sub DrawText(ByVal x As Long, ByVal y As Long, ByVal s As String, ByVal c As Long)
     Dim k As Long, r As Long, b As Long, a As Long, bits As Long
     For k = 1 To Len(s)
@@ -97,7 +111,7 @@ Public Sub DrawText(ByVal x As Long, ByVal y As Long, ByVal s As String, ByVal c
                 Next b
             Next r
         End If
-        x = x + 8
+        x = x + 6
     Next k
 End Sub
 

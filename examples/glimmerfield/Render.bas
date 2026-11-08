@@ -12,37 +12,37 @@ Private starY(0 To 63) As Long
 Private starC(0 To 63) As Long
 Private shapeR(0 To 3, 0 To 7) As Long    ' per hue, per vertex radius scale /256
 Private renderReady As Boolean
+Private partX(0 To 511) As Long
+Private partY(0 To 511) As Long
+Private partC(0 To 511) As Long
 
-Private Function Rgb24(ByVal r As Long, ByVal g As Long, ByVal b As Long) As Long
-    Rgb24 = r * 65536 + g * 256 + b
-End Function
 
 Public Sub InitRender()
     Dim i As Long, k As Long, s As Long
     If renderReady Then Exit Sub
-    pal(0) = Rgb24(4, 6, 20)            ' background
-    pal(COL_SPARK) = Rgb24(255, 255, 210)
-    pal(COL_FLAME) = Rgb24(255, 150, 40)
-    pal(COL_WISP) = Rgb24(120, 255, 170)
-    pal(COL_SHIP) = Rgb24(230, 240, 255)
-    pal(5) = Rgb24(70, 80, 120)          ' dim stars
-    pal(6) = Rgb24(150, 160, 200)        ' bright stars
-    pal(7) = Rgb24(255, 220, 90)         ' HUD
-    pal(COL_HUE0 + 0) = Rgb24(110, 200, 255)   ' ice blue
-    pal(COL_HUE0 + 1) = Rgb24(255, 110, 210)   ' rose
-    pal(COL_HUE0 + 2) = Rgb24(190, 140, 255)   ' violet
-    pal(COL_HUE0 + 3) = Rgb24(255, 210, 100)   ' amber
+    pal(0) = RGB(4, 6, 20)            ' background
+    pal(COL_SPARK) = RGB(255, 255, 210)
+    pal(COL_FLAME) = RGB(255, 150, 40)
+    pal(COL_WISP) = RGB(120, 255, 170)
+    pal(COL_SHIP) = RGB(230, 240, 255)
+    pal(5) = RGB(70, 80, 120)          ' dim stars
+    pal(6) = RGB(150, 160, 200)        ' bright stars
+    pal(7) = RGB(255, 220, 90)         ' HUD
+    pal(COL_HUE0 + 0) = RGB(110, 200, 255)   ' ice blue
+    pal(COL_HUE0 + 1) = RGB(255, 110, 210)   ' rose
+    pal(COL_HUE0 + 2) = RGB(190, 140, 255)   ' violet
+    pal(COL_HUE0 + 3) = RGB(255, 210, 100)   ' amber
     ' 16..23: the same hues, darker, for fading particles
-    pal(16) = Rgb24(40, 40, 50)
-    pal(17) = Rgb24(110, 100, 70)
-    pal(18) = Rgb24(110, 60, 20)
-    pal(19) = Rgb24(40, 110, 70)
-    pal(20) = Rgb24(90, 90, 110)
-    pal(24) = Rgb24(40, 80, 110)
-    pal(25) = Rgb24(110, 40, 90)
-    pal(26) = Rgb24(80, 60, 110)
-    pal(27) = Rgb24(110, 90, 40)
-    pal(28) = Rgb24(255, 80, 80)          ' warnings
+    pal(16) = RGB(40, 40, 50)
+    pal(17) = RGB(110, 100, 70)
+    pal(18) = RGB(110, 60, 20)
+    pal(19) = RGB(40, 110, 70)
+    pal(20) = RGB(90, 90, 110)
+    pal(24) = RGB(40, 80, 110)
+    pal(25) = RGB(110, 40, 90)
+    pal(26) = RGB(80, 60, 110)
+    pal(27) = RGB(110, 90, 40)
+    pal(28) = RGB(255, 80, 80)          ' warnings
     ' a fixed starfield, from its own seed so the game's sequence is untouched
     s = rngSeed
     SeedRng 4242
@@ -160,13 +160,18 @@ Private Sub DrawBullets(cv As Object)
     Next i
 End Sub
 
+' particles go to the canvas in one call (PSetMany) instead of one PSet each
 Private Sub DrawParts(cv As Object)
-    Dim i As Long
+    Dim i As Long, n As Long
     For i = 0 To MAX_PARTS - 1
         If parts(i).life > 0 Then
-            cv.PSet CLng(parts(i).x), CLng(parts(i).y), PartColour(parts(i).col, parts(i).life)
+            partX(n) = CLng(parts(i).x)
+            partY(n) = CLng(parts(i).y)
+            partC(n) = PartColour(parts(i).col, parts(i).life)
+            n = n + 1
         End If
     Next i
+    If n > 0 Then cv.PSetMany partX, partY, partC, n
 End Sub
 
 Private Sub DrawPops(cv As Object)
@@ -198,5 +203,5 @@ Public Sub DrawWorld(cv As Object)
 End Sub
 
 Public Sub DrawCentred(cv As Object, ByVal y As Long, ByVal s As String, ByVal c As Long)
-    cv.DrawText (ARENA_W - Len(s) * 8) \ 2, y, s, c
+    cv.DrawText (ARENA_W - cv.TextWidth(s)) \ 2, y, s, c
 End Sub
