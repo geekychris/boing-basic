@@ -1,0 +1,9 @@
+# Boing BASIC project: Glimmerfield, an arcade game
+Name=Glimmerfield
+Startup=Form playfield
+Module=Game.bas
+Module=Perf.bas
+Module=HiScore.bas
+Module=Render.bas
+Form=playfield.afg
+Stack=262144
