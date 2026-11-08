@@ -269,6 +269,11 @@ For the game in the VM, the per-frame BASIC in Render.bas and its ~60 Canvas cal
 | **the game** (`Glimmerfield.bbp --bench 1000`), fps | **60.1** | **50.6** | **187.9** |
 | the game: logic / draw / blit | 0.71 / 13.13 / 1.30 | 0.92 / 15.70 / 1.35 | 0.29 / 2.67 / 1.25 |
 
+A second session with boing 820b313: bench logic VM 1.018 / `--jit` 1.087 ms per frame; game
+VM 58.5 fps / `--jit` 36.3 fps. The guest was degrading during that session (native fell to
+88.8 fps by its end), so only the order within it means much: the JIT does not yet speed up
+this code on the guest.
+
 The hashes stay identical across all three. The JIT gains 10% on the game logic but loses
 about 20% on the drawing, which is call-heavy: ~60 late-bound Canvas calls a frame and small
 helpers called in loops (reported to bb-core). This boing's VM is 3.5x faster on the logic than
