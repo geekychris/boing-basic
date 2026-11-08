@@ -587,6 +587,10 @@ typedef struct bb_declare {
     void *cache;            /* platform: opened interface */
 } bb_declare;
 uint32_t bb_declare_call(bb_declare *d, int argc, const uint32_t *argv);
+/* A String variable passed ByVal to a Declare'd function: the variable gets a string of its
+   own and the function gets its bytes, so what the OS writes into the buffer is in the
+   variable afterwards (VB6's copy-back). An empty string passes a 1-byte zero buffer. */
+char *bb_decl_strbuf(bb_str **var);
 
 /* Decimal (decimal.c): a Variant subtype, VB's 96-bit scaled integer */
 bb_value bb_cdec(const bb_value *v);               /* CDec */
@@ -601,6 +605,22 @@ bb_value bb_dec_trunc(const bb_value *a, int floor_);          /* Fix / Int */
 /* CreateObject(class [, server]): a runtime object by name (bb_create_object, raising 429
    if unknown), as a Variant holding the object */
 bb_value bb_createobject(bb_str *progid, bb_str *server);
+
+/* Pointer builtins (ptr.c): addresses as Longs; error 5 where a pointer needs more than 32 bits */
+bb_long bb_ptr32(const void *p);                    /* VarPtr */
+bb_long bb_peekb(bb_long a);
+bb_long bb_peekw(bb_long a);
+bb_long bb_peekl(bb_long a);
+void bb_pokeb(bb_long a, bb_long v);
+void bb_pokew(bb_long a, bb_long v);
+void bb_pokel(bb_long a, bb_long v);
+bb_str *bb_peeks(bb_long a, bb_long maxlen);
+bb_long bb_strptr(bb_str *s);
+bb_long bb_objptr(const bb_value *v);
+bb_long bb_allocmem(bb_long size, bb_bool clear);
+void bb_freemem(bb_long p);
+bb_long bb_taglist(int argc, const bb_value *argv);
+void bb_ptr_cleanup(void);
 
 /* Built-in classes */
 extern const bb_class bb_collection_class;

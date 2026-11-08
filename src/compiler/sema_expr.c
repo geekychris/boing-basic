@@ -895,6 +895,14 @@ static Node *make_builtin(Ctx *c, Node *at, int bi, NodeList *args, int mode, ch
             continue;
         }
         if (ch == 'a') { nl_push(&n->list, array_arg(c, a)); continue; }
+        if (ch == 'r') {
+            /* VarPtr(variable): the variable itself, by reference */
+            Node *v = check_expr(c, a, M_ARG);
+            if (!is_lvalue(v)) ERR(c, a, "'%s' needs a variable", b->name);
+            v->flags |= NF_BYREF;
+            nl_push(&n->list, v);
+            continue;
+        }
         nl_push(&n->list, coerce(c, check_value(c, a), bi_param_type(ch)));
     }
     /* extra ignored args (helpfile etc.) are still evaluated */
@@ -984,6 +992,7 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
             if (args) ERR(c, e, "constant '%s' cannot be called", s->name);
             {
                 Node *k = mk_const_node(e, &s->cv);
+                k->sym = s;             /* which constant (vbNullString passes 0 to a Declare) */
                 if (s->ty) k->ty = s->ty;
                 if (s->cv.is_nothing) k->ty = &ty_object;
                 return k;

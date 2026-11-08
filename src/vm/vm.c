@@ -1172,6 +1172,15 @@ static void vm_exec(VM *vm, int entry)
                 pc += 4;
                 break;
             }
+            case I_STRBUF: {
+                /* TOP: reference to a String variable -> pointer to its own bytes (Declare ByVal) */
+                bb_value *t = &TOP;
+                bb_str **ps = (bb_str **)t->u.p;
+                t->type = BB_REF | BB_BYTE;
+                t->u.p = bb_decl_strbuf(ps);
+                pc++;
+                break;
+            }
             case I_ADDROF:
                 SYNC();
                 PUSH(bb_v_long(bb_addressof(bb_str_ptr(img->consts[pc[1]].u.s), bb_str_ptr(img->consts[pc[2]].u.s), pc[3])));

@@ -109,6 +109,17 @@ Node *late_byref_var(Node *x)
     return v;
 }
 
+int decl_nullstr(Node *a)
+{
+    return a->kind == E_CONST && a->sym && a->sym->name && name_eq(a->sym->name, "vbNullString");
+}
+
+int decl_strvar(Node *a)
+{
+    return a->kind == E_VAR && a->ty->kind == T_STRING && !(a->flags & (NF_BYREF | NF_PARENARG)) &&
+           a->sym->kind == SK_VAR && !a->sym->byref;
+}
+
 void buf_free(Buf *b) { free(b->p); b->p = NULL; b->n = b->cap = 0; }
 
 const char *file_name(Program *p, int file)

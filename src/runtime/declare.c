@@ -3,6 +3,20 @@
 #include "boing.h"
 #include "bb_declare.h"
 
+char *bb_decl_strbuf(bb_str **var)
+{
+    static char empty[4];
+    bb_str *s = *var;
+    if (!s || s->len == 0) { empty[0] = 0; return empty; }
+    if (s->ref != 1) {
+        bb_str *c = bb_str_new(s->data, s->len);
+        bb_str_release(s);
+        *var = c;
+        s = c;
+    }
+    return s->data;
+}
+
 uint32_t bb_declare_call(bb_declare *d, int argc, const uint32_t *argv)
 {
     if (!d->cache) {

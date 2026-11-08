@@ -412,7 +412,10 @@ static void call(E *e, Node *n)
         int i;
         for (i = 0; i < n->list.n; i++) {
             Node *a = n->list.v[i];
-            if (a->flags & NF_BYREF) addr(e, a); else expr(e, a);
+            if (a->flags & NF_BYREF) addr(e, a);
+            else if (decl_nullstr(a)) op1(e, I_PUSHL, 0);
+            else if (decl_strvar(a)) { addr(e, a); op0(e, I_STRBUF); }
+            else expr(e, a);
         }
         op2(e, I_CALLD, pr->index, n->list.n | (pr->ret ? 0x10000 : 0));
         if (pr->ret && pr->ret->kind != T_LONG && pr->ret->kind != T_VARIANT) op1(e, I_CVT, vt_of(pr->ret));
@@ -439,7 +442,7 @@ static void builtin(E *e, Node *n)
     for (i = 0; i < n->list.n; i++) {
         Node *a = n->list.v[i];
         char pc = (b->flags & BIF_VARARGS) ? (i == 0 && b->params[0] ? b->params[0] : 'v') : b->params[i];
-        if (pc == 'a' && (a->kind == E_VAR || a->kind == E_FIELD || a->kind == E_MFIELD || a->kind == E_INDEX)) addr(e, a);
+        if ((pc == 'a' && (a->kind == E_VAR || a->kind == E_FIELD || a->kind == E_MFIELD || a->kind == E_INDEX)) || pc == 'r') addr(e, a);
         else expr(e, a);
     }
     for (i = 0; i < n->list2.n; i++) { expr(e, n->list2.v[i]); op0(e, I_POP); }

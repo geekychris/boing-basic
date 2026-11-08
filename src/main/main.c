@@ -138,6 +138,12 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
     return 0;
 }
 
+#ifdef __amigaos4__
+/* the shell gives a command this much stack (the compiler and the VM recurse); see also
+   tools/stackcheck.sh, which keeps every frame small for launchers that ignore the cookie */
+static const char __attribute__((used)) boing_stack_cookie[] = "$STACK:1048576";
+#endif
+
 int main(int argc, char **argv)
 {
     const char *cmd;

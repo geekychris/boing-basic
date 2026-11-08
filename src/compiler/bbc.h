@@ -195,7 +195,9 @@ struct Node {
 #define NF_PRIVATE    0x0004
 #define NF_STATIC     0x0008
 #define NF_NEW        0x0010  /* As New */
-Node *late_byref_var(Node *x);   /* a late-bound call's argument that is passed by reference */
+Node *late_byref_var(Node *x);
+int decl_nullstr(Node *a);       /* Declare argument: the vbNullString constant (passed as 0) */
+int decl_strvar(Node *a);        /* Declare argument: a String variable passed ByVal (buffer, copied back) */   /* a late-bound call's argument that is passed by reference */
 #define NF_WITHEVENTS 0x0020
 #define NF_PRESERVE   0x0040
 #define NF_DEBUG      0x0080  /* Debug.Print */

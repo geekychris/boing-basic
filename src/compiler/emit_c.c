@@ -736,6 +736,8 @@ static R call(EC *e, Node *n)
             Node *a = n->list.v[i];
             char *s;
             if (a->flags & NF_BYREF) s = xsprintf("(uint32_t)(uintptr_t)%s", addr(e, a));
+            else if (decl_nullstr(a)) s = xstrdup("0u");
+            else if (decl_strvar(a)) s = xsprintf("(uint32_t)(uintptr_t)bb_decl_strbuf((bb_str **)&%s)", lval(e, a));
             else if (a->ty->kind == T_STRING) s = xsprintf("(uint32_t)(uintptr_t)bb_str_ptr(%s)", val(e, a));
             else if (a->ty->kind == T_OBJECT) s = xsprintf("(uint32_t)(uintptr_t)%s", val(e, a));
             else if (a->ty->kind == T_VARIANT || a->ty->kind == T_ANY) s = xsprintf("(uint32_t)bb_v_to_long(%s)", val(e, a));
@@ -830,6 +832,7 @@ static R builtin(EC *e, Node *n)
             pre(e, "%s[%d] = %s;", arr, i, own(e, n->list.v[start + i]));
             rel(e, xsprintf("bb_v_release(&%s[%d]);", arr, i));
         }
+        if (name_eq(nm, "TagList")) return mkr(xsprintf("bb_taglist(%d, %s)", cnt, arr), 0);
         if (name_eq(nm, "Choose")) return mkr(xsprintf("bb_choose(%s, %d, %s)", val(e, n->list.v[0]), cnt, arr), 1);
         return mkr(xsprintf("bb_array_fn(%d, %s)", cnt, arr), 1);
     }
@@ -838,6 +841,7 @@ static R builtin(EC *e, Node *n)
         char pc = b->params[i];
         char *s;
         if (pc == 'a') s = arr_of(e, a);
+        else if (pc == 'r') s = xsprintf("(const void *)%s", addr(e, a));
         else if (a->kind == E_MISSING) s = xstrdup("&bb_vk_missing");
         else s = val(e, a);
         if (pc == 'T') s = xsprintf("(int)(%s)", s);

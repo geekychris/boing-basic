@@ -207,6 +207,18 @@ Declare Sub Delay Lib "dos.library" Version 50 (ByVal ticks As Long)
 OS4's (see os4.md and the generated `bindings/*.bi`). On the host every Declare'd call raises
 error 48/453.
 
+A String variable passed ByVal gets a string of its own whose bytes the function receives, so
+what the OS writes into it (`buf = Space(64): GetVar "x", buf, 64, 0`) is in the variable
+afterwards, as in VB6. `vbNullString` passes a NULL pointer (`""` passes an empty string).
+
+Pointer builtins (addresses are Longs; on a 64-bit host a pointer above 4 GB raises error 5):
+`PeekB/PeekW/PeekL(addr)` (unsigned byte, unsigned 16-bit, signed 32-bit, native byte order),
+`PokeB/PokeW/PokeL addr, v`, `PeekS(addr [, maxlen])` (C string, `""` for 0), `VarPtr(var)`
+(address of a variable's storage), `StrPtr(s)` (0 for an empty string), `ObjPtr(o)`,
+`TagList(tag, value, ...)` (a `struct TagItem` array ending in TAG_DONE; strings and objects
+pass their address), `FreeTagList p`, `AllocMem(size [, clear])` / `FreeMem p` (8-byte
+aligned). Memory from TagList and AllocMem is freed at program end if not freed before.
+
 `AddressOf Proc` (a Sub or Function in a module, up to 8 parameters) gives a native function
 for OS callbacks and hooks, as a Long: the OS calls it with 32-bit arguments, which arrive as
 Long parameters, and gets the Function's value back (0 for a Sub). Up to 32 procedures can be
