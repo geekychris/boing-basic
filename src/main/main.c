@@ -137,7 +137,7 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
     /* never -mcpu=440/440fp: GCC then inlines string functions with dlmzb., which only the
        440/460 has (real X5000, A1222 and G3/G4 machines crash); see docs/os4.md */
     cmd = xsprintf("%s -mcrt=newlib -mcpu=powerpc %s -D__USE_OLD_TIMEVAL__ -I\"%s\" \"%s\" -o \"%s\" -L\"%s\" "
-                   "-lboing -lauto -lm %s", cc, debug ? "-g -O0" : "-O2", inc, cpath, outp, lib, extra ? extra : "");
+                   "-lboing -lauto -lm %s", cc, debug ? "-gstabs -O0" : "-O2", inc, cpath, outp, lib, extra ? extra : "");   /* AmiForge's debugger reads stabs */
 #else
     cmd = xsprintf("%s %s -I\"%s\" \"%s\" -o \"%s\" -L\"%s\" -lboing -lm %s", cc,
                    debug ? "-g -O0" : "-O2", inc, cpath, outp, lib, extra ? extra : "");

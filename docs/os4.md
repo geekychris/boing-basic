@@ -53,10 +53,13 @@ else `gcc` from the path; the SDK installed with its `SDK:` assign). It finds th
 ```
 BOING:boing              the compiler/VM
 BOING:include/           boing.h, platform.h, bb_forms.h, ... (the runtime's headers)
-BOING:lib/libboing.a
+BOING:lib/libboing.a     (or BOING:libboing.a: boing looks in lib/ first, then beside itself)
 BOING:bindings/          *.bi
 BOING:examples/
 ```
+
+`--debug` compiles with `-gstabs -O0` (AmiForge's debugger reads stabs) and `BOING_CFLAGS`
+is added to the GCC command line, here and in `tools/boing-build-os4.sh`.
 
 and the compile is
 
