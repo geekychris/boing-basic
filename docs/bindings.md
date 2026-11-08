@@ -68,9 +68,16 @@ tools/os4guest.py bas tests-os4/bindings/libs.bbp both    # VM and native build
 | locale | OpenLocale(NULL), ConvToUpper, CloseLocale |
 | error paths | a missing library (error 48), `Version 9999` (error 48), an unknown function name (error 453) |
 
-It needs the pointer builtins `PeekB/W/L`, `PokeB/W/L`, `PeekS`, `StrPtr`, `VarPtr`,
-`TagList`, `AllocMem/FreeMem` (requested from the compiler side) and `vbNullString` passed as
-NULL. Until then the call glue itself is proven from C:
+Result (2026-11-08, QEMU sam460ex, OS 4.1 FE): **42/42 with `boing run` and 42/42 natively
+built**, output identical to `libs.out`.
+
+It uses the pointer builtins `PeekB/W/L`, `PokeB/W/L`, `PeekS`, `StrPtr`, `VarPtr`,
+`TagList`, `AllocMem/FreeMem`; `vbNullString` passes NULL. Notes from writing it: read `IoErr()`
+right after the call (a `Print` resets it, and so does the first call through a Declare, which
+opens the library); hex literals of 4 digits are Integers in VB (`&HBEEF` is negative, write
+`&HBEEF&`).
+
+The call glue itself is also proven from C:
 
 - `tests/os4/declare_test.c` (21/21 on the guest, cross and native SDK GCC): resolution by name
   and by `#n`, an 11-argument call (stack arguments), a device interface (timer.device),
