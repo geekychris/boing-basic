@@ -20,9 +20,16 @@
 #include <proto/exec.h>
 #include <proto/dos.h>
 #include <devices/timer.h>
+#include <proto/timer.h>
+#include <dos/dos.h>
 
 void bb_plat_init(int argc, char **argv) { (void)argc; (void)argv; }
 void bb_plat_shutdown(void) { fflush(stdout); }
+
+int bb_plat_break(void)
+{
+    return (IExec->SetSignal(0, SIGBREAKF_CTRL_C) & SIGBREAKF_CTRL_C) != 0;
+}
 
 void bb_plat_write(const char *p, size_t n) { fwrite(p, 1, n, stdout); }
 void bb_plat_write_err(const char *p, size_t n) { fflush(stdout); fwrite(p, 1, n, stderr); fflush(stderr); }
@@ -69,11 +76,32 @@ void bb_plat_localtime(bb_tm *tm)
     tm->msec = (int)(tv.tv_usec / 1000);
 }
 
+/* monotonic, EClock resolution (timer.device's ReadEClock) */
 double bb_plat_seconds(void)
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (double)tv.tv_sec + tv.tv_usec / 1e6;
+    static struct MsgPort *port;
+    static struct TimeRequest *tr;
+    static struct TimerIFace *ITimer_;
+    static int tried;
+    struct EClockVal ev;
+    uint32 freq;
+    if (!tried) {
+        tried = 1;
+        port = (struct MsgPort *)IExec->AllocSysObjectTags(ASOT_PORT, TAG_DONE);
+        if (port) tr = (struct TimeRequest *)IExec->AllocSysObjectTags(ASOT_IOREQUEST, ASOIOR_Size, sizeof(struct TimeRequest),
+                                                                       ASOIOR_ReplyPort, port, TAG_DONE);
+        if (tr && IExec->OpenDevice(TIMERNAME, UNIT_ECLOCK, (struct IORequest *)tr, 0) == 0)
+            ITimer_ = (struct TimerIFace *)IExec->GetInterface((struct Library *)tr->Request.io_Device, "main", 1, NULL);
+    }
+    if (ITimer_) {
+        freq = ITimer_->ReadEClock(&ev);
+        if (freq) return ((double)ev.ev_hi * 4294967296.0 + (double)ev.ev_lo) / (double)freq;
+    }
+    {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        return (double)tv.tv_sec + tv.tv_usec / 1e6;
+    }
 }
 
 void bb_plat_sleep_ms(long ms)

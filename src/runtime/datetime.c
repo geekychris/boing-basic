@@ -107,6 +107,8 @@ bb_single bb_timer(void)
     return (bb_single)(t.hour * 3600 + t.minute * 60 + t.second + t.msec / 1000.0);
 }
 
+bb_double bb_timer_ms(void) { return bb_plat_seconds() * 1000.0; }
+
 bb_str *bb_monthname(bb_long m, bb_bool abbrev)
 {
     char b[16];

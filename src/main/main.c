@@ -15,7 +15,7 @@ static void usage(void)
     fprintf(stderr,
             "Boing BASIC " BOING_VERSION "\n"
             "usage:\n"
-            "  boing run   prog.bas|prog.bbp|prog.bbc [args]   compile to bytecode and run\n"
+            "  boing run   [--error-file F] prog.bas|prog.bbp|prog.bbc [args]   compile to bytecode and run\n"
             "  boing build prog.bas|prog.bbp [-o out] [--keep-c] [--debug] [--target host|os4]\n"
             "  boing check prog.bas|prog.bbp                    check only (file:line:col: error: ...)\n"
             "  boing compile prog.bas -o prog.bbc               write a bytecode file\n"
@@ -139,6 +139,16 @@ int main(int argc, char **argv)
     }
     if (!strcmp(cmd, "run") || !strcmp(cmd, "disasm")) {
         VMImage *img;
+        /* options before the program: --error-file FILE */
+        while (argc > 3 && argv[2][0] == '-' && argv[2][1] == '-') {
+            if (!strcmp(argv[2], "--error-file") && argc > 4) {
+                setenv("BOING_ERROR_FILE", argv[3], 1);
+                remove(argv[3]);
+                argv += 2; argc -= 2;
+            } else if (!strcmp(argv[2], "--jit") || !strcmp(argv[2], "--no-jit")) {
+                argv += 1; argc -= 1;
+            } else { fprintf(stderr, "boing: unknown option %s\n", argv[2]); return 5; }
+        }
         if (has_ext(argv[2], ".bbc")) {
             img = vm_load(argv[2]);
             if (!img) { fprintf(stderr, "%s: error: not a Boing BASIC bytecode file\n", argv[2]); return 20; }

@@ -38,6 +38,7 @@ void bb_rt_init(int argc, char **argv)
     bb_set_args_(argc, argv);
     bb_plat_init(argc, argv);
     bb_sys_init(argc, argv, NULL);
+    if (getenv("BOING_ERROR_FILE")) bb_set_error_file(getenv("BOING_ERROR_FILE"));
 }
 
 void bb_rt_shutdown(void)
@@ -146,6 +147,26 @@ void bb_err_clear(void)
     bb_str_set(&bb_err.source, NULL);
 }
 
+static char *g_error_file;
+void bb_set_error_file(const char *path)
+{
+    free(g_error_file);
+    g_error_file = path ? strdup(path) : NULL;
+}
+
+int32_t bb_poll_count = 4096;
+void bb_poll_slow(void)
+{
+    bb_poll_count = 4096;
+    if (bb_plat_break()) {
+        char buf[512];
+        bb_console_flush();
+        snprintf(buf, sizeof buf, "%s:%ld: ***Break\n", bb_file ? bb_file : "?", (long)bb_line);
+        bb_plat_write_err(buf, strlen(buf));
+        bb_exit(20);
+    }
+}
+
 void bb_fatal_error(void)
 {
     char buf[1024];
@@ -155,6 +176,10 @@ void bb_fatal_error(void)
              bb_str_len(bb_err.description) ? bb_str_ptr(bb_err.description)
                                             : bb_error_message(bb_err.number));
     bb_plat_write_err(buf, strlen(buf));
+    if (g_error_file) {
+        FILE *f = fopen(g_error_file, "w");
+        if (f) { fputs(buf, f); fclose(f); }
+    }
     bb_exit(20);
 }
 

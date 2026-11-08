@@ -1107,6 +1107,7 @@ static void for_stmt(EC *e, Node *s)
         id = push_loop(e, EXIT_FOR);
         out(e, "for (;;) {");
         e->indent++;
+        out(e, "bb_poll();");
         cv = val(e, ctr);
         action(e, "if (bb_for_done_v(%s, (bb_value *)&%s, (bb_value *)&%s)) break;", cv, lv, sv);
         block(e, &s->list);
@@ -1145,6 +1146,7 @@ static void for_stmt(EC *e, Node *s)
         out(e, "for (; %s; %s) {", test, inc);
     }
     e->indent++;
+    out(e, "bb_poll();");
     block(e, &s->list);
     e->indent--;
     out(e, "}");
@@ -1182,6 +1184,7 @@ static void foreach_stmt(EC *e, Node *s)
     e->nloops++;
     out(e, "while (bb_foreach_next(&%s, &%s)) {", fe, fv);
     e->indent++;
+    out(e, "bb_poll();");
     store_from_variant(e, s->a, fv);
     block(e, &s->list);
     e->indent--;
@@ -1320,6 +1323,7 @@ static void stmt(EC *e, Node *s)
         int id = push_loop(e, EXIT_DO);
         out(e, "for (;;) {");
         e->indent++;
+        out(e, "bb_poll();");
         if (s->op == DO_PRE_WHILE || s->op == DO_PRE_UNTIL) {
             char *c = cond_c(e, s->a);
             char *cn = xsprintf("c%d", e->ntemp++);
@@ -1702,6 +1706,7 @@ static void emit_proc(EC *e, Proc *pr)
         buf_puts(e->out, "        default: bb_frame_pop(&bb_ef); bb_rethrow();\n        }\n    }\n");
     }
     if (pr->mod) buf_printf(e->out, "    bb_file = bb_files[%d];\n", pr->mod->file);
+    buf_puts(e->out, "    bb_poll();\n");
     buf_put(e->out, e->body.p ? e->body.p : "", e->body.n);
     if (e->resume) {
         int k;

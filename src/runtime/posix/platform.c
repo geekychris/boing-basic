@@ -12,10 +12,14 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <signal.h>
 
 extern char **environ;
 
-void bb_plat_init(int argc, char **argv) { (void)argc; (void)argv; }
+static volatile sig_atomic_t brk;
+static void on_sigint(int s) { (void)s; brk = 1; }
+void bb_plat_init(int argc, char **argv) { (void)argc; (void)argv; signal(SIGINT, on_sigint); }
+int bb_plat_break(void) { int b = brk; brk = 0; return b; }
 void bb_plat_shutdown(void) { fflush(stdout); }
 
 void bb_plat_write(const char *p, size_t n) { fwrite(p, 1, n, stdout); }

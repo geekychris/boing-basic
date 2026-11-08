@@ -609,6 +609,17 @@ static bb_value load_raw(VM *vm, void *p, int vt, int aux)
     return bb_elem_load(vt, p);
 }
 
+/* Ctrl-C polling at loop back-edges and calls */
+static void vm_poll(VM *vm)
+{
+    Frame *f = &vm->frames[vm->nframes - 1];
+    int32_t pc = (int32_t)(f->pc - vm->img->code);
+    bb_file = vm->img->files[f->proc->file];
+    bb_line = f->proc->nlines ? f->proc->lines[line_index(f->proc, pc)].line : 0;
+    bb_poll_slow();
+}
+#define POLL() do { if (BB_UNLIKELY(--bb_poll_count < 0)) { fr->pc = pc; vm->sp = sp; vm_poll(vm); } } while (0)
+
 /* ---------- the interpreter ---------- */
 
 #define PUSH(v) (*sp++ = (v))
@@ -1010,16 +1021,16 @@ static void vm_exec(VM *vm, int entry)
                 break;
             }
 
-            case I_JMP: pc = code + pc[1]; break;
+            case I_JMP: if (pc[1] <= pc - code) POLL(); pc = code + pc[1]; break;
             case I_JF: { bb_value v = POP(); int t = truth(&v); release_slot(&v); pc = t ? pc + 2 : code + pc[1]; break; }
-            case I_JT: { bb_value v = POP(); int t = truth(&v); release_slot(&v); pc = t ? code + pc[1] : pc + 2; break; }
+            case I_JT: { bb_value v; if (pc[1] <= pc - code) POLL(); v = POP(); int t = truth(&v); release_slot(&v); pc = t ? code + pc[1] : pc + 2; break; }
 
             case I_FORCHK_I: { bb_int c = L[pc[1]].u.i, l = L[pc[2]].u.i, s = L[pc[3]].u.i; pc = ((s >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; break; }
-            case I_FORINC_I: { bb_value *cv = &L[pc[1]]; bb_int l = L[pc[2]].u.i, s = L[pc[3]].u.i; cv->u.i = bb_add_i(cv->u.i, s); pc = ((s >= 0) ? cv->u.i > l : cv->u.i < l) ? pc + 5 : code + pc[4]; break; }
+            case I_FORINC_I: { POLL(); bb_value *cv = &L[pc[1]]; bb_int l = L[pc[2]].u.i, s = L[pc[3]].u.i; cv->u.i = bb_add_i(cv->u.i, s); pc = ((s >= 0) ? cv->u.i > l : cv->u.i < l) ? pc + 5 : code + pc[4]; break; }
             case I_FORCHK_L: { bb_long c = L[pc[1]].u.l, l = L[pc[2]].u.l, s = L[pc[3]].u.l; pc = ((s >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; break; }
-            case I_FORINC_L: { bb_value *cv = &L[pc[1]]; bb_long l = L[pc[2]].u.l, s = L[pc[3]].u.l; cv->u.l = bb_add_l(cv->u.l, s); pc = ((s >= 0) ? cv->u.l > l : cv->u.l < l) ? pc + 5 : code + pc[4]; break; }
+            case I_FORINC_L: { POLL(); bb_value *cv = &L[pc[1]]; bb_long l = L[pc[2]].u.l, s = L[pc[3]].u.l; cv->u.l = bb_add_l(cv->u.l, s); pc = ((s >= 0) ? cv->u.l > l : cv->u.l < l) ? pc + 5 : code + pc[4]; break; }
             case I_FORCHK_D: { double c = L[pc[1]].u.d, l = L[pc[2]].u.d, s = L[pc[3]].u.d; pc = ((s >= 0) ? c > l : c < l) ? code + pc[4] : pc + 5; break; }
-            case I_FORINC_D: { bb_value *cv = &L[pc[1]]; double l = L[pc[2]].u.d, s = L[pc[3]].u.d; cv->u.d = cv->u.d + s; pc = ((s >= 0) ? cv->u.d > l : cv->u.d < l) ? pc + 5 : code + pc[4]; break; }
+            case I_FORINC_D: { POLL(); bb_value *cv = &L[pc[1]]; double l = L[pc[2]].u.d, s = L[pc[3]].u.d; cv->u.d = cv->u.d + s; pc = ((s >= 0) ? cv->u.d > l : cv->u.d < l) ? pc + 5 : code + pc[4]; break; }
             case I_FORCHKV: {
                 bb_value s = POP(), l = POP(), c = POP(), zero = bb_v_int(0);
                 int done;
@@ -1033,6 +1044,7 @@ static void vm_exec(VM *vm, int entry)
 
             case I_CALL: {
                 int32_t pidx = pc[1];
+                POLL();
                 VMProc *p = &img->procs[pidx];
                 bb_value *base = sp - p->nparams;
                 int32_t *ret = pc + 2;
