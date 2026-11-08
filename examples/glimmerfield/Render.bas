@@ -51,7 +51,7 @@ Public Sub InitRender()
     For i = 0 To 63
         starX(i) = RandL(ARENA_W)
         starY(i) = RandL(ARENA_H)
-        starC(i) = 5 + RandL(2)
+        starC(i) = pal(5 + RandL(2))
     Next i
     For i = 0 To 3
         For k = 0 To 7
@@ -185,9 +185,7 @@ End Sub
 Public Sub DrawWorld(cv As Object)
     Dim i As Long
     cv.Cls pal(0)
-    For i = 0 To 63
-        cv.PSet starX(i), starY(i), pal(starC(i))
-    Next i
+    cv.PSetMany starX, starY, starC, 64          ' one call for the starfield
     DrawParts cv
     DrawShards cv
     DrawWisps cv

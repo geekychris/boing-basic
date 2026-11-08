@@ -10,6 +10,11 @@ succession build a combo multiplier up to x5. Clear the field for a wave bonus. 
 extra life every 25 000 points. The eight best scores are kept in `glimmerfield.scores`
 beside the program.
 
+![Glimmerfield on AmigaOS 4.1: the bot playing wave 3, 2x scale](docs/guest-2x.png)
+
+*On AmigaOS 4.1 (QEMU sam460ex): `Glimmerfield2x --bench 4000`, the bot playing in an
+800x600 window (the picture drawn at 400x300, `scale=2`), with the F1 timing line at the bottom.*
+
 ![Four frames of the bot playing (waves 3 and 4)](docs/bench-frames.png)
 
 *Frames 2470, 4010, 4480 and 5120 of the bot's game (seed 1987), rendered by the Canvas
@@ -54,4 +59,13 @@ The bot plays from a fixed seed and starts a new game (seed + n) after each game
 code (Bresenham lines, midpoint circles), with "blit" being the copy to the front buffer.
 `--quiet` prints only the `state:` lines, which are the same in every build.
 
-Results: see [docs/performance.md](../../docs/performance.md#game-benchmark).
+Results: see [docs/performance.md](../../docs/performance.md#game-benchmark). On the AmigaOS 4
+guest, freshly rebooted (ms per frame):
+
+| | logic | draw | blit | fps |
+|---|---:|---:|---:|---:|
+| game, native (`Glimmerfield --bench 1000`) | 0.22 | 1.61 | 0.84 | 294 |
+| game, VM (`boing run Glimmerfield.bbp --bench 1000`) | 0.64 | 13.27 | 1.12 | 59 |
+| game, native, 2x scale | 0.20 | 2.00 | 5.91 | 106 |
+
+![Four frames on the guest](docs/guest-2x-frames.png)
