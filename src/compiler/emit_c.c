@@ -866,7 +866,9 @@ static R late(EC *e, Node *n)
     recv = val(e, n->a);
     for (i = 0; i < cnt; i++) {
         Node *x = n->list.v[i];
+        Node *rv = x->kind == E_MISSING ? NULL : late_byref_var(x);
         if (x->kind == E_MISSING) pre(e, "%s[%d] = bb_v_missing();", arr, i);
+        else if (rv) pre(e, "%s[%d] = bb_v_ref(%s, %s);", arr, i, vtname(rv->ty), addr(e, rv));   /* by reference */
         else pre(e, "%s[%d] = %s;", arr, i, own(e, x));
         rel(e, xsprintf("bb_v_release(&%s[%d]);", arr, i));
     }

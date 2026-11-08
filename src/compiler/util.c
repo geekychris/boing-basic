@@ -93,6 +93,22 @@ void buf_printf(Buf *b, const char *fmt, ...)
         free(p);
     }
 }
+/* VB passes variables to late-bound calls by reference (the callee's ByRef parameters
+   change them): the variable under the Variant conversion, unless parenthesised */
+Node *late_byref_var(Node *x)
+{
+    Node *v = x;
+    if (v->flags & NF_PARENARG) return NULL;
+    if (v->kind == E_CONV && v->ty->kind == T_VARIANT) v = v->a;
+    if (v->kind != E_VAR || (v->flags & NF_PARENARG)) return NULL;
+    switch (v->ty->kind) {
+    case T_ARRAY: case T_UDT: case T_ANY: return NULL;
+    default: break;
+    }
+    if (v->sym->kind != SK_VAR) return NULL;
+    return v;
+}
+
 void buf_free(Buf *b) { free(b->p); b->p = NULL; b->n = b->cap = 0; }
 
 const char *file_name(Program *p, int file)

@@ -126,7 +126,8 @@ both back ends.
   `TypeOf`, `TypeName`.
 - Variables typed with a class are early bound (direct calls). `Object` and `Variant` are late
   bound: members are found by name at run time. Both work on BASIC classes, `Collection` and
-  runtime objects such as form controls.
+  runtime objects such as form controls. As in VB, a variable passed to a late-bound call is
+  passed by reference (a ByRef parameter changes it; `(x)` passes a copy).
 - `Implements I`: the class provides `I_Member` procedures. Calls through an `I` variable
   dispatch to the object's implementation. Public variables in an interface class are not
   supported (use properties).
@@ -205,4 +206,3 @@ error 48/453.
 
 - `Decimal`; `CDec` returns a Double.
 - `AddressOf`; `Friend` is treated as `Public`.
-- Late-bound calls pass arguments by value (no ByRef through `Object`).

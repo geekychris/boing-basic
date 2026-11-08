@@ -456,7 +456,11 @@ static void late_call(E *e, Node *n)
         return;
     }
     expr(e, n->a);
-    for (i = 0; i < n->list.n; i++) expr(e, n->list.v[i]);
+    for (i = 0; i < n->list.n; i++) {
+        Node *v = late_byref_var(n->list.v[i]);
+        if (v) addr(e, v);                  /* by reference */
+        else expr(e, n->list.v[i]);
+    }
     op3(e, I_INVOKE, str_const(e, n->name, (int)strlen(n->name)), n->argc_kind, n->list.n);
 }
 
