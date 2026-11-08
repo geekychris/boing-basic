@@ -16,6 +16,16 @@
 #include <stddef.h>
 #include <setjmp.h>
 
+/* Error frames never need the signal mask: plain setjmp saves it on macOS/BSD
+   (two system calls per frame), so use the non-saving forms where they exist. */
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#define BB_SETJMP(jb) _setjmp(jb)
+#define BB_LONGJMP(jb, v) _longjmp(jb, v)
+#else
+#define BB_SETJMP(jb) setjmp(jb)
+#define BB_LONGJMP(jb, v) longjmp(jb, v)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -155,6 +165,25 @@ void bb_set_error_file(const char *path);    /* also write the runtime-error lin
 extern int32_t bb_poll_count;
 void bb_poll_slow(void);
 BB_INLINE void bb_poll(void) { if (BB_UNLIKELY(--bb_poll_count < 0)) bb_poll_slow(); }
+/* Native procedures call bb_enter on entry: error 28 "Out of stack space" when the
+   stack is nearly exhausted (bb_stack_limit is set by bb_rt_init; NULL = unknown). */
+extern char *bb_stack_limit;
+BB_NORETURN void bb_stack_overflow(void);
+#if defined(__GNUC__)
+#define BB_STACK_HERE() ((char *)__builtin_frame_address(0))
+BB_INLINE void bb_enter(void)
+{
+    if (BB_UNLIKELY(BB_STACK_HERE() < bb_stack_limit)) bb_stack_overflow();
+    bb_poll();
+}
+#else
+BB_INLINE void bb_enter(void)
+{
+    char here;
+    if (BB_UNLIKELY(&here < bb_stack_limit)) bb_stack_overflow();
+    bb_poll();
+}
+#endif
 void *bb_realloc(void *p, size_t n);
 void bb_free(void *p);
 
@@ -480,6 +509,10 @@ bb_value bb_invoke(bb_obj *o, const char *name, int kind, int argc, bb_value *ar
 bb_value bb_invoke_id(bb_obj *o, int32_t id, int kind, int argc, bb_value *argv);
 /* Same on a Variant holding an object (error 424 if it does not). */
 bb_value bb_v_invoke(const bb_value *v, const char *name, int kind, int argc, bb_value *argv);
+/* Late-bound calls with a per-call-site cache of the member id (zero-initialised). */
+typedef struct bb_site { const bb_class *cls; int32_t id; } bb_site;
+bb_value bb_invoke_site(bb_obj *o, bb_site *s, const char *name, int kind, int argc, bb_value *argv);
+bb_value bb_v_invoke_site(const bb_value *v, bb_site *s, const char *name, int kind, int argc, bb_value *argv);
 /* Convenience for platform code */
 bb_value bb_get_prop(bb_obj *o, const char *name);
 void bb_set_prop(bb_obj *o, const char *name, bb_value owned);

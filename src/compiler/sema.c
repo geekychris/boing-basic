@@ -1274,7 +1274,12 @@ static void add_vb_constants(Program *p)
         {"vbKeyBack", T_LONG, 8, 0}, {"vbKeyTab", T_LONG, 9, 0}, {"vbKeyLeft", T_LONG, 37, 0},
         {"vbKeyUp", T_LONG, 38, 0}, {"vbKeyRight", T_LONG, 39, 0}, {"vbKeyDown", T_LONG, 40, 0},
         {"vbKeyDelete", T_LONG, 46, 0}, {"vbShiftMask", T_LONG, 1, 0}, {"vbCtrlMask", T_LONG, 2, 0},
-        {"vbAltMask", T_LONG, 4, 0},
+        {"vbAltMask", T_LONG, 4, 0}, {"vbKeyInsert", T_LONG, 45, 0}, {"vbKeyHome", T_LONG, 36, 0},
+        {"vbKeyEnd", T_LONG, 35, 0}, {"vbKeyPageUp", T_LONG, 33, 0}, {"vbKeyPageDown", T_LONG, 34, 0},
+        {"vbKeyShift", T_LONG, 16, 0}, {"vbKeyControl", T_LONG, 17, 0}, {"vbKeyMenu", T_LONG, 18, 0},
+        {"vbKeyPause", T_LONG, 19, 0}, {"vbKeyCapital", T_LONG, 20, 0}, {"vbKeyClear", T_LONG, 12, 0},
+        {"vbKeyMultiply", T_LONG, 106, 0}, {"vbKeyAdd", T_LONG, 107, 0}, {"vbKeySubtract", T_LONG, 109, 0},
+        {"vbKeyDecimal", T_LONG, 110, 0}, {"vbKeyDivide", T_LONG, 111, 0},
         {"vbUnchecked", T_LONG, 0, 0}, {"vbChecked", T_LONG, 1, 0}, {"vbGrayed", T_LONG, 2, 0},
         {"vbLeftButton", T_LONG, 1, 0}, {"vbRightButton", T_LONG, 2, 0}, {"vbMiddleButton", T_LONG, 4, 0},
         {NULL, 0, 0, 0}
@@ -1289,6 +1294,22 @@ static void add_vb_constants(Program *p)
             else { s->cv.s = xstrdup(k[i].s); s->cv.slen = (int)strlen(k[i].s); }
         } else s->cv.i = k[i].i;
         s->ty = type_prim(k[i].type);
+        scope_add(p->global, s);
+    }
+    /* vbKeyA..Z, vbKey0..9, vbKeyF1..F16, vbKeyNumpad0..9 */
+    for (i = 0; i < 26 + 10 + 16 + 10; i++) {
+        char nm[24];
+        long v;
+        Sym *s;
+        if (i < 26) { snprintf(nm, sizeof nm, "vbKey%c", 'A' + i); v = 65 + i; }
+        else if (i < 36) { snprintf(nm, sizeof nm, "vbKey%d", i - 26); v = 48 + i - 26; }
+        else if (i < 52) { snprintf(nm, sizeof nm, "vbKeyF%d", i - 35); v = 112 + i - 36; }
+        else { snprintf(nm, sizeof nm, "vbKeyNumpad%d", i - 52); v = 96 + i - 52; }
+        s = new_sym(SK_CONST, xstrdup(nm), NULL);
+        s->is_public = 1;
+        s->cv.type = T_LONG;
+        s->cv.i = v;
+        s->ty = type_prim(T_LONG);
         scope_add(p->global, s);
     }
 }

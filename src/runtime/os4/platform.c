@@ -23,6 +23,14 @@
 #include <proto/timer.h>
 #include <dos/dos.h>
 
+char *bb_plat_stack_limit(char *here)
+{
+    struct Task *t = IExec->FindTask(NULL);
+    char *lo = (char *)t->tc_SPLower, *hi = (char *)t->tc_SPUpper;
+    if (here <= lo || here > hi || hi - lo < 64 * 1024) return NULL;
+    return lo + 24 * 1024;
+}
+
 void bb_plat_init(int argc, char **argv) { (void)argc; (void)argv; }
 void bb_plat_shutdown(void) { fflush(stdout); }
 

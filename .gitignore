@@ -3,3 +3,4 @@
 /boing
 build/
 build-*/
+__pycache__/

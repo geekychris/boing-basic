@@ -37,6 +37,10 @@ void bb_rt_init(int argc, char **argv)
 {
     bb_set_args_(argc, argv);
     bb_plat_init(argc, argv);
+    {
+        char here;
+        bb_stack_limit = bb_plat_stack_limit(&here);
+    }
     bb_sys_init(argc, argv, NULL);
     if (getenv("BOING_ERROR_FILE")) bb_set_error_file(getenv("BOING_ERROR_FILE"));
 }
@@ -155,6 +159,8 @@ void bb_set_error_file(const char *path)
 }
 
 int32_t bb_poll_count = 4096;
+char *bb_stack_limit;
+void bb_stack_overflow(void) { bb_raise(28, NULL); }
 void bb_poll_slow(void)
 {
     bb_poll_count = 4096;
@@ -193,7 +199,7 @@ void bb_rethrow(void)
         bb_cleanups = c->prev;
         c->fn(c->ctx);
     }
-    longjmp(bb_errtop->jb, 1);
+    BB_LONGJMP(bb_errtop->jb, 1);
 }
 
 static BB_NORETURN void raise_common(void)
@@ -249,7 +255,7 @@ int32_t bb_call_proc(void *proc, int argc, bb_value *argv, bb_value *ret)
     if (!ret) ret = &dummy;
     if (!g_prog || !proc) return 35;
     bb_frame_push(&f);
-    if (setjmp(f.jb) == 0) {
+    if (BB_SETJMP(f.jb) == 0) {
         g_prog->call_proc(proc, argc, argv, ret);
         bb_frame_pop(&f);
         bb_v_release(&dummy);

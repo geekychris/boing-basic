@@ -844,7 +844,7 @@ static R late(EC *e, Node *n)
 {
     int i, cnt = n->list.n;
     char *arr = varr_temp(e, cnt);
-    char *recv;
+    char *recv, *site;
     recv = val(e, n->a);
     for (i = 0; i < cnt; i++) {
         Node *x = n->list.v[i];
@@ -854,9 +854,11 @@ static R late(EC *e, Node *n)
     }
     if (n->name[0] == 0 && n->a->ty->kind == T_VARIANT && (n->argc_kind & (BB_INV_GET | BB_INV_METHOD)))
         return mkr(xsprintf("bb_v_index(%s, %d, %s)", recv, cnt, arr), 1);
+    site = xsprintf("bb_site%d", e->ntemp++);
+    buf_printf(&e->decl, "    static bb_site %s;\n", site);
     if (n->a->ty->kind == T_VARIANT)
-        return mkr(xsprintf("bb_v_invoke(%s, %s, %d, %d, %s)", recv, cstrlit(n->name, (int)strlen(n->name)), n->argc_kind, cnt, arr), 1);
-    return mkr(xsprintf("bb_invoke(%s, %s, %d, %d, %s)", recv, cstrlit(n->name, (int)strlen(n->name)), n->argc_kind, cnt, arr), 1);
+        return mkr(xsprintf("bb_v_invoke_site(%s, &%s, %s, %d, %d, %s)", recv, site, cstrlit(n->name, (int)strlen(n->name)), n->argc_kind, cnt, arr), 1);
+    return mkr(xsprintf("bb_invoke_site(%s, &%s, %s, %d, %d, %s)", recv, site, cstrlit(n->name, (int)strlen(n->name)), n->argc_kind, cnt, arr), 1);
 }
 
 static R prod(EC *e, Node *n)
@@ -1696,7 +1698,7 @@ static void emit_proc(EC *e, Proc *pr)
     if (e->handler) {
         buf_puts(e->out, "    bb_errframe bb_ef;\n    volatile int bb_mode = 0, bb_hlabel = -1, bb_inh = 0, bb_stmt = 0, bb_estmt = 0, bb_rs = 0;\n");
         buf_puts(e->out, "    (void)bb_estmt; (void)bb_rs;\n    bb_frame_push(&bb_ef);\n");
-        buf_puts(e->out, "    if (setjmp(bb_ef.jb)) {\n");
+        buf_puts(e->out, "    if (BB_SETJMP(bb_ef.jb)) {\n");
         buf_puts(e->out, "        bb_errtop = &bb_ef;\n");
         buf_puts(e->out, "        if (bb_mode == 0 || bb_inh) { bb_frame_pop(&bb_ef); bb_rethrow(); }\n");
         buf_puts(e->out, "        bb_estmt = bb_stmt;\n");
@@ -1706,7 +1708,7 @@ static void emit_proc(EC *e, Proc *pr)
         buf_puts(e->out, "        default: bb_frame_pop(&bb_ef); bb_rethrow();\n        }\n    }\n");
     }
     if (pr->mod) buf_printf(e->out, "    bb_file = bb_files[%d];\n", pr->mod->file);
-    buf_puts(e->out, "    bb_poll();\n");
+    buf_puts(e->out, "    bb_enter();\n");
     buf_put(e->out, e->body.p ? e->body.p : "", e->body.n);
     if (e->resume) {
         int k;
@@ -2203,6 +2205,10 @@ int emit_c(Program *p, Buf *outb, int debug)
              "        if (!strcasecmp(bb_globs[i].name, name) && (!mod || !strcasecmp(bb_globs[i].mod, mod))) { *type = bb_globs[i].type; return bb_globs[i].p; }\n"
              "    return NULL;\n}\n"
              "static const bb_program_ops bb_ops = {bb_find_proc_, bb_call_proc_, bb_find_global_};\n");
+    /* the project's stack size (Stack= in the .bbp); this object comes before libboing,
+       so the OS4 loader finds this cookie before the library's default */
+    buf_printf(outb, "\n#ifdef __amigaos4__\nstatic const char __attribute__((used)) bb_stack_cookie_[] = \"$STACK:%d\";\n#endif\n",
+               e->p->stack > 0 ? e->p->stack : 262144);
     /* main */
     buf_puts(outb, "\nint main(int argc, char **argv)\n{\n    int i;\n    bb_rt_init(argc, argv);\n    bb_set_program(&bb_ops);\n");
     buf_puts(outb, "    bb_vk_null.type = BB_NULL;\n    bb_vk_missing = bb_v_missing();\n");

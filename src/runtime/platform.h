@@ -18,6 +18,9 @@ typedef struct bb_tm {
 } bb_tm;
 
 void bb_plat_init(int argc, char **argv);
+/* the lowest stack address native code may reach before raising error 28 (here = a
+   local of the caller, near the top of the stack); NULL if unknown */
+char *bb_plat_stack_limit(char *here);
 void bb_plat_shutdown(void);
 /* console */
 void bb_plat_write(const char *p, size_t n);             /* stdout */

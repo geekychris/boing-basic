@@ -158,6 +158,7 @@ typedef struct VMImage {
     int32_t ncode, capcode;
     bb_value *consts;
     int32_t nconsts, capconsts;
+    bb_site *sites;             /* late-bound call caches, one per constant (lazily allocated) */
     VMProc *procs;
     int32_t nprocs;
     VMSlot *globals;

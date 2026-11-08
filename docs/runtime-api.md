@@ -61,7 +61,7 @@ VB's run-time errors are C long jumps through a stack of handler frames:
 ```c
 bb_errframe f;
 bb_frame_push(&f);
-if (setjmp(f.jb) == 0) {
+if (BB_SETJMP(f.jb) == 0) {
     ... code that may call bb_raise(...) ...
     bb_frame_pop(&f);
 } else {
@@ -77,6 +77,14 @@ if (setjmp(f.jb) == 0) {
 - `bb_err` is the Err object. Generated code and the VM handle `On Error` with these frames.
 - With no frame the runtime prints `file:line: runtime error n: message` to stderr and
   exits with 20. `bb_line` / `bb_file` hold the current BASIC source location.
+- `BB_SETJMP` / `BB_LONGJMP` are `_setjmp` / `_longjmp` on macOS and the BSDs (no signal
+  mask: plain `setjmp` costs two system calls there) and `setjmp` / `longjmp` elsewhere.
+- A frame is costly; to only *release* something when an error unwinds past you, push a
+  `bb_cleanup` (`prev`, `fn`, `ctx`) on `bb_cleanups` and pop it on the way out. Errors run
+  the cleanups registered since the catching frame was pushed, newest first.
+- Native procedures start with `bb_enter()`: the Ctrl-C poll, and error 28 "Out of stack
+  space" when the stack is below `bb_stack_limit` (set by `bb_rt_init` from
+  `bb_plat_stack_limit`: the rlimit on posix, `tc_SPLower` plus 24 KB on OS4).
 - Platform code that calls back into BASIC must not let a long jump cross its own frames:
   use `bb_call_proc()` / `bb_dispatch_event()`, which catch errors.
 
@@ -110,8 +118,9 @@ struct bb_class {
   Empty on entry. Arguments are borrowed; any entry may be `BB_REF` (use `bb_v_deref`).
   Wrong argument counts → `bb_raise(450)`, bad values → `bb_raise(380)` or 13.
 - The VM and generated C call members of `Object`/`Variant` expressions *late bound*
-  through `bb_invoke(obj, name, kind, argc, argv)` (it calls `find` then `invoke`; the C
-  back end caches the id per call site with `bb_member_id`). So **form controls are just
+  through `bb_invoke(obj, name, kind, argc, argv)` (it calls `find` then `invoke`). Both
+  back ends use `bb_invoke_site` / `bb_v_invoke_site` with a zeroed `bb_site` per call
+  site, which keeps the member id for the last class seen there. So **form controls are just
   `bb_class` implementations**: `ok.Text = "Go"` is `invoke(ok, find("Text"), BB_INV_LET,
   1, {"Go"})`, `list.AddItem "x"` is `invoke(list, find("AddItem"), BB_INV_METHOD, 1, ...)`.
   Statements `x = ctl` / `ctl = x` with no member use the default member.
@@ -195,6 +204,8 @@ newlib, bb_sys and the forms layer's requesters.
   functions (`ByRef` parameters are pointers, ByVal are values, UDTs always by pointer).
 - Each statement sets `bb_line` (the BASIC line); `#line` directives map to the `.bas` files.
 - Procedures containing `On Error` push a handler frame and keep their locals `volatile`.
+- On OS4 the generated file holds the `$STACK:` cookie from the project's `Stack=`
+  (default 262144), ahead of libboing's own.
 - `main()` calls `bb_rt_init`, installs `bb_program_ops`, runs the startup code (module-level
   statements or `Sub Main`) and returns 0.
 

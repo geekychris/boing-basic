@@ -188,7 +188,6 @@ int lex_file(Program *prog, int file, const char *src, Token **out, int *ntoks)
             if (*p == '%' || *p == '&' || *p == '!' || *p == '#' || *p == '@') {
                 char s = *p;
                 if (s == '&' && (p[1] == 'H' || p[1] == 'h' || p[1] == 'O' || p[1] == 'o') && 0) {}
-                else if (s == '#' && looks_like_date(p + 1)) {}
                 else {
                     p++;
                     t->suffix = s;

@@ -700,7 +700,7 @@ static void vm_exec(VM *vm, int entry)
     Frame *volatile fr0 = NULL;
     (void)fr0;
     bb_frame_push(&ef);
-    if (setjmp(ef.jb) != 0) {
+    if (BB_SETJMP(ef.jb) != 0) {
         /* run-time error */
         Frame *f;
         int i, handled = 0;
@@ -1427,7 +1427,8 @@ static void vm_exec(VM *vm, int entry)
                 int argc = pc[3], i;
                 bb_value *args = sp - argc, *recv = args - 1, r;
                 bb_str *name = img->consts[pc[1]].u.s;
-                r = bb_v_invoke(recv, bb_str_ptr(name), pc[2], argc, args);
+                if (!img->sites) img->sites = (bb_site *)bb_alloc(sizeof(bb_site) * (size_t)(img->nconsts + 1));
+                r = bb_v_invoke_site(recv, &img->sites[pc[1]], bb_str_ptr(name), pc[2], argc, args);
                 for (i = 0; i < argc; i++) release_slot(&args[i]);
                 release_slot(recv);
                 sp = recv;
@@ -1835,7 +1836,7 @@ int vm_run(VMImage *img, int argc, char **argv)
     {
         bb_errframe f;
         bb_frame_push(&f);
-        if (setjmp(f.jb) == 0) {
+        if (BB_SETJMP(f.jb) == 0) {
             for (i = 0; i < img->nglobals; i++) init_slot(&vm, &vm.globals[i], &img->globals[i]);
             for (i = 0; i < img->nforms; i++)
                 bb_forms_register(img->modules[img->form_mod[i]], img->form_name[i], img->form_afg[i], img->form_path[i]);

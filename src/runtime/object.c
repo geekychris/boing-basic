@@ -39,26 +39,52 @@ int32_t bb_member_id(bb_obj *o, const char *name)
     return id;
 }
 
+typedef struct { bb_cleanup c; bb_obj *o; bb_value *r; } invoke_guard;
+
+static void invoke_unwind(void *ctx)
+{
+    invoke_guard *g = (invoke_guard *)ctx;
+    bb_v_release(g->r);
+    bb_obj_release(g->o);
+}
+
 bb_value bb_invoke_id(bb_obj *o, int32_t id, int kind, int argc, bb_value *argv)
 {
     bb_value r = bb_v_empty();
-    bb_errframe f;
+    invoke_guard g;
     bb_obj_check(o);
     if (!o->cls->invoke) bb_raise(438, NULL);
-    /* keep the object alive during the call; drop that reference again if it raises */
+    /* keep the object alive during the call; an error unwinding through here runs
+       invoke_unwind (a cleanup entry costs far less than a setjmp frame) */
     bb_obj_retain(o);
-    bb_frame_push(&f);
-    if (setjmp(f.jb) == 0) {
-        o->cls->invoke(o, id, kind, argc, argv, &r);
-        bb_frame_pop(&f);
-    } else {
-        bb_frame_pop(&f);
-        bb_v_release(&r);
-        bb_obj_release(o);
-        bb_rethrow();
-    }
+    g.o = o;
+    g.r = &r;
+    g.c.fn = invoke_unwind;
+    g.c.ctx = &g;
+    g.c.prev = bb_cleanups;
+    bb_cleanups = &g.c;
+    o->cls->invoke(o, id, kind, argc, argv, &r);
+    bb_cleanups = g.c.prev;
     bb_obj_release(o);
     return r;
+}
+
+bb_value bb_invoke_site(bb_obj *o, bb_site *s, const char *name, int kind, int argc, bb_value *argv)
+{
+    bb_obj_check(o);
+    if (s->cls != o->cls) {
+        s->id = bb_member_id(o, name);
+        s->cls = o->cls;
+    }
+    return bb_invoke_id(o, s->id, kind, argc, argv);
+}
+
+bb_value bb_v_invoke_site(const bb_value *v, bb_site *s, const char *name, int kind, int argc, bb_value *argv)
+{
+    bb_value t;
+    v = bb_v_deref(v, &t);
+    if (v->type != BB_OBJECT) bb_raise(424, NULL);
+    return bb_invoke_site(v->u.o, s, name, kind, argc, argv);
 }
 
 bb_value bb_invoke(bb_obj *o, const char *name, int kind, int argc, bb_value *argv)
@@ -143,7 +169,7 @@ void bb_event_raise(bb_obj *src, int32_t event, const char *name, int argc, bb_v
     if (!src) return;
     bb_obj_retain(src);
     bb_frame_push(&f);
-    if (setjmp(f.jb) == 0) {
+    if (BB_SETJMP(f.jb) == 0) {
         for (s = src->sinks; s; s = n) {
             n = s->next;
             s->fire(s, event, name, argc, argv);

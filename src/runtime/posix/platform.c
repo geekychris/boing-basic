@@ -3,6 +3,8 @@
 #define _DEFAULT_SOURCE
 #define _DARWIN_C_SOURCE
 #include "../platform.h"
+#include <sys/resource.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +20,16 @@ extern char **environ;
 
 static volatile sig_atomic_t brk;
 static void on_sigint(int s) { (void)s; brk = 1; }
+char *bb_plat_stack_limit(char *here)
+{
+    struct rlimit rl;
+    uintptr_t size = 8u << 20, margin = 256u << 10, h = (uintptr_t)here;
+    if (getrlimit(RLIMIT_STACK, &rl) == 0 && rl.rlim_cur != RLIM_INFINITY && rl.rlim_cur < ((rlim_t)1 << 30))
+        size = (uintptr_t)rl.rlim_cur;
+    if (size < 2 * margin || h < size) return NULL;
+    return (char *)(h - size + margin);
+}
+
 void bb_plat_init(int argc, char **argv) { (void)argc; (void)argv; signal(SIGINT, on_sigint); }
 int bb_plat_break(void) { int b = brk; brk = 0; return b; }
 void bb_plat_shutdown(void) { fflush(stdout); }

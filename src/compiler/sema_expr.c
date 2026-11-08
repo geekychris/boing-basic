@@ -1443,7 +1443,7 @@ static Node *parse_date_const(Ctx *c, Node *e)
     memset(&v, 0, sizeof v);
     v.type = T_DATE;
     bb_frame_push(&f);
-    if (setjmp(f.jb) == 0) {
+    if (BB_SETJMP(f.jb) == 0) {
         bb_str *s = bb_str_from_c(e->name);
         v.d = bb_str_to_date(s);
         bb_str_release(s);
