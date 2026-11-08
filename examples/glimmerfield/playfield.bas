@@ -4,6 +4,8 @@
 '   Glimmerfield --attract       the bot plays from a fixed seed, forever
 '   Glimmerfield --bench N       the bot plays N frames as fast as it can,
 '                                then prints a timing report and quits
+'   Glimmerfield --blit M        how frames reach the window (Canvas.BlitMode 0-3)
+'   Glimmerfield --perf          timing overlay on screen and in the log
 '
 ' Keys: Left/Right turn, Up thrust, Space fire, P pause, F1 timing overlay,
 ' Esc back to the title (or quit from the title).
@@ -62,6 +64,11 @@ Private Sub ParseArgs()
             Case "--perf"
                 showPerf = True
                 perfLog = True
+            Case "--blit"
+                If i < UBound(args) Then
+                    i = i + 1
+                    view.BlitMode = CLng(args(i))
+                End If
         End Select
         i = i + 1
     Loop
@@ -236,6 +243,7 @@ Private Sub BenchReport(ByVal totalMs As Double)
     Print "time: logic " & Format$(benchLogic / n, "0.000") & "  draw " & Format$(benchDraw / n, "0.000") & _
           "  blit " & Format$(benchBlit / n, "0.000") & " ms/frame, worst 1 s window frame " & _
           Format$(benchWorst, "0.0") & " ms"
+    Print "blit: " & view.BlitInfo
 End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)

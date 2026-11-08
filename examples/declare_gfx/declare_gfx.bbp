@@ -1,0 +1,10 @@
+# Boing BASIC project: a window and animation through Declare'd intuition/graphics calls
+# (the generated bindings), no forms, no Canvas. AmigaOS 4 only.
+#   boing run declare_gfx.bbp [--frames N] [--wait]
+Name=DeclareGfx
+Startup=Sub Main
+Module=declare_gfx.bas
+Module=../../bindings/exec.bi
+Module=../../bindings/intuition.bi
+Module=../../bindings/graphics.bi
+Stack=262144

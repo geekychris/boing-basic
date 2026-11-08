@@ -7,6 +7,9 @@ int canvas_plat_present(bb_ctl *ctl, const uint32_t *px, int32_t w, int32_t h, i
     return 1;
 }
 
+int canvas_blit_mode;
+const char *canvas_plat_blit_info(void) { return "off-screen"; }
+
 uint32_t *canvas_plat_load_picture(const char *path, int32_t *w, int32_t *h)
 {
     (void)path; (void)w; (void)h;

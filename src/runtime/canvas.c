@@ -360,7 +360,7 @@ enum {
     M_FREEIMAGE, M_SETTARGET, M_DRAWIMAGE, M_DRAWIMAGEPART, M_IMAGEWIDTH, M_IMAGEHEIGHT, M_KEYDOWN,
     M_SAVEIMAGE, M_INJECTKEY, M_RESIZE,
     P_WIDTH, P_HEIGHT, P_FORECOLOR, P_FILLCOLOR, P_BACKCOLOR, P_CURRENTX, P_CURRENTY, P_FRAMES,
-    P_TARGET, P_NAME
+    P_TARGET, P_NAME, P_BLITMODE, P_BLITINFO
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -376,7 +376,7 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"Width", P_WIDTH}, {"ScaleWidth", P_WIDTH}, {"Height", P_HEIGHT}, {"ScaleHeight", P_HEIGHT},
     {"ForeColor", P_FORECOLOR}, {"FillColor", P_FILLCOLOR}, {"BackColor", P_BACKCOLOR},
     {"CurrentX", P_CURRENTX}, {"CurrentY", P_CURRENTY}, {"Frames", P_FRAMES}, {"Target", P_TARGET},
-    {"Name", P_NAME},
+    {"Name", P_NAME}, {"BlitMode", P_BLITMODE}, {"BlitInfo", P_BLITINFO},
 };
 
 static int32_t cv_find(const bb_class *cls, const char *name)
@@ -647,6 +647,17 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
     case P_NAME:
         if (setting) bb_raise(383, NULL);
         *ret = bb_v_str(bb_str_from_c("Canvas"));
+        return;
+    case P_BLITMODE:
+        if (setting) {
+            int32_t m = to_l(&argv[argc - 1]);
+            if (m < 0 || m > 3) bb_raise(380, NULL);
+            canvas_blit_mode = m;
+        } else *ret = bb_v_long(canvas_blit_mode);
+        return;
+    case P_BLITINFO:
+        if (setting) bb_raise(383, NULL);
+        *ret = bb_v_str(bb_str_from_c(canvas_plat_blit_info()));
         return;
     }
     bb_raise(438, NULL);

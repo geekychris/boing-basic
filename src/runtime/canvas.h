@@ -31,6 +31,12 @@ bb_obj *bb_create_object(const bb_str *progid);
 
 /* ---- platform layer (os4/canvas_os4.c, posix/canvas_posix.c) ---- */
 
+/* How Refresh gets the picture into the window (Canvas.BlitMode): 0 = the platform's best,
+ * 1 = 32-bit ARGB blit, 2 = converted to 16-bit RGB first, 3 = through an off-screen bitmap
+ * in the screen's own format. canvas_plat_blit_info() names the method used last. */
+extern int canvas_blit_mode;
+const char *canvas_plat_blit_info(void);
+
 /* Show w x h pixels (rows of `stride` pixels, 0xAARRGGBB) in the control. Returns 0, or 1
  * when the control has no open window (nothing shown). */
 int canvas_plat_present(bb_ctl *ctl, const uint32_t *px, int32_t w, int32_t h, int32_t stride);
