@@ -527,8 +527,11 @@ void bb_console_flush(void);
 
 bb_str *bb_input_line(int fn);                    /* Line Input [#fn] */
 void bb_input_prompt(bb_str *prompt, int question);  /* Input "x"; prints "x? " */
-/* Input [#fn], a, b: reads the next field and stores it into a typed var */
-bb_value bb_input_field(int fn);                  /* owned: number or string */
+/* Input [#fn], a, b: the next comma-separated field. With variant != 0 an
+ * unquoted numeric field comes back as a Double (for Variant targets),
+ * otherwise as a String the caller converts. bb_input_end finishes the statement. */
+bb_value bb_input_field(int fn, int variant);     /* owned */
+void bb_input_end(int fn);
 
 bb_long bb_msgbox(const bb_value *prompt, bb_long buttons, const bb_value *title);
 bb_str *bb_inputbox(const bb_value *prompt, const bb_value *title, const bb_value *def);
