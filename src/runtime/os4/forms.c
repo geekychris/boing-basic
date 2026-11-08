@@ -1440,7 +1440,7 @@ static uint32 open_req(tags *t)
     return r;
 }
 
-int bb_msgbox(const char *prompt, int buttons, const char *title)
+int bb_ui_msgbox(const char *prompt, int buttons, const char *title)
 {
     static const char *const texts[6] = { "_OK", "_OK|_Cancel", "_Abort|_Retry|_Ignore", "_Yes|_No|_Cancel",
                                           "_Yes|_No", "_Retry|_Cancel" };
@@ -1469,7 +1469,7 @@ int bb_msgbox(const char *prompt, int buttons, const char *title)
     return codes[type][idx];
 }
 
-char *bb_inputbox(const char *prompt, const char *title, const char *def)
+char *bb_ui_inputbox(const char *prompt, const char *title, const char *def)
 {
     char *buf = calloc(1, 1024);
     if (!buf) return NULL;

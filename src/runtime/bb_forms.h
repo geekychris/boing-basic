@@ -68,8 +68,8 @@ void bb_forms_doevents(void);
 /* Requesters (work without any form too). MsgBox returns vbOK=1, vbCancel=2, vbAbort=3,
  * vbRetry=4, vbIgnore=5, vbYes=6, vbNo=7. InputBox returns a malloc'd string, or NULL when
  * cancelled. title NULL = the program's name. */
-int bb_msgbox(const char *prompt, int buttons, const char *title);
-char *bb_inputbox(const char *prompt, const char *title, const char *def);
+int bb_ui_msgbox(const char *prompt, int buttons, const char *title);
+char *bb_ui_inputbox(const char *prompt, const char *title, const char *def);
 
 /* Test support: the screen rectangle of a control (for input injection). 0 if not shown. */
 int bb_ctl_screen_box(bb_ctl *c, int *x, int *y, int *w, int *h);

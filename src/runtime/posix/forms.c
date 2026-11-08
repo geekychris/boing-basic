@@ -34,7 +34,7 @@ int bb_ctl_screen_box(bb_ctl *c, int *x, int *y, int *w, int *h) { (void)c; (voi
 
 /* MsgBox on the console: prints the prompt, returns the first button's value (vbOK, vbAbort,
  * vbYes, vbRetry), so programs run unattended in tests. */
-int bb_msgbox(const char *prompt, int buttons, const char *title)
+int bb_ui_msgbox(const char *prompt, int buttons, const char *title)
 {
     static const int first[6] = { 1, 1, 3, 6, 6, 4 };
     (void)title;
@@ -45,7 +45,7 @@ int bb_msgbox(const char *prompt, int buttons, const char *title)
 }
 
 /* InputBox on the console: the prompt, then a line from stdin (NULL at end of input). */
-char *bb_inputbox(const char *prompt, const char *title, const char *def)
+char *bb_ui_inputbox(const char *prompt, const char *title, const char *def)
 {
     (void)title;
     printf("%s", prompt);
