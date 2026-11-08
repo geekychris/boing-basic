@@ -4,11 +4,11 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function GetTimezoneAttrsA Lib "timezone.library" Alias "#4" (ByVal cltags As Long, ByVal taglist As Long) As Long
+Declare Function GetTimezoneAttrsA Lib "timezone.library" Alias "#4" (ByVal cltags As Long, ByVal taglist_ As Long) As Long
 ' GetTimezoneAttrs: variadic, left out
 Declare Function ParseZone Lib "timezone.library" Alias "#6" (ByVal zone As String) As Long
 Declare Function GetUTCTime Lib "timezone.library" Alias "#7" (ByVal dest As Long) As Long
-Declare Function SetTimezoneAttrsA Lib "timezone.library" Alias "#8" (ByVal unused As Long, ByVal taglist As Long) As Long
+Declare Function SetTimezoneAttrsA Lib "timezone.library" Alias "#8" (ByVal unused As Long, ByVal taglist_ As Long) As Long
 ' SetTimezoneAttrs: variadic, left out
 
 ' --- constants ---

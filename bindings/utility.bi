@@ -8,13 +8,13 @@ Declare Function AllocateTagItems Lib "utility.library" Alias "#4" (ByVal numTag
 Declare Sub ApplyTagChanges Lib "utility.library" Alias "#5" (ByVal list As Long, ByVal changeList As Long)
 Declare Function CloneTagItems Lib "utility.library" Alias "#6" (ByVal original As Long) As Long
 Declare Sub FilterTagChanges Lib "utility.library" Alias "#7" (ByVal changeList As Long, ByVal originalList As Long, ByVal apply As Long)
-Declare Function FilterTagItems Lib "utility.library" Alias "#8" (ByVal taglist As Long, ByVal filterArray As Long, ByVal logic As Long) As Long
-Declare Function FindTagItem Lib "utility.library" Alias "#9" (ByVal tagValue As Long, ByVal tagList As Long) As Long
-Declare Sub FreeTagItems Lib "utility.library" Alias "#10" (ByVal tagList As Long)
-Declare Function GetTagData Lib "utility.library" Alias "#11" (ByVal tagValue As Long, ByVal defaultVal As Long, ByVal tagList As Long) As Long
-Declare Sub MapTags Lib "utility.library" Alias "#12" (ByVal tagList As Long, ByVal mapList As Long, ByVal mapType As Long)
+Declare Function FilterTagItems Lib "utility.library" Alias "#8" (ByVal taglist_ As Long, ByVal filterArray As Long, ByVal logic As Long) As Long
+Declare Function FindTagItem Lib "utility.library" Alias "#9" (ByVal tagValue As Long, ByVal tagList_ As Long) As Long
+Declare Sub FreeTagItems Lib "utility.library" Alias "#10" (ByVal tagList_ As Long)
+Declare Function GetTagData Lib "utility.library" Alias "#11" (ByVal tagValue As Long, ByVal defaultVal As Long, ByVal tagList_ As Long) As Long
+Declare Sub MapTags Lib "utility.library" Alias "#12" (ByVal tagList_ As Long, ByVal mapList As Long, ByVal mapType As Long)
 Declare Function NextTagItem Lib "utility.library" Alias "#13" (ByVal tags As Long) As Long
-Declare Function PackBoolTags Lib "utility.library" Alias "#14" (ByVal initialFlags As Long, ByVal tagList As Long, ByVal boolMap As Long) As Long
+Declare Function PackBoolTags Lib "utility.library" Alias "#14" (ByVal initialFlags As Long, ByVal tagList_ As Long, ByVal boolMap As Long) As Long
 Declare Sub RefreshTagItemClones Lib "utility.library" Alias "#15" (ByVal clone As Long, ByVal original As Long)
 Declare Function TagInArray Lib "utility.library" Alias "#16" (ByVal tagValue As Long, ByVal tagArray As Long) As Long
 Declare Function CallHookPkt Lib "utility.library" Alias "#17" (ByVal hook As Long, ByVal object_ As Long, ByVal message As Long) As Long
@@ -48,8 +48,8 @@ Declare Function GetUniqueID Lib "utility.library" Alias "#44" () As Long
 Declare Sub MessageDigest_SHA_Final Lib "utility.library" Alias "#45" (ByVal shas As Long)
 Declare Sub MessageDigest_SHA_Init Lib "utility.library" Alias "#46" (ByVal shas As Long)
 Declare Sub MessageDigest_SHA_Update Lib "utility.library" Alias "#47" (ByVal shas As Long, ByVal data As Long, ByVal num_bytes As Long)
-Declare Function PackStructureTags Lib "utility.library" Alias "#48" (ByVal pack As Long, ByVal pack_table As Long, ByVal tagList As Long) As Long
-Declare Function UnpackStructureTags Lib "utility.library" Alias "#49" (ByVal pack As Long, ByVal pack_table As Long, ByVal tagList As Long) As Long
+Declare Function PackStructureTags Lib "utility.library" Alias "#48" (ByVal pack As Long, ByVal pack_table As Long, ByVal tagList_ As Long) As Long
+Declare Function UnpackStructureTags Lib "utility.library" Alias "#49" (ByVal pack As Long, ByVal pack_table As Long, ByVal tagList_ As Long) As Long
 Declare Function Utility_Random Lib "utility.library" Alias "#50" (ByVal state As Long) As Long
 Declare Function SetMem Lib "utility.library" Alias "#51" (ByVal destination As Long, ByVal fillChar As Long, ByVal length As Long) As Long
 Declare Function Stricmp Lib "utility.library" Alias "#52" (ByVal s1 As String, ByVal s2 As String) As Long

@@ -103,20 +103,20 @@ Declare Function EasyRequestArgs Lib "intuition.library" Alias "#98" (ByVal wind
 Declare Function BuildEasyRequestArgs Lib "intuition.library" Alias "#100" (ByVal window As Long, ByVal easyStruct As Long, ByVal idcmp As Long, ByVal args As Long) As Long
 ' BuildEasyRequest: variadic, left out
 Declare Function SysReqHandler Lib "intuition.library" Alias "#102" (ByVal window As Long, ByVal idcmpPtr As Long, ByVal waitInput As Long) As Long
-Declare Function OpenWindowTagList Lib "intuition.library" Alias "#103" (ByVal newWindow As Long, ByVal tagList As Long) As Long
+Declare Function OpenWindowTagList Lib "intuition.library" Alias "#103" (ByVal newWindow As Long, ByVal tagList_ As Long) As Long
 ' OpenWindowTags: variadic, left out
-Declare Function OpenScreenTagList Lib "intuition.library" Alias "#105" (ByVal newScreen As Long, ByVal tagList As Long) As Long
+Declare Function OpenScreenTagList Lib "intuition.library" Alias "#105" (ByVal newScreen As Long, ByVal tagList_ As Long) As Long
 ' OpenScreenTags: variadic, left out
 Declare Sub DrawImageState Lib "intuition.library" Alias "#107" (ByVal rp As Long, ByVal image As Long, ByVal leftOffset As Long, ByVal topOffset As Long, ByVal state As Long, ByVal drawInfo As Long)
 Declare Function PointInImage Lib "intuition.library" Alias "#108" (ByVal point As Long, ByVal image As Long) As Long
 Declare Sub EraseImage Lib "intuition.library" Alias "#109" (ByVal rp As Long, ByVal image As Long, ByVal leftOffset As Long, ByVal topOffset As Long)
-Declare Function NewObjectA Lib "intuition.library" Alias "#110" (ByVal cl As Long, ByVal classID As Long, ByVal tagList As Long) As Long
+Declare Function NewObjectA Lib "intuition.library" Alias "#110" (ByVal cl As Long, ByVal classID As Long, ByVal tagList_ As Long) As Long
 ' NewObject: variadic, left out
 Declare Sub DisposeObject Lib "intuition.library" Alias "#112" (ByVal object_ As Long)
-Declare Function SetAttrsA Lib "intuition.library" Alias "#113" (ByVal object_ As Long, ByVal tagList As Long) As Long
+Declare Function SetAttrsA Lib "intuition.library" Alias "#113" (ByVal object_ As Long, ByVal tagList_ As Long) As Long
 ' SetAttrs: variadic, left out
 Declare Function GetAttr Lib "intuition.library" Alias "#115" (ByVal attrID As Long, ByVal object_ As Long, ByVal storagePtr As Long) As Long
-Declare Function SetGadgetAttrsA Lib "intuition.library" Alias "#116" (ByVal gadget As Long, ByVal window As Long, ByVal requester As Long, ByVal tagList As Long) As Long
+Declare Function SetGadgetAttrsA Lib "intuition.library" Alias "#116" (ByVal gadget As Long, ByVal window As Long, ByVal requester As Long, ByVal tagList_ As Long) As Long
 ' SetGadgetAttrs: variadic, left out
 Declare Function NextObject Lib "intuition.library" Alias "#118" (ByVal objectPtrPtr As Long) As Long
 Declare Function FindClass Lib "intuition.library" Alias "#119" (ByVal classID As Long) As Long
@@ -138,27 +138,27 @@ Declare Sub ScrollWindowRaster Lib "intuition.library" Alias "#140" (ByVal win A
 Declare Sub LendMenus Lib "intuition.library" Alias "#141" (ByVal fromwindow As Long, ByVal towindow As Long)
 Declare Function DoGadgetMethodA Lib "intuition.library" Alias "#142" (ByVal gad As Long, ByVal win As Long, ByVal req As Long, ByVal message As Long) As Long
 ' DoGadgetMethod: variadic, left out
-Declare Sub SetWindowPointerA Lib "intuition.library" Alias "#144" (ByVal win As Long, ByVal taglist As Long)
+Declare Sub SetWindowPointerA Lib "intuition.library" Alias "#144" (ByVal win As Long, ByVal taglist_ As Long)
 ' SetWindowPointer: variadic, left out
 Declare Function TimedDisplayAlert Lib "intuition.library" Alias "#146" (ByVal alertNumber As Long, ByVal string_ As String, ByVal height As Long, ByVal Time_ As Long) As Long
 Declare Sub HelpControl Lib "intuition.library" Alias "#147" (ByVal win As Long, ByVal flags As Long)
 Declare Function ShowWindow Lib "intuition.library" Alias "#148" (ByVal window As Long, ByVal other As Long) As Long
 Declare Function HideWindow Lib "intuition.library" Alias "#149" (ByVal window As Long) As Long
-Declare Function GetAttrsA Lib "intuition.library" Alias "#150" (ByVal object_ As Long, ByVal tagList As Long) As Long
+Declare Function GetAttrsA Lib "intuition.library" Alias "#150" (ByVal object_ As Long, ByVal tagList_ As Long) As Long
 ' GetAttrs: variadic, left out
 Declare Function LockGUIPrefs Lib "intuition.library" Alias "#152" (ByVal reserved As Long) As Long
 Declare Sub UnlockGUIPrefs Lib "intuition.library" Alias "#153" (ByVal lock_ As Long)
-Declare Function SetGUIAttrsA Lib "intuition.library" Alias "#154" (ByVal reserved As Long, ByVal drawinfo As Long, ByVal taglist As Long) As Long
+Declare Function SetGUIAttrsA Lib "intuition.library" Alias "#154" (ByVal reserved As Long, ByVal drawinfo As Long, ByVal taglist_ As Long) As Long
 ' SetGUIAttrs: variadic, left out
-Declare Function GetGUIAttrsA Lib "intuition.library" Alias "#156" (ByVal reserved As Long, ByVal drawinfo As Long, ByVal taglist As Long) As Long
+Declare Function GetGUIAttrsA Lib "intuition.library" Alias "#156" (ByVal reserved As Long, ByVal drawinfo As Long, ByVal taglist_ As Long) As Long
 ' GetGUIAttrs: variadic, left out
 Declare Function GetHalfPens Lib "intuition.library" Alias "#158" (ByVal drawinfo As Long, ByVal basepen As Long, ByVal halfshineptr As Long, ByVal halfshadowptr As Long) As Long
 Declare Function GadgetBox Lib "intuition.library" Alias "#159" (ByVal gadget As Long, ByVal domain As Long, ByVal domaintype As Long, ByVal flags As Long, ByVal box As Long) As Long
-Declare Sub RefreshSetGadgetAttrsA Lib "intuition.library" Alias "#160" (ByVal gadget As Long, ByVal window As Long, ByVal req As Long, ByVal taglist As Long)
+Declare Sub RefreshSetGadgetAttrsA Lib "intuition.library" Alias "#160" (ByVal gadget As Long, ByVal window As Long, ByVal req As Long, ByVal taglist_ As Long)
 ' RefreshSetGadgetAttrs: variadic, left out
 Declare Function IDoSuperMethodA Lib "intuition.library" Alias "#162" (ByVal cl As Long, ByVal object_ As Long, ByVal msg As Long) As Long
 ' IDoSuperMethod: variadic, left out
-Declare Function ISetSuperAttrsA Lib "intuition.library" Alias "#164" (ByVal cl As Long, ByVal object_ As Long, ByVal taglist As Long) As Long
+Declare Function ISetSuperAttrsA Lib "intuition.library" Alias "#164" (ByVal cl As Long, ByVal object_ As Long, ByVal taglist_ As Long) As Long
 ' ISetSuperAttrs: variadic, left out
 Declare Function ICoerceMethodA Lib "intuition.library" Alias "#166" (ByVal cl As Long, ByVal object_ As Long, ByVal msg As Long) As Long
 ' ICoerceMethod: variadic, left out
@@ -169,16 +169,16 @@ Declare Sub CloseClass Lib "intuition.library" Alias "#171" (ByVal cl As Long)
 Declare Function SetDisplayBeepHook Lib "intuition.library" Alias "#172" (ByVal hook As Long) As Long
 Declare Function LockScreen Lib "intuition.library" Alias "#173" (ByVal screen_ As Long, ByVal micros As Long) As Long
 Declare Sub UnlockScreen Lib "intuition.library" Alias "#174" (ByVal screen_ As Long)
-Declare Function GetWindowAttrsA Lib "intuition.library" Alias "#175" (ByVal win As Long, ByVal taglist As Long) As Long
+Declare Function GetWindowAttrsA Lib "intuition.library" Alias "#175" (ByVal win As Long, ByVal taglist_ As Long) As Long
 ' GetWindowAttrs: variadic, left out
-Declare Function SetWindowAttrsA Lib "intuition.library" Alias "#177" (ByVal win As Long, ByVal taglist As Long) As Long
+Declare Function SetWindowAttrsA Lib "intuition.library" Alias "#177" (ByVal win As Long, ByVal taglist_ As Long) As Long
 ' SetWindowAttrs: variadic, left out
 Declare Function GetWindowAttr Lib "intuition.library" Alias "#179" (ByVal win As Long, ByVal attr As Long, ByVal data As Long, ByVal size As Long) As Long
 Declare Function SetWindowAttr Lib "intuition.library" Alias "#180" (ByVal win As Long, ByVal attr As Long, ByVal data As Long, ByVal size As Long) As Long
 Declare Sub StripIntuiMessages Lib "intuition.library" Alias "#181" (ByVal port As Long, ByVal win As Long)
-Declare Function GetScreenAttrsA Lib "intuition.library" Alias "#184" (ByVal scr As Long, ByVal taglist As Long) As Long
+Declare Function GetScreenAttrsA Lib "intuition.library" Alias "#184" (ByVal scr As Long, ByVal taglist_ As Long) As Long
 ' GetScreenAttrs: variadic, left out
-Declare Function SetScreenAttrsA Lib "intuition.library" Alias "#186" (ByVal scr As Long, ByVal taglist As Long) As Long
+Declare Function SetScreenAttrsA Lib "intuition.library" Alias "#186" (ByVal scr As Long, ByVal taglist_ As Long) As Long
 ' SetScreenAttrs: variadic, left out
 Declare Function GetScreenAttr Lib "intuition.library" Alias "#188" (ByVal scr As Long, ByVal attr As Long, ByVal data As Long, ByVal size As Long) As Long
 Declare Function SetScreenAttr Lib "intuition.library" Alias "#189" (ByVal scr As Long, ByVal attr As Long, ByVal data As Long, ByVal size As Long) As Long
@@ -188,10 +188,10 @@ Declare Function LockScreenGI Lib "intuition.library" Alias "#192" (ByVal gi As 
 Declare Sub UnlockScreenGI Lib "intuition.library" Alias "#193" (ByVal gi As Long, ByVal rp As Long)
 Declare Function GetMarkedBlock Lib "intuition.library" Alias "#194" (ByVal sgw As Long) As Long
 Declare Sub SetMarkedBlock Lib "intuition.library" Alias "#195" (ByVal sgw As Long, ByVal block As Long)
-Declare Function ObtainBitMapSourceA Lib "intuition.library" Alias "#196" (ByVal name_ As String, ByVal taglist As Long) As Long
+Declare Function ObtainBitMapSourceA Lib "intuition.library" Alias "#196" (ByVal name_ As String, ByVal taglist_ As Long) As Long
 ' ObtainBitMapSource: variadic, left out
 Declare Sub ReleaseBitMapSource Lib "intuition.library" Alias "#198" (ByVal bitmapsource As Long)
-Declare Function ObtainBitMapInstanceA Lib "intuition.library" Alias "#199" (ByVal bitmapsource As Long, ByVal screen_ As Long, ByVal taglist As Long) As Long
+Declare Function ObtainBitMapInstanceA Lib "intuition.library" Alias "#199" (ByVal bitmapsource As Long, ByVal screen_ As Long, ByVal taglist_ As Long) As Long
 ' ObtainBitMapInstance: variadic, left out
 Declare Sub ReleaseBitMapInstance Lib "intuition.library" Alias "#201" (ByVal bitmapinstance As Long)
 Declare Sub EmbossDisableRect Lib "intuition.library" Alias "#202" (ByVal rp As Long, ByVal minx As Long, ByVal miny As Long, ByVal maxx As Long, ByVal maxy As Long, ByVal backtype As Long, ByVal contrast As Long, ByVal dri As Long)
@@ -202,27 +202,27 @@ Declare Function ShadeRectOld Lib "intuition.library" Alias "#206" (ByVal rp As 
 Declare Sub DisableTemplateRGB Lib "intuition.library" Alias "#207" (ByVal rp As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal template_ptr As Long, ByVal brightlevel As Long, ByVal darklevel As Long)
 Declare Function SetScreenBitMapInstance Lib "intuition.library" Alias "#208" (ByVal scr As Long, ByVal id As Long, ByVal source As Long) As Long
 Declare Function FindMenuKey Lib "intuition.library" Alias "#209" (ByVal menu As Long, ByVal code As Long) As Long
-Declare Function BitMapInstanceControlA Lib "intuition.library" Alias "#210" (ByVal bitmapinstance As Long, ByVal taglist As Long) As Long
+Declare Function BitMapInstanceControlA Lib "intuition.library" Alias "#210" (ByVal bitmapinstance As Long, ByVal taglist_ As Long) As Long
 ' BitMapInstanceControl: variadic, left out
 Declare Function ObtainIPluginList Lib "intuition.library" Alias "#212" (ByVal type_ As Long, ByVal attrmask As Long, ByVal applymask As Long) As Long
 Declare Sub ReleaseIPluginList Lib "intuition.library" Alias "#213" (ByVal list As Long)
 Declare Function OpenGUIPlugin Lib "intuition.library" Alias "#214" (ByVal name_ As String, ByVal version_ As Long, ByVal type_ As Long, ByVal attrmask As Long, ByVal applymask As Long) As Long
 Declare Sub CloseGUIPlugin Lib "intuition.library" Alias "#215" (ByVal plugin As Long)
-Declare Function DrawSysImageA Lib "intuition.library" Alias "#216" (ByVal rp As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal which As Long, ByVal backtype As Long, ByVal state As Long, ByVal dri As Long, ByVal taglist As Long) As Long
+Declare Function DrawSysImageA Lib "intuition.library" Alias "#216" (ByVal rp As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal which As Long, ByVal backtype As Long, ByVal state As Long, ByVal dri As Long, ByVal taglist_ As Long) As Long
 ' DrawSysImage: variadic, left out
 Declare Function DoRender Lib "intuition.library" Alias "#218" (ByVal o As Long, ByVal gi As Long, ByVal flags As Long) As Long
 Declare Function SetRenderDomain Lib "intuition.library" Alias "#219" (ByVal rp As Long, ByVal domain As Long) As Long
 Declare Function GetRenderDomain Lib "intuition.library" Alias "#220" (ByVal rp As Long, ByVal domain As Long) As Long
 Declare Function DrawGradient Lib "intuition.library" Alias "#221" (ByVal rp As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal domain As Long, ByVal reserved As Long, ByVal gradientspec As Long, ByVal dri As Long) As Long
 Declare Function DirectionVector Lib "intuition.library" Alias "#222" (ByVal degrees As Long) As Long
-Declare Function ShadeRectA Lib "intuition.library" Alias "#223" (ByVal rp As Long, ByVal minx As Long, ByVal miny As Long, ByVal maxx As Long, ByVal maxy As Long, ByVal shadelevel As Long, ByVal backtype As Long, ByVal state As Long, ByVal dri As Long, ByVal taglist As Long) As Long
+Declare Function ShadeRectA Lib "intuition.library" Alias "#223" (ByVal rp As Long, ByVal minx As Long, ByVal miny As Long, ByVal maxx As Long, ByVal maxy As Long, ByVal shadelevel As Long, ByVal backtype As Long, ByVal state As Long, ByVal dri As Long, ByVal taglist_ As Long) As Long
 ' ShadeRect: variadic, left out
 Declare Sub DoScrollHook Lib "intuition.library" Alias "#225" (ByVal scrollhook As Long, ByVal scrollmode As Long)
 Declare Function ObtainIBackFill Lib "intuition.library" Alias "#226" (ByVal dri As Long, ByVal element As Long, ByVal state As Long, ByVal flags As Long) As Long
 Declare Sub ReleaseIBackFill Lib "intuition.library" Alias "#227" (ByVal hook As Long)
-Declare Function IntuitionControlA Lib "intuition.library" Alias "#228" (ByVal object_ As Long, ByVal taglist As Long) As Long
+Declare Function IntuitionControlA Lib "intuition.library" Alias "#228" (ByVal object_ As Long, ByVal taglist_ As Long) As Long
 ' IntuitionControl: variadic, left out
-Declare Function StartScreenNotifyTagList Lib "intuition.library" Alias "#230" (ByVal taglist As Long) As Long
+Declare Function StartScreenNotifyTagList Lib "intuition.library" Alias "#230" (ByVal taglist_ As Long) As Long
 ' StartScreenNotifyTags: variadic, left out
 Declare Function EndScreenNotify Lib "intuition.library" Alias "#232" (ByVal request As Long) As Long
 Declare Sub DisableTemplate Lib "intuition.library" Alias "#233" (ByVal rp As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal template_ptr As Long, ByVal offx As Long, ByVal template_type As Long, ByVal bytesperrow As Long, ByVal backtype As Long, ByVal dri As Long)

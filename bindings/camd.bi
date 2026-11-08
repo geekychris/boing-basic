@@ -6,7 +6,7 @@
 ' --- interface "main" ---
 Declare Function LockCAMD Lib "camd.library" Alias "#4" (ByVal locktype As Long) As Long
 Declare Sub UnlockCAMD Lib "camd.library" Alias "#5" (ByVal lock_ As Long)
-Declare Function CreateMidiA Lib "camd.library" Alias "#6" (ByVal TagList As Long) As Long
+Declare Function CreateMidiA Lib "camd.library" Alias "#6" (ByVal TagList_ As Long) As Long
 ' CreateMidi: variadic, left out
 Declare Sub DeleteMidi Lib "camd.library" Alias "#8" (ByVal mn As Long)
 Declare Function SetMidiAttrsA Lib "camd.library" Alias "#9" (ByVal mi As Long, ByVal tags As Long) As Long

@@ -52,12 +52,12 @@ Declare Function SetBackFillHookAttrsA Lib "layers.library" Alias "#48" (ByVal h
 ' SetBackFillHookAttrs: variadic, left out
 Declare Function GetBackFillHookAttrsA Lib "layers.library" Alias "#50" (ByVal h As Long, ByVal tags As Long) As Long
 ' GetBackFillHookAttrs: variadic, left out
-Declare Function ComposeLayersA Lib "layers.library" Alias "#52" (ByVal l As Long, ByVal rect As Long, ByVal taglist As Long) As Long
+Declare Function ComposeLayersA Lib "layers.library" Alias "#52" (ByVal l As Long, ByVal rect As Long, ByVal taglist_ As Long) As Long
 ' ComposeLayers: variadic, left out
 Declare Function GetOffScreenLayerBitMap Lib "layers.library" Alias "#54" (ByVal l As Long, ByVal fallback As Long, ByVal bounds As Long) As Long
-Declare Function SetLayerInfoAttrsA Lib "layers.library" Alias "#55" (ByVal li As Long, ByVal taglist As Long) As Long
+Declare Function SetLayerInfoAttrsA Lib "layers.library" Alias "#55" (ByVal li As Long, ByVal taglist_ As Long) As Long
 ' SetLayerInfoAttrs: variadic, left out
-Declare Function GetLayerInfoAttrsA Lib "layers.library" Alias "#57" (ByVal li As Long, ByVal taglist As Long) As Long
+Declare Function GetLayerInfoAttrsA Lib "layers.library" Alias "#57" (ByVal li As Long, ByVal taglist_ As Long) As Long
 ' GetLayerInfoAttrs: variadic, left out
 Declare Function ChangeLayerAlpha Lib "layers.library" Alias "#59" (ByVal layer As Long, ByVal clips As Long, ByVal hook As Long) As Long
 Declare Function SetForegroundAlpha Lib "layers.library" Alias "#60" (ByVal layer As Long, ByVal templateptr As Long, ByVal templatetype As Long, ByVal bytesperrow As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal flags As Long) As Long

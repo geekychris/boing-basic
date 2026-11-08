@@ -4,10 +4,10 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function USBResRegisterFDA Lib "usbresource.library" Alias "#4" (ByVal taglist As Long) As Long
+Declare Function USBResRegisterFDA Lib "usbresource.library" Alias "#4" (ByVal taglist_ As Long) As Long
 ' USBResRegisterFD: variadic, left out
 Declare Sub USBResUnregisterFD Lib "usbresource.library" Alias "#6" (ByVal fdkey As Long)
-Declare Function USBResRegisterHCDA Lib "usbresource.library" Alias "#7" (ByVal taglist As Long) As Long
+Declare Function USBResRegisterHCDA Lib "usbresource.library" Alias "#7" (ByVal taglist_ As Long) As Long
 ' USBResRegisterHCD: variadic, left out
 Declare Sub USBResUnregisterHCD Lib "usbresource.library" Alias "#9" (ByVal hcdkey As Long)
 Declare Function USBResAddNotify Lib "usbresource.library" Alias "#16" (ByVal type_ As Long, ByVal port As Long) As Long

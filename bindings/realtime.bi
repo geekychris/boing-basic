@@ -6,16 +6,16 @@
 ' --- interface "main" ---
 Declare Function LockRealTime Lib "realtime.library" Alias "#4" (ByVal lockType As Long) As Long
 Declare Sub UnlockRealTime Lib "realtime.library" Alias "#5" (ByVal lock_ As Long)
-Declare Function CreatePlayerA Lib "realtime.library" Alias "#6" (ByVal tagList As Long) As Long
+Declare Function CreatePlayerA Lib "realtime.library" Alias "#6" (ByVal tagList_ As Long) As Long
 ' CreatePlayer: variadic, left out
 Declare Sub DeletePlayer Lib "realtime.library" Alias "#8" (ByVal player As Long)
-Declare Function SetPlayerAttrsA Lib "realtime.library" Alias "#9" (ByVal player As Long, ByVal tagList As Long) As Long
+Declare Function SetPlayerAttrsA Lib "realtime.library" Alias "#9" (ByVal player As Long, ByVal tagList_ As Long) As Long
 ' SetPlayerAttrs: variadic, left out
 Declare Function SetConductorState Lib "realtime.library" Alias "#11" (ByVal player As Long, ByVal state As Long, ByVal time_ As Long) As Long
 Declare Function ExternalSync Lib "realtime.library" Alias "#12" (ByVal player As Long, ByVal minTime As Long, ByVal maxTime As Long) As Long
 Declare Function NextConductor Lib "realtime.library" Alias "#13" (ByVal previousConductor As Long) As Long
 Declare Function FindConductor Lib "realtime.library" Alias "#14" (ByVal name_ As String) As Long
-Declare Function GetPlayerAttrsA Lib "realtime.library" Alias "#15" (ByVal player As Long, ByVal tagList As Long) As Long
+Declare Function GetPlayerAttrsA Lib "realtime.library" Alias "#15" (ByVal player As Long, ByVal tagList_ As Long) As Long
 ' GetPlayerAttrs: variadic, left out
 
 ' --- constants ---

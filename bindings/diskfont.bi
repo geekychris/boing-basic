@@ -10,20 +10,20 @@ Declare Function NewFontContents Lib "diskfont.library" Alias "#6" (ByVal fontsL
 Declare Sub DisposeFontContents Lib "diskfont.library" Alias "#7" (ByVal fontContentsHeader As Long)
 Declare Function NewScaledDiskFont Lib "diskfont.library" Alias "#8" (ByVal sourceFont As Long, ByVal destTextAttr As Long) As Long
 Declare Function GetDiskFontCtrl Lib "diskfont.library" Alias "#9" (ByVal tagid As Long) As Long
-Declare Sub SetDiskFontCtrlA Lib "diskfont.library" Alias "#10" (ByVal taglist As Long)
+Declare Sub SetDiskFontCtrlA Lib "diskfont.library" Alias "#10" (ByVal taglist_ As Long)
 ' SetDiskFontCtrl: variadic, left out
 Declare Function EOpenEngine Lib "diskfont.library" Alias "#12" (ByVal EEngine As Long) As Long
 Declare Sub ECloseEngine Lib "diskfont.library" Alias "#13" (ByVal EEngine As Long)
-Declare Function ESetInfoA Lib "diskfont.library" Alias "#14" (ByVal EEngine As Long, ByVal taglist As Long) As Long
+Declare Function ESetInfoA Lib "diskfont.library" Alias "#14" (ByVal EEngine As Long, ByVal taglist_ As Long) As Long
 ' ESetInfo: variadic, left out
-Declare Function EObtainInfoA Lib "diskfont.library" Alias "#16" (ByVal EEngine As Long, ByVal taglist As Long) As Long
+Declare Function EObtainInfoA Lib "diskfont.library" Alias "#16" (ByVal EEngine As Long, ByVal taglist_ As Long) As Long
 ' EObtainInfo: variadic, left out
-Declare Function EReleaseInfoA Lib "diskfont.library" Alias "#18" (ByVal EEngine As Long, ByVal taglist As Long) As Long
+Declare Function EReleaseInfoA Lib "diskfont.library" Alias "#18" (ByVal EEngine As Long, ByVal taglist_ As Long) As Long
 ' EReleaseInfo: variadic, left out
 Declare Function OpenOutlineFont Lib "diskfont.library" Alias "#20" (ByVal name_ As String, ByVal list As Long, ByVal flags As Long) As Long
 Declare Sub CloseOutlineFont Lib "diskfont.library" Alias "#21" (ByVal olf As Long, ByVal list As Long)
 Declare Function WriteFontContents Lib "diskfont.library" Alias "#22" (ByVal fontsLock As Long, ByVal fontName As String, ByVal fontContentsHeader As Long) As Long
-Declare Function WriteDiskFontHeaderA Lib "diskfont.library" Alias "#23" (ByVal font As Long, ByVal fileName As String, ByVal taglist As Long) As Long
+Declare Function WriteDiskFontHeaderA Lib "diskfont.library" Alias "#23" (ByVal font As Long, ByVal fileName As String, ByVal taglist_ As Long) As Long
 ' WriteDiskFontHeader: variadic, left out
 Declare Function ObtainCharsetInfo Lib "diskfont.library" Alias "#25" (ByVal knownTag As Long, ByVal knownValue As Long, ByVal wantedTag As Long) As Long
 Declare Function ObtainTTextAttr Lib "diskfont.library" Alias "#26" (ByVal textFont As Long) As Long

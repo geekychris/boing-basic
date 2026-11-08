@@ -4,17 +4,17 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function CreateGadgetA Lib "gadtools.library" Alias "#4" (ByVal kind As Long, ByVal gad As Long, ByVal ng As Long, ByVal taglist As Long) As Long
+Declare Function CreateGadgetA Lib "gadtools.library" Alias "#4" (ByVal kind As Long, ByVal gad As Long, ByVal ng As Long, ByVal taglist_ As Long) As Long
 ' CreateGadget: variadic, left out
 Declare Sub FreeGadgets Lib "gadtools.library" Alias "#6" (ByVal gad As Long)
-Declare Sub GT_SetGadgetAttrsA Lib "gadtools.library" Alias "#7" (ByVal gad As Long, ByVal win As Long, ByVal req As Long, ByVal taglist As Long)
+Declare Sub GT_SetGadgetAttrsA Lib "gadtools.library" Alias "#7" (ByVal gad As Long, ByVal win As Long, ByVal req As Long, ByVal taglist_ As Long)
 ' GT_SetGadgetAttrs: variadic, left out
-Declare Function CreateMenusA Lib "gadtools.library" Alias "#9" (ByVal newmenu As Long, ByVal taglist As Long) As Long
+Declare Function CreateMenusA Lib "gadtools.library" Alias "#9" (ByVal newmenu As Long, ByVal taglist_ As Long) As Long
 ' CreateMenus: variadic, left out
 Declare Sub FreeMenus Lib "gadtools.library" Alias "#11" (ByVal menu As Long)
-Declare Function LayoutMenuItemsA Lib "gadtools.library" Alias "#12" (ByVal firstitem As Long, ByVal vi As Long, ByVal taglist As Long) As Long
+Declare Function LayoutMenuItemsA Lib "gadtools.library" Alias "#12" (ByVal firstitem As Long, ByVal vi As Long, ByVal taglist_ As Long) As Long
 ' LayoutMenuItems: variadic, left out
-Declare Function LayoutMenusA Lib "gadtools.library" Alias "#14" (ByVal firstmenu As Long, ByVal vi As Long, ByVal taglist As Long) As Long
+Declare Function LayoutMenusA Lib "gadtools.library" Alias "#14" (ByVal firstmenu As Long, ByVal vi As Long, ByVal taglist_ As Long) As Long
 ' LayoutMenus: variadic, left out
 Declare Function GT_GetIMsg Lib "gadtools.library" Alias "#16" (ByVal iport As Long) As Long
 Declare Sub GT_ReplyIMsg Lib "gadtools.library" Alias "#17" (ByVal imsg As Long)
@@ -24,9 +24,9 @@ Declare Sub GT_EndRefresh Lib "gadtools.library" Alias "#20" (ByVal win As Long,
 Declare Function GT_FilterIMsg Lib "gadtools.library" Alias "#21" (ByVal imsg As Long) As Long
 Declare Function GT_PostFilterIMsg Lib "gadtools.library" Alias "#22" (ByVal imsg As Long) As Long
 Declare Function CreateContext Lib "gadtools.library" Alias "#23" (ByVal glistptr As Long) As Long
-Declare Sub DrawBevelBoxA Lib "gadtools.library" Alias "#24" (ByVal rport As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal taglist As Long)
+Declare Sub DrawBevelBoxA Lib "gadtools.library" Alias "#24" (ByVal rport As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal taglist_ As Long)
 ' DrawBevelBox: variadic, left out
-Declare Function GetVisualInfoA Lib "gadtools.library" Alias "#26" (ByVal screen_ As Long, ByVal taglist As Long) As Long
+Declare Function GetVisualInfoA Lib "gadtools.library" Alias "#26" (ByVal screen_ As Long, ByVal taglist_ As Long) As Long
 ' GetVisualInfo: variadic, left out
 Declare Sub FreeVisualInfo Lib "gadtools.library" Alias "#28" (ByVal vi As Long)
 Declare Sub GTReserved0 Lib "gadtools.library" Alias "#29" ()
@@ -35,7 +35,7 @@ Declare Sub GTReserved2 Lib "gadtools.library" Alias "#31" ()
 Declare Sub GTReserved3 Lib "gadtools.library" Alias "#32" ()
 Declare Sub GTReserved4 Lib "gadtools.library" Alias "#33" ()
 Declare Sub GTReserved5 Lib "gadtools.library" Alias "#34" ()
-Declare Function GT_GetGadgetAttrsA Lib "gadtools.library" Alias "#35" (ByVal gad As Long, ByVal win As Long, ByVal req As Long, ByVal taglist As Long) As Long
+Declare Function GT_GetGadgetAttrsA Lib "gadtools.library" Alias "#35" (ByVal gad As Long, ByVal win As Long, ByVal req As Long, ByVal taglist_ As Long) As Long
 ' GT_GetGadgetAttrs: variadic, left out
 
 ' --- constants ---

@@ -4,28 +4,28 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function OpenElf Lib "elf.library" Alias "#4" (ByVal taglist As Long) As Long
+Declare Function OpenElf Lib "elf.library" Alias "#4" (ByVal taglist_ As Long) As Long
 ' OpenElfTags: variadic, left out
-Declare Sub CloseElf Lib "elf.library" Alias "#6" (ByVal ElfHandle As Long, ByVal TagList As Long)
+Declare Sub CloseElf Lib "elf.library" Alias "#6" (ByVal ElfHandle As Long, ByVal TagList_ As Long)
 ' CloseElfTags: variadic, left out
-Declare Function GetElfAttrs Lib "elf.library" Alias "#8" (ByVal ElfHandle As Long, ByVal taglist As Long) As Long
+Declare Function GetElfAttrs Lib "elf.library" Alias "#8" (ByVal ElfHandle As Long, ByVal taglist_ As Long) As Long
 ' GetElfAttrsTags: variadic, left out
-Declare Function SetElfAttrs Lib "elf.library" Alias "#10" (ByVal ElfHandle As Long, ByVal taglist As Long) As Long
+Declare Function SetElfAttrs Lib "elf.library" Alias "#10" (ByVal ElfHandle As Long, ByVal taglist_ As Long) As Long
 ' SetElfAttrsTags: variadic, left out
-Declare Function GetSectionHeader Lib "elf.library" Alias "#12" (ByVal ElfHandle As Long, ByVal TagList As Long) As Long
+Declare Function GetSectionHeader Lib "elf.library" Alias "#12" (ByVal ElfHandle As Long, ByVal TagList_ As Long) As Long
 ' GetSectionHeaderTags: variadic, left out
-Declare Function GetSection Lib "elf.library" Alias "#14" (ByVal ElfHandle As Long, ByVal TagList As Long) As Long
+Declare Function GetSection Lib "elf.library" Alias "#14" (ByVal ElfHandle As Long, ByVal TagList_ As Long) As Long
 ' GetSectionTags: variadic, left out
-Declare Function ElfLoadSeg Lib "elf.library" Alias "#16" (ByVal ElfHandle As Long, ByVal taglist As Long) As Long
+Declare Function ElfLoadSeg Lib "elf.library" Alias "#16" (ByVal ElfHandle As Long, ByVal taglist_ As Long) As Long
 ' ElfLoadSegTags: variadic, left out
 Declare Function GetElfString Lib "elf.library" Alias "#18" (ByVal ElfHandle As Long, ByVal SectionIndex As Long, ByVal StringIndex As Long) As Long
 Declare Function SymbolQuery Lib "elf.library" Alias "#19" (ByVal ElfHandle As Long, ByVal NumQueries As Long, ByVal Queries As Long) As Long
-Declare Sub UnloadSection Lib "elf.library" Alias "#20" (ByVal ElfHandle As Long, ByVal taglist As Long)
+Declare Sub UnloadSection Lib "elf.library" Alias "#20" (ByVal ElfHandle As Long, ByVal taglist_ As Long)
 ' UnloadSectionTags: variadic, left out
 Declare Function AddressToSection Lib "elf.library" Alias "#22" (ByVal ElfHandle As Long, ByVal Address As Long) As Long
-Declare Sub ScanSymbolTable Lib "elf.library" Alias "#23" (ByVal ElfHandle As Long, ByVal hook As Long, ByVal tagList As Long)
+Declare Sub ScanSymbolTable Lib "elf.library" Alias "#23" (ByVal ElfHandle As Long, ByVal hook As Long, ByVal tagList_ As Long)
 ' ScanSymbolTableTags: variadic, left out
-Declare Function RelocateSection Lib "elf.library" Alias "#25" (ByVal ElfHandle As Long, ByVal taglist As Long) As Long
+Declare Function RelocateSection Lib "elf.library" Alias "#25" (ByVal ElfHandle As Long, ByVal taglist_ As Long) As Long
 ' RelocateSectionTags: variadic, left out
 Declare Function CopyDataSegment Lib "elf.library" Alias "#27" (ByVal ElfHandle As Long, ByVal baseOffset As Long) As Long
 Declare Sub FreeDataSegmentCopy Lib "elf.library" Alias "#28" (ByVal ElfHandle As Long, ByVal SegmentCopy As Long)

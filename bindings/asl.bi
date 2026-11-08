@@ -4,10 +4,10 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function AllocAslRequest Lib "asl.library" Alias "#7" (ByVal reqType As Long, ByVal tagList As Long) As Long
+Declare Function AllocAslRequest Lib "asl.library" Alias "#7" (ByVal reqType As Long, ByVal tagList_ As Long) As Long
 ' AllocAslRequestTags: variadic, left out
 Declare Sub FreeAslRequest Lib "asl.library" Alias "#9" (ByVal requester As Long)
-Declare Function AslRequest Lib "asl.library" Alias "#10" (ByVal requester As Long, ByVal tagList As Long) As Long
+Declare Function AslRequest Lib "asl.library" Alias "#10" (ByVal requester As Long, ByVal tagList_ As Long) As Long
 ' AslRequestTags: variadic, left out
 Declare Sub AslFreeVec Lib "asl.library" Alias "#12" (ByVal memory As Long)
 Declare Function AslAllocVec Lib "asl.library" Alias "#13" (ByVal byteSize As Long, ByVal attributes As Long) As Long

@@ -7,12 +7,12 @@
 Declare Function CounterGet Lib "performancemonitor.resource" Alias "#4" (ByVal whatCount As Long) As Long
 Declare Function CounterMatch Lib "performancemonitor.resource" Alias "#5" (ByVal itemNum As Long) As Long
 Declare Function CounterControl Lib "performancemonitor.resource" Alias "#6" (ByVal whichCount As Long, ByVal value As Long, ByVal what As Long) As Long
-Declare Function EventControl Lib "performancemonitor.resource" Alias "#7" (ByVal tagList As Long) As Long
+Declare Function EventControl Lib "performancemonitor.resource" Alias "#7" (ByVal tagList_ As Long) As Long
 ' EventControlTags: variadic, left out
 Declare Function SetInterruptVector Lib "performancemonitor.resource" Alias "#9" (ByVal event_ As Long, ByVal handler As Long) As Long
 Declare Sub Mark Lib "performancemonitor.resource" Alias "#10" (ByVal task As Long)
 Declare Sub Unmark Lib "performancemonitor.resource" Alias "#11" (ByVal task As Long)
-Declare Function MonitorControl Lib "performancemonitor.resource" Alias "#12" (ByVal tagList As Long) As Long
+Declare Function MonitorControl Lib "performancemonitor.resource" Alias "#12" (ByVal tagList_ As Long) As Long
 ' MonitorControlTags: variadic, left out
 Declare Function Query Lib "performancemonitor.resource" Alias "#14" (ByVal item As Long) As Long
 Declare Sub SetSampledAddress Lib "performancemonitor.resource" Alias "#15" (ByVal addr As Long)

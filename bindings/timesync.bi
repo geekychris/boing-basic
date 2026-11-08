@@ -4,7 +4,7 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function RemoteSyncA Lib "timesync.library" Alias "#4" (ByVal taglist As Long) As Long
+Declare Function RemoteSyncA Lib "timesync.library" Alias "#4" (ByVal taglist_ As Long) As Long
 ' RemoteSync: variadic, left out
 
 ' --- constants ---

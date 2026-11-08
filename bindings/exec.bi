@@ -11,7 +11,7 @@ Declare Sub AddTail Lib "exec.library" Alias "#7" (ByVal list As Long, ByVal nod
 Declare Function AllocAbs Lib "exec.library" Alias "#8" (ByVal byteSize As Long, ByVal location As Long) As Long
 Declare Function Allocate Lib "exec.library" Alias "#9" (ByVal memHeader As Long, ByVal byteSize As Long) As Long
 Declare Function AllocEntry Lib "exec.library" Alias "#10" (ByVal memList As Long) As Long
-Declare Function AllocMem Lib "exec.library" Alias "#11" (ByVal byteSize As Long, ByVal attributes As Long) As Long
+Declare Function Exec_AllocMem Lib "exec.library" Alias "#11" (ByVal byteSize As Long, ByVal attributes As Long) As Long
 Declare Function AllocPooled Lib "exec.library" Alias "#12" (ByVal poolHeader As Long, ByVal memSize As Long) As Long
 Declare Function AllocVec Lib "exec.library" Alias "#13" (ByVal byteSize As Long, ByVal attributes As Long) As Long
 Declare Function AllocVecPooled Lib "exec.library" Alias "#14" (ByVal poolHeader As Long, ByVal size As Long) As Long
@@ -26,14 +26,14 @@ Declare Function FindName Lib "exec.library" Alias "#22" (ByVal start As Long, B
 Declare Function FindIName Lib "exec.library" Alias "#23" (ByVal start As Long, ByVal name_ As String) As Long
 Declare Sub Forbid Lib "exec.library" Alias "#24" ()
 Declare Sub FreeEntry Lib "exec.library" Alias "#25" (ByVal memList As Long)
-Declare Sub FreeMem Lib "exec.library" Alias "#26" (ByVal memoryBlock As Long, ByVal byteSize As Long)
+Declare Sub Exec_FreeMem Lib "exec.library" Alias "#26" (ByVal memoryBlock As Long, ByVal byteSize As Long)
 Declare Sub FreePooled Lib "exec.library" Alias "#27" (ByVal poolHeader As Long, ByVal memory As Long, ByVal memSize As Long)
 Declare Sub FreeVec Lib "exec.library" Alias "#28" (ByVal memoryBlock As Long)
 Declare Sub FreeVecPooled Lib "exec.library" Alias "#29" (ByVal poolHeader As Long, ByVal memory As Long)
 Declare Sub InitData Lib "exec.library" Alias "#30" (ByVal initTab As Long, ByVal memory As Long, ByVal size As Long)
 Declare Sub InitStruct Lib "exec.library" Alias "#31" (ByVal initTable As Long, ByVal memory As Long, ByVal size As Long)
 Declare Sub Insert Lib "exec.library" Alias "#32" (ByVal list As Long, ByVal node As Long, ByVal listNode As Long)
-Declare Function MakeInterface Lib "exec.library" Alias "#33" (ByVal library As Long, ByVal taglist As Long) As Long
+Declare Function MakeInterface Lib "exec.library" Alias "#33" (ByVal library As Long, ByVal taglist_ As Long) As Long
 ' MakeInterfaceTags: variadic, left out
 Declare Sub Permit Lib "exec.library" Alias "#35" ()
 Declare Function RawDoFmt Lib "exec.library" Alias "#36" (ByVal formatString As String, ByVal dataStream As Long, ByVal PutChProc As Long, ByVal PutChData As Long) As Long
@@ -45,7 +45,7 @@ Declare Function TypeOfMem Lib "exec.library" Alias "#41" (ByVal address As Long
 Declare Function InitResident Lib "exec.library" Alias "#42" (ByVal resident As Long, ByVal segList As Long) As Long
 Declare Sub InitCode Lib "exec.library" Alias "#43" (ByVal startClass As Long, ByVal version_ As Long)
 Declare Function SumKickData Lib "exec.library" Alias "#44" () As Long
-Declare Function AddTask Lib "exec.library" Alias "#45" (ByVal task As Long, ByVal initialPC As Long, ByVal finalPC As Long, ByVal tagList As Long) As Long
+Declare Function AddTask Lib "exec.library" Alias "#45" (ByVal task As Long, ByVal initialPC As Long, ByVal finalPC As Long, ByVal tagList_ As Long) As Long
 ' AddTaskTags: variadic, left out
 Declare Sub Disable Lib "exec.library" Alias "#47" ()
 Declare Sub Enable Lib "exec.library" Alias "#48" ()
@@ -85,11 +85,11 @@ Declare Sub ReleaseSemaphore Lib "exec.library" Alias "#81" (ByVal semaphore As 
 Declare Sub ReleaseSemaphoreList Lib "exec.library" Alias "#82" (ByVal list As Long)
 Declare Sub RemSemaphore Lib "exec.library" Alias "#83" (ByVal semaphore As Long)
 Declare Sub Vacate Lib "exec.library" Alias "#84" (ByVal semaphore As Long, ByVal bidMessage As Long)
-Declare Function CreateTask Lib "exec.library" Alias "#85" (ByVal name_ As String, ByVal pri As Long, ByVal initPC As Long, ByVal stackSize As Long, ByVal tagList As Long) As Long
+Declare Function CreateTask Lib "exec.library" Alias "#85" (ByVal name_ As String, ByVal pri As Long, ByVal initPC As Long, ByVal stackSize As Long, ByVal tagList_ As Long) As Long
 ' CreateTaskTags: variadic, left out
 Declare Sub DeleteTask Lib "exec.library" Alias "#87" (ByVal task As Long)
 Declare Sub SumLibrary Lib "exec.library" Alias "#88" (ByVal library As Long)
-Declare Function CreateLibrary Lib "exec.library" Alias "#89" (ByVal taglist As Long) As Long
+Declare Function CreateLibrary Lib "exec.library" Alias "#89" (ByVal taglist_ As Long) As Long
 ' CreateLibraryTags: variadic, left out
 Declare Function OpenLibrary Lib "exec.library" Alias "#91" (ByVal name_ As String, ByVal version_ As Long) As Long
 Declare Function CloseLibrary Lib "exec.library" Alias "#92" (ByVal library As Long) As Long
@@ -97,7 +97,7 @@ Declare Sub AddLibrary Lib "exec.library" Alias "#93" (ByVal library As Long)
 Declare Function RemLibrary Lib "exec.library" Alias "#94" (ByVal library As Long) As Long
 Declare Sub AddDevice Lib "exec.library" Alias "#95" (ByVal device As Long)
 Declare Function RemDevice Lib "exec.library" Alias "#96" (ByVal device As Long) As Long
-Declare Function GetInterface Lib "exec.library" Alias "#97" (ByVal library As Long, ByVal name_ As String, ByVal version_ As Long, ByVal taglist As Long) As Long
+Declare Function GetInterface Lib "exec.library" Alias "#97" (ByVal library As Long, ByVal name_ As String, ByVal version_ As Long, ByVal taglist_ As Long) As Long
 ' GetInterfaceTags: variadic, left out
 Declare Sub DropInterface Lib "exec.library" Alias "#99" (ByVal interface_ As Long)
 Declare Sub AddInterface Lib "exec.library" Alias "#100" (ByVal library As Long, ByVal interface_ As Long)
@@ -169,13 +169,13 @@ Declare Sub NewList Lib "exec.library" Alias "#166" (ByVal list As Long)
 Declare Sub NewMinList Lib "exec.library" Alias "#167" (ByVal list As Long)
 Declare Sub ColdReboot Lib "exec.library" Alias "#168" ()
 Declare Function MakeLibrary Lib "exec.library" Alias "#169" (ByVal vectors As Long, ByVal structure As Long, ByVal init As Long, ByVal dataSize As Long, ByVal segList As Long) As Long
-Declare Function Emulate Lib "exec.library" Alias "#170" (ByVal InitPC As Long, ByVal tagList As Long) As Long
+Declare Function Emulate Lib "exec.library" Alias "#170" (ByVal InitPC As Long, ByVal tagList_ As Long) As Long
 ' EmulateTags: variadic, left out
 ' DebugPrintF: variadic, left out
 Declare Function IsNative Lib "exec.library" Alias "#173" (ByVal code As Long) As Long
 Declare Function RawMayGetChar Lib "exec.library" Alias "#174" () As Long
 Declare Sub RawPutChar Lib "exec.library" Alias "#175" (ByVal c As Long)
-Declare Sub GetCPUInfo Lib "exec.library" Alias "#176" (ByVal TagList As Long)
+Declare Sub GetCPUInfo Lib "exec.library" Alias "#176" (ByVal TagList_ As Long)
 ' GetCPUInfoTags: variadic, left out
 Declare Function OwnerOfMem Lib "exec.library" Alias "#178" (ByVal Address As Long) As Long
 Declare Function AddResetCallback Lib "exec.library" Alias "#179" (ByVal resetCallback As Long) As Long
@@ -183,7 +183,7 @@ Declare Sub RemResetCallback Lib "exec.library" Alias "#180" (ByVal resetCallbac
 Declare Function ItemPoolAlloc Lib "exec.library" Alias "#181" (ByVal itemPool As Long) As Long
 Declare Sub ItemPoolFree Lib "exec.library" Alias "#182" (ByVal itemPool As Long, ByVal item As Long)
 Declare Sub ItemPoolGC Lib "exec.library" Alias "#183" (ByVal itemPool As Long)
-Declare Function ItemPoolControl Lib "exec.library" Alias "#184" (ByVal itemPool As Long, ByVal tagList As Long) As Long
+Declare Function ItemPoolControl Lib "exec.library" Alias "#184" (ByVal itemPool As Long, ByVal tagList_ As Long) As Long
 ' ItemPoolControlTags: variadic, left out
 Declare Sub ItemPoolFlush Lib "exec.library" Alias "#186" (ByVal itemPool As Long)
 Declare Function GetHead Lib "exec.library" Alias "#187" (ByVal list As Long) As Long
@@ -211,7 +211,7 @@ Declare Sub PageBackendLock Lib "exec.library" Alias "#208" ()
 Declare Sub PageBackendUnlock Lib "exec.library" Alias "#209" ()
 Declare Function RMapAlloc Lib "exec.library" Alias "#213" (ByVal Map As Long, ByVal size As Long, ByVal flags As Long) As Long
 Declare Sub RMapFree Lib "exec.library" Alias "#214" (ByVal Map As Long, ByVal addr As Long, ByVal size As Long)
-Declare Function VMAreaInit Lib "exec.library" Alias "#215" (ByVal addrspace As Long, ByVal shared As Long, ByVal area As Long, ByVal TagList As Long) As Long
+Declare Function VMAreaInit Lib "exec.library" Alias "#215" (ByVal addrspace As Long, ByVal shared As Long, ByVal area As Long, ByVal TagList_ As Long) As Long
 ' VMAreaInitTags: variadic, left out
 Declare Sub VMAreaTerm Lib "exec.library" Alias "#217" (ByVal area As Long)
 Declare Function AllocVecTagList Lib "exec.library" Alias "#218" (ByVal size As Long, ByVal tags As Long) As Long
@@ -220,7 +220,7 @@ Declare Function PageMapAligned Lib "exec.library" Alias "#220" (ByVal pageList 
 Declare Function RMapExtAlloc Lib "exec.library" Alias "#221" (ByVal Map As Long, ByVal size As Long, ByVal alignment As Long, ByVal flags As Long) As Long
 Declare Sub RMapExtFree Lib "exec.library" Alias "#222" (ByVal Map As Long, ByVal addr As Long, ByVal size As Long)
 Declare Function PageBackendAllocAligned Lib "exec.library" Alias "#223" (ByVal order As Long, ByVal alignment As Long, ByVal flags As Long) As Long
-Declare Function AllocNamedMemory Lib "exec.library" Alias "#224" (ByVal byteSize As Long, ByVal space_ As String, ByVal name_ As String, ByVal tagList As Long) As Long
+Declare Function AllocNamedMemory Lib "exec.library" Alias "#224" (ByVal byteSize As Long, ByVal space_ As String, ByVal name_ As String, ByVal tagList_ As Long) As Long
 ' AllocNamedMemoryTags: variadic, left out
 Declare Function FreeNamedMemory Lib "exec.library" Alias "#226" (ByVal space_ As String, ByVal name_ As String) As Long
 Declare Function FindNamedMemory Lib "exec.library" Alias "#227" (ByVal space_ As String, ByVal name_ As String) As Long
@@ -238,13 +238,13 @@ Declare Sub MutexObtain Lib "exec.library" Alias "#238" (ByVal Mutex As Long)
 Declare Function MutexAttempt Lib "exec.library" Alias "#239" (ByVal Mutex As Long) As Long
 Declare Sub MutexRelease Lib "exec.library" Alias "#240" (ByVal Mutex As Long)
 Declare Function MutexAttemptWithSignal Lib "exec.library" Alias "#241" (ByVal Mutex As Long, ByVal SigSet As Long) As Long
-Declare Function NewStackRun Lib "exec.library" Alias "#242" (ByVal initPC As Long, ByVal TagList As Long) As Long
+Declare Function NewStackRun Lib "exec.library" Alias "#242" (ByVal initPC As Long, ByVal TagList_ As Long) As Long
 ' NewStackRunTags: variadic, left out
 Declare Function AttemptSemaphoreWithSignal Lib "exec.library" Alias "#244" (ByVal semaphore As Long, ByVal sigmask As Long) As Long
 Declare Function AttemptSemaphoreSharedWithSignal Lib "exec.library" Alias "#245" (ByVal semaphore As Long, ByVal sigmask As Long) As Long
-Declare Function GetTaskAttrs Lib "exec.library" Alias "#246" (ByVal task As Long, ByVal taglist As Long) As Long
+Declare Function GetTaskAttrs Lib "exec.library" Alias "#246" (ByVal task As Long, ByVal taglist_ As Long) As Long
 ' GetTaskAttrsTags: variadic, left out
-Declare Function FindResidentTagList Lib "exec.library" Alias "#250" (ByVal tagList As Long) As Long
+Declare Function FindResidentTagList Lib "exec.library" Alias "#250" (ByVal tagList_ As Long) As Long
 ' FindResidentTags: variadic, left out
 Declare Sub RWLockObtainRead Lib "exec.library" Alias "#252" (ByVal RWLock As Long)
 Declare Sub RWLockReleaseRead Lib "exec.library" Alias "#253" (ByVal RWLock As Long)
@@ -254,13 +254,13 @@ Declare Sub RWLockObtainWrite Lib "exec.library" Alias "#256" (ByVal RWLock As L
 Declare Sub RWLockReleaseWrite Lib "exec.library" Alias "#257" (ByVal RWLock As Long)
 Declare Function RWLockAttemptWrite Lib "exec.library" Alias "#258" (ByVal RWLock As Long) As Long
 Declare Function RWLockAttemptWriteWithSignal Lib "exec.library" Alias "#259" (ByVal RWLock As Long, ByVal SigSet As Long) As Long
-Declare Sub GetSystemInfo Lib "exec.library" Alias "#260" (ByVal TagList As Long)
+Declare Sub GetSystemInfo Lib "exec.library" Alias "#260" (ByVal TagList_ As Long)
 ' GetSystemInfoTags: variadic, left out
 ' ForbidLocal: variadic, left out
 ' PermitLocal: variadic, left out
 ' DisableLocal: variadic, left out
 ' EnableLocal: variadic, left out
-Declare Sub SetTaskAffinity Lib "exec.library" Alias "#266" (ByVal task As Long, ByVal TagList As Long)
+Declare Sub SetTaskAffinity Lib "exec.library" Alias "#266" (ByVal task As Long, ByVal TagList_ As Long)
 ' SetTaskAffinityTags: variadic, left out
 
 ' --- interface "MMU" ---
@@ -279,11 +279,11 @@ Declare Function Debug_GetDebugLevel Lib "exec.library" Interface "debug" Alias 
 Declare Function Debug_ReadTaskContext Lib "exec.library" Interface "debug" Alias "#8" (ByVal targetTask As Long, ByVal contextStore As Long, ByVal flags As Long) As Long
 Declare Function Debug_WriteTaskContext Lib "exec.library" Interface "debug" Alias "#9" (ByVal targetTask As Long, ByVal contextStore As Long, ByVal flags As Long) As Long
 Declare Function Debug_StackTrace Lib "exec.library" Interface "debug" Alias "#10" (ByVal task As Long, ByVal hook As Long) As Long
-Declare Function Debug_ObtainDebugSymbol Lib "exec.library" Interface "debug" Alias "#11" (ByVal address As Long, ByVal tagList As Long) As Long
+Declare Function Debug_ObtainDebugSymbol Lib "exec.library" Interface "debug" Alias "#11" (ByVal address As Long, ByVal tagList_ As Long) As Long
 ' ObtainDebugSymbolTags: variadic, left out
 Declare Sub Debug_ReleaseDebugSymbol Lib "exec.library" Interface "debug" Alias "#13" (ByVal sym As Long)
 Declare Function Debug_IsIn68kEmulator Lib "exec.library" Interface "debug" Alias "#14" (ByVal task As Long) As Long
-Declare Function Debug_StartDebugOutputNotify Lib "exec.library" Interface "debug" Alias "#15" (ByVal tagList As Long) As Long
+Declare Function Debug_StartDebugOutputNotify Lib "exec.library" Interface "debug" Alias "#15" (ByVal tagList_ As Long) As Long
 ' StartDebugOutputNotifyTags: variadic, left out
 Declare Sub Debug_EndDebugOutputNotify Lib "exec.library" Interface "debug" Alias "#17" (ByVal notify As Long)
 

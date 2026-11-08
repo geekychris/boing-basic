@@ -9,7 +9,7 @@ Declare Sub RL_CloseResource Lib "resource.library" Alias "#5" (ByVal resfile As
 Declare Function RL_NewObjectA Lib "resource.library" Alias "#6" (ByVal resfile As Long, ByVal resid As Long, ByVal tags As Long) As Long
 ' RL_NewObject: variadic, left out
 Declare Sub RL_DisposeObject Lib "resource.library" Alias "#8" (ByVal resfile As Long, ByVal obj As Long)
-Declare Function RL_NewGroupA Lib "resource.library" Alias "#9" (ByVal resfile As Long, ByVal id As Long, ByVal taglist As Long) As Long
+Declare Function RL_NewGroupA Lib "resource.library" Alias "#9" (ByVal resfile As Long, ByVal id As Long, ByVal taglist_ As Long) As Long
 ' RL_NewGroup: variadic, left out
 Declare Sub RL_DisposeGroup Lib "resource.library" Alias "#11" (ByVal resfile As Long, ByVal obj As Long)
 Declare Function RL_GetObjectArray Lib "resource.library" Alias "#12" (ByVal resfile As Long, ByVal obj As Long, ByVal id As Long) As Long

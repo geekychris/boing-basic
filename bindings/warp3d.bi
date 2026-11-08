@@ -71,7 +71,7 @@ Declare Function W3D_DrawLineLoop Lib "Warp3D.library" Alias "#67" (ByVal contex
 Declare Function W3D_GetDrivers Lib "Warp3D.library" Alias "#68" () As Long
 Declare Function W3D_QueryDriver Lib "Warp3D.library" Alias "#69" (ByVal driver As Long, ByVal query As Long, ByVal destfmt As Long) As Long
 Declare Function W3D_GetDriverTexFmtInfo Lib "Warp3D.library" Alias "#70" (ByVal driver As Long, ByVal format_ As Long, ByVal destfmt As Long) As Long
-Declare Function W3D_RequestMode Lib "Warp3D.library" Alias "#71" (ByVal taglist As Long) As Long
+Declare Function W3D_RequestMode Lib "Warp3D.library" Alias "#71" (ByVal taglist_ As Long) As Long
 ' W3D_RequestModeTags: variadic, left out
 Declare Sub W3D_SetScissor Lib "Warp3D.library" Alias "#73" (ByVal context As Long, ByVal scissor As Long)
 Declare Sub W3D_FlushFrame Lib "Warp3D.library" Alias "#74" (ByVal context As Long)
@@ -92,7 +92,7 @@ Declare Function W3D_BindTexture Lib "Warp3D.library" Alias "#88" (ByVal context
 Declare Function W3D_DrawArray Lib "Warp3D.library" Alias "#89" (ByVal context As Long, ByVal primitive As Long, ByVal base_ As Long, ByVal count As Long) As Long
 Declare Function W3D_DrawElements Lib "Warp3D.library" Alias "#90" (ByVal context As Long, ByVal primitive As Long, ByVal type_ As Long, ByVal count As Long, ByVal indices As Long) As Long
 Declare Sub W3D_SetFrontFace Lib "Warp3D.library" Alias "#91" (ByVal context As Long, ByVal direction As Long)
-Declare Function W3D_SetTextureBlend Lib "Warp3D.library" Alias "#92" (ByVal context As Long, ByVal tagList As Long) As Long
+Declare Function W3D_SetTextureBlend Lib "Warp3D.library" Alias "#92" (ByVal context As Long, ByVal tagList_ As Long) As Long
 ' W3D_SetTextureBlendTags: variadic, left out
 Declare Function W3D_SecondaryColorPointer Lib "Warp3D.library" Alias "#94" (ByVal context As Long, ByVal pointer As Long, ByVal stride As Long, ByVal format_ As Long, ByVal mode As Long, ByVal flags As Long) As Long
 Declare Function W3D_FogCoordPointer Lib "Warp3D.library" Alias "#95" (ByVal context As Long, ByVal pointer As Long, ByVal stride As Long, ByVal mode As Long, ByVal flags As Long) As Long

@@ -26,11 +26,11 @@ Declare Function GetCurrentBinding Lib "expansion.library" Alias "#22" (ByVal cu
 Declare Function MakeDosNode Lib "expansion.library" Alias "#23" (ByVal parmPacket As Long) As Long
 Declare Function AddDosNode Lib "expansion.library" Alias "#24" (ByVal bootPri As Long, ByVal flags As Long, ByVal deviceNode As Long) As Long
 Declare Sub WriteExpansionWord Lib "expansion.library" Alias "#25" (ByVal board As Long, ByVal offset As Long, ByVal word As Long)
-Declare Function GetMachineInfo Lib "expansion.library" Alias "#26" (ByVal tagList As Long) As Long
+Declare Function GetMachineInfo Lib "expansion.library" Alias "#26" (ByVal tagList_ As Long) As Long
 ' GetMachineInfoTags: variadic, left out
 
 ' --- interface "pci" ---
-Declare Function Pci_FindDevice Lib "expansion.library" Interface "pci" Alias "#4" (ByVal tagList As Long) As Long
+Declare Function Pci_FindDevice Lib "expansion.library" Interface "pci" Alias "#4" (ByVal tagList_ As Long) As Long
 ' FindDeviceTags: variadic, left out
 Declare Sub Pci_FreeDevice Lib "expansion.library" Interface "pci" Alias "#6" (ByVal device As Long)
 Declare Function Pci_AllocResource Lib "expansion.library" Interface "pci" Alias "#7" (ByVal ResType As Long, ByVal NumBytes As Long) As Long

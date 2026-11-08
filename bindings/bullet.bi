@@ -6,10 +6,10 @@
 ' --- interface "main" ---
 Declare Function OpenEngine Lib "bullet.library" Alias "#4" () As Long
 Declare Sub CloseEngine Lib "bullet.library" Alias "#5" (ByVal glyphEngine As Long)
-Declare Function SetInfoA Lib "bullet.library" Alias "#6" (ByVal glyphEngine As Long, ByVal tagList As Long) As Long
+Declare Function SetInfoA Lib "bullet.library" Alias "#6" (ByVal glyphEngine As Long, ByVal tagList_ As Long) As Long
 ' SetInfo: variadic, left out
-Declare Function ObtainInfoA Lib "bullet.library" Alias "#8" (ByVal glyphEngine As Long, ByVal tagList As Long) As Long
+Declare Function ObtainInfoA Lib "bullet.library" Alias "#8" (ByVal glyphEngine As Long, ByVal tagList_ As Long) As Long
 ' ObtainInfo: variadic, left out
-Declare Function ReleaseInfoA Lib "bullet.library" Alias "#10" (ByVal glyphEngine As Long, ByVal tagList As Long) As Long
+Declare Function ReleaseInfoA Lib "bullet.library" Alias "#10" (ByVal glyphEngine As Long, ByVal tagList_ As Long) As Long
 ' ReleaseInfo: variadic, left out
 Declare Function GetGlyphMap Lib "bullet.library" Alias "#12" (ByVal glyphEngine As Long, ByVal glyphCode As Long, ByVal glyphMap As Long) As Long

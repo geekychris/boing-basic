@@ -22,14 +22,14 @@ Declare Function WritePixelArray Lib "cybergraphics.library" Alias "#23" (ByVal 
 Declare Function MovePixelArray Lib "cybergraphics.library" Alias "#24" (ByVal SrcX As Long, ByVal SrcY As Long, ByVal RastPort As Long, ByVal DestX As Long, ByVal DestY As Long, ByVal SizeX As Long, ByVal SizeY As Long) As Long
 Declare Function InvertPixelArray Lib "cybergraphics.library" Alias "#26" (ByVal RastPort As Long, ByVal DestX As Long, ByVal DestY As Long, ByVal SizeX As Long, ByVal SizeY As Long) As Long
 Declare Function FillPixelArray Lib "cybergraphics.library" Alias "#27" (ByVal RastPort As Long, ByVal DestX As Long, ByVal DestY As Long, ByVal SizeX As Long, ByVal SizeY As Long, ByVal argb As Long) As Long
-Declare Sub DoCDrawMethodTagList Lib "cybergraphics.library" Alias "#28" (ByVal hook As Long, ByVal RastPort As Long, ByVal TagList As Long)
+Declare Sub DoCDrawMethodTagList Lib "cybergraphics.library" Alias "#28" (ByVal hook As Long, ByVal RastPort As Long, ByVal TagList_ As Long)
 ' DoCDrawMethodTags: variadic, left out
-Declare Sub CVideoCtrlTagList Lib "cybergraphics.library" Alias "#30" (ByVal ViewPort As Long, ByVal TagList As Long)
+Declare Sub CVideoCtrlTagList Lib "cybergraphics.library" Alias "#30" (ByVal ViewPort As Long, ByVal TagList_ As Long)
 ' CVideoCtrlTags: variadic, left out
-Declare Function LockBitMapTagList Lib "cybergraphics.library" Alias "#32" (ByVal BitMap As Long, ByVal TagList As Long) As Long
+Declare Function LockBitMapTagList Lib "cybergraphics.library" Alias "#32" (ByVal BitMap As Long, ByVal TagList_ As Long) As Long
 ' LockBitMapTags: variadic, left out
 Declare Sub UnLockBitMap Lib "cybergraphics.library" Alias "#34" (ByVal Handle As Long)
-Declare Sub UnLockBitMapTagList Lib "cybergraphics.library" Alias "#35" (ByVal Handle As Long, ByVal TagList As Long)
+Declare Sub UnLockBitMapTagList Lib "cybergraphics.library" Alias "#35" (ByVal Handle As Long, ByVal TagList_ As Long)
 ' UnLockBitMapTags: variadic, left out
 Declare Function ExtractColor Lib "cybergraphics.library" Alias "#37" (ByVal RastPort As Long, ByVal BitMap As Long, ByVal Colour As Long, ByVal SrcX As Long, ByVal SrcY As Long, ByVal Width As Long, ByVal Height As Long) As Long
 Declare Function WriteLUTPixelArray Lib "cybergraphics.library" Alias "#39" (ByVal srcRect As Long, ByVal SrcX As Long, ByVal SrcY As Long, ByVal SrcMod As Long, ByVal RastPort As Long, ByVal ColorTab As Long, ByVal DestX As Long, ByVal DestY As Long, ByVal SizeX As Long, ByVal SizeY As Long, ByVal CTFormat As Long) As Long

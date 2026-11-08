@@ -4,17 +4,17 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function ModuleControlA Lib "iconmodules/generic.iconmodule" Alias "#4" (ByVal object_ As Long, ByVal taglist As Long) As Long
+Declare Function ModuleControlA Lib "iconmodules/generic.iconmodule" Alias "#4" (ByVal object_ As Long, ByVal taglist_ As Long) As Long
 ' ModuleControl: variadic, left out
-Declare Function LoadIconA Lib "iconmodules/generic.iconmodule" Alias "#6" (ByVal name_ As String, ByVal icon As Long, ByVal taglist As Long) As Long
+Declare Function LoadIconA Lib "iconmodules/generic.iconmodule" Alias "#6" (ByVal name_ As String, ByVal icon As Long, ByVal taglist_ As Long) As Long
 ' LoadIcon: variadic, left out
-Declare Function SaveIconA Lib "iconmodules/generic.iconmodule" Alias "#8" (ByVal name_ As String, ByVal icon As Long, ByVal taglist As Long) As Long
+Declare Function SaveIconA Lib "iconmodules/generic.iconmodule" Alias "#8" (ByVal name_ As String, ByVal icon As Long, ByVal taglist_ As Long) As Long
 ' SaveIcon: variadic, left out
-Declare Function AllocIconDataA Lib "iconmodules/generic.iconmodule" Alias "#10" (ByVal icon As Long, ByVal taglist As Long) As Long
+Declare Function AllocIconDataA Lib "iconmodules/generic.iconmodule" Alias "#10" (ByVal icon As Long, ByVal taglist_ As Long) As Long
 ' AllocIconData: variadic, left out
-Declare Sub FreeIconDataA Lib "iconmodules/generic.iconmodule" Alias "#12" (ByVal icon As Long, ByVal taglist As Long)
+Declare Sub FreeIconDataA Lib "iconmodules/generic.iconmodule" Alias "#12" (ByVal icon As Long, ByVal taglist_ As Long)
 ' FreeIconData: variadic, left out
-Declare Function DupIconDataA Lib "iconmodules/generic.iconmodule" Alias "#14" (ByVal icon As Long, ByVal taglist As Long) As Long
+Declare Function DupIconDataA Lib "iconmodules/generic.iconmodule" Alias "#14" (ByVal icon As Long, ByVal taglist_ As Long) As Long
 ' DupIconData: variadic, left out
-Declare Function ScaleIconA Lib "iconmodules/generic.iconmodule" Alias "#16" (ByVal icon As Long, ByVal isr As Long, ByVal taglist As Long) As Long
+Declare Function ScaleIconA Lib "iconmodules/generic.iconmodule" Alias "#16" (ByVal icon As Long, ByVal isr As Long, ByVal taglist_ As Long) As Long
 ' ScaleIcon: variadic, left out

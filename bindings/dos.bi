@@ -154,7 +154,7 @@ Declare Function ParsePatternNoCase Lib "dos.library" Alias "#176" (ByVal pat As
 Declare Function MatchPatternNoCase Lib "dos.library" Alias "#177" (ByVal pat As String, ByVal str_ As String) As Long
 Declare Function SameDevice Lib "dos.library" Alias "#179" (ByVal lock1 As Long, ByVal lock2 As Long) As Long
 Declare Function GetEntryData Lib "dos.library" Alias "#182" () As Long
-Declare Function ReadLineItem Lib "dos.library" Alias "#183" (ByVal buffer As String, ByVal maxchars As Long, ByVal taglist As Long) As Long
+Declare Function ReadLineItem Lib "dos.library" Alias "#183" (ByVal buffer As String, ByVal maxchars As Long, ByVal taglist_ As Long) As Long
 ' ReadLineItemTags: variadic, left out
 Declare Function GetCurrentDir Lib "dos.library" Alias "#186" () As Long
 Declare Function NonBlockingModifyDosEntry Lib "dos.library" Alias "#187" (ByVal dl As Long, ByVal mode As Long, ByVal arg1 As Long, ByVal arg2 As Long) As Long

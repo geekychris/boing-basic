@@ -4,7 +4,7 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Sub USBFDGetAttrsA Lib "usbfd.library" Alias "#4" (ByVal taglist As Long)
+Declare Sub USBFDGetAttrsA Lib "usbfd.library" Alias "#4" (ByVal taglist_ As Long)
 ' USBFDGetAttrs: variadic, left out
 Declare Function USBFDRunFunction Lib "usbfd.library" Alias "#6" (ByVal startmsg As Long) As Long
 Declare Function USBFDRunInterface Lib "usbfd.library" Alias "#7" (ByVal startmsg As Long) As Long

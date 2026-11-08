@@ -8,14 +8,14 @@ Declare Sub SetKeyMapDefault Lib "keymap.library" Alias "#4" (ByVal keyMap As Lo
 Declare Function AskKeyMapDefault Lib "keymap.library" Alias "#5" () As Long
 Declare Function MapRawKey Lib "keymap.library" Alias "#6" (ByVal event_ As Long, ByVal buffer As String, ByVal length As Long, ByVal keyMap As Long) As Long
 Declare Function MapANSI Lib "keymap.library" Alias "#7" (ByVal string_ As String, ByVal count As Long, ByVal buffer As String, ByVal length As Long, ByVal keyMap As Long) As Long
-Declare Function OpenKeyMapHandleA Lib "keymap.library" Alias "#8" (ByVal filename As String, ByVal taglist As Long) As Long
+Declare Function OpenKeyMapHandleA Lib "keymap.library" Alias "#8" (ByVal filename As String, ByVal taglist_ As Long) As Long
 ' OpenKeyMapHandle: variadic, left out
 Declare Sub CloseKeyMapHandle Lib "keymap.library" Alias "#10" (ByVal handle As Long)
-Declare Function ObtainKeyMapInfoA Lib "keymap.library" Alias "#11" (ByVal handle As Long, ByVal taglist As Long) As Long
+Declare Function ObtainKeyMapInfoA Lib "keymap.library" Alias "#11" (ByVal handle As Long, ByVal taglist_ As Long) As Long
 ' ObtainKeyMapInfo: variadic, left out
-Declare Sub ReleaseKeyMapInfoA Lib "keymap.library" Alias "#13" (ByVal handle As Long, ByVal taglist As Long)
+Declare Sub ReleaseKeyMapInfoA Lib "keymap.library" Alias "#13" (ByVal handle As Long, ByVal taglist_ As Long)
 ' ReleaseKeyMapInfo: variadic, left out
-Declare Sub ObtainRawKeyInfoA Lib "keymap.library" Alias "#15" (ByVal taglist As Long)
+Declare Sub ObtainRawKeyInfoA Lib "keymap.library" Alias "#15" (ByVal taglist_ As Long)
 ' ObtainRawKeyInfo: variadic, left out
 Declare Function KeyMapControlTagList Lib "keymap.library" Alias "#17" (ByVal tags As Long) As Long
 ' KeyMapControlTags: variadic, left out

@@ -11,7 +11,7 @@ Declare Function GetKey Lib "lowlevel.library" Alias "#7" () As Long
 Declare Sub QueryKeys Lib "lowlevel.library" Alias "#8" (ByVal queryArray As Long, ByVal arraySize As Long)
 Declare Function AddKBInt Lib "lowlevel.library" Alias "#9" (ByVal intRoutine As Long, ByVal intData As Long) As Long
 Declare Sub RemKBInt Lib "lowlevel.library" Alias "#10" (ByVal intHandle As Long)
-Declare Function SystemControlA Lib "lowlevel.library" Alias "#11" (ByVal tagList As Long) As Long
+Declare Function SystemControlA Lib "lowlevel.library" Alias "#11" (ByVal tagList_ As Long) As Long
 ' SystemControl: variadic, left out
 Declare Function AddTimerInt Lib "lowlevel.library" Alias "#13" (ByVal intRoutine As Long, ByVal intData As Long) As Long
 Declare Sub RemTimerInt Lib "lowlevel.library" Alias "#14" (ByVal intHandle As Long)
@@ -22,7 +22,7 @@ Declare Function AddVBlankInt Lib "lowlevel.library" Alias "#18" (ByVal intRouti
 Declare Sub RemVBlankInt Lib "lowlevel.library" Alias "#19" (ByVal intHandle As Long)
 Declare Sub KillReq Lib "lowlevel.library" Alias "#20" ()
 Declare Sub RestoreReq Lib "lowlevel.library" Alias "#21" ()
-Declare Function SetJoyPortAttrsA Lib "lowlevel.library" Alias "#22" (ByVal portNumber As Long, ByVal tagList As Long) As Long
+Declare Function SetJoyPortAttrsA Lib "lowlevel.library" Alias "#22" (ByVal portNumber As Long, ByVal tagList_ As Long) As Long
 ' SetJoyPortAttrs: variadic, left out
 
 ' --- constants ---

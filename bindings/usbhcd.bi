@@ -4,17 +4,17 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function USBHCAddFunctionA Lib "usbhcd.library" Alias "#4" (ByVal hcunit As Long, ByVal hchub As Long, ByVal usfkt As Long, ByVal taglist As Long) As Long
+Declare Function USBHCAddFunctionA Lib "usbhcd.library" Alias "#4" (ByVal hcunit As Long, ByVal hchub As Long, ByVal usfkt As Long, ByVal taglist_ As Long) As Long
 ' USBHCAddFunction: variadic, left out
 Declare Sub USBHCRemFunction Lib "usbhcd.library" Alias "#6" (ByVal hcunit As Long, ByVal hcfkt As Long)
-Declare Function USBHCAddEndPointA Lib "usbhcd.library" Alias "#7" (ByVal hcunit As Long, ByVal hcfkt As Long, ByVal usep As Long, ByVal epnum As Long, ByVal taglist As Long) As Long
+Declare Function USBHCAddEndPointA Lib "usbhcd.library" Alias "#7" (ByVal hcunit As Long, ByVal hcfkt As Long, ByVal usep As Long, ByVal epnum As Long, ByVal taglist_ As Long) As Long
 ' USBHCAddEndPoint: variadic, left out
 Declare Sub USBHCRemEndPoint Lib "usbhcd.library" Alias "#9" (ByVal hcunit As Long, ByVal hcep As Long)
-Declare Sub USBHCGetAttrsA Lib "usbhcd.library" Alias "#10" (ByVal taglist As Long)
+Declare Sub USBHCGetAttrsA Lib "usbhcd.library" Alias "#10" (ByVal taglist_ As Long)
 ' USBHCGetAttrs: variadic, left out
-Declare Function USBHCInitRootHubA Lib "usbhcd.library" Alias "#12" (ByVal hcunit As Long, ByVal usifc As Long, ByVal hcfkt As Long, ByVal taglist As Long) As Long
+Declare Function USBHCInitRootHubA Lib "usbhcd.library" Alias "#12" (ByVal hcunit As Long, ByVal usifc As Long, ByVal hcfkt As Long, ByVal taglist_ As Long) As Long
 ' USBHCInitRootHub: variadic, left out
 Declare Sub USBHCUninitRootHub Lib "usbhcd.library" Alias "#14" (ByVal hcunit As Long, ByVal hcfkt As Long)
 Declare Function USBHCGetFrameNumber Lib "usbhcd.library" Alias "#15" (ByVal hcunit As Long, ByVal timestamp As Long) As Long
-Declare Sub USBHCGetUnitAttrsA Lib "usbhcd.library" Alias "#16" (ByVal hcunit As Long, ByVal taglist As Long)
+Declare Sub USBHCGetUnitAttrsA Lib "usbhcd.library" Alias "#16" (ByVal hcunit As Long, ByVal taglist_ As Long)
 ' USBHCGetUnitAttrs: variadic, left out

@@ -42,6 +42,7 @@ round rset rtrim second seek select set sgn shell sin single space split sqr sta
 str strcomp string strreverse sub tab tan then time timer to trim true type typename ubound ucase
 unload unlock until val variant vartype version weekday wend while with withevents write xor year
 interface screen app clipboard printer forms
+peekb peekw peekl pokeb pokew pokel peeks varptr strptr objptr taglist freetaglist allocmem freemem
 """.split())
 
 INT_TYPES = set("""
