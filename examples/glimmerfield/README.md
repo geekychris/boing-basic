@@ -69,3 +69,8 @@ guest, freshly rebooted (ms per frame):
 | game, native, 2x scale | 0.20 | 2.00 | 5.91 | 106 |
 
 ![Four frames on the guest](docs/guest-2x-frames.png)
+
+The game's screens on the guest: title, name entry, high scores, and back to the title
+(`tools/guest_flow.py` plays through them with injected keys and checks the saved table):
+
+![Title, name entry, high scores, title](docs/guest-screens.png)

@@ -6,6 +6,7 @@
 '                                then prints a timing report and quits
 '   Glimmerfield --blit M        how frames reach the window (Canvas.BlitMode 0-3)
 '   Glimmerfield --perf          timing overlay on screen and in the log
+'   Glimmerfield --lives N --log tests: N lives, and print each change of screen
 '
 ' Keys: Left/Right turn, Up thrust, Space fire, P pause, F1 timing overlay,
 ' Esc back to the title (or quit from the title).
@@ -31,6 +32,8 @@ Private entryRank As Long
 Private attractGames As Long
 Private keyDown(0 To 255) As Boolean
 Private firePressed As Boolean
+Private startLives As Long          ' --lives N (tests): lives at the start of a game
+Private logModes As Boolean         ' --log: print each change of screen
 
 ' totals for the --bench report
 Private benchLogic As Double
@@ -64,6 +67,13 @@ Private Sub ParseArgs()
             Case "--perf"
                 showPerf = True
                 perfLog = True
+            Case "--lives"
+                If i < UBound(args) Then
+                    i = i + 1
+                    startLives = CLng(args(i))
+                End If
+            Case "--log"
+                logModes = True
             Case "--blit"
                 If i < UBound(args) Then
                     i = i + 1
@@ -74,8 +84,13 @@ Private Sub ParseArgs()
     Loop
 End Sub
 
+Private Sub SetMode(ByVal m As Long)
+    mode = m
+    If logModes Then Print "mode " & Choose(m + 1, "title", "play", "entry", "scores") & " score " & CStr(score)
+End Sub
+
 Private Sub StartAttract()
-    mode = MODE_TITLE
+    SetMode MODE_TITLE
     modeTimer = 0
     botMode = True
     attractGames = 0
@@ -83,9 +98,10 @@ Private Sub StartAttract()
 End Sub
 
 Private Sub StartPlay()
-    mode = MODE_PLAY
     botMode = False
     NewGame CLng(Timer * 100) Mod 100000
+    If startLives > 0 Then lives = startLives
+    SetMode MODE_PLAY
 End Sub
 
 Private Sub Form_Load()
@@ -101,8 +117,13 @@ Private Sub Form_Load()
     End If
 End Sub
 
+Private Sub Form_Deactivate()
+    If logModes Then Print "inactive"
+End Sub
+
 Private Sub Form_Activate()
     Dim t0 As Double, t As Double
+    If logModes Then Print "active"
     If benchN <= 0 Or benchDone > 0 Then Exit Sub
     ' --bench: run the frames back to back, keeping the window alive
     t0 = NowMs()
@@ -147,11 +168,11 @@ Private Sub FrameStep()
             If state = ST_GAMEOVER And overTimer = 0 Then
                 entryRank = HsRank(score)
                 If entryRank >= 0 Then
-                    mode = MODE_ENTRY
                     entryName = ""
+                    SetMode MODE_ENTRY
                 Else
-                    mode = MODE_SCORES
                     modeTimer = 400
+                    SetMode MODE_SCORES
                 End If
             End If
         Case MODE_ENTRY
@@ -181,6 +202,12 @@ Private Sub FrameStep()
     PlaySounds
 End Sub
 
+' a dark panel with a frame, so text stays readable over the game
+Private Sub Panel(ByVal y1 As Long, ByVal y2 As Long)
+    view.Box 40, y1, ARENA_W - 80, y2 - y1, pal(0)
+    view.Rect 40, y1, ARENA_W - 80, y2 - y1, pal(24)
+End Sub
+
 Private Sub DrawOverlay()
     Dim i As Long, y As Long, c As Long
     Select Case mode
@@ -189,6 +216,7 @@ Private Sub DrawOverlay()
                 DrawCentred view, 40, "BENCHMARK " & CStr(benchDone) & " / " & CStr(benchN), pal(7)
                 Exit Sub
             End If
+            Panel 48, 248
             DrawCentred view, 60, "G L I M M E R F I E L D", pal(COL_HUE0)
             If (modeTimer \ 300) Mod 2 = 0 Then
                 DrawCentred view, 90, "SHOOT THE CRYSTALS BEFORE THEY GROW BACK", pal(6)
@@ -206,11 +234,13 @@ Private Sub DrawOverlay()
             If state = ST_GAMEOVER Then DrawCentred view, 130, "GAME OVER", pal(28)
             If paused Then DrawCentred view, 150, "PAUSED", pal(7)
         Case MODE_ENTRY
+            Panel 78, 186
             DrawCentred view, 90, "A NEW HIGH SCORE!", pal(7)
             DrawCentred view, 110, "PLACE " & CStr(entryRank + 1) & "   " & Format$(score, "0000000"), pal(6)
             DrawCentred view, 140, "TYPE YOUR NAME: " & entryName & IIfS((frame And 16) = 0, "_", " "), pal(COL_HUE0)
             DrawCentred view, 170, "RETURN TO CONFIRM", pal(6)
         Case MODE_SCORES
+            Panel 38, 200
             DrawCentred view, 50, "HIGH SCORES", pal(7)
             For i = 0 To HS_COUNT - 1
                 If i = entryRank Then c = pal(COL_HUE0 + 3) Else c = pal(6)
@@ -261,9 +291,9 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
                     Unload Me
                 Case MODE_ENTRY
                     ' keep the old table
-                    mode = MODE_SCORES
                     modeTimer = 400
                     entryRank = -1
+                    SetMode MODE_SCORES
                 Case Else
                     StartAttract
             End Select
@@ -280,9 +310,9 @@ Private Sub Form_KeyPress(KeyAscii As Integer)
     If KeyAscii = 13 Then
         If Len(entryName) = 0 Then entryName = "PILOT"
         entryRank = HsInsert(entryName, score)
-        HsSave ScorePath()
-        mode = MODE_SCORES
+        If Not HsSave(ScorePath()) And logModes Then Print "cannot save " & ScorePath()
         modeTimer = 500
+        SetMode MODE_SCORES
         firePressed = False
     ElseIf KeyAscii = 8 Then
         If Len(entryName) > 0 Then entryName = Left$(entryName, Len(entryName) - 1)
@@ -296,4 +326,5 @@ End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
     tick.Enabled = False
+    If logModes Then Print "bye"
 End Sub
