@@ -499,6 +499,10 @@ static void expr(E *e, Node *n)
     case E_MCALL: mcall(e, n); return;
     case E_BUILTIN: builtin(e, n); return;
     case E_LATE: late_call(e, n); return;
+    case E_ADDROF:
+        op3(e, I_ADDROF, str_const(e, n->proc->mod->name, (int)strlen(n->proc->mod->name)),
+            str_const(e, n->proc->name, (int)strlen(n->proc->name)), n->proc->nparams);
+        return;
     case E_NEW:
         if (n->cls->builtin) op0(e, I_NEWCOLL);
         else op1(e, I_NEW, n->cls->index);

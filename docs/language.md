@@ -202,7 +202,14 @@ Declare Sub Delay Lib "dos.library" Version 50 (ByVal ticks As Long)
 OS4's (see os4.md and the generated `bindings/*.bi`). On the host every Declare'd call raises
 error 48/453.
 
+`AddressOf Proc` (a Sub or Function in a module, up to 8 parameters) gives a native function
+for OS callbacks and hooks, as a Long: the OS calls it with 32-bit arguments, which arrive as
+Long parameters, and gets the Function's value back (0 for a Sub). Up to 32 procedures can be
+used this way. An error not handled inside the callback ends the program with the error
+message (it must not return into the OS half done). On the host the value is only good for
+comparing (Declare'd calls do not exist there).
+
 ## Not implemented (yet)
 
 - `Decimal`; `CDec` returns a Double.
-- `AddressOf`; `Friend` is treated as `Public`.
+- `Friend` is treated as `Public`.

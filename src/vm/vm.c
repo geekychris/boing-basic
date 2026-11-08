@@ -1168,6 +1168,11 @@ static void vm_exec(VM *vm, int entry)
                 pc += 4;
                 break;
             }
+            case I_ADDROF:
+                SYNC();
+                PUSH(bb_v_long(bb_addressof(bb_str_ptr(img->consts[pc[1]].u.s), bb_str_ptr(img->consts[pc[2]].u.s), pc[3])));
+                pc += 4;
+                break;
             case I_AUTONEWM: {
                 /* As New field of the object on top of the stack */
                 bb_value *t = &TOP;

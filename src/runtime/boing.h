@@ -618,6 +618,10 @@ int32_t bb_call_proc(void *proc, int argc, bb_value *argv, bb_value *ret);
  * a handler existed. Errors inside are fatal (reported, exit 20) like VB. */
 int bb_dispatch_event(const char *module, const char *object, const char *event,
                       int argc, bb_value *argv);
+/* AddressOf: a native function (up to 8 uint32_t arguments, returns uint32_t) that calls
+ * the procedure with Long arguments; see callback.c. */
+void *bb_addressof_ptr(const char *module, const char *name, int nargs);
+bb_long bb_addressof(const char *module, const char *name, int nargs);
 
 /* ------------------------------------------------------------------ */
 /* Forms (forms_rt.c, on the platform's bb_forms.h)                     */

@@ -885,6 +885,9 @@ static R prod(EC *e, Node *n)
 {
     switch (n->kind) {
     case E_CONST: return mkr(const_expr(e, n), 0);
+    case E_ADDROF:
+        return mkr(xsprintf("bb_addressof(%s, %s, %d)", cstrlit(n->proc->mod->name, (int)strlen(n->proc->mod->name)),
+                            cstrlit(n->proc->name, (int)strlen(n->proc->name)), n->proc->nparams), 0);
     case E_VAR:
         if (n->sym->is_new && n->ty->kind == T_OBJECT && n->ty->cls)
             /* As New: created on first use */

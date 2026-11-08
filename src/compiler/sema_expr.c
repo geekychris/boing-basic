@@ -1581,10 +1581,18 @@ Node *check_expr(Ctx *c, Node *e, int mode)
         ERR(c, e, "named argument not allowed here");
         e->ty = &ty_variant;
         return e;
-    case E_ADDROF:
-        ERR(c, e, "AddressOf is not supported");
+    case E_ADDROF: {
+        /* a module procedure's native entry point (callback.c) */
+        Sym *s = scope_find(c->scope, e->name);
         e->ty = &ty_long;
+        if (!s || s->kind != SK_PROC || !s->proc || s->proc->cls || s->proc->kind == PK_DECLARE || s->proc->kind == PK_EVENT) {
+            ERR(c, e, "AddressOf needs the name of a Sub or Function in a module");
+            return e;
+        }
+        if (s->proc->nparams > 8) ERR(c, e, "AddressOf: a callback can have at most 8 parameters");
+        e->proc = s->proc;
         return e;
+    }
     default:
         ERR(c, e, "invalid expression");
         e->ty = &ty_variant;

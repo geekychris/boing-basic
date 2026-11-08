@@ -155,6 +155,15 @@ void *slot = bb_find_global("main", "ok", &type);    /* storage of module variab
   variable (Form_Unload's Cancel). Plain values are passed ByVal (copied).
 - Missing trailing Optional arguments are filled in by the callee.
 
+### AddressOf (callback.c)
+
+`bb_addressof_ptr(module, name, nargs)` binds one of 32 C stubs, `uint32_t stub(uint32_t a0
+.. a7)`, to a procedure found with `bb_find_proc`, and returns it; `bb_addressof` returns it as
+a Long (what `AddressOf` compiles to). The stub calls the procedure through `bb_call_proc` with
+`nargs` Long arguments and returns the result as `uint32_t`; an unhandled error is fatal
+(`bb_fatal_error`). Glue that needs another calling convention (e.g. a `struct Hook` entry)
+wraps the stub.
+
 ### Forms (forms_rt.c on bb_forms.h)
 
 The platform forms layer is bb-os4's C interface `src/runtime/bb_forms.h` (os4/forms.c on
