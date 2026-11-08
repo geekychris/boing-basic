@@ -136,6 +136,21 @@ indirect branches in vm_exec) leaves them for a hash lookup, so the VM:native ra
 on the emulator (bb-game: ~25x on Glimmerfield's logic) than on real hardware or the Mac (5-7x).
 Floating point is dominated by QEMU's soft-float, where the JIT is within ~15 % of native.
 
+Glimmerfield's game logic on the guest (`Bench.bbp --bench 1000`, ms/frame, interleaved runs
+so the guest's slow drift over a session affects both): VM 0.67-0.94, VM+JIT 1.04-1.42, native
+0.16-0.20 (bb-game). The JIT compiles 95 % of the logic's ops (whole-loop regions, exits on the
+rare paths, about 1-3 entries per region per frame) and halves the logic time on the Mac
+(0.012 -> 0.005 ms/frame), yet under QEMU this field-access-heavy compiled code (bounds- and
+type-checked loads, many short branches) runs slower than the interpreter, while plain
+arithmetic loops gain 2-3x (table above). Each guest branch and memory access costs TCG more
+than the equivalent host work; real PowerPC hardware executes the JIT's code directly and should
+behave like the Mac (untested: no real machine available). So the JIT stays opt-in.
+
+VM superinstructions for the commonest pairs (Glimmerfield): field-test-and-branch (`R_JF1Z`,
+`R_JCMPF1_LI`) and the skip loop `R_FORSKIPF` (`For i ...: If arr(i).flag Then ... : Next` steps
+past entries with flag 0 without dispatching): 31 % fewer dispatches (28.8M -> 19.8M for 3000
+frames), Mac VM logic 0.012 -> 0.010 ms/frame; on the guest within its noise.
+
 fib has no loops: the JIT only adds checks at calls and returns, so it gains nothing (and the
 measured loss is larger than on the Mac, 6 %, partly noise). The JIT test suite on the guest
 (BOING_JIT_THRESHOLD=1, every loop compiled, 41 single-file tests incl. tests/jit/edges.bas)

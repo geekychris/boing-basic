@@ -68,6 +68,14 @@ memory). It calls a small assembler interface (`JBackend` in `jit.h`: loads/stor
 with either backend, for checking the encodings on any host:
 `ppc-amigaos-objdump -D -b binary -m powerpc -EB out.bin`.
 
+## On the QEMU guest
+
+The PPC JIT passes the test suite on the guest (every loop compiled) and speeds up arithmetic
+loops 2-3x there. On field-heavy game code (Glimmerfield) it compiles almost everything and is
+2x faster on the Mac, but about 40 % slower than the interpreter under QEMU's TCG, which charges
+more per guest branch and memory access than the interpreter's dispatch saves. Real PowerPC
+hardware is expected to behave like the Mac but is untested. The JIT is opt-in (`--jit`).
+
 ## Testing
 
 ```
