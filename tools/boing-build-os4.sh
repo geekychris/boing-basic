@@ -23,6 +23,7 @@ done
 base=$(basename "$src"); base=${base%.*}
 [ -n "$out" ] || out=$(dirname "$src")/$base
 boing=${BOING:-$root/boing}
+[ -x "$boing" ] || boing=$root/build/boing
 [ -x "$boing" ] || boing=$root/build/host/boing
 [ -x "$boing" ] || { echo "boing-build-os4: build the host boing first (make)" >&2; exit 10; }
 [ -f "$root/build/os4/libboing.a" ] || "$root/tools/build-os4.sh" build/os4/libboing.a >/dev/null
