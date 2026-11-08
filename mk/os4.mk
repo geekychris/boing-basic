@@ -70,3 +70,6 @@ clean:
 $(OUT)/ptr: tools/os4/ptr.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(LIBS)
 all: $(OUT)/ptr
+$(OUT)/bbfetch: tools/os4/bbfetch.c
+	$(CC) -mcrt=newlib -mcpu=powerpc -O2 -Wall -o $@ $< -lauto
+all: $(OUT)/bbfetch

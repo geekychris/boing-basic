@@ -27,6 +27,11 @@ the bridge stops answering (BB_SILENT, 90 s of no heartbeat) or the session is t
 (BB_SESSION_TIMEOUT, 600 s). After `test`/`bas` runs it looks for Grim Reaper windows and
 reports them (BB_KILL_REAPERS=1 closes them).
 
+Guests: BB_GUEST=local (default, devbench :3010), m1 (:3020, QEMU on m1.local), spark (:3032,
+QEMU on spark.local): each its own lock and queue (/tmp/amiga-emu[-m1|-spark].lock/.queue); for
+remote ones the fast-deploy HTTP server runs on that machine over ssh (port 18780 on its loopback).
+Overrides: OS4_MCP, OS4_LOCK, OS4_QUEUE, OS4_SSH, OS4_REMOTE_HTTP_PORT.
+
 Env: OS4_MCP (default http://localhost:3010/mcp; :3000 can be shadowed, see amiga_mcp memory),
 AMIGA_MCP (the amiga_mcp checkout, for scripts/claude_busy.py), BB_BANNER=0 to skip the banner
 and the lock (read-only probes only).
@@ -40,7 +45,25 @@ import sys
 import tempfile
 import urllib.request
 
-URL = os.environ.get("OS4_MCP", "http://localhost:3010/mcp")
+# Which OS4 guest: BB_GUEST=local (default) | m1 | spark; each has its own devbench URL, emulator
+# lock and FIFO queue on this Mac, and (remote ones) the ssh login of the machine QEMU runs on,
+# where the HTTP server for fast deploys must run (the guest only reaches its own host).
+GUESTS = {
+    "local": {"url": "http://localhost:3010/mcp", "lock": "/tmp/amiga-emu.lock",
+              "queue": "/tmp/amiga-emu.queue", "ssh": None},
+    "m1": {"url": "http://localhost:3020/mcp", "lock": "/tmp/amiga-emu-m1.lock",
+           "queue": "/tmp/amiga-emu-m1.queue", "ssh": "chriscollins@m1.local"},
+    "spark": {"url": "http://127.0.0.1:3032/mcp", "lock": "/tmp/amiga-emu-spark.lock",
+              "queue": "/tmp/amiga-emu-spark.queue", "ssh": "chris@spark.local"},
+}
+GUEST = os.environ.get("BB_GUEST", "local")
+if GUEST not in GUESTS:
+    sys.exit("os4guest: unknown BB_GUEST %r (local, m1, spark)" % GUEST)
+_G = GUESTS[GUEST]
+URL = os.environ.get("OS4_MCP", _G["url"])
+LOCK = os.environ.get("OS4_LOCK", _G["lock"])
+SSH = os.environ.get("OS4_SSH", _G["ssh"] or "") or None
+REMOTE_PORT = int(os.environ.get("OS4_REMOTE_HTTP_PORT", "18780"))
 AMIGA_MCP = os.environ.get("AMIGA_MCP", os.path.expanduser("~/code/claude_world/amiga_mcp"))
 
 
@@ -73,7 +96,7 @@ class MCP:
         return text
 
 
-QUEUE = "/tmp/amiga-emu.queue"
+QUEUE = os.environ.get("OS4_QUEUE", _G["queue"])
 
 
 @contextlib.contextmanager
@@ -165,6 +188,8 @@ def testing(message):
         yield
         return
     sys.path.insert(0, os.path.join(AMIGA_MCP, "scripts"))
+    import claude_busy
+    claude_busy.LOCK = LOCK          # this guest's lock (claude_busy reads it at call time)
     from claude_busy import claude_testing
     with fifo_ticket():
         with claude_testing(URL, message):
@@ -221,8 +246,45 @@ def mkdirs(m, dest):
     _made.add(parent)
 
 
+def _ssh(cmd, timeout=60):
+    import subprocess
+    return subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", SSH, cmd],
+                          capture_output=True, text=True, timeout=timeout)
+
+
+def _remote_serve():
+    """The guest's QEMU runs on another machine: serve from a directory there (started once,
+    left running, bound to that machine's loopback, which is what its guest reaches)."""
+    d = "/tmp/os4serve-%s" % os.environ.get("USER", "bb")
+    py = ("import socket,sys;s=socket.socket();s.settimeout(1);"
+          "sys.exit(0 if s.connect_ex(('127.0.0.1',%d))==0 else 1)" % REMOTE_PORT)
+    cmd = ('mkdir -p %s; python3 -c "%s" || (cd %s && nohup python3 -m http.server %d --bind 127.0.0.1 '
+           '>/dev/null 2>&1 &) ; sleep 1' % (d, py, d, REMOTE_PORT))
+    r = _ssh(cmd)
+    if r.returncode not in (0, 1):
+        raise RuntimeError("can't start the HTTP server on %s: %s" % (SSH, r.stderr.strip()))
+    return d
+
+
 def http_push(m, local, dest):
     import zlib
+    if SSH:
+        import subprocess
+        d = _remote_serve()
+        name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
+        subprocess.run(["scp", "-q", "-o", "BatchMode=yes", local, "%s:%s/%s" % (SSH, d, name)], check=True)
+        data = open(local, "rb").read()
+        crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
+        try:
+            out = ""
+            for gw in GATEWAYS:
+                out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' %
+                             (FETCH, gw, REMOTE_PORT, name, dest, crc))
+                if "OK %d" % len(data) in out:
+                    return "pushed %s (%d bytes, HTTP via %s, crc %s)" % (dest, len(data), SSH, crc)
+            raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))
+        finally:
+            _ssh("rm -f %s/%s" % (d, name))
     srv, d = _serve()
     name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
     shutil.copy(local, os.path.join(d, name))
@@ -371,9 +433,17 @@ def reapers(m, kill=False):
 
 
 def setup(m):
-    """Build bbfetch on the guest with the SDK's GCC (no Docker needed) and install ptr."""
+    """Install DH1:bbtools/bbfetch and ptr: the cross-built ones (build/os4, tools/build-os4.sh)
+    over the bridge when they exist (no SDK needed on the guest), else built on the guest with
+    the SDK's GCC."""
     src = os.path.join(ROOT, "tools/os4/bbfetch.c")
     m.tool("amiga_dos_command", command="makedir DH1:bbtools QUIET")
+    built = [os.path.join(ROOT, "build/os4", t) for t in ("bbfetch", "ptr")]
+    if all(os.path.exists(b) for b in built):
+        for b in built:
+            print(bridge_push(m, b, "DH1:bbtools/" + os.path.basename(b)))
+        _self_test(m)
+        return
     bridge_push(m, src, "DH1:bbtools/bbfetch.c")
     bridge_push(m, os.path.join(ROOT, "tools/os4/ptr.c"), "DH1:bbtools/ptr.c")
     # compile in the background (GCC takes longer than the bridge's 30 s command timeout)
@@ -393,6 +463,10 @@ def setup(m):
             print(m.tool("amiga_dos_command", command="type RAM:%s.log" % tool))
             raise RuntimeError("building %s on the guest failed" % tool)
     print(m.tool("amiga_dos_command", command="list DH1:bbtools"))
+    _self_test(m)
+
+
+def _self_test(m):
     global _have_fetch
     _have_fetch = None
     # self-test: a 300 KB file through HTTP, checked by CRC
