@@ -15,6 +15,8 @@ Private Const MODE_ENTRY As Long = 2
 Private Const MODE_SCORES As Long = 3
 
 Private Const ATTRACT_SEED As Long = 1987
+Private Const KEY_F1 As Long = 112        ' vbKeyF1, vbKeyP (not built in yet)
+Private Const KEY_P As Long = 80
 
 Private mode As Long
 Private modeTimer As Long
@@ -241,9 +243,9 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
     Select Case KeyCode
         Case vbKeySpace, vbKeyReturn
             firePressed = True
-        Case vbKeyF1
+        Case KEY_F1
             showPerf = Not showPerf
-        Case vbKeyP
+        Case KEY_P
             If mode = MODE_PLAY Then paused = Not paused
         Case vbKeyEscape
             Select Case mode

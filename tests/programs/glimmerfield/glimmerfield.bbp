@@ -5,4 +5,6 @@ Module=../../../examples/glimmerfield/Game.bas
 Module=../../../examples/glimmerfield/Perf.bas
 Module=../../../examples/glimmerfield/Bench.bas
 Module=../../../examples/glimmerfield/HiScore.bas
+Module=../../../examples/glimmerfield/Render.bas
+Class=../../../examples/glimmerfield/SoftCanvas.cls
 Module=gtest.bas

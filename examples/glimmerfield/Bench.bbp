@@ -1,8 +1,10 @@
-# Boing BASIC project: console benchmark of the Glimmerfield game logic
+# Boing BASIC project: console benchmark of Glimmerfield (logic, and with --draw the renderer)
 Name=GlimmerBench
 Startup=Sub Main
 Module=Game.bas
 Module=Perf.bas
+Module=Render.bas
 Module=Bench.bas
 Module=BenchMain.bas
+Class=SoftCanvas.cls
 Stack=262144

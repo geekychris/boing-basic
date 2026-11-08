@@ -5,6 +5,7 @@ Sub Main()
     Dim i As Long, p As String
     RunBench 2500, 1987, True
     RunBench 600, 7, True
+    RunBench 300, 1987, True, True
     p = "glimmer_test.scores"
     HsDefaults
     Print "rank of 12000: "; HsRank(12000); " of 99: "; HsRank(99)

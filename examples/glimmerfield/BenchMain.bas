@@ -1,6 +1,8 @@
 ' Glimmerfield - console benchmark of the game logic
 '
-'   boing run Bench.bbp --bench 3000 [--seed 1987] [--quiet]
+'   boing run Bench.bbp --bench 3000 [--seed 1987] [--draw] [--quiet]
+'
+' --draw also runs the renderer onto a SoftCanvas (a framebuffer in BASIC).
 '
 ' The bot plays N frames from a fixed seed (a new game, seed + games, after
 ' each game over). The "state" lines are identical in every build; with
@@ -8,7 +10,7 @@
 Option Explicit
 
 Sub Main()
-    Dim args() As String, i As Long, n As Long, seed As Long, quiet As Boolean
+    Dim args() As String, i As Long, n As Long, seed As Long, quiet As Boolean, draw As Boolean
 
     n = 2000
     seed = 1987
@@ -28,11 +30,13 @@ Sub Main()
                 End If
             Case "--quiet"
                 quiet = True
+            Case "--draw"
+                draw = True
             Case Else
                 If IsNumeric(args(i)) Then n = CLng(args(i))
         End Select
         i = i + 1
     Loop
 
-    RunBench n, seed, quiet
+    RunBench n, seed, quiet, draw
 End Sub
