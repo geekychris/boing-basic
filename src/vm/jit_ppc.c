@@ -84,7 +84,14 @@ static void p_ldf(JA *a, int f, int b, int32_t off) { ldst(a, 50, 599, fr(f), b,
 static void p_stf(JA *a, int f, int b, int32_t off) { ldst(a, 54, 727, fr(f), b, off); }
 
 static void p_ldfs(JA *a, int f, int b, int32_t off) { ldst(a, 48, 535, fr(f), b, off); }    /* lfs */
-static void p_stfs(JA *a, int f, int b, int32_t off) { ldst(a, 52, 663, fr(f), b, off); }    /* stfs */
+/* store a double as a Single: frsp first. stfs alone converts by dropping mantissa bits
+   (truncation), not by rounding, unlike C's (float) and VB (found on the guest: drift in a
+   Single loop) */
+static void p_stfs(JA *a, int f, int b, int32_t off)
+{
+    E((63u << 26) | (3u << 21) | ((uint32_t)fr(f) << 11) | (12u << 1));   /* frsp f3, f */
+    ldst(a, 52, 663, 3, b, off);                                          /* stfs f3 */
+}
 
 static void p_copy16(JA *a, int db, int32_t doff, int sb, int32_t soff)
 {
