@@ -57,5 +57,7 @@ int main(int argc, char **argv)
     }
     IIntuition->UnlockPubScreen(NULL, scr);
     IExec->CloseDevice((struct IORequest *)r);
+    IExec->FreeSysObject(ASOT_IOREQUEST, r);
+    IExec->FreeSysObject(ASOT_PORT, p);
     return 0;
 }
