@@ -377,6 +377,7 @@ struct Program {
     Proc *startup_proc;
     char *name;
     int stack;
+    char *c_name;                       /* the generated C file's name (#line back to it) */
     FILE *diag_out;
     /* compile for: */
     int target_vm;

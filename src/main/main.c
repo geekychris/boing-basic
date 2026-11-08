@@ -99,13 +99,14 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
     FILE *f;
     int rc;
     if (p->nerrors) return 1;
-    if (!emit_c(p, &c, debug)) return 1;
     if (out) outp = xstrdup(out);
     else {
         const char *d = strrchr(src, '.');
         outp = d ? xstrndup(src, (size_t)(d - src)) : xsprintf("%s.out", src);
     }
     cpath = xsprintf("%s.c", outp);
+    p->c_name = cpath;
+    if (!emit_c(p, &c, debug)) return 1;
     f = fopen(cpath, "wb");
     if (!f) { fprintf(stderr, "boing: cannot write %s\n", cpath); return 1; }
     fwrite(c.p, 1, c.n, f);

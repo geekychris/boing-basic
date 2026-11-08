@@ -1752,6 +1752,8 @@ static void emit_proc(EC *e, Proc *pr)
     if (pr->mod) buf_printf(e->out, "    bb_file = bb_files[%d];\n", pr->mod->file);
     buf_puts(e->out, "    bb_enter();\n");
     buf_put(e->out, e->body.p ? e->body.p : "", e->body.n);
+    /* the rest of the function is C, not BASIC: back to the C file (resolved at the end) */
+    buf_puts(e->out, "#line BB_CLINE\n");
     if (e->resume) {
         int k;
         buf_printf(e->out, "    bb_S%d: ;\n", e->nstmt + 1);
@@ -2308,6 +2310,25 @@ int emit_c(Program *p, Buf *outb, int debug)
             *outb = nb;
         }
         buf_free(&l);
+    }
+    {
+        /* "#line BB_CLINE" -> #line <this line + 1> "<c file>" */
+        const char *cn = p->c_name ? p->c_name : "boing_generated.c";
+        char *lit = cstrlit(cn, (int)strlen(cn));
+        Buf nb = {0, 0, 0};
+        size_t i0 = 0, k;
+        int ln = 1;
+        for (k = 0; k < outb->n; k++) {
+            if (outb->p[k] != '\n') continue;
+            if (k - i0 == strlen("#line BB_CLINE") && !memcmp(outb->p + i0, "#line BB_CLINE", k - i0))
+                buf_printf(&nb, "#line %d %s\n", ln + 1, lit);
+            else buf_put(&nb, outb->p + i0, k - i0 + 1);
+            ln++;
+            i0 = k + 1;
+        }
+        buf_put(&nb, outb->p + i0, outb->n - i0);
+        buf_free(outb);
+        *outb = nb;
     }
     return p->nerrors == 0;
 }
