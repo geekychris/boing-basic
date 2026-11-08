@@ -461,8 +461,8 @@ static Object *build(bb_form *f, afg_node *n)
         o = new_obj(C_SPACE, &t);
         break;
     case AFG_CANVAS:             /* canvas: a space of the canvas size; canvas_os4.c blits into it */
-        tg(&t, SPACE_MinWidth, afg_get_int(n, "width"));
-        tg(&t, SPACE_MinHeight, afg_get_int(n, "height"));
+        tg(&t, SPACE_MinWidth, afg_get_int(n, "width") * (afg_get_int(n, "scale") > 1 ? afg_get_int(n, "scale") : 1));
+        tg(&t, SPACE_MinHeight, afg_get_int(n, "height") * (afg_get_int(n, "scale") > 1 ? afg_get_int(n, "scale") : 1));
         o = new_obj(C_SPACE, &t);
         break;
     case AFG_FUELGAUGE:

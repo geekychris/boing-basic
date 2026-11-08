@@ -274,8 +274,11 @@ static void fill_one(afg_node *n, void *ud)
     id = afg_get(n, "id");
     if (!id || !*id) return;
     c = bb_form_ctl(fc->fd->form, id);
-    if (c && n->kind == AFG_CANVAS)       /* canvas: its own object class (canvas.c) */
-        set_global_obj(fc->fd->module, id, bb_canvas_new(afg_get_int(n, "width"), afg_get_int(n, "height"), c));
+    if (c && n->kind == AFG_CANVAS) {     /* canvas: its own object class (canvas.c) */
+        bb_obj *cv = bb_canvas_new(afg_get_int(n, "width"), afg_get_int(n, "height"), c);
+        bb_canvas_set_scale(cv, afg_get_int(n, "scale"));
+        set_global_obj(fc->fd->module, id, cv);
+    }
     else if (c) set_global_obj(fc->fd->module, id, new_ctlobj_kind(fc->fd, c, 0, id, n->kind));
 }
 

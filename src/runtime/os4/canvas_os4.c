@@ -4,6 +4,7 @@
 #include "../canvas.h"
 
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <exec/exec.h>
 #include <intuition/intuition.h>
@@ -60,14 +61,14 @@ static int blit_friend(struct Window *win, const uint32_t *px, int32_t w, int32_
         free_friend();
         friend_bm = IGraphics->AllocBitMapTags(w, h, IGraphics->GetBitMapAttr(win->RPort->BitMap, BMA_DEPTH),
                                                BMATags_Friend, (uint32)win->RPort->BitMap, TAG_DONE);
-        if (!friend_bm) return 0;
+        if (!friend_bm) { blit_info = "friend bitmap: AllocBitMap failed"; return 0; }
         friend_w = w;
         friend_h = h;
         friend_of = win->RPort->BitMap;
     }
     lock = IGraphics->LockBitMapTags(friend_bm, LBM_BaseAddress, (uint32)&base, LBM_BytesPerRow, (uint32)&bpr,
                                      LBM_PixelFormat, (uint32)&pf, TAG_DONE);
-    if (!lock) return 0;
+    if (!lock) { blit_info = "friend bitmap: LockBitMap failed"; return 0; }
     if (base && pf == PIXF_R5G6B5) {
         for (j = 0; j < h; j++) {
             const uint32_t *s = px + j * stride;
@@ -76,6 +77,22 @@ static int blit_friend(struct Window *win, const uint32_t *px, int32_t w, int32_
         }
         ok = 1;
         blit_info = "friend bitmap R5G6B5";
+    } else if (base && pf == PIXF_R5G6B5PC) {
+        for (j = 0; j < h; j++) {
+            const uint32_t *s = px + j * stride;
+            uint16_t *d = (uint16_t *)(base + j * bpr);
+            for (i = 0; i < w; i++) d[i] = __builtin_bswap16(rgb565(s[i]));
+        }
+        ok = 1;
+        blit_info = "friend bitmap R5G6B5PC";
+    } else if (base && pf == PIXF_B8G8R8A8) {
+        for (j = 0; j < h; j++) {
+            const uint32_t *s = px + j * stride;
+            uint32_t *d = (uint32_t *)(base + j * bpr);
+            for (i = 0; i < w; i++) d[i] = __builtin_bswap32(s[i]);
+        }
+        ok = 1;
+        blit_info = "friend bitmap B8G8R8A8";
     } else if (base && pf == PIXF_A8R8G8B8) {
         for (j = 0; j < h; j++) {          /* row by row: the guest's memcpy fails on big copies */
             const uint32_t *s = px + j * stride;
@@ -86,7 +103,12 @@ static int blit_friend(struct Window *win, const uint32_t *px, int32_t w, int32_
         blit_info = "friend bitmap A8R8G8B8";
     }
     IGraphics->UnlockBitMap(lock);
-    if (!ok) return 0;
+    if (!ok) {
+        static char info[64];
+        snprintf(info, sizeof info, "friend bitmap pixel format %lu unsupported", (unsigned long)pf);
+        blit_info = info;
+        return 0;
+    }
     IGraphics->BltBitMapRastPort(friend_bm, 0, 0, win->RPort, x, y, w, h, 0xC0);
     return 1;
 }
@@ -127,7 +149,7 @@ int canvas_plat_present(bb_ctl *ctl, const uint32_t *px, int32_t w, int32_t h, i
                              BLITA_SrcBytesPerRow, (uint32)(stride * 4), BLITA_SrcX, 0, BLITA_SrcY, 0,
                              BLITA_Dest, (uint32)win->RPort, BLITA_DestType, BLITT_RASTPORT,
                              BLITA_DestX, x, BLITA_DestY, y, BLITA_Width, w, BLITA_Height, h, TAG_DONE);
-    blit_info = "ARGB32 buffer";
+    if (mode != 3) blit_info = "ARGB32 buffer";
     return 0;
 }
 

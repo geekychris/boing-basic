@@ -32,7 +32,7 @@ static const struct kind_def kinds[AFG_NUM_KINDS] = {
     [AFG_GETFILE] = { "getfile", 0, 1, "title=Choose a file\nsave=0\n" COMMON_GADGET },
     [AFG_TEXTEDITOR] = { "texteditor", 0, 1, COMMON_GADGET },
     [AFG_TIMER] = { "timer", 0, 0, "interval=0\nenabled=1\n" },
-    [AFG_CANVAS] = { "canvas", 0, 0, "width=320\nheight=200\n" },     /* canvas */
+    [AFG_CANVAS] = { "canvas", 0, 0, "width=320\nheight=200\nscale=1\n" },     /* canvas */
 };
 
 const char *afg_kind_name(afg_kind k) { return k < AFG_NUM_KINDS ? kinds[k].name : "?"; }

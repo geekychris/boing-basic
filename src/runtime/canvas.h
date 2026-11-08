@@ -16,6 +16,8 @@ typedef struct bb_canvas bb_canvas;
 /* A canvas object (owned reference). ctl = the form control it shows in, NULL = off-screen. */
 bb_obj *bb_canvas_new(int32_t w, int32_t h, bb_ctl *ctl);
 int bb_is_canvas(const bb_obj *o);
+/* Show the picture scaled up s times (the .afg's scale=, 1..4); the control is s times bigger. */
+void bb_canvas_set_scale(bb_obj *o, int s);
 
 /* For the forms layer: re-show a canvas control's picture (window opened / resized), and
  * forget the control when its form is freed. */

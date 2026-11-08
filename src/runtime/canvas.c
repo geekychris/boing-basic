@@ -34,9 +34,12 @@ struct bb_canvas {
     int32_t fore, fill, backc;   /* VB colours */
     int32_t curx, cury;
     int32_t frames;
+    int32_t scale;               /* shown scale x scale times bigger */
+    uint32_t *sbuf;              /* the scaled picture */
 };
 
 static bb_canvas *ctl_canvases;
+int bb_is_canvas(const bb_obj *o);
 static unsigned char keys[512];
 
 #define ARGB(vb) (0xFF000000u | (((uint32_t)(vb) & 0xFFu) << 16) | ((uint32_t)(vb) & 0xFF00u) | \
@@ -360,7 +363,7 @@ enum {
     M_FREEIMAGE, M_SETTARGET, M_DRAWIMAGE, M_DRAWIMAGEPART, M_IMAGEWIDTH, M_IMAGEHEIGHT, M_KEYDOWN,
     M_SAVEIMAGE, M_INJECTKEY, M_RESIZE,
     P_WIDTH, P_HEIGHT, P_FORECOLOR, P_FILLCOLOR, P_BACKCOLOR, P_CURRENTX, P_CURRENTY, P_FRAMES,
-    P_TARGET, P_NAME, P_BLITMODE, P_BLITINFO
+    P_TARGET, P_NAME, P_BLITMODE, P_BLITINFO, P_SCALE
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -376,7 +379,7 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"Width", P_WIDTH}, {"ScaleWidth", P_WIDTH}, {"Height", P_HEIGHT}, {"ScaleHeight", P_HEIGHT},
     {"ForeColor", P_FORECOLOR}, {"FillColor", P_FILLCOLOR}, {"BackColor", P_BACKCOLOR},
     {"CurrentX", P_CURRENTX}, {"CurrentY", P_CURRENTY}, {"Frames", P_FRAMES}, {"Target", P_TARGET},
-    {"Name", P_NAME}, {"BlitMode", P_BLITMODE}, {"BlitInfo", P_BLITINFO},
+    {"Name", P_NAME}, {"BlitMode", P_BLITMODE}, {"BlitInfo", P_BLITINFO}, {"Scale", P_SCALE},
 };
 
 static int32_t cv_find(const bb_class *cls, const char *name)
@@ -397,12 +400,42 @@ static void resize(bb_canvas *c, int32_t w, int32_t h)
     if (!c->back) bb_raise(7, NULL);
     c->w = w;
     c->h = h;
+    free(c->sbuf);
+    c->sbuf = NULL;
     {
         int32_t i;
         uint32_t bc = ARGB(c->backc);
         for (i = 0; i < w * h; i++) c->back[i] = bc;
     }
     set_target(c, 0);
+}
+
+/* hand the back buffer (scaled up if asked) to the platform layer */
+static void present(bb_canvas *c)
+{
+    int32_t s = c->scale, sw, x, y, k;
+    if (s <= 1) {
+        canvas_plat_present(c->ctl, c->back, c->w, c->h, c->w);
+        return;
+    }
+    sw = c->w * s;
+    if (!c->sbuf) {
+        c->sbuf = (uint32_t *)malloc((size_t)sw * (size_t)(c->h * s) * 4);
+        if (!c->sbuf) bb_raise(7, NULL);
+    }
+    for (y = 0; y < c->h; y++) {
+        const uint32_t *src = c->back + y * c->w;
+        uint32_t *d = c->sbuf + (size_t)y * s * sw;
+        for (x = 0; x < c->w; x++) {
+            uint32_t p = src[x];
+            for (k = 0; k < s; k++) d[x * s + k] = p;
+        }
+        for (k = 1; k < s; k++) {
+            uint32_t *d2 = d + (size_t)k * sw;
+            for (x = 0; x < sw; x++) d2[x] = d[x];
+        }
+    }
+    canvas_plat_present(c->ctl, c->sbuf, sw, c->h * s, sw);
 }
 
 static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
@@ -507,7 +540,7 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         *ret = bb_v_long(CV_FONT_H + 1);
         return;
     case M_REFRESH:
-        if (c->ctl) canvas_plat_present(c->ctl, c->back, c->w, c->h, c->w);
+        if (c->ctl) present(c);
         c->frames++;
         return;
     case M_BEGINDRAW:
@@ -655,6 +688,10 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
             canvas_blit_mode = m;
         } else *ret = bb_v_long(canvas_blit_mode);
         return;
+    case P_SCALE:
+        if (setting) bb_raise(383, NULL);
+        *ret = bb_v_long(c->scale);
+        return;
     case P_BLITINFO:
         if (setting) bb_raise(383, NULL);
         *ret = bb_v_str(bb_str_from_c(canvas_plat_blit_info()));
@@ -672,6 +709,7 @@ static void cv_terminate(bb_obj *self)
     for (i = 0; i < c->nimgs; i++) free(c->imgs[i].px);
     free(c->imgs);
     free(c->back);
+    free(c->sbuf);
 }
 
 static const bb_class canvas_class = {
@@ -688,6 +726,7 @@ bb_obj *bb_canvas_new(int32_t w, int32_t h, bb_ctl *ctl)
     c->backc = 0;
     resize(c, w > 0 ? w : 320, h > 0 ? h : 200);
     c->ctl = ctl;
+    c->scale = 1;
     if (ctl) {
         c->next = ctl_canvases;
         ctl_canvases = c;
@@ -699,7 +738,13 @@ void bb_canvas_ctl_refresh(bb_ctl *ctl)
 {
     bb_canvas *c;
     for (c = ctl_canvases; c; c = c->next)
-        if (c->ctl == ctl) canvas_plat_present(ctl, c->back, c->w, c->h, c->w);
+        if (c->ctl == ctl) present(c);
+}
+
+void bb_canvas_set_scale(bb_obj *o, int s)
+{
+    if (!bb_is_canvas(o)) return;
+    ((bb_canvas *)o)->scale = s < 1 ? 1 : s > 4 ? 4 : s;
 }
 
 void bb_canvas_ctl_gone(bb_ctl *ctl)
