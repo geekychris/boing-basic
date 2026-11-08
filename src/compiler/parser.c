@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <setjmp.h>
+#include <ctype.h>
+#include <strings.h>
 
 typedef struct P {
     Program *prog;
@@ -1425,6 +1427,44 @@ static void parse_toplevel(P *p)
         while (!is(p, TK_EOF) && !(iskw(p, KW_END) && tkn(p, 1)->kind == TK_NL)) skip_line(p);
         skip_line(p);
         return;
+    }
+    if (t->kind == TK_ID && t->line_start && strlen(t->text) >= 6 && !strncasecmp(t->text, "Def", 3)) {
+        static const struct { const char *n; int k; } defs[] = {
+            {"DefInt", T_INTEGER}, {"DefLng", T_LONG}, {"DefSng", T_SINGLE}, {"DefDbl", T_DOUBLE},
+            {"DefCur", T_CURRENCY}, {"DefStr", T_STRING}, {"DefBool", T_BOOLEAN}, {"DefByte", T_BYTE},
+            {"DefDate", T_DATE}, {"DefVar", T_VARIANT}, {"DefObj", T_OBJECT}, {NULL, 0}};
+        int k;
+        for (k = 0; defs[k].n; k++) if (name_eq(t->text, defs[k].n)) break;
+        if (defs[k].n && (tkn(p, 1)->kind == TK_ID)) {
+            adv(p);
+            for (;;) {
+                Token *l1 = tk(p), *l2;
+                if (l1->kind != TK_ID || strlen(l1->text) != 1 || !isalpha((unsigned char)l1->text[0])) {
+                    perr(p, l1, "expected a letter range (such as A-Z), found %s", NULL);
+                    break;
+                }
+                adv(p);
+                l2 = l1;
+                if (is(p, TK_MINUS)) {
+                    adv(p);
+                    l2 = tk(p);
+                    if (l2->kind != TK_ID || strlen(l2->text) != 1 || !isalpha((unsigned char)l2->text[0])) {
+                        perr(p, l2, "expected a letter, found %s", NULL);
+                        break;
+                    }
+                    adv(p);
+                }
+                {
+                    int a = toupper((unsigned char)l1->text[0]) - 'A', b = toupper((unsigned char)l2->text[0]) - 'A', x;
+                    if (a > b) { int tmp = a; a = b; b = tmp; }
+                    for (x = a; x <= b; x++) m->deftype[x] = (unsigned char)defs[k].k;
+                }
+                if (!is(p, TK_COMMA)) break;
+                adv(p);
+            }
+            end_stmt(p);
+            return;
+        }
     }
     if (iskw(p, KW_OPTION)) {
         adv(p);

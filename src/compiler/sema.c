@@ -58,14 +58,19 @@ static int define(Ctx *c, Scope *sc, Sym *s, Node *at)
 
 /* ---------- types ---------- */
 
-Type *resolve_type(Ctx *c, Node *tn, char suffix, int *fixlen)
+Type *default_type(Ctx *c, const char *name);
+static Type *resolve_type_n(Ctx *c, Node *tn, char suffix, int *fixlen, const char *name);
+Type *resolve_type(Ctx *c, Node *tn, char suffix, int *fixlen) { return resolve_type_n(c, tn, suffix, fixlen, NULL); }
+
+/* name: the declared name, for DefInt etc. when there is neither As nor a suffix */
+static Type *resolve_type_n(Ctx *c, Node *tn, char suffix, int *fixlen, const char *name)
 {
     const char *n;
     Sym *s;
     if (fixlen) *fixlen = 0;
     if (!tn) {
         Type *t = suffix_type(suffix);
-        return t ? t : &ty_variant;
+        return t ? t : default_type(c, name);
     }
     if (suffix) ERR(c, tn, "a variable with a type suffix cannot have an As clause");
     n = tn->name;
@@ -156,7 +161,7 @@ static Sym *make_var(Ctx *c, Node *d, int storage)
 {
     Sym *s = new_sym(SK_VAR, d->name, d);
     int fl;
-    Type *t = resolve_type(c, d->a, d->suffix, &fl);
+    Type *t = resolve_type_n(c, d->a, d->suffix, &fl, d->name);
     s->storage = storage;
     s->mod = c->mod;
     if (d->flags & NF_ARRAY) {
@@ -200,7 +205,7 @@ static Proc *make_proc(Ctx *c, Node *d, int kind)
     for (i = 0; i < d->list.n; i++) {
         Node *pn = d->list.v[i];
         Param *pa = &pr->params[i];
-        Type *t = resolve_type(c, pn->a, pn->suffix, NULL);
+        Type *t = resolve_type_n(c, pn->a, pn->suffix, NULL, pn->name);
         pa->name = pn->name;
         pa->line = pn->line;
         pa->col = pn->col;
@@ -227,7 +232,7 @@ static Proc *make_proc(Ctx *c, Node *d, int kind)
     }
     if (kind == PK_FUNCTION || kind == PK_PGET || (kind == PK_DECLARE && d->op == PK_FUNCTION)) {
         int fl;
-        pr->ret = resolve_type(c, d->a, d->suffix, &fl);
+        pr->ret = resolve_type_n(c, d->a, d->suffix, &fl, d->name);
         if (d->a && (d->flags & NF_ARRAY)) pr->ret = type_array(pr->ret, 0);
         if (kind == PK_DECLARE) pr->is_func_declare = 1;
     }
@@ -822,7 +827,7 @@ static void check_redim(Ctx *c, Node *s, NodeList *out)
         if (d->b->kind == E_NAME && !scope_find(c->scope, d->b->name)) {
             /* ReDim declares a dynamic array */
             Sym *v = new_sym(SK_VAR, d->b->name, d);
-            Type *et = resolve_type(c, d->a, d->b->suffix, NULL);
+            Type *et = resolve_type_n(c, d->a, d->b->suffix, NULL, d->b->name);
             v->ty = type_array(et, d->list.n);
             v->storage = ST_LOCAL;
             v->mod = c->mod;

@@ -351,6 +351,7 @@ struct Module {
     Proc *mainproc;
     Scope *scope;
     int opt_explicit, opt_base, opt_text;
+    unsigned char deftype[26];  /* DefInt etc.: default type kind by first letter (0 = Variant) */
     Proc **procs; int nprocs;
     char **form_controls; int ncontrols;   /* .afg ids */
     char *form_name;

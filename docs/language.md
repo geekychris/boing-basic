@@ -53,6 +53,11 @@ only the last dimension. Assigning an array copies it (`a = b`). Functions can r
 Implicit declaration without `Option Explicit`: an unknown name becomes a local Variant, or
 the suffix's type.
 
+`DefInt`, `DefLng`, `DefSng`, `DefDbl`, `DefCur`, `DefStr`, `DefBool`, `DefByte`, `DefDate`,
+`DefObj`, `DefVar` with letter ranges (`DefInt I-N, X`) at module level set the type of
+everything in that module declared without `As` or a suffix, by its first letter: variables
+(also implicit ones), parameters and Function / Property Get results.
+
 ## Expressions
 
 Operator precedence as VB: `^`, unary `-`, `* /`, `\`, `Mod`, `+ -`, `&`,
@@ -198,8 +203,6 @@ error 48/453.
 ## Not implemented (yet)
 
 - `Decimal`; `CDec` returns a Double.
-- `DefInt` and the other `Def` statements; `AddressOf`; `Friend` is treated as `Public`.
+- `AddressOf`; `Friend` is treated as `Public`.
 - `As New` creates the object when the `Dim` runs, not on first use.
 - Late-bound calls pass arguments by value (no ByRef through `Object`).
-- Native stack overflow (very deep recursion) is not detected in built programs (the VM raises
-  error 28).

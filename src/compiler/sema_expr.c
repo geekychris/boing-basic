@@ -5,6 +5,7 @@
 #include <string.h>
 #include <math.h>
 #include <setjmp.h>
+#include <ctype.h>
 
 Node *mk_var(Node *at, Sym *s)
 {
@@ -72,13 +73,34 @@ Type *suffix_type(char s)
     }
 }
 
+/* the type of a declaration without As or suffix: DefInt etc. by first letter, else Variant */
+Type *default_type(Ctx *c, const char *name)
+{
+    int k;
+    if (!name || !c->mod || !isalpha((unsigned char)name[0])) return &ty_variant;
+    k = c->mod->deftype[toupper((unsigned char)name[0]) - 'A'];
+    switch (k) {
+    case T_INTEGER: return &ty_integer;
+    case T_LONG: return &ty_long;
+    case T_SINGLE: return &ty_single;
+    case T_DOUBLE: return &ty_double;
+    case T_CURRENCY: return &ty_currency;
+    case T_STRING: return &ty_string;
+    case T_BOOLEAN: return &ty_boolean;
+    case T_BYTE: return &ty_byte;
+    case T_DATE: return &ty_date;
+    case T_OBJECT: return &ty_object;
+    default: return &ty_variant;
+    }
+}
+
 Sym *declare_implicit(Ctx *c, Node *e)
 {
     Sym *s = (Sym *)xcalloc(1, sizeof(Sym));
     Type *t = suffix_type(e->suffix);
     s->kind = SK_VAR;
     s->name = e->name;
-    s->ty = t ? t : &ty_variant;
+    s->ty = t ? t : default_type(c, e->name);
     s->implicit = 1;
     s->mod = c->mod;
     s->line = e->line;
