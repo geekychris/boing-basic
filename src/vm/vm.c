@@ -747,7 +747,8 @@ static void jit_stats_dump(void)
                 for (k = 0; k < img->nprocs; k++) if (img->procs[k].code > best && img->procs[k].code <= pc) best = img->procs[k].code;
                 if (best == img->procs[i].code) { nm = img->procs[i].name; break; }
             }
-        fprintf(stderr, "jit stats: %-16s @%-6ld entries %lu\n", nm, (long)pc, (unsigned long)jit_stats[pc]);
+        fprintf(stderr, "jit stats: %-16s @%-6ld entries %lu exits-mid %lu%s\n", nm, (long)pc, (unsigned long)jit_stats[pc],
+                img->jitexit ? (unsigned long)img->jitexit[pc] : 0ul, img->jitcode && !img->jitcode[pc] ? " (off)" : "");
     }
     fprintf(stderr, "jit stats: %llu entries into compiled code\n", tot);
 }

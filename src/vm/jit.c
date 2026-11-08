@@ -79,6 +79,7 @@ void ja_fixup(JA *a, int at, int label, int kind)
 #define SLOT_T(s) ((int32_t)(s) * 16)
 
 typedef struct T {
+    VMProc *p;                  /* the procedure (its slots' declared types) */
     JA *a;
     const JBackend *be;
     VMImage *img;
@@ -162,6 +163,39 @@ static void elem1(T *t, int ri, int vt, int ex)
         be->mul(a, JI3, JI3, JI4);
         be->addp_idx(a, JP1, JP1, JI3, 0);
     } else be->addp_idx(a, JP1, JP1, JI3, vt_shift(vt));
+}
+
+/* the declared UDT of an array operand (-1 if unknown: then it is read from the array) */
+static int arr_udt(T *t, int32_t opnd)
+{
+    const VMSlot *sl = NULL;
+    if (opnd >= 0) { if (opnd < t->p->nlocals) sl = &t->p->slots[opnd]; }
+    else if (opnd > BB_ME_OPND) { if (-1 - opnd < t->img->nglobals) sl = &t->img->globals[-1 - opnd]; }
+    else if (t->p->cls >= 0) {
+        const VMClass *c = &t->img->classes[t->p->cls];
+        if (BB_ME_OPND - opnd < c->nfields) sl = &c->fields[BB_ME_OPND - opnd];
+    }
+    if (!sl || sl->vt != (BB_ARRAY | BB_UDT) || sl->udt < 0) return -1;
+    return sl->udt;
+}
+
+/* elem1 for an element size known when compiling */
+static void elem1_size(T *t, int ri, int32_t esize, int ex)
+{
+    const JBackend *be = t->be;
+    JA *a = t->a;
+    be->ld16u(a, JI4, JP0, (int32_t)offsetof(bb_array, ndims));
+    be->cmpi(a, JI4, 1);
+    be->bcond(a, JC_NE, ex);
+    be->ld32(a, JI3, JP0, (int32_t)offsetof(bb_array, dims));
+    be->sub(a, JI3, ri, JI3);
+    be->ld32(a, JI4, JP0, (int32_t)(offsetof(bb_array, dims) + offsetof(bb_dim, count)));
+    be->cmpu(a, JI3, JI4);
+    be->bcond(a, JC_GEU, ex);
+    be->ldp(a, JP1, JP0, (int32_t)offsetof(bb_array, data));
+    be->li(a, JI4, esize);
+    be->mul(a, JI3, JI3, JI4);
+    be->addp_idx(a, JP1, JP1, JI3, 0);
 }
 
 /* JP1 += offset of field f; JP2 holds the bb_udt_desc pointer */
@@ -569,13 +603,20 @@ static int translate(T *t, int32_t pc)
         return 1;
     }
     case I_R_LDEF1: case I_R_STEF1: {
-        int vt = w[1], st = op == I_R_STEF1;
+        int vt = w[1], st = op == I_R_STEF1, u = arr_udt(t, st ? w[2] : w[3]);
         ex = exit_to(t, pc);
         load_array(t, st ? w[2] : w[3], ex);
         be->ld32(a, JI0, JB_L, SLOT_U(st ? w[3] : w[4]));
-        elem1(t, JI0, BB_UDT, ex);
-        be->ldp(a, JP2, JP0, (int32_t)offsetof(bb_array, udt));
-        field_off(t, st ? w[4] : w[5]);
+        if (u >= 0) {
+            /* declared UDT: element size and field offset are constants (fewer loads) */
+            const bb_udt_desc *d = &t->img->udts[u].desc;
+            elem1_size(t, JI0, d->size, ex);
+            be->addp_off(a, JP1, JP1, d->fields[st ? w[4] : w[5]].offset);
+        } else {
+            elem1(t, JI0, BB_UDT, ex);
+            be->ldp(a, JP2, JP0, (int32_t)offsetof(bb_array, udt));
+            field_off(t, st ? w[4] : w[5]);
+        }
         if (st) store_elem(t, vt, w[5]); else load_elem(t, vt, w[2]);
         return 1;
     }
@@ -735,6 +776,7 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
     t.a = a;
     t.be = be;
     t.img = img;
+    t.p = p;
     t.start = start;
     t.end = end;
     t.oplab = (int *)malloc(sizeof(int) * (size_t)(end - start + 1));
