@@ -89,6 +89,8 @@ static bb_obj *new_object(VM *vm, int cls);
 #ifdef BB_OPSTATS
 /* build with -DBB_OPSTATS -DBB_NO_THREADED: dynamic opcode counts on stderr at exit */
 static unsigned long long vm_opstats[I__COUNT];
+static unsigned long long *vm_pcstats;     /* per bytecode offset */
+static VMImage *vm_stats_img;
 static void vm_opstats_dump(void)
 {
     int i, j, idx[I__COUNT];
@@ -99,6 +101,19 @@ static void vm_opstats_dump(void)
             if (vm_opstats[idx[j]] > vm_opstats[idx[i]]) { int t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
     for (i = 0; i < 40 && vm_opstats[idx[i]]; i++)
         fprintf(stderr, "%-12s %12llu %5.1f%%\n", bb_opnames[idx[i]], vm_opstats[idx[i]], 100.0 * (double)vm_opstats[idx[i]] / (double)tot);
+    if (vm_pcstats && vm_stats_img) {
+        /* per procedure */
+        VMImage *img = vm_stats_img;
+        int32_t p, pc;
+        for (p = 0; p < img->nprocs; p++) {
+            int32_t a = img->procs[p].code, b = img->ncode, k;
+            unsigned long long n = 0;
+            if (a < 0) continue;
+            for (k = 0; k < img->nprocs; k++) if (img->procs[k].code > a && img->procs[k].code < b) b = img->procs[k].code;
+            for (pc = a; pc < b; pc++) n += vm_pcstats[pc];
+            if (n * 100 > tot) fprintf(stderr, "proc %-16s %12llu %5.1f%%\n", img->procs[p].name, n, 100.0 * (double)n / (double)tot);
+        }
+    }
 }
 #endif
 
@@ -688,9 +703,16 @@ static void vm_poll(VM *vm)
 #define JITCHAIN(bt0_, jf0_) { int32_t bt_ = (bt0_); bb_jitfn jf_ = (jf0_); \
     while (jf_) { int32_t np_; jc.L = L; \
         if (BB_UNLIKELY(jit_logging)) jit_log("call @%ld fn=%p ctx=%p L=%p", (long)bt_, (void *)jf_, (void *)&jc, (void *)L); \
+        if (BB_UNLIKELY(jit_stats != NULL)) jit_stats[bt_]++; \
         np_ = jf_(&jc); \
         if (BB_UNLIKELY(jit_logging)) jit_log("ret %ld", (long)np_); \
         pc = code + np_; \
+        /* left from the middle (an op it hands to the interpreter) more often than not: the \
+           compiled code is not paying for itself here; switch it off */ \
+        if (np_ > bt_ && np_ < img->jitend[bt_] && ++img->jitexit[bt_] * 2 > ++img->jitent[bt_] && img->jitent[bt_] >= 32) { \
+            img->jitcode[bt_] = NULL; img->jitno[bt_] = 1; \
+            if (BB_UNLIKELY(jit_logging)) jit_log("off @%ld: %lu exits in %lu entries", (long)bt_, (unsigned long)img->jitexit[bt_], (unsigned long)img->jitent[bt_]); } \
+        else if (!(np_ > bt_ && np_ < img->jitend[bt_])) img->jitent[bt_]++; \
         if (np_ == bt_ || bb_poll_count < 0) break; \
         jf_ = img->jitcode[np_]; \
         if (!jf_ && !img->jitno[np_]) jf_ = jit_hot(img, fr->proc, np_); \
@@ -706,6 +728,29 @@ static void vm_poll(VM *vm)
 
 /* register-form helpers */
 const int bb_vmobj_f_offset = (int)offsetof(VMObj, f);
+
+/* BOING_JIT_STATS=1: entries into compiled code per region, on stderr at exit */
+static uint32_t *jit_stats;
+static VMImage *jit_stats_img;
+static void jit_stats_dump(void)
+{
+    VMImage *img = jit_stats_img;
+    int32_t pc, i;
+    unsigned long long tot = 0;
+    for (pc = 0; pc < img->ncode; pc++) {
+        const char *nm = "?";
+        if (!jit_stats[pc]) continue;
+        tot += jit_stats[pc];
+        for (i = 0; i < img->nprocs; i++)
+            if (img->procs[i].code >= 0 && img->procs[i].code <= pc) {
+                int32_t best = img->procs[i].code, k;
+                for (k = 0; k < img->nprocs; k++) if (img->procs[k].code > best && img->procs[k].code <= pc) best = img->procs[k].code;
+                if (best == img->procs[i].code) { nm = img->procs[i].name; break; }
+            }
+        fprintf(stderr, "jit stats: %-16s @%-6ld entries %lu\n", nm, (long)pc, (unsigned long)jit_stats[pc]);
+    }
+    fprintf(stderr, "jit stats: %llu entries into compiled code\n", tot);
+}
 
 BB_INLINE bb_array *rarr(bb_value *L, bb_value *G, int32_t o)
 {
@@ -804,7 +849,7 @@ static void vm_exec(VM *vm, int entry)
         bb_value *sp = vm->sp;
         bb_value *L = fr->base;
         bb_value *G = vm->globals;
-        int jit_on = jit_enabled() && img->jitno && img->jitcode;
+        int jit_on = jit_enabled() && img->jitno && img->jitcode && img->jitend;
         bb_jitctx jc;
         jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; } jc.fmax = 3.402823466e38;
 #define SYNC() (vm->sp = sp)
@@ -813,6 +858,7 @@ static void vm_exec(VM *vm, int entry)
             int32_t op = *pc;
 #ifdef BB_OPSTATS
             vm_opstats[op]++;
+            if (vm_pcstats) vm_pcstats[pc - code]++;
 #endif
             if (op >= I_R_FIRST) {
                 /* register forms: no stack, no tags to check; errors sync pc/sp first */
@@ -1055,7 +1101,7 @@ static void vm_exec(VM *vm, int entry)
                         Frame *nf;
                         if (BB_LIKELY(p->rt_tmpl != NULL)) nf = push_plain(vm, p, pidx, base);
                         else { prep_hidden(vm, p, base); nf = push_frame(vm, pidx, base); }
-                        nf->ret = pc + 8;
+                        nf->ret = pc + 12;
                         nf->retdst = pc[2];
                         fr = nf;
                     }
@@ -2035,11 +2081,23 @@ int vm_run(VMImage *img, int argc, char **argv)
     g_vm = &vm;
 #ifdef BB_OPSTATS
     atexit(vm_opstats_dump);
+    vm_pcstats = (unsigned long long *)xcalloc((size_t)img->ncode + 1, sizeof(unsigned long long));
+    vm_stats_img = img;
 #endif
     bb_rt_init(argc, argv);
     jit_init();
     if (!img->jitno) img->jitno = (unsigned char *)xcalloc((size_t)img->ncode + 1, 1);
     if (!img->jitcode) img->jitcode = (bb_jitfn *)xcalloc((size_t)img->ncode + 1, sizeof(bb_jitfn));
+    if (!img->jitend) {
+        img->jitend = (int32_t *)xcalloc((size_t)img->ncode + 1, sizeof(int32_t));
+        img->jitent = (uint32_t *)xcalloc((size_t)img->ncode + 1, sizeof(uint32_t));
+        img->jitexit = (uint32_t *)xcalloc((size_t)img->ncode + 1, sizeof(uint32_t));
+    }
+    if (getenv("BOING_JIT_STATS") && !jit_stats) {
+        jit_stats = (uint32_t *)xcalloc((size_t)img->ncode + 1, sizeof(uint32_t));
+        jit_stats_img = img;
+        atexit(jit_stats_dump);
+    }
     prepare(&vm);
     {
         size_t n = (size_t)(img->stack > 65536 ? img->stack / 16 : 16384);

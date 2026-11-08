@@ -855,7 +855,7 @@ static void rx_bin(E *e, Node *n, int k, int dst, int *out)
 }
 
 /* evaluate typed n (kind k = rkind(n->ty)) into a slot; dst >= 0 asks for that slot */
-/* a call to a plain Function/Sub with up to 4 ByVal Integer/Long/Double parameters
+/* a call to a plain Function/Sub with up to 8 ByVal Integer/Long/Double parameters
  * (and an Integer/Long/Double result, or none): R_CALLS */
 static int reg_call_ok(Node *n)
 {
@@ -863,7 +863,7 @@ static int reg_call_ok(Node *n)
     int i;
     if (n->kind != E_CALL) return 0;
     pr = n->proc;
-    if (pr->cls || pr->kind == PK_DECLARE || pr->nparams > 4 || n->list.n != pr->nparams) return 0;
+    if (pr->cls || pr->kind == PK_DECLARE || pr->nparams > 8 || n->list.n != pr->nparams) return 0;
     if (pr->ret && rkind(pr->ret) < 0) return 0;
     for (i = 0; i < pr->nparams; i++) {
         Param *pa = &pr->params[i];
@@ -1008,7 +1008,7 @@ static int me_field(E *e, Node *n, int k);
 static int glob_var(Node *n, int k);
 static void reg_call(E *e, Node *n, int dst)
 {
-    int s[4] = {0, 0, 0, 0}, i;
+    int s[8] = {0, 0, 0, 0, 0, 0, 0, 0}, i;
     if (inline_ok(e, n)) {
         int r = inline_call(e, n);
         if (dst >= 0 && r >= 0) op2(e, I_R_MOV, dst, r);
@@ -1021,10 +1021,22 @@ static void reg_call(E *e, Node *n, int dst)
         else s[i] = -1 - slot_of(e, x->sym);                           /* a reference to this slot */
     }
     emit_w(e, I_R_CALLS); emit_w(e, n->proc->index); emit_w(e, dst);
-    emit_w(e, n->list.n); for (i = 0; i < 4; i++) emit_w(e, s[i]);
+    emit_w(e, n->list.n); for (i = 0; i < 8; i++) emit_w(e, s[i]);
 }
 
 /* Sqr(x) on a Double */
+/* CInt/CLng(Sgn(x)) on a typed x: the x, else NULL */
+static Node *sgn_arg(Node *n, int k)
+{
+    Node *b, *x;
+    if (n->kind != E_CONV || (k != 0 && k != 1)) return NULL;
+    b = n->a;
+    if (b->kind != E_BUILTIN || !name_eq(builtins[b->bi].name, "Sgn") || b->list.n != 1) return NULL;
+    x = b->list.v[0];
+    if (x->kind == E_CONV && x->ty->kind == T_VARIANT) x = x->a;
+    return rkind(x->ty) >= 0 && rkind(x->ty) <= 2 ? x : NULL;
+}
+
 static int reg_sqrt(Node *n)
 {
     return n->kind == E_BUILTIN && name_eq(builtins[n->bi].name, "Sqr") && n->list.n == 1 && n->list.v[0]->ty->kind == T_DOUBLE;
@@ -1077,6 +1089,23 @@ static int rx(E *e, Node *n, int dst)
     if (k >= 0 && reg_call_ok(n) && n->proc->ret && rkind(n->proc->ret) == k) {
         d = dst >= 0 ? dst : rtemp(e, k);
         reg_call(e, n, d);
+        return d;
+    }
+    if (sgn_arg(n, k)) {
+        /* d = 0; if x > 0 then d = 1; if x < 0 then d = -1 (compare-and-branch only) */
+        Node *x = sgn_arg(n, k);
+        int xk = rkind(x->ty), sx = rx(e, x, -1), mv = k == 1 ? I_R_MOVI_L : I_R_MOVI_I, j1, j2;
+        int jop = xk == 2 ? I_R_JCMP_DRK : xk == 1 ? I_R_JCMP_LRI : I_R_JCMP_IRI;
+        int32_t zero = xk == 2 ? add_const(e, bb_v_double(0)) : 0;
+        d = dst >= 0 ? dst : rtemp(e, k);
+        if (d == sx) { int t = rtemp(e, xk); op2(e, I_R_MOV, t, sx); sx = t; }
+        op2(e, mv, d, 0);
+        emit_w(e, jop); emit_w(e, BB_CMP_LE); emit_w(e, sx); emit_w(e, zero); j1 = emit_w(e, 0);
+        op2(e, mv, d, 1);
+        set_target(e, j1, here(e));
+        emit_w(e, jop); emit_w(e, BB_CMP_GE); emit_w(e, sx); emit_w(e, zero); j2 = emit_w(e, 0);
+        op2(e, mv, d, -1);
+        set_target(e, j2, here(e));
         return d;
     }
     if (k == 2 && reg_sqrt(n)) {
@@ -1169,9 +1198,35 @@ static int reg_value_ok(E *e, Node *v, int k)
            (v->kind == E_VAR && is_ref_slot(v->sym)) || me_field(e, v, k) || glob_var(v, k);
 }
 
+static int cond_tree_ok(E *e, Node *c);
+static void cond_tree_jump(E *e, Node *c, int sense, Patch *p);
+
+/* a Boolean value into slot d with register ops: True = -1 (u.i only; d keeps its tag) */
+static int bool_into(E *e, Node *v, int d)
+{
+    if (v->kind == E_CONST) { op2(e, I_R_MOVI_I, d, v->cv.i ? -1 : 0); return 1; }
+    if (cond_tree_ok(e, v)) {
+        Patch yes = {0, 0, 0};
+        int j;
+        cond_tree_jump(e, v, 1, &yes);      /* evaluated before d is written */
+        op2(e, I_R_MOVI_I, d, 0);
+        j = jump(e, I_R_JMP);
+        patch_all(e, &yes, here(e));
+        free(yes.v);
+        op2(e, I_R_MOVI_I, d, -1);
+        set_target(e, j, here(e));
+        return 1;
+    }
+    return 0;
+}
+
 static int reg_assign(E *e, Node *t, Node *v)
 {
     int k = rkind(t->ty), slot;
+    if (t->ty->kind == T_BOOLEAN && v->ty->kind == T_BOOLEAN && t->kind == E_VAR &&
+        (t->sym->storage == ST_LOCAL || t->sym->storage == ST_PARAM) && !is_ref_slot(t->sym) &&
+        bool_into(e, v, slot_of(e, t->sym)))
+        return 1;
     if (glob_var(t, k) && rkind(v->ty) == k && reg_value_ok(e, v, k)) {
         int src = rx(e, v, -1);
         op3(e, I_R_STG, rvt(t->ty), t->sym->index, src);
@@ -1192,8 +1247,7 @@ static int reg_assign(E *e, Node *t, Node *v)
         if (k >= 0 && rkind(v->ty) == k) src = rx(e, v, -1);
         else if (t->ty->kind == T_BOOLEAN && v->ty->kind == T_BOOLEAN) {
             src = rtemp(e, 0);
-            if (v->kind == E_CONST) op2(e, I_R_MOVI_I, src, (int32_t)v->cv.i);
-            else { expr(e, v); op1(e, I_STL, src); }
+            if (!bool_into(e, v, src)) { expr(e, v); op1(e, I_STL, src); }
         } else return 0;
         reg_store(e, t, src);
         return 1;
@@ -1201,7 +1255,7 @@ static int reg_assign(E *e, Node *t, Node *v)
     if (k < 0 || t->kind != E_VAR || rkind(v->ty) != k) return 0;
     slot = reg_var(e, t, k);
     if (slot < 0) return 0;
-    if (!reg_value_ok(e, v, k)) return 0;
+    if (!reg_value_ok(e, v, k) && !sgn_arg(v, k)) return 0;
     rx(e, v, slot);
     return 1;
 }
@@ -1512,6 +1566,8 @@ static void stmt1(E *e, Node *s)
             return;
         }
         if (reg_call_ok(x) && !x->proc->ret) { reg_call(e, x, -1); return; }
+        /* a Function called as a statement: its result goes to a temporary and is dropped */
+        if (reg_call_ok(x) && x->proc->ret && rkind(x->proc->ret) >= 0) { reg_call(e, x, rtemp(e, rkind(x->proc->ret))); return; }
         expr(e, x);
         if (has_value(x)) op0(e, I_POP);
         return;
@@ -1534,9 +1590,12 @@ static void stmt1(E *e, Node *s)
     }
     case S_SELECT: {
         Patch ends = {0, 0, 0};
-        expr(e, s->a);
-        if (s->a->ty->kind == T_STRING && s->a->ty->fixlen) {}
-        store_var(e, s->sym);
+        if (rkind(s->a->ty) >= 0 && rkind(s->sym->ty) == rkind(s->a->ty) && s->sym->storage == ST_LOCAL && !is_ref_slot(s->sym))
+            rx(e, s->a, slot_of(e, s->sym));        /* typed selector: register move, no stack */
+        else {
+            expr(e, s->a);
+            store_var(e, s->sym);
+        }
         for (i = 0; i < s->list.n; i++) {
             Node *cs = s->list.v[i];
             if (cs->flags & NF_CASEELSE) { block(e, &cs->list2); continue; }

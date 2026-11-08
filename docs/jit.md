@@ -16,7 +16,13 @@ return, `Sqr` on a backend without a square root instruction (PPC). Single arith
 compiled as double arithmetic followed by VB's range check (an exit) and a rounding store
 (`lfs`/`stfs` on PPC, `fcvt` on arm64), exactly what the interpreter and the C back end do.
 Module-level scalars and scalar fields of `Me` are operands too.
-A loop body cut by a call or `Sqr` is compiled in pieces (each piece that is not a whole loop
+A loop head's region is the whole loop, up to its last back-edge: what the JIT cannot compile
+inside it (a call, a stack op on a rarely taken path, `Sqr` without fsqrt) becomes an exit to
+the interpreter at that op, which re-enters compiled code at the next back-edge. A region that
+is left from the middle more often than not (after 32 entries) is switched off, so a loop whose
+hot path keeps leaving compiled code runs in the interpreter, never slower than without the
+JIT. `BOING_JIT_STATS=1` prints the entries per region at exit. Without a back-edge (e.g. at a
+call's return point), a run of compilable ops is compiled; a loop body cut by a call or `Sqr` is compiled in pieces (each piece that is not a whole loop
 needs at least `BOING_JIT_MINOPS` register ops, default 8: on the QEMU guest every entry into
 and exit from compiled code is expensive, and short pieces between calls made call-heavy code
 slower): from the loop head to the call,

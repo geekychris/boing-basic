@@ -632,23 +632,66 @@ static int translate(T *t, int32_t pc)
 }
 
 static const JBackend *g_be_for_scan;
+static const char *jit_why = "";
+static int32_t jit_last_end;        /* end of the region compiled last */   /* why the last region was not compiled (trace) */
 int jit_no_fsqrt;
 int jit_min_ops = 8;            /* BOING_JIT_MINOPS: smallest compiled piece that is not a whole loop */             /* BOING_JIT_NOSQRT=1: compile as for a CPU without fsqrt (testing) */
 
-static int region_end(VMImage *img, VMProc *p, int32_t start)
+/* words of the instruction at pc (ONGOTO carries its targets) */
+static int32_t op_len(VMImage *img, int32_t pc)
 {
-    int32_t pc = start, limit = img->ncode, i;
+    int op = img->code[pc];
+    if (op == I_ONGOTO) return 2 + (img->code[pc + 1] & 0xffff);
+    return 1 + bb_opwords[op];
+}
+
+/* the target of a register-form branch, or -1 */
+static int32_t rbranch_target(const int32_t *w)
+{
+    switch (w[0]) {
+    case I_R_JCMP_LRR: case I_R_JCMP_LRI: case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK:
+    case I_R_JCMP_FRR: case I_R_FORINC_I: case I_R_FORINC_L: case I_R_FORINC_D: return w[4];
+    case I_R_JNZ: case I_R_JZ: return w[2];
+    case I_R_JMP: return w[1];
+    default: return -1;
+    }
+}
+
+/* ops compiled as a plain exit to the interpreter (inside a whole-loop region) */
+static int exit_op(VMImage *img, int32_t pc)
+{
+    int op = img->code[pc];
+    if (op < I_R_FIRST || op >= I__COUNT) return 1;
+    if (op == I_R_CALLS || op == I_R_RET) return 1;
+    if (op == I_R_SQRT_D && g_be_for_scan && (!g_be_for_scan->fsqrt || jit_no_fsqrt)) return 1;
+    return 0;
+}
+
+static int32_t proc_limit(VMImage *img, VMProc *p)
+{
+    int32_t limit = img->ncode, i;
     for (i = 0; i < img->nprocs; i++) {
         int32_t c = img->procs[i].code;
         if (c > p->code && c < limit) limit = c;
     }
-    while (pc < limit) {
-        int op = img->code[pc];
-        if (op < I_R_FIRST || op >= I__COUNT) break;
-        if (op == I_R_SQRT_D && g_be_for_scan && (!g_be_for_scan->fsqrt || jit_no_fsqrt)) break;
-        if (op == I_R_CALLS || op == I_R_RET) break;
-        pc += 1 + bb_opwords[op];
+    return limit;
+}
+
+/* a loop head's region is the whole loop, up to its last back-edge: what the JIT cannot compile
+   inside it (calls, stack ops of rarely taken paths) leaves to the interpreter at that op, which
+   comes back in at the next back-edge. Without a back-edge, a run of compilable register ops. */
+static int region_end(VMImage *img, VMProc *p, int32_t start)
+{
+    int32_t pc = start, limit = proc_limit(img, p), last = -1;
+    if (img->code[start] >= I_R_FIRST && !exit_op(img, start)) {
+        for (pc = start; pc < limit; pc += op_len(img, pc)) {
+            int op = img->code[pc];
+            if (op >= I_R_FIRST && op < I__COUNT && rbranch_target(img->code + pc) == start) last = pc;
+        }
+        if (last >= 0) return last + op_len(img, last);
     }
+    pc = start;
+    while (pc < limit && !exit_op(img, pc)) pc += op_len(img, pc);
     return pc;
 }
 
@@ -660,13 +703,13 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
     g_be_for_scan = be;
     end = region_end(img, p, start);
     (void)0;
-    if (end <= start) return 0;
+    if (end <= start) { jit_why = "no register ops at the head"; return 0; }
     {
         /* worth it if the loop's back-edge is inside the region, or the region is a loop
            body cut by a call: from the head to the call, or from the call's return point
            to a backward branch (then the code continues at the loop head's code) */
         int back = 0, backward = 0, nops = 0;
-        for (pc = start; pc < end; pc += 1 + bb_opwords[img->code[pc]]) {
+        for (pc = start; pc < end; pc += op_len(img, pc)) {
             const int32_t *w = img->code + pc;
             int32_t tg = -1;
             nops++;
@@ -683,6 +726,7 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
         /* a stretch that is not a whole loop must be long enough to pay for entering and
            leaving compiled code around it (under QEMU each entry/exit is expensive: short
            pieces between calls made call-heavy code slower) */
+        jit_why = "not a loop and too short";
         if (!back && !(nops >= jit_min_ops && (backward || (end < img->ncode && (img->code[end] == I_R_CALLS || img->code[end] == I_R_SQRT_D))))) return 0;
     }
     memset(&t, 0, sizeof t);
@@ -695,11 +739,13 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
     t.end = end;
     t.oplab = (int *)malloc(sizeof(int) * (size_t)(end - start + 1));
     for (i = 0; i < end - start; i++) t.oplab[i] = -1;
-    for (pc = start; pc < end; pc += 1 + bb_opwords[img->code[pc]]) t.oplab[pc - start] = ja_label(a);
+    for (pc = start; pc < end; pc += op_len(img, pc)) t.oplab[pc - start] = ja_label(a);
     be->entry(a);
-    for (pc = start; pc < end && ok; pc += 1 + bb_opwords[img->code[pc]]) {
+    for (pc = start; pc < end && ok; pc += op_len(img, pc)) {
         be->bind(a, t.oplab[pc - start]);
+        if (exit_op(img, pc)) { be->ret_pc(a, pc); continue; }     /* the interpreter does this one */
         ok = translate(&t, pc);
+        if (!ok) { static char b[64]; snprintf(b, sizeof b, "op %s at %ld", bb_opnames[img->code[pc]], (long)pc); jit_why = b; }
     }
     if (ok) {
         be->ret_pc(a, end);             /* fell off the region */
@@ -713,6 +759,7 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
     free(t.exitpc);
     free(t.exitlab);
     if (end_out) *end_out = end;
+    jit_last_end = end;
     return ok && !a->err;
 }
 
@@ -843,8 +890,10 @@ bb_jitfn jit_get(VMImage *img, VMProc *p, int32_t start)
     jit_log("  -> %s, %d bytes at %p", e->state == 1 ? "compiled" : "not compiled", a->n, (void *)e->fn);
     if (e->state == 2 && img->jitno) img->jitno[start] = 1;
     if (e->state == 1 && img->jitcode) img->jitcode[start] = e->fn;
+    if (e->state == 1 && img->jitend) img->jitend[start] = jit_last_end;
     if (getenv("BOING_JIT_TRACE"))
-        fprintf(stderr, "jit: %s @%ld: %s (%d bytes)\n", p->name, (long)start, e->state == 1 ? "compiled" : "not compiled", a->n);
+        fprintf(stderr, "jit: %s @%ld: %s (%d bytes)%s%s\n", p->name, (long)start, e->state == 1 ? "compiled" : "not compiled", a->n,
+                e->state == 1 ? "" : " - ", e->state == 1 ? "" : jit_why);
     free(a->buf);
     free(a);
     return e->fn;
