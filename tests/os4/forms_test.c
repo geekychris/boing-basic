@@ -308,13 +308,17 @@ static void script(void)
         check(!strcmp(gets_("status", "Caption", -1), "Clicked"), "the Click sub changed the label's Caption");
         bb_ctl_call(C("name"), "SetFocus", 0, NULL, NULL);
         break;
-    case 2:
-        /* the string gadget is active: select all (Amiga-X clears in OS4? use Backspace x5) */
-        for (int i = 0; i < 5; i++) key(0x41);
-        key(0x25);   /* h */
-        key(0x17);   /* i */
-        key(0x44);   /* Return */
+    case 2: {
+        /* one key per timer tick, as a person types, so each edit reaches the event loop:
+           Backspace x5 (the text "Boing"), h, i, Return */
+        static const int keys[] = { 0x41, 0x41, 0x41, 0x41, 0x41, 0x25, 0x17, 0x44 };
+        static int ki;
+        if (ki < (int)(sizeof keys / sizeof *keys)) {
+            key(keys[ki++]);
+            step--;             /* stay on this step */
+        }
         break;
+    }
     case 3:
         check(!strcmp(gets_("name", "Text", -1), "hi"), "typing replaced the text: name.Text = \"hi\"");
         printf("# name_Change count %d\n", changes);
