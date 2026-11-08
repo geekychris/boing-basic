@@ -18,7 +18,7 @@ TITLE = "Boing BASIC form test - running"
 def run(cmd, label):
     out_f = "RAM:bbform/%s.out" % label
     m.tool("amiga_dos_command", command="delete %s QUIET" % out_f)
-    m.tool("amiga_dos_command", command="cd RAM:bbform\nrun >NIL: %s >%s" % (cmd, out_f))
+    m.tool("amiga_dos_command", command="run >NIL: %s >%s" % (cmd, out_f))
     clicked, t0, out = False, time.time(), ""
     while time.time() - t0 < 90:
         time.sleep(2)
@@ -45,7 +45,7 @@ with g.testing("Boing BASIC form test"):
     for a, b in files:
         g.push(m, a, b)
     if mode in ("vm", "both"):
-        ok &= run("RAM:bbform/boing run formbas.bbp", "vm")
+        ok &= run("RAM:bbform/boing run RAM:bbform/formbas.bbp", "vm")
     if mode in ("native", "both"):
         ok &= run("RAM:bbform/formbas", "native")
 print("os4 form test:", "PASS" if ok else "FAIL")
