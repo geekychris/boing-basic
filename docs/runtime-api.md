@@ -146,16 +146,46 @@ void *slot = bb_find_global("main", "ok", &type);    /* storage of module variab
   variable (Form_Unload's Cancel). Plain values are passed ByVal (copied).
 - Missing trailing Optional arguments are filled in by the callee.
 
-### Form controls (contract with bb-os4)
+### Forms (forms_rt.c on bb_forms.h)
 
-For each form `<form>.afg` in a project, the compiler declares in the code-behind module
-`<form>.bas` a module-level `Object` variable per designer object with an `id`, and one for
-the form itself named after the window's `name` (also reachable as `Me`). It also makes
-these names visible to other modules as `<form>.<id>`. The form runtime (os4/forms.c)
-creates the control objects and stores them with `bb_find_global(form, id, &t)` +
-`bb_obj_assign((bb_obj **)slot, ctl)` before calling `Form_Load`. Events go through
-`bb_dispatch_event(form, id, "Click", ...)`; for the window itself the object name is
-`"Form"`.
+The platform forms layer is bb-os4's C interface `src/runtime/bb_forms.h` (os4/forms.c on
+ReAction, posix/forms.c a stub). `src/runtime/forms_rt.c` puts BASIC on top of it:
+
+- At start-up the program calls `bb_forms_register(module, form_name, afg_text, afg_path)`
+  for every `Form=` of the project. The VM keeps the .afg text in its image (and in `.bbc`
+  files); native builds embed it as a C string. This stores a *form object* in the module
+  variable named after the window's `name=`. That variable is public, so `other.Show` works
+  from any module. The form loads on first use, as in VB.
+- `Startup=Form x` runs `bb_forms_main("x")`: load, show, `bb_forms_run()` until the last
+  form is unloaded, then `bb_forms_cleanup()`.
+- Loading (`bb_form_load`) creates a control object for every `id=` in the .afg and stores it
+  in the code-behind's variable of that name (`bb_find_global`). The compiler declares those
+  variables as `Object` (plus the form's own name; `Me` in the code-behind is the form).
+- Control and form objects are `bb_class`es whose `find` interns any member name and whose
+  `invoke` maps to `bb_ctl_get` / `bb_ctl_set` / `bb_ctl_call` (Variant <-> `bb_fval`;
+  `List(i)` passes the index). An empty member name (default member) tries Text, Caption,
+  Value. `Show`/`Hide` on a form object go to `bb_form_show/hide`; `Load x` / `Unload x`
+  are `bb_form_load_obj` / `bb_form_unload_obj`.
+- Events: the layer's callback becomes `bb_dispatch_event(module, ctl, event, argc, argv)`
+  with `argv[i] = bb_v_ref(BB_LONG, &args[i])`. A handler declared `Cancel As Integer`
+  receives a copy that is written back after the call, so ByRef event arguments work for
+  any integer type (both back ends copy back through a `BB_REF` of another type).
+  `has_event` is answered with `bb_find_proc`.
+
+### Declare
+
+The VM and generated C call `bb_declare_call(bb_declare *d, argc, uint32_t argv[])`
+(`src/runtime/declare.c`). It resolves through bb-os4's `bb_decl_resolve` (bb_declare.h),
+caches the handle in `d->cache`, raises the returned VB error (48/453) and calls
+`bb_decl_call`. Arguments: numbers as 32-bit values, ByVal String as a pointer to the text,
+ByRef and objects as addresses.
+
+### Other OS services
+
+`App.Path/EXEName/Title` and `Clipboard.GetText/SetText/Clear` are runtime functions
+(`bb_app_path`, `bb_clipboard_get`...) on bb-os4's `bb_sys.h`. `bb_rt_init` calls
+`bb_sys_init(argc, argv, NULL)`. `src/runtime/os4/platform.c` implements `platform.h` on
+newlib, bb_sys and the forms layer's requesters.
 
 ## Generated C
 
