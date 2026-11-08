@@ -1,0 +1,43 @@
+ok 1 - exec FindTask(NULL) via exec.bi (slot #50)
+ok 2 - the same through a Declare by name
+ok 3 - exec AllocVecTagList(256, TagList(AVT_Type, MEMF_PRIVATE, AVT_ClearWithValue, 0))
+ok 4 - the block is cleared
+ok 5 - PokeL/W/B and PeekL/W/B round trip
+ok 6 - big-endian byte order
+ok 7 - exec CopyMem copies 7 bytes
+ok 8 - PeekS reads a C string
+ok 9 - exec AvailMem(MEMF_ANY) > 1 MB
+ok 10 - dos Open(T:boing_bind_test, MODE_NEWFILE)
+ok 11 - dos Write 13 bytes from StrPtr(s)
+ok 12 - dos Close
+ok 13 - dos Read gives the 13 bytes back
+ok 14 - and they are the same
+ok 15 - dos Lock(SHARED_LOCK)
+ok 16 - dos NameFromLock
+ok 17 - the name ends in boing_bind_test
+ok 18 - Lock of a missing file = 0
+ok 19 - IoErr() = ERROR_OBJECT_NOT_FOUND
+ok 20 - dos SetVar (local)
+ok 21 - dos GetVar fills a Space(32) buffer
+ok 22 - dos DeleteVar
+ok 23 - GetVar after DeleteVar = -1
+ok 24 - utility Stricmp
+ok 25 - utility Strnicmp
+ok 26 - utility ToUpper (Declare with Interface/Version)
+ok 27 - utility GetTagData finds a tag
+ok 28 - and returns the default for a missing one
+ok 29 - utility FindTagItem -> struct TagItem
+ok 30 - utility Amiga2Date: 13:05:09
+ok 31 - and 2.1.1979
+ok 32 - intuition LockPubScreen(NULL)
+ok 33 - the screen is at least 640x400
+ok 34 - intuition OpenWindowTagList
+ok 35 - the window's RastPort
+ok 36 - graphics SetAPen + RectFill, ReadPixel sees pen 1
+ok 37 - and pen 0 after clearing it
+ok 38 - locale OpenLocale(NULL)
+ok 39 - locale ConvToUpper
+ok 40 - a missing library: error 48
+ok 41 - dos.library Version 9999: error 48
+ok 42 - an unknown function: error 453
+PASS 42
