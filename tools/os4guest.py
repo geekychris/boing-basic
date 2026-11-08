@@ -247,15 +247,21 @@ def have_fetch(m):
     global _have_fetch
     if _have_fetch is None:
         import time
-        for _ in range(5):          # a busy guest answers "[RUNNING] ..." first: ask again
-            out = m.tool("amiga_dos_command", command="list DH1:bbtools")
-            if "[RUNNING]" in out or "did not respond" in out:
-                time.sleep(5)
-                continue
-            _have_fetch = bool(re.search(r"^bbfetch\s+\d+", out, re.M))
-            break
+        out = ""
+        for _ in range(12):         # a busy guest answers "[RUNNING] ..." first: ask again
+            try:
+                out = m.tool("amiga_dos_command", command="list DH1:bbtools")
+            except RuntimeError as e:
+                out = str(e)
+            if re.search(r"^bbfetch\s+\d+", out, re.M):
+                _have_fetch = True
+                break
+            if "Directory" in out or "No information" in out or "not found" in out.lower():
+                _have_fetch = False
+                break
+            time.sleep(5)
         else:
-            _have_fetch = False
+            raise RuntimeError("the guest doesn't answer (checking for bbfetch): %s" % out.strip()[:200])
     return _have_fetch
 
 
