@@ -125,3 +125,55 @@ GCC/clang can keep element addresses in registers across statements (nbody 0.061
 | strings | 0.207 | 0.118 | 1.8x | - | - | yes |
 | udt | 0.546 | 0.030 | 18.4x | - | - | yes |
 | variants | 0.280 | 0.187 | 1.5x | - | - | yes |
+
+## Game benchmark
+
+[Glimmerfield](../examples/glimmerfield/README.md) (bb-game) is an arcade game written to be
+a real-world test: arrays of UDTs (96 crystals, 32 bullets, 16 wisps, 512 particles), integer
+fixed-point maths and collision tests every frame, Single maths for the particles, small helper
+functions called ~10 000 times a frame, a string HUD, and a renderer that draws through a canvas
+object (late-bound calls). The console bench (`examples/glimmerfield/Bench.bbp`) lets the bot
+play from seed 1987:
+
+```
+boing run [--jit] Bench.bbp --bench 20000            # logic only
+boing run [--jit] Bench.bbp --bench 2000 --draw      # + renderer onto SoftCanvas (BASIC framebuffer)
+```
+
+`--draw` renders every frame onto `SoftCanvas.cls`, the Canvas methods implemented in BASIC on a
+400x300 Long array (Bresenham lines, midpoint circles); "blit" copies it to a front buffer
+(120 000 element copy). All builds print the same state and picture hashes.
+
+### macOS (Apple M-series), main 9605f6f, ms per frame (best of 3)
+
+| | logic | draw | blit | frame | fps |
+|---|---:|---:|---:|---:|---:|
+| VM | 0.014 | 0.441 | 0.489 | 0.950 | 1052 |
+| VM --jit | 0.014 | 0.278 | 0.256 | 0.553 | 1809 |
+| native | 0.002 | 0.108 | 0.135 | 0.243 | ~4100 |
+
+How the VM got there (logic ms/frame; `--draw` frame ms/frame):
+
+| main | change (bb-core) | logic | draw frame |
+|---|---|---:|---:|
+| 84ae15a | first VM | 0.053 | 3.25 |
+| eea3c41 | late-bound calls without setjmp/strcasecmp per call | 0.030 | 3.72 |
+| d6bdbd0 / db88308 | register ops incl. Single and member arrays, inlining of small helpers | 0.015 | 0.92 |
+| 9605f6f | Me's fields in register ops, fast method frames | 0.014 | 0.95 (JIT 0.55) |
+
+Slow paths the game found and how they ended up:
+
+- UDT array field `a(i).x = a(i).x + a(i).vx`: 5 stack ops per access, 32 ns -> register ops, 6.5 ns.
+- Late-bound method calls (every form-control call): macOS `setjmp` saving the signal mask
+  (two syscalls) and a name lookup per call; 519 -> 96 ns VM, 207 -> 17 ns native.
+- Single UDT fields fell back to stack ops (28 ns) -> Single register kind, 5.8 ns.
+- Class member arrays (SoftCanvas's framebuffer) in register ops and the JIT: blit 2.0 -> 0.49 ms
+  (JIT 0.26).
+- Calls to small helpers (WrapL, DeltaPx, SinA, RandL): inlined (11 -> 5.8 ns per call).
+- Still open: module-level scalars cost ~2.7x a local in the VM (7.9 vs 2.9 ns), and the JIT
+  doesn't speed up the logic (it is call- and module-variable heavy).
+- Lexer: `1000000# / 200000#` was read as a date literal (fixed in eea3c41).
+
+### AmigaOS 4.1 (QEMU sam460ex)
+
+Pending: guest runs of VM, JIT and native, and the real game on the Canvas control.
