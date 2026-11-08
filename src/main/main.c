@@ -20,7 +20,7 @@ static void usage(void)
             "Boing BASIC " BOING_VERSION "\n"
             "usage:\n"
             "  boing run   [--error-file F] prog.bas|prog.bbp|prog.bbc [args]   compile to bytecode and run\n"
-            "  boing build prog.bas|prog.bbp [-o out] [--keep-c] [--debug] [--target host|os4]\n"
+            "  boing build prog.bas|prog.bbp [-o out] [--keep-c] [--debug] [--opt 0|1|2|s] [--target host|os4]\n"
             "  boing check prog.bas|prog.bbp                    check only (file:line:col: error: ...)\n"
             "  boing compile prog.bas -o prog.bbc               write a bytecode file\n"
             "  boing emit-c prog.bas [-o prog.c]                write the generated C\n"
@@ -97,6 +97,10 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
     char *cpath, *cmd, *dir, *inc, *lib, *outp;
     const char *cc = getenv("BOING_CC");
     const char *extra = getenv("BOING_CFLAGS");
+    /* --opt N / BOING_OPT: the C optimisation level (-O2 by default; -O0 compiles fastest,
+       which matters with the SDK GCC on the Amiga) */
+    const char *optenv = getenv("BOING_OPT");
+    const char *opt = optenv && *optenv ? xsprintf("-O%s", optenv[0] == '-' ? optenv + 2 : optenv) : "-O2";
     FILE *f;
     int rc;
     if (p->nerrors) return 1;
@@ -137,10 +141,10 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
     /* never -mcpu=440/440fp: GCC then inlines string functions with dlmzb., which only the
        440/460 has (real X5000, A1222 and G3/G4 machines crash); see docs/os4.md */
     cmd = xsprintf("%s -mcrt=newlib -mcpu=powerpc %s -D__USE_OLD_TIMEVAL__ -I\"%s\" \"%s\" -o \"%s\" -L\"%s\" "
-                   "-lboing -lauto -lm %s", cc, debug ? "-gstabs -O0" : "-O2", inc, cpath, outp, lib, extra ? extra : "");   /* AmiForge's debugger reads stabs */
+                   "-lboing -lauto -lm %s", cc, debug ? "-gstabs -O0" : opt, inc, cpath, outp, lib, extra ? extra : "");   /* AmiForge's debugger reads stabs */
 #else
     cmd = xsprintf("%s %s -I\"%s\" \"%s\" -o \"%s\" -L\"%s\" -lboing -lm %s", cc,
-                   debug ? "-g -O0" : "-O2", inc, cpath, outp, lib, extra ? extra : "");
+                   debug ? "-g -O0" : opt, inc, cpath, outp, lib, extra ? extra : "");
 #endif
     rc = system(cmd);
     if (!keep_c) remove(cpath);
@@ -292,6 +296,7 @@ int main(int argc, char **argv)
             else if (!strcmp(argv[i], "--keep-c")) keep = 1;
             else if (!strcmp(argv[i], "--debug")) debug = 1;
             else if (!strcmp(argv[i], "--target") && i + 1 < argc) target = argv[++i];
+            else if (!strcmp(argv[i], "--opt") && i + 1 < argc) setenv("BOING_OPT", argv[++i], 1);
             else { fprintf(stderr, "boing: unknown option %s\n", argv[i]); return 5; }
         }
         if (target && strcmp(target, "os4") == 0) {

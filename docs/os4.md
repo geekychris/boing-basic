@@ -58,7 +58,8 @@ BOING:bindings/          *.bi
 BOING:examples/
 ```
 
-`--debug` compiles with `-gstabs -O0` (AmiForge's debugger reads stabs) and `BOING_CFLAGS`
+`--opt 0|1|2|s` (or `BOING_OPT`) sets the C optimisation level, -O2 by default; `--opt 0` is
+the quickest to compile with the SDK GCC on the guest. `--debug` compiles with `-gstabs -O0` (AmiForge's debugger reads stabs) and `BOING_CFLAGS`
 is added to the GCC command line, here and in `tools/boing-build-os4.sh`.
 
 and the compile is

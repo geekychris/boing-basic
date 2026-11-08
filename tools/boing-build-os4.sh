@@ -36,7 +36,7 @@ case $(uname -m) in
 arm64|aarch64) img=walkero/amigagccondocker:os4-gcc11-arm64 ;;
 *) img=walkero/amigagccondocker:os4-gcc11-amd64 ;;
 esac
-opt="-O2"; [ -n "$debug" ] && opt="-O0 -gstabs"       # stabs: what AmiForge's debugger reads
+opt="-O${BOING_OPT:-2}"; [ -n "$debug" ] && opt="-O0 -gstabs"       # stabs: what AmiForge's debugger reads
 # never -mcpu=440/440fp (dlmzb crashes real X5000/A1222/G4 machines)
 docker run --rm -v "$root":/src -w /src "${PPC_IMAGE:-$img}" sh -c "
   ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc $opt -Wall -Wno-unused -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 \
