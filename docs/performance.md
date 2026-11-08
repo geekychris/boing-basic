@@ -211,16 +211,21 @@ back to back, on the Canvas control):
 | 2x scale (800 x 600 window), friend bitmap | 0.21 | 1.87 | 5.63 | 8.68 | 115 |
 | 2x scale, ARGB32 | 0.26 | 1.84 | 10.21 | 13.26 | 75 |
 
-The console bench (`Bench.bbp`, logic only and with the off-screen Canvas):
+The same game in the VM (`boing run Glimmerfield.bbp --bench 1000`): 59 fps (logic 0.64,
+draw 13.27, blit 1.12). Native: 294 fps in that run (logic 0.22, draw 1.61, blit 0.84).
 
-| | logic | frame | fps |
+The console bench (`Bench.bbp`; main 205dba1, ms per frame):
+
+| | native | VM | VM/native |
 |---|---:|---:|---:|
-| VM (`boing run Bench.bbp --bench 300`) | 0.95 | 1.46 | 684 |
-| native, with `--canvas` (300 frames) | 0.52 | 2.64 | 380 |
+| logic (`--bench 3000`) | 0.156 | 3.892 | 25x |
+| draw on an off-screen Canvas (`--bench 1000 --canvas`) | 2.03 | 14.39 | 7x |
+| draw + blit on SoftCanvas, the BASIC framebuffer (`--draw`) | 8.4 + 4.8 | 156.6 + 28.0 | 14x |
 
-All guest runs give the same state hashes as the Mac, and the Canvas picture hash too (536314
-after 300 frames): the drawing is pixel-identical on PPC. The guest is roughly 100-300x slower
-than an M-series Mac on this code. VM against native on the guest: about 2x for the game logic
-(0.95 vs ~0.5 ms/frame).
+All guest runs give the same state and picture hashes as the Mac (e.g. 642416 after 3000
+frames): the VM, native code and the Canvas engine compute the same results on PPC. The VM
+pays far more on the guest than on the Mac (25x native vs 6x). The likely cause is QEMU's
+emulation of the interpreter's indirect branches, so a real PPC machine should do better.
+For the game in the VM, the per-frame BASIC in Render.bas and its ~60 Canvas calls dominate.
 
 Open: `--jit` on the guest (being verified by bb-core); the VM running the form game itself.
