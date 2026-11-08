@@ -234,3 +234,39 @@ int bb_dispatch_event(const char *module, const char *object, const char *event,
     if (bb_call_proc(p, argc, argv, NULL) != 0) bb_fatal_error();
     return 1;
 }
+
+/* ---- Err object ---- */
+bb_long bb_err_number(void) { return bb_err.number; }
+bb_str *bb_err_description(void) { return bb_str_retain(bb_err.description); }
+bb_str *bb_err_source(void) { return bb_str_retain(bb_err.source); }
+void bb_err_set_number(bb_long n)
+{
+    bb_err.number = n;
+    if (n && !bb_str_len(bb_err.description)) bb_str_set(&bb_err.description, bb_str_from_c(bb_error_message(n)));
+    if (!n) bb_str_set(&bb_err.description, NULL);
+}
+void bb_err_set_description(bb_str *s) { bb_str_assign(&bb_err.description, s); }
+void bb_err_set_source(bb_str *s) { bb_str_assign(&bb_err.source, s); }
+
+void bb_err_raise_v(bb_long num, const bb_value *source, const bb_value *desc)
+{
+    bb_str *src = NULL, *d = NULL;
+    bb_value t;
+    if (source && !(bb_v_deref(source, &t)->type == BB_ERROR && (bb_v_deref(source, &t)->flags & BB_VF_MISSING)))
+        src = bb_v_to_str(source);
+    if (desc && !(bb_v_deref(desc, &t)->type == BB_ERROR && (bb_v_deref(desc, &t)->flags & BB_VF_MISSING)))
+        d = bb_v_to_str(desc);
+    if (num < 0 && !d) d = bb_str_from_c("Automation error");
+    if (!src) src = bb_str_from_c("");
+    {
+        bb_str *dd = d, *ss = src;
+        bb_err.number = num;
+        if (bb_str_len(dd)) bb_str_set(&bb_err.description, dd);
+        else { bb_str_release(dd); bb_str_set(&bb_err.description, bb_str_from_c(bb_error_message(num))); }
+        bb_str_set(&bb_err.source, ss);
+    }
+    bb_err.located = 0;
+    bb_err.line = bb_line;
+    bb_err.file = bb_file;
+    bb_rethrow();
+}

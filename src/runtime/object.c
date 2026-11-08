@@ -300,3 +300,60 @@ const bb_class bb_collection_class = {
 };
 
 bb_obj *bb_collection_new(void) { return bb_obj_new(&bb_collection_class); }
+
+/* ---- Variant indexing ---- */
+
+static void *elem_of(bb_array *a, int argc, bb_value *argv)
+{
+    int32_t idx[BB_MAXDIMS];
+    int i;
+    if (argc > BB_MAXDIMS) bb_raise(9, NULL);
+    for (i = 0; i < argc; i++) idx[i] = bb_v_to_long(&argv[i]);
+    return bb_arr_elem(a, argc, idx);
+}
+
+bb_value bb_v_index(const bb_value *v0, int argc, bb_value *argv)
+{
+    bb_value t;
+    const bb_value *v = bb_v_deref(v0, &t);
+    if (v->type & BB_ARRAY) {
+        if (!v->u.a) bb_raise(9, NULL);
+        return bb_elem_load(v->u.a->etype, elem_of(v->u.a, argc, argv));
+    }
+    if (v->type == BB_OBJECT) return bb_invoke(v->u.o, "", BB_INV_GET | BB_INV_METHOD, argc, argv);
+    bb_raise(13, NULL);
+    return bb_v_empty();
+}
+
+void bb_v_index_store(bb_value *v0, int argc, bb_value *argv, const bb_value *val)
+{
+    bb_value *v = v0;
+    if (v->type & BB_REF) {
+        if (BB_BASETYPE(v->type) != BB_VARIANT) bb_raise(13, NULL);
+        v = (bb_value *)v->u.p;
+    }
+    if (v->type & BB_ARRAY) {
+        if (!v->u.a) bb_raise(9, NULL);
+        bb_elem_store(v->u.a->etype, elem_of(v->u.a, argc, argv), val);
+        return;
+    }
+    if (v->type == BB_OBJECT) {
+        bb_value args[BB_MAXDIMS + 1], r;
+        int i;
+        if (argc > BB_MAXDIMS) bb_raise(450, NULL);
+        for (i = 0; i < argc; i++) args[i] = argv[i];
+        args[argc] = *val;
+        r = bb_invoke(v->u.o, "", val->type == BB_OBJECT ? BB_INV_SET : BB_INV_LET, argc + 1, args);
+        bb_v_release(&r);
+        return;
+    }
+    bb_raise(13, NULL);
+}
+
+bb_array *bb_v_array(const bb_value *v0)
+{
+    bb_value t;
+    const bb_value *v = bb_v_deref(v0, &t);
+    if (!(v->type & BB_ARRAY)) bb_raise(13, NULL);
+    return v->u.a;
+}

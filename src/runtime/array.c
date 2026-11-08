@@ -2,6 +2,7 @@
 #include "boing.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 
 int32_t bb_type_size(int t)
 {
@@ -303,4 +304,14 @@ void bb_udt_copy(const bb_udt_desc *d, void *dst, const void *src)
             *(bb_array **)q = n;
         } else bb_elem_copy(f->type, f->udt, q, s);
     }
+}
+
+bb_value bb_v_udt_new(const bb_udt_desc *d)
+{
+    bb_value v = bb_v_make(BB_UDT);
+    bb_udtbox *b = (bb_udtbox *)bb_alloc(offsetof(bb_udtbox, data) + (size_t)(d->size ? d->size : 1));
+    b->desc = d;
+    bb_udt_init(d, b->data);
+    v.u.p = b;
+    return v;
 }

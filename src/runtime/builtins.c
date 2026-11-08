@@ -281,3 +281,18 @@ bb_long bb_shell(bb_str *cmd)
 
 void bb_beep(void) { bb_plat_beep(); }
 void bb_sleep_ms(bb_long ms) { bb_console_flush(); bb_plat_sleep_ms(ms); }
+
+static bb_int (*g_doevents)(void);
+void bb_set_doevents(bb_int (*fn)(void)) { g_doevents = fn; }
+bb_int bb_doevents(void) { bb_console_flush(); return g_doevents ? g_doevents() : 0; }
+bb_long bb_rgb(bb_long r, bb_long g, bb_long b)
+{
+    return (bb_long)((r & 255) | ((g & 255) << 8) | ((b & 255) << 16));
+}
+bb_long bb_erl(void) { return bb_err.number ? bb_err.line : 0; }
+bb_str *bb_error_fn(const bb_value *num)
+{
+    if (missing(num)) return bb_str_retain(bb_err.description);
+    return bb_str_from_c(bb_error_message(bb_v_to_long(num)));
+}
+bb_date bb_timevalue_(bb_date d) { return d - floor(d); }

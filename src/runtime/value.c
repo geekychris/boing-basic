@@ -9,6 +9,11 @@ void bb_v_release(bb_value *v)
     if (t == BB_STRING) bb_str_release(v->u.s);
     else if (t == BB_OBJECT) bb_obj_release(v->u.o);
     else if (t & BB_ARRAY && !(t & BB_REF)) bb_arr_free(v->u.a);
+    else if (t == BB_UDT && v->u.p) {
+        bb_udtbox *b = (bb_udtbox *)v->u.p;
+        bb_udt_clear(b->desc, b->data);
+        bb_free(b);
+    }
     v->type = BB_EMPTY;
     v->flags = 0;
     v->u.c = 0;
@@ -25,6 +30,12 @@ void bb_v_copy(bb_value *dst, const bb_value *src)
         bb_v_copy(dst, v);
     }
     else if (src->type & BB_ARRAY) dst->u.a = src->u.a ? bb_arr_copy(src->u.a) : NULL;
+    else if (src->type == BB_UDT && src->u.p) {
+        const bb_udtbox *sb = (const bb_udtbox *)src->u.p;
+        bb_value n = bb_v_udt_new(sb->desc);
+        bb_udt_copy(sb->desc, bb_v_udt_data(&n), sb->data);
+        *dst = n;
+    }
 }
 
 void bb_v_assign(bb_value *dst, const bb_value *src)
@@ -55,6 +66,7 @@ const bb_value *bb_v_deref(const bb_value *v, bb_value *tmp)
         return tmp;
     }
     if (t == BB_VARIANT) return bb_v_deref((const bb_value *)p, tmp);
+    if (t == BB_UDT) bb_raise(13, NULL);
     *tmp = bb_v_make(t);
     switch (t) {
     case BB_INTEGER: case BB_BOOLEAN: tmp->u.i = *(bb_int *)p; break;

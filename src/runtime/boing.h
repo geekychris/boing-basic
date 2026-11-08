@@ -369,6 +369,15 @@ struct bb_udt_desc {
     const bb_field *fields;
 };
 
+/* A UDT held in a Variant-like slot (VM locals, Variant-typed temporaries):
+ * type BB_UDT, u.p -> bb_udtbox. bb_v_release / bb_v_copy handle it. */
+typedef struct bb_udtbox {
+    const bb_udt_desc *desc;
+    union { double d; int64_t l; void *p; } data[1];   /* record, 8-aligned */
+} bb_udtbox;
+bb_value bb_v_udt_new(const bb_udt_desc *d);         /* initialised record */
+BB_INLINE void *bb_v_udt_data(const bb_value *v) { return ((bb_udtbox *)v->u.p)->data; }
+
 void bb_udt_init(const bb_udt_desc *d, void *p);     /* zero + allocate fixed array fields */
 void bb_udt_clear(const bb_udt_desc *d, void *p);    /* release strings/objects/arrays */
 void bb_udt_copy(const bb_udt_desc *d, void *dst, const void *src);  /* dst initialised */
@@ -472,6 +481,34 @@ typedef struct bb_foreach {
 void bb_foreach_begin(bb_foreach *fe, const bb_value *src);  /* error 92/424/13 */
 int bb_foreach_next(bb_foreach *fe, bb_value *out);          /* out owned; 0 = done */
 void bb_foreach_end(bb_foreach *fe);
+
+/* Variant indexing: v(i, j) on a Variant holding an array (element) or an
+ * object (default member). */
+bb_value bb_v_index(const bb_value *v, int argc, bb_value *argv);
+void bb_v_index_store(bb_value *v, int argc, bb_value *argv, const bb_value *val);
+bb_array *bb_v_array(const bb_value *v);    /* borrowed array inside a Variant; error 13 */
+
+/* Err object accessors */
+bb_long bb_err_number(void);
+bb_str *bb_err_description(void);           /* owned */
+bb_str *bb_err_source(void);                /* owned */
+void bb_err_set_number(bb_long n);
+void bb_err_set_description(bb_str *s);
+void bb_err_set_source(bb_str *s);
+void bb_err_raise_v(bb_long num, const bb_value *source, const bb_value *desc) BB_NORETURN;
+
+/* Declare: calls into OS libraries. The platform supplies bb_declare_call;
+ * on hosts without OS libraries it raises error 453. */
+typedef struct bb_declare {
+    const char *name;       /* BASIC name */
+    const char *lib;        /* "intuition.library" */
+    const char *alias;      /* function name in the library (Alias or name) */
+    const char *iface;      /* interface name, default "main" */
+    int32_t version;        /* minimum library version */
+    int32_t nparams;
+    void *cache;            /* platform: opened interface */
+} bb_declare;
+uint32_t bb_declare_call(bb_declare *d, int argc, const uint32_t *argv);
 
 /* Built-in classes */
 extern const bb_class bb_collection_class;
@@ -614,6 +651,12 @@ bb_str *bb_environ(const bb_value *v);
 bb_long bb_shell(bb_str *cmd);
 void bb_beep(void);
 void bb_sleep_ms(bb_long ms);
+bb_int bb_doevents(void);                    /* lets a GUI runtime process events */
+void bb_set_doevents(bb_int (*fn)(void));    /* installed by the forms runtime */
+bb_long bb_rgb(bb_long r, bb_long g, bb_long b);
+bb_long bb_erl(void);
+bb_str *bb_error_fn(const bb_value *num);    /* Error$(n) */
+bb_date bb_timevalue_(bb_date d);
 
 /* ------------------------------------------------------------------ */
 /* Files                                                                */
