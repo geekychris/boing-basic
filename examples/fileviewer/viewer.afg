@@ -1,0 +1,13 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=viewer title="File Viewer" width=560 height=340 resizable=1
+vlayout id=root
+  hlayout weight=0
+    string id=folder label="Folder" text="S:"
+    button id=refresh text="_List" weight=0
+    getfile id=pick title="Open a file" weight=40
+  hlayout
+    listbrowser id=files weight=35
+    texteditor id=view weight=65
+  hlayout weight=0
+    label id=status text="Choose a file"
+    checkbox id=hex text="He_x"

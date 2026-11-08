@@ -1,0 +1,28 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=calc title="Calculator" width=220 height=0 resizable=1
+vlayout id=root
+  string id=display text=0 maxchars=32
+  hlayout even=1
+    button id=b7 text=7
+    button id=b8 text=8
+    button id=b9 text=9
+    button id=bdiv text=/
+  hlayout even=1
+    button id=b4 text=4
+    button id=b5 text=5
+    button id=b6 text=6
+    button id=bmul text=*
+  hlayout even=1
+    button id=b1 text=1
+    button id=b2 text=2
+    button id=b3 text=3
+    button id=bsub text=-
+  hlayout even=1
+    button id=b0 text=0
+    button id=bdot text=.
+    button id=beq text==
+    button id=badd text=+
+  hlayout even=1
+    button id=bclear text="_Clear"
+    button id=bback text="<-"
+  label id=status text=" "

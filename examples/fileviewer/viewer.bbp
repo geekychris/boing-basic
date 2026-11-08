@@ -1,0 +1,4 @@
+# Boing BASIC project
+Name=Viewer
+Startup=Form viewer
+Form=viewer.afg

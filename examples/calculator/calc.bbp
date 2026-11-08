@@ -1,0 +1,4 @@
+# Boing BASIC project
+Name=Calculator
+Startup=Form calc
+Form=calc.afg
