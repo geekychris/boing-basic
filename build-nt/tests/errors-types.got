@@ -1,5 +1,0 @@
-types.bas:6:5: error: type mismatch: cannot convert Pt to Integer
-types.bas:7:7: error: type 'Pt' has no field 'Y'
-types.bas:8:1: error: Set needs an object variable ('i' is Integer)
-types.bas:12:3: error: ByRef argument type mismatch: Integer variable passed for Long parameter 'n'
-types.bas:13:6: error: Sub, Function or array 'G' is not defined
