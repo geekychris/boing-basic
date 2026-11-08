@@ -367,6 +367,9 @@ static char *addr(EC *e, Node *n)
 {
     Type *t = n->ty;
     const char *ct = t->kind == T_UDT ? udt_cname(t->udt) : ctype(t);
+    if (n->kind == E_VAR && n->sym->is_new && t->kind == T_OBJECT && t->cls)
+        /* passing an As New variable creates its object too */
+        pre(e, "(void)bb_autonew((bb_obj **)&%s, %s);", lval(e, n), t->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(t->cls)));
     if (n->kind == E_VAR && sym_is_ref(n->sym)) return sym_cname(e, n->sym);
     if (is_lvalue(n)) return xsprintf("((%s *)&%s)", ct, lval(e, n));
     /* rvalue: through a temporary */
@@ -881,12 +884,19 @@ static R prod(EC *e, Node *n)
     switch (n->kind) {
     case E_CONST: return mkr(const_expr(e, n), 0);
     case E_VAR:
+        if (n->sym->is_new && n->ty->kind == T_OBJECT && n->ty->cls)
+            /* As New: created on first use */
+            return mkr(xsprintf("bb_autonew((bb_obj **)&%s, %s)", lval(e, n),
+                                n->ty->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(n->ty->cls))), 0);
         if (n->ty->kind == T_VARIANT) {
             if (sym_is_ref(n->sym)) return mkr(sym_cname(e, n->sym), 0);
             return mkr(xsprintf("((bb_value *)&%s)", lval(e, n)), 0);
         }
         return mkr(lval(e, n), 0);
     case E_INDEX: case E_FIELD: case E_MFIELD:
+        if (n->kind == E_MFIELD && n->sym->is_new && n->ty->kind == T_OBJECT && n->ty->cls)
+            return mkr(xsprintf("bb_autonew((bb_obj **)&%s, %s)", lval(e, n),
+                                n->ty->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(n->ty->cls))), 0);
         if (n->ty->kind == T_VARIANT) return mkr(xsprintf("(&%s)", lval(e, n)), 0);
         return mkr(lval(e, n), 0);
     case E_CONV: {
@@ -2111,7 +2121,6 @@ static void emit_class_impl(EC *e)
                 buf_printf(e->out, "    %s = bb_arr_new(%s, %s, %d, (const int32_t[]){%s}, (const int32_t[]){%s}); %s->fixed = 1;\n",
                            fl, vtname(t->elem), udt_desc_ref(t), f->ndims, lb.p, ub.p, fl);
             }
-            if (f->is_new) buf_printf(e->out, "    %s = %s;\n", fl, f->ty->cls->builtin ? "bb_collection_new()" : xsprintf("%s_new()", cls_cname(f->ty->cls)));
         }
         if (c->init) buf_printf(e->out, "    %s(&o->hdr);\n", proc_cname(c->init));
         buf_puts(e->out, "    return &o->hdr;\n}\n");
@@ -2252,10 +2261,6 @@ int emit_c(Program *p, Buf *outb, int debug)
             buf_printf(outb, "    %s = bb_arr_new(%s, %s, %d, (const int32_t[]){%s}, (const int32_t[]){%s}); %s->fixed = 1;\n",
                        n, vtname(t->elem), udt_desc_ref(t), s->ndims, lb.p, ub.p, n);
         }
-    }
-    for (i = 0; i < p->nglobals; i++) {
-        Sym *s = p->globals[i];
-        if (s->is_new) buf_printf(outb, "    %s = %s;\n", sym_cname(e, s), s->ty->cls->builtin ? "bb_collection_new()" : xsprintf("%s_new()", cls_cname(s->ty->cls)));
     }
     for (i = 0; i < p->nmods; i++) {
         Module *m = p->mods[i];

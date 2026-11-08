@@ -142,10 +142,12 @@ static void expr(E *e, Node *n);
 static void addr(E *e, Node *n);
 static void stmt(E *e, Node *s);
 
+static void autonew(E *e, Sym *s);
 static void load_var(E *e, Sym *s)
 {
     Type *t = s->ty;
     int vt = vt_of(t);
+    autonew(e, s);
     switch (s->storage) {
     case ST_LOCAL: case ST_PARAM:
         if (is_ref_slot(s)) { op2(e, I_LDR, slot_of(e, s), vt); return; }
@@ -186,12 +188,23 @@ static void store_var(E *e, Sym *s)
     }
 }
 
+static void autonew(E *e, Sym *s)
+{
+    Type *t = s->ty;
+    if (s->is_new && t->kind == T_OBJECT && t->cls) {
+        int where = (s->storage == ST_LOCAL || s->storage == ST_PARAM) ? 0 : s->storage == ST_FIELD ? 2 : 1;
+        int idx = where == 0 ? slot_of(e, s) : s->index;
+        emit_w(e, I_AUTONEW); emit_w(e, where); emit_w(e, idx << 16); emit_w(e, t->cls->builtin ? -1 : t->cls->index + 1);
+    }
+}
+
 static void addr(E *e, Node *n)
 {
     switch (n->kind) {
     case E_VAR: {
         Sym *s = n->sym;
         int vt = vt_of(s->ty);
+        autonew(e, s);
         switch (s->storage) {
         case ST_LOCAL: case ST_PARAM:
             if (is_ref_slot(s)) op1(e, I_LDL, slot_of(e, s));
@@ -463,6 +476,15 @@ static void expr(E *e, Node *n)
         op1(e, I_LDIND, vt_of(n->ty));
         return;
     case E_FIELD: case E_MFIELD:
+        if (n->kind == E_MFIELD && n->sym->is_new && n->ty->kind == T_OBJECT && n->ty->cls) {
+            /* As New field of another object: created on first use */
+            e->used_keep = 1;
+            expr(e, n->a);
+            op2(e, I_AUTONEWM, n->sym->index, n->ty->cls->builtin ? -1 : n->ty->cls->index + 1);
+            op3(e, I_MFIELD, n->cls->index, n->sym->index, vt_of(n->ty));
+            op1(e, I_LDIND, vt_of(n->ty));
+            return;
+        }
         addr(e, n);
         op1(e, I_LDIND, vt_of(n->ty));
         return;

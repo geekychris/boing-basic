@@ -803,7 +803,7 @@ static void check_dim_local(Ctx *c, Node *s, NodeList *out)
             add_global(c->prog, v);
             v->cname = xsprintf("%s_%s", c->proc->name, d->name);
         } else proc_local_add(c->proc, v);
-        if (!is_static && (v->is_new)) {
+        if (0 && !is_static && (v->is_new)) {
             /* As New: create when the Dim runs */
             Node *st = mk_stmt(S_SET, d);
             Node *nw = node_new(E_NEW, d->file, d->line, d->col);

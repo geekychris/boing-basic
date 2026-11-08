@@ -1,0 +1,20 @@
+start
+a.Idinit 1 
+ 1 
+again 1 
+term 1 
+after nothing
+Is Nothing:init 2 
+False
+term 2 
+init 3 
+touch 3 
+local dim done
+local idinit 4 
+ 4 
+term 4 
+holder made
+items 1 
+innerinit 5 
+ 5 
+end

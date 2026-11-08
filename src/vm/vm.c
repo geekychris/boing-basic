@@ -118,7 +118,7 @@ static void init_slot(VM *vm, bb_value *v, const VMSlot *s)
     if (s->vt == BB_VARIANT) return;
     v->type = s->vt;
     if (s->vt == BB_STRING && s->fixlen) v->u.s = bb_str_fixlen(NULL, s->fixlen);
-    if (s->vt == BB_OBJECT && s->newcls) v->u.o = s->newcls < 0 ? bb_collection_new() : new_object(vm, s->newcls - 1);
+    /* As New objects are created on first use (I_AUTONEW) */
 }
 
 static inline void release_slot(bb_value *v)
@@ -1154,6 +1154,37 @@ static void vm_exec(VM *vm, int entry)
             case I_STG: { G[pc[1]] = POP(); pc += 2; break; }
             case I_STGS: { bb_value v = POP(); SYNC(); bb_str_set(&G[pc[1]].u.s, v.type == BB_STRING ? v.u.s : NULL); G[pc[1]].type = BB_STRING; pc += 2; break; }
             case I_STGV: { bb_value v = POP(); SYNC(); bb_v_set(&G[pc[1]], v); pc += 2; break; }
+            case I_AUTONEW: {
+                /* As New: create the object on first use (or after Set x = Nothing) */
+                bb_value *v = pc[1] == 0 ? &L[pc[2] >> 16] : pc[1] == 1 ? &G[pc[2] >> 16] : &((VMObj *)L[0].u.o)->f[pc[2] >> 16];
+                int32_t nc = pc[3];
+                if (v->type != BB_OBJECT || !v->u.o) {
+                    bb_obj *o;
+                    SYNC();
+                    o = nc < 0 ? bb_collection_new() : new_object(vm, nc - 1);
+                    if (v->type == BB_OBJECT && v->u.o) bb_obj_release(o);     /* created meanwhile */
+                    else { v->type = BB_OBJECT; v->u.o = o; }
+                }
+                pc += 4;
+                break;
+            }
+            case I_AUTONEWM: {
+                /* As New field of the object on top of the stack */
+                bb_value *t = &TOP;
+                if (t->type == BB_OBJECT && t->u.o) {
+                    bb_value *v = &((VMObj *)t->u.o)->f[pc[1]];
+                    if (v->type != BB_OBJECT || !v->u.o) {
+                        bb_obj *o;
+                        SYNC();
+                        o = pc[2] < 0 ? bb_collection_new() : new_object(vm, pc[2] - 1);
+                        v = &((VMObj *)TOP.u.o)->f[pc[1]];
+                        if (v->type == BB_OBJECT && v->u.o) bb_obj_release(o);
+                        else { v->type = BB_OBJECT; v->u.o = o; }
+                    }
+                }
+                pc += 3;
+                break;
+            }
             case I_LDF: case I_LDFV: {
                 VMObj *o = (VMObj *)L[0].u.o;
                 bb_value v;

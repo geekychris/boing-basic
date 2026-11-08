@@ -121,8 +121,9 @@ both back ends.
 - Instance variables (`Private`/`Public` – public ones are properties), methods, `Property
   Get/Let/Set`, `Class_Initialize`, `Class_Terminate` (runs when the last reference goes away),
   `Me`.
-- `New`, `Dim x As New C` (created when the `Dim` runs or the module/object is set up; VB
-  creates it on first use), `Set`, `Nothing`, `Is`, `TypeOf`, `TypeName`.
+- `New`, `Dim x As New C` (as in VB, the object is created when `x` is first used, also
+  after `Set x = Nothing`; so `x Is Nothing` is always False), `Set`, `Nothing`, `Is`,
+  `TypeOf`, `TypeName`.
 - Variables typed with a class are early bound (direct calls). `Object` and `Variant` are late
   bound: members are found by name at run time. Both work on BASIC classes, `Collection` and
   runtime objects such as form controls.
@@ -204,5 +205,4 @@ error 48/453.
 
 - `Decimal`; `CDec` returns a Double.
 - `AddressOf`; `Friend` is treated as `Public`.
-- `As New` creates the object when the `Dim` runs, not on first use.
 - Late-bound calls pass arguments by value (no ByRef through `Object`).
