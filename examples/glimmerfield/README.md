@@ -64,8 +64,9 @@ guest, freshly rebooted (ms per frame):
 
 | | logic | draw | blit | fps |
 |---|---:|---:|---:|---:|
-| game, native (`Glimmerfield --bench 1000`) | 0.22 | 1.61 | 0.84 | 294 |
-| game, VM (`boing run Glimmerfield.bbp --bench 1000`) | 0.64 | 13.27 | 1.12 | 59 |
+| game, native (`Glimmerfield --bench 1000`) | 0.22-0.29 | 1.6-2.7 | 0.84-1.25 | 188-294 |
+| game, VM (`boing run Glimmerfield.bbp --bench 1000`) | 0.71 | 13.13 | 1.30 | 60 |
+| game, VM with `--jit` | 0.92 | 15.70 | 1.35 | 51 |
 | game, native, 2x scale | 0.20 | 2.00 | 5.91 | 106 |
 
 ![Four frames on the guest](docs/guest-2x-frames.png)

@@ -252,4 +252,16 @@ pays far more on the guest than on the Mac (25x native vs 6x). The likely cause 
 emulation of the interpreter's indirect branches, so a real PPC machine should do better.
 For the game in the VM, the per-frame BASIC in Render.bas and its ~60 Canvas calls dominate.
 
-Open: `--jit` on the guest (being verified by bb-core); the VM running the form game itself.
+#### VM vs JIT vs native on the guest (boing main b1c6ae6, one session, ms per frame)
+
+| | VM | VM `--jit` | native |
+|---|---:|---:|---:|
+| bench logic (`Bench.bbp --bench 3000`) | 1.120 | 1.012 | 0.202 |
+| bench draw on an off-screen Canvas (`--bench 1000 --canvas`) | 12.26 | 15.01 | 2.03 (earlier session) |
+| **the game** (`Glimmerfield.bbp --bench 1000`), fps | **60.1** | **50.6** | **187.9** |
+| the game: logic / draw / blit | 0.71 / 13.13 / 1.30 | 0.92 / 15.70 / 1.35 | 0.29 / 2.67 / 1.25 |
+
+The hashes stay identical across all three. The JIT gains 10% on the game logic but loses
+about 20% on the drawing, which is call-heavy: ~60 late-bound Canvas calls a frame and small
+helpers called in loops (reported to bb-core). This boing's VM is 3.5x faster on the logic than
+the 205dba1 one above (3.89 → 1.12 ms), and now 5.5x slower than native on the guest.
