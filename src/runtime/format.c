@@ -354,6 +354,11 @@ bb_str *bb_format(const bb_value *v0, bb_str *fmt)
         return sb_done(&b);
     }
     if (v->type == BB_STRING && !bb_v_is_numeric(v)) return fmt_string(f, v->u.s);
+    if ((strchr(f, '@') || strchr(f, '&')) && !strpbrk(f, "0#")) {
+        bb_str *s = bb_v_to_str(v), *r = fmt_string(f, s);
+        bb_str_release(s);
+        return r;
+    }
     if (v->type == BB_STRING && (strchr(f, '@') || strchr(f, '&') || strchr(f, '<') || strchr(f, '>'))) return fmt_string(f, v->u.s);
     /* numeric with sections */
     x = bb_v_to_double(v);

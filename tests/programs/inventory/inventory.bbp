@@ -1,0 +1,5 @@
+Name=Inventory
+Startup=Sub Main
+Module=main.bas
+Class=Item.cls
+Class=Inventory.cls

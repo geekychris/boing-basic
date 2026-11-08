@@ -989,7 +989,7 @@ static void store_from_variant(EC *e, Node *t, const char *tv)
     Type *ty = t->ty;
     char *lv = lval(e, t);
     switch (ty->kind) {
-    case T_VARIANT: action(e, "bb_v_set((bb_value *)&%s, %s);", lv, tv); return;
+    case T_VARIANT: action(e, "bb_v_set((bb_value *)&%s, %s); %s = bb_v_empty();", lv, tv, tv); return;
     case T_STRING:
         if (ty->fixlen) action(e, "bb_str_set((bb_str **)&%s, bb_str_fixlen(bb_v_to_str(&%s), %d)); bb_v_release(&%s);", lv, tv, ty->fixlen, tv);
         else action(e, "bb_str_set((bb_str **)&%s, bb_v_to_str(&%s)); bb_v_release(&%s);", lv, tv, tv);
