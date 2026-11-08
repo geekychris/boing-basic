@@ -64,8 +64,6 @@ Declare Function USBEPDestall Lib "usbsys.device" Alias "#59" (ByVal openreq As 
 Declare Function USBAllocObject Lib "usbsys.device" Alias "#61" (ByVal type_ As Long, ByVal taglist_ As Long) As Long
 Declare Sub USBFreeObject Lib "usbsys.device" Alias "#62" (ByVal type_ As Long, ByVal object_ As Long)
 ' USBLogPrintf: variadic, left out
-Declare Function USBScanA Lib "usbsys.device" Alias "#64" (ByVal type_ As Long, ByVal hook As Long, ByVal taglist_ As Long) As Long
-' USBScan: variadic, left out
 Declare Sub USBGetEndPointAttrsA Lib "usbsys.device" Alias "#66" (ByVal ep As Long, ByVal taglist_ As Long)
 ' USBGetEndPointAttrs: variadic, left out
 Declare Function USBGetFrameNumber Lib "usbsys.device" Alias "#68" (ByVal ep As Long, ByVal timestamp As Long) As Long

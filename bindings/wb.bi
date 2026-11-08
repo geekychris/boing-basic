@@ -5,8 +5,6 @@
 
 ' --- interface "main" ---
 Declare Sub UpdateWorkbench Lib "workbench.library" Alias "#4" (ByVal name_ As String, ByVal lock_ As Long, ByVal action As Long)
-Declare Function QuoteWorkbench Lib "workbench.library" Alias "#5" (ByVal stringNum As Long) As Long
-Declare Function StartWorkbench Lib "workbench.library" Alias "#6" (ByVal flags As Long, ByVal ptr As Long) As Long
 Declare Function AddAppWindowA Lib "workbench.library" Alias "#7" (ByVal id As Long, ByVal userdata As Long, ByVal window As Long, ByVal msgport As Long, ByVal taglist_ As Long) As Long
 ' AddAppWindow: variadic, left out
 Declare Function RemoveAppWindow Lib "workbench.library" Alias "#9" (ByVal appWindow As Long) As Long
@@ -16,7 +14,6 @@ Declare Function RemoveAppIcon Lib "workbench.library" Alias "#12" (ByVal appIco
 Declare Function AddAppMenuItemA Lib "workbench.library" Alias "#13" (ByVal id As Long, ByVal userdata As Long, ByVal text As String, ByVal msgport As Long, ByVal taglist_ As Long) As Long
 ' AddAppMenuItem: variadic, left out
 Declare Function RemoveAppMenuItem Lib "workbench.library" Alias "#15" (ByVal appMenuItem As Long) As Long
-Declare Function WBConfig Lib "workbench.library" Alias "#16" (ByVal tag As Long, ByVal value As Long) As Long
 Declare Function WBInfo Lib "workbench.library" Alias "#17" (ByVal lock_ As Long, ByVal name_ As String, ByVal screen_ As Long) As Long
 Declare Function OpenWorkbenchObjectA Lib "workbench.library" Alias "#18" (ByVal name_ As String, ByVal tags As Long) As Long
 ' OpenWorkbenchObject: variadic, left out

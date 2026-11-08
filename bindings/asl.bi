@@ -9,8 +9,6 @@ Declare Function AllocAslRequest Lib "asl.library" Alias "#7" (ByVal reqType As 
 Declare Sub FreeAslRequest Lib "asl.library" Alias "#9" (ByVal requester As Long)
 Declare Function AslRequest Lib "asl.library" Alias "#10" (ByVal requester As Long, ByVal tagList_ As Long) As Long
 ' AslRequestTags: variadic, left out
-Declare Sub AslFreeVec Lib "asl.library" Alias "#12" (ByVal memory As Long)
-Declare Function AslAllocVec Lib "asl.library" Alias "#13" (ByVal byteSize As Long, ByVal attributes As Long) As Long
 Declare Sub AbortAslRequest Lib "asl.library" Alias "#14" (ByVal requester As Long)
 Declare Sub ActivateAslRequest Lib "asl.library" Alias "#15" (ByVal requester As Long)
 Declare Function AslControl Lib "asl.library" Alias "#16" (ByVal tags As Long) As Long
@@ -204,58 +202,3 @@ Public Const ASLSM_MaxDepth = &H80080079
 Public Const ASLSM_FilterFunc = &H8008007A
 Public Const ASLSM_CustomSMList = &H8008007B
 Public Const ASLSM_StayOnTop = &H8008008E
-Public Const ASL_Hail = &H80080001
-Public Const ASL_Window = &H80080002
-Public Const ASL_LeftEdge = &H80080003
-Public Const ASL_TopEdge = &H80080004
-Public Const ASL_Width = &H80080005
-Public Const ASL_Height = &H80080006
-Public Const ASL_HookFunc = &H80080007
-Public Const ASL_File = &H80080008
-Public Const ASL_Dir = &H80080009
-Public Const ASL_FontName = &H8008000A
-Public Const ASL_FontHeight = &H8008000B
-Public Const ASL_FontStyles = &H8008000C
-Public Const ASL_FontFlags = &H8008000D
-Public Const ASL_FrontPen = &H8008000E
-Public Const ASL_BackPen = &H8008000F
-Public Const ASL_MinHeight = &H80080010
-Public Const ASL_MaxHeight = &H80080011
-Public Const ASL_OKText = &H80080012
-Public Const ASL_CancelText = &H80080013
-Public Const ASL_FuncFlags = &H80080014
-Public Const ASL_ModeList = &H80080015
-Public Const ASL_ExtFlags1 = &H80080016
-Public Const ASL_Pattern = &H8008000A
-Public Const FILB_DOWILDFUNC = 7
-Public Const FILB_DOMSGFUNC = 6
-Public Const FILB_SAVE = 5
-Public Const FILB_NEWIDCMP = 4
-Public Const FILB_MULTISELECT = 3
-Public Const FILB_PATGAD = 0
-Public Const FILF_DOWILDFUNC = 128
-Public Const FILF_DOMSGFUNC = 64
-Public Const FILF_SAVE = 32
-Public Const FILF_NEWIDCMP = 16
-Public Const FILF_MULTISELECT = 8
-Public Const FILF_PATGAD = 1
-Public Const FIL1B_NOFILES = 0
-Public Const FIL1B_MATCHDIRS = 1
-Public Const FIL1F_NOFILES = 1
-Public Const FIL1F_MATCHDIRS = 2
-Public Const FONB_FRONTCOLOR = 0
-Public Const FONB_BACKCOLOR = 1
-Public Const FONB_STYLES = 2
-Public Const FONB_DRAWMODE = 3
-Public Const FONB_FIXEDWIDTH = 4
-Public Const FONB_NEWIDCMP = 5
-Public Const FONB_DOMSGFUNC = 6
-Public Const FONB_DOWILDFUNC = 7
-Public Const FONF_FRONTCOLOR = 1
-Public Const FONF_BACKCOLOR = 2
-Public Const FONF_STYLES = 4
-Public Const FONF_DRAWMODE = 8
-Public Const FONF_FIXEDWIDTH = 16
-Public Const FONF_NEWIDCMP = 32
-Public Const FONF_DOMSGFUNC = 64
-Public Const FONF_DOWILDFUNC = 128

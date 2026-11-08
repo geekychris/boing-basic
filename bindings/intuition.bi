@@ -67,7 +67,6 @@ Declare Function MakeScreen Lib "intuition.library" Alias "#63" (ByVal screen_ A
 Declare Function RemakeDisplay Lib "intuition.library" Alias "#64" () As Long
 Declare Function RethinkDisplay Lib "intuition.library" Alias "#65" () As Long
 Declare Function AllocRemember Lib "intuition.library" Alias "#66" (ByVal rememberKey As Long, ByVal size As Long, ByVal flags As Long) As Long
-Declare Sub AlohaWorkbench Lib "intuition.library" Alias "#67" (ByVal wbport As Long)
 Declare Sub FreeRemember Lib "intuition.library" Alias "#68" (ByVal rememberKey As Long, ByVal reallyForget As Long)
 Declare Function LockIBase Lib "intuition.library" Alias "#69" (ByVal dontknow As Long) As Long
 Declare Sub UnlockIBase Lib "intuition.library" Alias "#70" (ByVal ibLock As Long)
@@ -96,7 +95,6 @@ Declare Function PubScreenStatus Lib "intuition.library" Alias "#92" (ByVal scre
 Declare Function ObtainGIRPort Lib "intuition.library" Alias "#93" (ByVal gInfo As Long) As Long
 Declare Sub ReleaseGIRPort Lib "intuition.library" Alias "#94" (ByVal rp As Long)
 Declare Sub GadgetMouse Lib "intuition.library" Alias "#95" (ByVal gadget As Long, ByVal gInfo As Long, ByVal mousePoint As Long)
-Declare Function SetIPrefs Lib "intuition.library" Alias "#96" (ByVal ptr As Long, ByVal size As Long, ByVal type_ As Long) As Long
 Declare Sub GetDefaultPubScreen Lib "intuition.library" Alias "#97" (ByVal nameBuffer As String)
 Declare Function EasyRequestArgs Lib "intuition.library" Alias "#98" (ByVal window As Long, ByVal easyStruct As Long, ByVal idcmpPtr As Long, ByVal args As Long) As Long
 ' EasyRequest: variadic, left out
@@ -119,7 +117,6 @@ Declare Function GetAttr Lib "intuition.library" Alias "#115" (ByVal attrID As L
 Declare Function SetGadgetAttrsA Lib "intuition.library" Alias "#116" (ByVal gadget As Long, ByVal window As Long, ByVal requester As Long, ByVal tagList_ As Long) As Long
 ' SetGadgetAttrs: variadic, left out
 Declare Function NextObject Lib "intuition.library" Alias "#118" (ByVal objectPtrPtr As Long) As Long
-Declare Function FindClass Lib "intuition.library" Alias "#119" (ByVal classID As Long) As Long
 Declare Function MakeClass Lib "intuition.library" Alias "#120" (ByVal classID As Long, ByVal superClassID As Long, ByVal superClassPtr As Long, ByVal instanceSize As Long, ByVal flags As Long) As Long
 Declare Sub AddClass Lib "intuition.library" Alias "#121" (ByVal cl As Long)
 Declare Function GetScreenDrawInfo Lib "intuition.library" Alias "#122" (ByVal screen_ As Long) As Long
@@ -127,8 +124,6 @@ Declare Sub FreeScreenDrawInfo Lib "intuition.library" Alias "#123" (ByVal scree
 Declare Function ResetMenuStrip Lib "intuition.library" Alias "#124" (ByVal window As Long, ByVal menu As Long) As Long
 Declare Sub RemoveClass Lib "intuition.library" Alias "#125" (ByVal cl As Long)
 Declare Function FreeClass Lib "intuition.library" Alias "#126" (ByVal cl As Long) As Long
-Declare Function LockClassList Lib "intuition.library" Alias "#127" () As Long
-Declare Sub UnlockClassList Lib "intuition.library" Alias "#128" ()
 Declare Function AllocScreenBuffer Lib "intuition.library" Alias "#135" (ByVal sc As Long, ByVal bm As Long, ByVal flags As Long) As Long
 Declare Sub FreeScreenBuffer Lib "intuition.library" Alias "#136" (ByVal sc As Long, ByVal sb As Long)
 Declare Function ChangeScreenBuffer Lib "intuition.library" Alias "#137" (ByVal sc As Long, ByVal sb As Long) As Long
@@ -166,7 +161,6 @@ Declare Function IDoMethodA Lib "intuition.library" Alias "#168" (ByVal object_ 
 ' IDoMethod: variadic, left out
 Declare Function OpenClass Lib "intuition.library" Alias "#170" (ByVal name_ As String, ByVal version_ As Long, ByVal cl_ptr As Long) As Long
 Declare Sub CloseClass Lib "intuition.library" Alias "#171" (ByVal cl As Long)
-Declare Function SetDisplayBeepHook Lib "intuition.library" Alias "#172" (ByVal hook As Long) As Long
 Declare Function LockScreen Lib "intuition.library" Alias "#173" (ByVal screen_ As Long, ByVal micros As Long) As Long
 Declare Sub UnlockScreen Lib "intuition.library" Alias "#174" (ByVal screen_ As Long)
 Declare Function GetWindowAttrsA Lib "intuition.library" Alias "#175" (ByVal win As Long, ByVal taglist_ As Long) As Long
@@ -199,8 +193,6 @@ Declare Sub EmbossDisableText Lib "intuition.library" Alias "#203" (ByVal rp As 
 Declare Sub PrintEmbossedDisabledIText Lib "intuition.library" Alias "#204" (ByVal rp As Long, ByVal itext As Long, ByVal left_ As Long, ByVal top As Long, ByVal backtype As Long, ByVal contrast As Long, ByVal dri As Long)
 Declare Function IntuiTextExtent Lib "intuition.library" Alias "#205" (ByVal rp As Long, ByVal itext As Long, ByVal textent As Long) As Long
 Declare Function ShadeRectOld Lib "intuition.library" Alias "#206" (ByVal rp As Long, ByVal minx As Long, ByVal miny As Long, ByVal maxx As Long, ByVal maxy As Long, ByVal shadelevel As Long, ByVal backtype As Long, ByVal state As Long, ByVal dri As Long) As Long
-Declare Sub DisableTemplateRGB Lib "intuition.library" Alias "#207" (ByVal rp As Long, ByVal left_ As Long, ByVal top As Long, ByVal width As Long, ByVal height As Long, ByVal template_ptr As Long, ByVal brightlevel As Long, ByVal darklevel As Long)
-Declare Function SetScreenBitMapInstance Lib "intuition.library" Alias "#208" (ByVal scr As Long, ByVal id As Long, ByVal source As Long) As Long
 Declare Function FindMenuKey Lib "intuition.library" Alias "#209" (ByVal menu As Long, ByVal code As Long) As Long
 Declare Function BitMapInstanceControlA Lib "intuition.library" Alias "#210" (ByVal bitmapinstance As Long, ByVal taglist_ As Long) As Long
 ' BitMapInstanceControl: variadic, left out
@@ -1259,8 +1251,6 @@ Public Const AUTOBACKPEN = 1
 Public Const AUTODRAWMODE = 1
 Public Const AUTOLEFTEDGE = 6
 Public Const AUTOTOPEDGE = 3
-Public Const AUTOITEXTFONT = 0
-Public Const AUTONEXTTEXT = 0
 Public Const SELECTUP = 232
 Public Const SELECTDOWN = 104
 Public Const MENUUP = 233
@@ -1321,192 +1311,6 @@ Public Const DRAGGADGET = 4
 Public Const SUPFRONTGADGET = 5
 Public Const SDOWNBACKGADGET = 6
 Public Const SDRAGGADGET = 7
-' intuition/iobsolete.h
-Public Const GADGHIGHBITS = 3
-Public Const GADGHCOMP = 0
-Public Const GADGHBOX = 1
-Public Const GADGHIMAGE = 2
-Public Const GADGHNONE = 3
-Public Const GADGIMAGE = 4
-Public Const GRELBOTTOM = 8
-Public Const GRELRIGHT = 16
-Public Const GRELWIDTH = 32
-Public Const GRELHEIGHT = 64
-Public Const SELECTED = 128
-Public Const GADGDISABLED = 256
-Public Const LABELMASK = 12288
-Public Const LABELITEXT = 0
-Public Const LABELSTRING = 4096
-Public Const LABELIMAGE = 8192
-Public Const RELVERIFY = 1
-Public Const GADGIMMEDIATE = 2
-Public Const ENDGADGET = 4
-Public Const FOLLOWMOUSE = 8
-Public Const RIGHTBORDER = 16
-Public Const LEFTBORDER = 32
-Public Const TOPBORDER = 64
-Public Const BOTTOMBORDER = 128
-Public Const BORDERSNIFF = 32768
-Public Const TOGGLESELECT = 256
-Public Const BOOLEXTEND = 8192
-Public Const STRINGLEFT = 0
-Public Const STRINGCENTER = 512
-Public Const STRINGRIGHT = 1024
-Public Const LONGINT = 2048
-Public Const ALTKEYMAP = 4096
-Public Const STRINGEXTEND = 8192
-Public Const ACTIVEGADGET = 16384
-Public Const GADGETTYPE = 64512
-Public Const SYSGADGET = 32768
-Public Const SCRGADGET = 16384
-Public Const GZZGADGET = 8192
-Public Const REQGADGET = 4096
-Public Const SIZING = 16
-Public Const WDRAGGING = 32
-Public Const SDRAGGING = 48
-Public Const WUPFRONT = 64
-Public Const SUPFRONT = 80
-Public Const WDOWNBACK = 96
-Public Const SDOWNBACK = 112
-Public Const CLOSE_ = 128
-Public Const BOOLGADGET = 1
-Public Const GADGET0002 = 2
-Public Const PROPGADGET = 3
-Public Const STRGADGET = 4
-Public Const CUSTOMGADGET = 5
-Public Const GTYPEMASK = 7
-Public Const SIZEVERIFY = 1
-Public Const NEWSIZE = 2
-Public Const REFRESHWINDOW = 4
-Public Const MOUSEBUTTONS = 8
-Public Const MOUSEMOVE = 16
-Public Const GADGETDOWN = 32
-Public Const GADGETUP = 64
-Public Const REQSET = 128
-Public Const MENUPICK = 256
-' Const CLOSEWINDOW = 512   (left out: the name is taken)
-Public Const RAWKEY = 1024
-Public Const REQVERIFY = 2048
-Public Const REQCLEAR = 4096
-Public Const MENUVERIFY = 8192
-Public Const NEWPREFS = 16384
-Public Const DISKINSERTED = 32768
-Public Const DISKREMOVED = 65536
-Public Const WBENCHMESSAGE = 131072
-Public Const ACTIVEWINDOW = 262144
-Public Const INACTIVEWINDOW = 524288
-Public Const DELTAMOVE = 1048576
-Public Const VANILLAKEY = 2097152
-Public Const INTUITICKS = 4194304
-Public Const IDCMPUPDATE = 8388608
-Public Const MENUHELP = 16777216
-Public Const CHANGEWINDOW = 33554432
-Public Const LONELYMESSAGE = &H80000000
-Public Const WINDOWSIZING = 1
-Public Const WINDOWDRAG = 2
-Public Const WINDOWDEPTH = 4
-Public Const WINDOWCLOSE = 8
-Public Const SIZEBRIGHT = 16
-Public Const SIZEBBOTTOM = 32
-Public Const REFRESHBITS = 192
-Public Const SMART_REFRESH = 0
-Public Const SIMPLE_REFRESH = 64
-Public Const SUPER_BITMAP = 128
-Public Const OTHER_REFRESH = 192
-Public Const BACKDROP = 256
-' Const REPORTMOUSE = 512   (left out: the name is taken)
-Public Const GIMMEZEROZERO = 1024
-Public Const BORDERLESS = 2048
-Public Const ACTIVATE = 4096
-Public Const WINDOWACTIVE = 8192
-Public Const INREQUEST = 16384
-Public Const MENUSTATE = 32768
-Public Const RMBTRAP = 65536
-Public Const NOCAREREFRESH = 131072
-Public Const WINDOWREFRESH = 16777216
-Public Const WBENCHWINDOW = 33554432
-Public Const WINDOWTICKED = 67108864
-Public Const NW_EXTENDED = 262144
-Public Const VISITOR = 134217728
-Public Const ZOOMED = 268435456
-Public Const HASZOOM = 536870912
-' Const GA_LEFT = &H80030001   (left out: the name is taken)
-' Const GA_RELRIGHT = &H80030002   (left out: the name is taken)
-' Const GA_TOP = &H80030003   (left out: the name is taken)
-' Const GA_RELBOTTOM = &H80030004   (left out: the name is taken)
-' Const GA_WIDTH = &H80030005   (left out: the name is taken)
-' Const GA_RELWIDTH = &H80030006   (left out: the name is taken)
-' Const GA_HEIGHT = &H80030007   (left out: the name is taken)
-' Const GA_RELHEIGHT = &H80030008   (left out: the name is taken)
-' Const GA_TEXT = &H80030009   (left out: the name is taken)
-' Const GA_IMAGE = &H8003000A   (left out: the name is taken)
-' Const GA_BORDER = &H8003000B   (left out: the name is taken)
-' Const GA_SELECTRENDER = &H8003000C   (left out: the name is taken)
-' Const GA_HIGHLIGHT = &H8003000D   (left out: the name is taken)
-' Const GA_DISABLED = &H8003000E   (left out: the name is taken)
-' Const GA_GZZGADGET = &H8003000F   (left out: the name is taken)
-' Const GA_USERDATA = &H80030011   (left out: the name is taken)
-' Const GA_SPECIALINFO = &H80030012   (left out: the name is taken)
-' Const GA_SELECTED = &H80030013   (left out: the name is taken)
-' Const GA_ENDGADGET = &H80030014   (left out: the name is taken)
-' Const GA_IMMEDIATE = &H80030015   (left out: the name is taken)
-' Const GA_RELVERIFY = &H80030016   (left out: the name is taken)
-' Const GA_FOLLOWMOUSE = &H80030017   (left out: the name is taken)
-' Const GA_RIGHTBORDER = &H80030018   (left out: the name is taken)
-' Const GA_LEFTBORDER = &H80030019   (left out: the name is taken)
-' Const GA_TOPBORDER = &H8003001A   (left out: the name is taken)
-' Const GA_BOTTOMBORDER = &H8003001B   (left out: the name is taken)
-' Const GA_TOGGLESELECT = &H8003001C   (left out: the name is taken)
-' Const GA_SYSGADGET = &H8003001D   (left out: the name is taken)
-' Const GA_SYSGTYPE = &H8003001E   (left out: the name is taken)
-' Const GA_PREVIOUS = &H8003001F   (left out: the name is taken)
-' Const GA_NEXT = &H80030020   (left out: the name is taken)
-' Const GA_DRAWINFO = &H80030021   (left out: the name is taken)
-' Const GA_INTUITEXT = &H80030022   (left out: the name is taken)
-' Const GA_LABELIMAGE = &H80030023   (left out: the name is taken)
-' Const PGA_FREEDOM = &H80031001   (left out: the name is taken)
-' Const PGA_BORDERLESS = &H80031002   (left out: the name is taken)
-' Const PGA_HORIZPOT = &H80031003   (left out: the name is taken)
-' Const PGA_HORIZBODY = &H80031004   (left out: the name is taken)
-' Const PGA_VERTPOT = &H80031005   (left out: the name is taken)
-' Const PGA_VERTBODY = &H80031006   (left out: the name is taken)
-' Const PGA_TOTAL = &H80031007   (left out: the name is taken)
-' Const PGA_VISIBLE = &H80031008   (left out: the name is taken)
-' Const PGA_TOP = &H80031009   (left out: the name is taken)
-' Const LAYOUTA_LAYOUTOBJ = &H80038001   (left out: the name is taken)
-' Const LAYOUTA_SPACING = &H80038002   (left out: the name is taken)
-' Const LAYOUTA_ORIENTATION = &H80038003   (left out: the name is taken)
-Public Const IMAGE_ATTRIBUTES = &H80020000
-' Const IA_LEFT = &H80020001   (left out: the name is taken)
-' Const IA_TOP = &H80020002   (left out: the name is taken)
-' Const IA_WIDTH = &H80020003   (left out: the name is taken)
-' Const IA_HEIGHT = &H80020004   (left out: the name is taken)
-' Const IA_FGPEN = &H80020005   (left out: the name is taken)
-' Const IA_BGPEN = &H80020006   (left out: the name is taken)
-' Const IA_DATA = &H80020007   (left out: the name is taken)
-' Const IA_LINEWIDTH = &H80020008   (left out: the name is taken)
-' Const IA_PENS = &H8002000E   (left out: the name is taken)
-' Const IA_RESOLUTION = &H8002000F   (left out: the name is taken)
-' Const IA_APATTERN = &H80020010   (left out: the name is taken)
-' Const IA_APATSIZE = &H80020011   (left out: the name is taken)
-' Const IA_MODE = &H80020012   (left out: the name is taken)
-' Const IA_FONT = &H80020013   (left out: the name is taken)
-' Const IA_OUTLINE = &H80020014   (left out: the name is taken)
-' Const IA_RECESSED = &H80020015   (left out: the name is taken)
-' Const IA_DOUBLEEMBOSS = &H80020016   (left out: the name is taken)
-' Const IA_EDGESONLY = &H80020017   (left out: the name is taken)
-' Const IA_SHADOWPEN = &H80020009   (left out: the name is taken)
-' Const IA_HIGHLIGHTPEN = &H8002000A   (left out: the name is taken)
-Public Const detailPen = 0
-Public Const blockPen = 1
-Public Const textPen = 2
-Public Const shinePen = 3
-Public Const shadowPen = 4
-Public Const hifillPen = 5
-Public Const hifilltextPen = 6
-Public Const backgroundPen = 7
-Public Const hilighttextPen = 8
-Public Const numDrIPens = 45
 ' intuition/menuclass.h
 Public Const MA_Dummy = &H80440000
 Public Const MA_Type = &H80440001
@@ -1793,14 +1597,14 @@ Public Const DRI_VERSION = 3
 Public Const DRIF_NEWLOOK = 1
 Public Const DRIF_NEWDISABLE = 2
 Public Const DRIF_REALSHADE = 4
-' Const DETAILPEN = 0   (left out: the name is taken)
-' Const BLOCKPEN = 1   (left out: the name is taken)
-' Const TEXTPEN = 2   (left out: the name is taken)
-' Const SHINEPEN = 3   (left out: the name is taken)
-' Const SHADOWPEN = 4   (left out: the name is taken)
+Public Const DETAILPEN = 0
+Public Const BLOCKPEN = 1
+Public Const TEXTPEN = 2
+Public Const SHINEPEN = 3
+Public Const SHADOWPEN = 4
 Public Const FILLPEN = 5
 Public Const FILLTEXTPEN = 6
-' Const BACKGROUNDPEN = 7   (left out: the name is taken)
+Public Const BACKGROUNDPEN = 7
 Public Const HIGHLIGHTTEXTPEN = 8
 Public Const BARDETAILPEN = 9
 Public Const BARBLOCKPEN = 10
@@ -1838,7 +1642,7 @@ Public Const HALFSHADOWPEN = 41
 Public Const FLATBORDERPEN = 42
 Public Const FILLFLATPEN = 43
 Public Const INACTIVEFILLFLATPEN = 44
-' Const NUMDRIPENS = 45   (left out: the name is taken)
+Public Const NUMDRIPENS = 45
 Public Const PEN_C3 = 65276
 Public Const PEN_C2 = 65277
 Public Const PEN_C1 = 65278

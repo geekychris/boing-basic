@@ -18,18 +18,33 @@ them against SDK files genbind does not read:
 
 | check | how | count (SDK 54.25) |
 |---|---|---|
-| every `Declare ... Alias "#n"` names the right function | a C `_Static_assert(offsetof(struct <X>IFace, <Function>) == sizeof(struct InterfaceData) + n * sizeof(APTR))`, compiled against `include_h/interfaces/<lib>.h` by ppc-amigaos-gcc | 2088 |
-| its argument count | compared with the function pointer's prototype in `interfaces/<lib>.h` (genbind reads the XML instead) | 1960 compared |
-| every `Public Const` | a `_Static_assert((uint32)(NAME) == value)` with the SDK header included, so the C compiler evaluates the macro | 8424 |
+| every `Declare ... Alias "#n"` names the right function | a C `_Static_assert(offsetof(struct <X>IFace, <Function>) == sizeof(struct InterfaceData) + n * sizeof(APTR))`, compiled against `include_h/interfaces/<lib>.h` by ppc-amigaos-gcc | 1913, all pass |
+| its argument count | compared with the function pointer's prototype in `interfaces/<lib>.h` (genbind reads the XML instead) | 1909 compared, all equal |
+| every `Public Const` | a `_Static_assert((uint32)(NAME) == value)` with the SDK header included, so the C compiler evaluates the macro | 8239, all pass |
+
+Result (2026-11-08, SDK 54.25): **PASS**. Not provable: cybergraphics and warp3d (the SDK
+lacks headers they include: rtgBase.h, Warp3D/Warp3D.h), and screenblanker's LogPuts/LogFmtA,
+which the SDK's XML lists past the end of its C interface struct (an SDK inconsistency; at run
+time a slot past the interface's PositiveSize gives error 453 instead of a call).
+
+`tools/os4-check.sh` runs the cross build (with the dlmzb check) and the proof; it fails on any
+binding regression.
 
 The C files are `build/bindproof/<lib>.c`, compiled with `-fsyntax-only` in the walkero Docker
 image. A failed assertion or argument count is a binding bug and fails the run. A library whose
 SDK headers don't compile on their own is listed as a "header problem" (its checks unproven)
 and fails only with `--strict`.
 
-Found so far: camd.xml marks variadic functions with `<arg type="..."/>` instead of
-`<vararg/>`; genbind made 6 fixed-argument Declares out of them (CreateMidi, SetMidiAttrs, ...).
-Fixed: they are left out now, like every variadic function (use the TagList form).
+Bugs the proof found in genbind, all fixed:
+
+- camd.xml marks variadic functions with `<arg type="..."/>` instead of `<vararg/>`: 6 wrong
+  fixed-argument Declares (CreateMidi, SetMidiAttrs, ...). Now left out like every variadic.
+- methods with `status="private"` (175, e.g. icon's GetIcon/PutIcon, exec's RawMayGetChar):
+  the C struct has `Private1...` there. Now left out.
+- constants in inactive preprocessor branches: obsolete names behind `#ifdef
+  ASL_PRE_V38_NAMES` and the like (254), and names defined differently in `#if/#else`
+  branches (CTB_MAPCOLOR in graphics/text.h had the wrong value). genbind now follows
+  `#ifdef/#ifndef/#if defined()/#else/#endif` and leaves out ambiguous names.
 
 Not covered by the static proof: functions whose C name differs from the XML name (about 130:
 they get no argument-count comparison), and the meaning of each argument (types are all

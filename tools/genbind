@@ -207,16 +207,67 @@ def collect_constants(inc_dir, libs):
             if f.endswith(".h"):
                 files.append(d + "/" + f)
     raw = []
+    defined_names = set()
     for rel in files:
         try:
             text = open(os.path.join(inc_dir, rel), encoding="latin-1").read()
         except OSError:
             continue
         text = strip_comments(text).replace("\\\n", " ")
+        # a small preprocessor for the conditionals: #ifdef X / #ifndef X follow the names seen
+        # so far (include guards stay active); #if is taken as true; #else flips. Defines in
+        # inactive branches (ASL_PRE_V38_NAMES, the other branch of an #if/#else) are skipped.
+        stack = []
         for line in text.split("\n"):
+            d = line.strip()
+            if d.startswith("#"):
+                w = d[1:].strip().split(None, 1)
+                kw, arg = (w[0], w[1].strip() if len(w) > 1 else "") if w else ("", "")
+                active = all(stack)
+                if kw == "ifdef":
+                    stack.append(active and arg in defined_names)
+                    continue
+                if kw == "ifndef":
+                    stack.append(active and arg not in defined_names)
+                    continue
+                if kw == "if":
+                    mm = re.match(r"!?\s*defined\s*\(?\s*(\w+)\s*\)?\s*$", arg)
+                    if mm:
+                        v = mm.group(1) in defined_names
+                        stack.append(active and (not v if arg.lstrip().startswith("!") else v))
+                    else:
+                        stack.append(active)
+                    continue
+                if kw in ("elif",):
+                    if stack:
+                        stack[-1] = False
+                    continue
+                if kw == "else":
+                    if stack:
+                        stack[-1] = (not stack[-1]) and all(stack[:-1])
+                    continue
+                if kw == "endif":
+                    if stack:
+                        stack.pop()
+                    continue
+            if stack and not all(stack):
+                continue
             m = DEFINE_RE.match(line)
+            if m:
+                defined_names.add(m.group(1))
+            elif re.match(r"^\s*#\s*define\s+(\w+)\s*$", line):
+                defined_names.add(re.match(r"^\s*#\s*define\s+(\w+)", line).group(1))
             if m and "(" not in m.group(1):
                 raw.append((m.group(1), m.group(2), rel))
+    # a name #defined twice with different values (#if/#else branches: CTB_MAPCOLOR in
+    # graphics/text.h) can't be known without the preprocessor: leave it out
+    seen_expr, ambiguous = {}, set()
+    for name, expr, rel in raw:
+        e = re.sub(r"\s+", "", expr)
+        if name in seen_expr and seen_expr[name] != e:
+            ambiguous.add(name)
+        seen_expr.setdefault(name, e)
+    raw = [r for r in raw if r[0] not in ambiguous]
     known, where, pending = {}, {}, list(raw)
     # resolve in passes: later defines may refer to earlier ones in other headers
     for _ in range(8):
@@ -265,7 +316,7 @@ def write_bi(lib, openname, ifaces, consts, clash, out_dir, slots):
             slot_entry = None
             if m["slot"] < 4 and m["name"] in ("Obtain", "Release", "Expunge", "Clone"):
                 continue
-            if m["status"] == "unimplemented" or re.match(r"(PRIVATE|OBSOLETE|Reserved|Private)", m["name"]):
+            if m["status"] in ("unimplemented", "private") or re.match(r"(PRIVATE|OBSOLETE|Reserved|Private)", m["name"]):
                 continue
             if m["vararg"]:
                 L.append("' %s: variadic, left out" % m["name"])

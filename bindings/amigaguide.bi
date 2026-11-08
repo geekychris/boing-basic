@@ -4,10 +4,8 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function AGARexxHost Lib "amigaguide.library" Alias "#4" (ByVal rmsg As Long, ByVal result As Long) As Long
 Declare Function LockAmigaGuideBase Lib "amigaguide.library" Alias "#5" (ByVal handle As Long) As Long
 Declare Sub UnlockAmigaGuideBase Lib "amigaguide.library" Alias "#6" (ByVal key As Long)
-Declare Sub ExpungeDataBases Lib "amigaguide.library" Alias "#7" (ByVal flush As Long)
 Declare Function OpenAmigaGuideA Lib "amigaguide.library" Alias "#8" (ByVal nag As Long, ByVal tags As Long) As Long
 ' OpenAmigaGuide: variadic, left out
 Declare Function OpenAmigaGuideAsyncA Lib "amigaguide.library" Alias "#10" (ByVal nag As Long, ByVal attrs As Long) As Long
@@ -25,23 +23,12 @@ Declare Function SendAmigaGuideCmdA Lib "amigaguide.library" Alias "#20" (ByVal 
 Declare Function SetAmigaGuideAttrsA Lib "amigaguide.library" Alias "#22" (ByVal cl As Long, ByVal attrs As Long) As Long
 ' SetAmigaGuideAttrs: variadic, left out
 Declare Function GetAmigaGuideAttr Lib "amigaguide.library" Alias "#24" (ByVal tag As Long, ByVal cl As Long, ByVal storage As Long) As Long
-Declare Function SetAmigaGuideHook Lib "amigaguide.library" Alias "#25" (ByVal cl As Long, ByVal v1 As Long, ByVal v2 As Long, ByVal v3 As Long) As Long
 Declare Function LoadXRef Lib "amigaguide.library" Alias "#26" (ByVal lock_ As Long, ByVal name_ As String) As Long
 Declare Sub ExpungeXRef Lib "amigaguide.library" Alias "#27" ()
 Declare Function AddAmigaGuideHostA Lib "amigaguide.library" Alias "#28" (ByVal h As Long, ByVal name_ As String, ByVal attrs As Long) As Long
 ' AddAmigaGuideHost: variadic, left out
 Declare Function RemoveAmigaGuideHostA Lib "amigaguide.library" Alias "#30" (ByVal hh As Long, ByVal attrs As Long) As Long
 ' RemoveAmigaGuideHost: variadic, left out
-Declare Function OpenE Lib "amigaguide.library" Alias "#32" (ByVal path As Long, ByVal name_ As String, ByVal mode As Long) As Long
-Declare Function LockE Lib "amigaguide.library" Alias "#33" (ByVal path As Long, ByVal name_ As String, ByVal mode As Long) As Long
-Declare Function CopyPathList Lib "amigaguide.library" Alias "#34" (ByVal path As Long) As Long
-Declare Function AddPathEntries Lib "amigaguide.library" Alias "#35" (ByVal path As Long, ByVal argptr As Long) As Long
-Declare Sub FreePathList Lib "amigaguide.library" Alias "#36" (ByVal path As Long)
-Declare Function ParsePathString Lib "amigaguide.library" Alias "#37" (ByVal line_ As String, ByVal argv As Long, ByVal max As Long) As Long
-Declare Function OpenDataBase Lib "amigaguide.library" Alias "#38" (ByVal lock_ As Long, ByVal name_ As String) As Long
-Declare Function LoadNode Lib "amigaguide.library" Alias "#39" (ByVal cl As Long, ByVal db As Long, ByVal hn As Long) As Long
-Declare Function UnloadNode Lib "amigaguide.library" Alias "#40" (ByVal cl As Long, ByVal db As Long, ByVal hn As Long) As Long
-Declare Function CloseDataBase Lib "amigaguide.library" Alias "#41" (ByVal db As Long) As Long
 Declare Function GetAmigaGuideString Lib "amigaguide.library" Alias "#42" (ByVal id As Long) As Long
 
 ' --- constants ---

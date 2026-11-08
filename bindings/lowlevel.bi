@@ -6,7 +6,6 @@
 ' --- interface "main" ---
 Declare Function ReadJoyPort Lib "lowlevel.library" Alias "#4" (ByVal port As Long) As Long
 Declare Function GetLanguageSelection Lib "lowlevel.library" Alias "#5" () As Long
-Declare Sub SetLanguageSelection Lib "lowlevel.library" Alias "#6" (ByVal language As Long)
 Declare Function GetKey Lib "lowlevel.library" Alias "#7" () As Long
 Declare Sub QueryKeys Lib "lowlevel.library" Alias "#8" (ByVal queryArray As Long, ByVal arraySize As Long)
 Declare Function AddKBInt Lib "lowlevel.library" Alias "#9" (ByVal intRoutine As Long, ByVal intData As Long) As Long
@@ -20,8 +19,6 @@ Declare Sub StartTimerInt Lib "lowlevel.library" Alias "#16" (ByVal intHandle As
 Declare Function ElapsedTime Lib "lowlevel.library" Alias "#17" (ByVal context As Long) As Long
 Declare Function AddVBlankInt Lib "lowlevel.library" Alias "#18" (ByVal intRoutine As Long, ByVal intData As Long) As Long
 Declare Sub RemVBlankInt Lib "lowlevel.library" Alias "#19" (ByVal intHandle As Long)
-Declare Sub KillReq Lib "lowlevel.library" Alias "#20" ()
-Declare Sub RestoreReq Lib "lowlevel.library" Alias "#21" ()
 Declare Function SetJoyPortAttrsA Lib "lowlevel.library" Alias "#22" (ByVal portNumber As Long, ByVal tagList_ As Long) As Long
 ' SetJoyPortAttrs: variadic, left out
 

@@ -4,7 +4,6 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function RLDispatch Lib "datatypes.library" Alias "#4" (ByVal rmsg As Long, ByVal result As Long) As Long
 Declare Function ObtainDataTypeA Lib "datatypes.library" Alias "#5" (ByVal type_ As Long, ByVal handle As Long, ByVal attrs As Long) As Long
 ' ObtainDataType: variadic, left out
 Declare Sub ReleaseDataType Lib "datatypes.library" Alias "#7" (ByVal dt As Long)
@@ -34,23 +33,13 @@ Declare Function DrawDTObjectA Lib "datatypes.library" Alias "#29" (ByVal rp As 
 Declare Sub ReleaseDTDrawInfo Lib "datatypes.library" Alias "#31" (ByVal o As Long, ByVal handle As Long)
 Declare Function GetDTString Lib "datatypes.library" Alias "#32" (ByVal id As Long) As Long
 ' SaveDTObject: variadic, left out
-' DoDTDomain: variadic, left out
-' FindToolNode: variadic, left out
-' LaunchTool: variadic, left out
-Declare Sub LockDataType Lib "datatypes.library" Alias "#49" (ByVal dt As Long)
-Declare Function FindToolNodeA Lib "datatypes.library" Alias "#50" (ByVal tl As Long, ByVal attrs As Long) As Long
-Declare Function LaunchToolA Lib "datatypes.library" Alias "#51" (ByVal t As Long, ByVal project As String, ByVal attrs As Long) As Long
 Declare Function FindMethod Lib "datatypes.library" Alias "#52" (ByVal methods As Long, ByVal searchmethodid As Long) As Long
 Declare Function FindTriggerMethod Lib "datatypes.library" Alias "#53" (ByVal dtm As Long, ByVal command_ As String, ByVal method As Long) As Long
 Declare Function CopyDTMethods Lib "datatypes.library" Alias "#54" (ByVal methods As Long, ByVal include As Long, ByVal exclude As Long) As Long
 Declare Function CopyDTTriggerMethods Lib "datatypes.library" Alias "#55" (ByVal methods As Long, ByVal include As Long, ByVal exclude As Long) As Long
 Declare Sub FreeDTMethods Lib "datatypes.library" Alias "#56" (ByVal methods As Long)
-Declare Function GetDTTriggerMethodDataFlags Lib "datatypes.library" Alias "#57" (ByVal triggermethod As Long) As Long
 Declare Function SaveDTObjectA Lib "datatypes.library" Alias "#58" (ByVal o As Long, ByVal win As Long, ByVal req As Long, ByVal file As String, ByVal mode As Long, ByVal saveicon As Long, ByVal attrs As Long) As Long
 Declare Function StartDragSelect Lib "datatypes.library" Alias "#59" (ByVal o As Long) As Long
-Declare Function DoDTDomainA Lib "datatypes.library" Alias "#60" (ByVal o As Long, ByVal win As Long, ByVal req As Long, ByVal rport As Long, ByVal which As Long, ByVal domain As Long, ByVal attrs As Long) As Long
-Declare Function datatypesPrivate001 Lib "datatypes.library" Alias "#61" () As Long
-Declare Function datatypesPrivate002 Lib "datatypes.library" Alias "#62" () As Long
 
 ' --- constants ---
 ' datatypes/animationclass.h

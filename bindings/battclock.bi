@@ -7,8 +7,6 @@
 Declare Sub ResetBattClock Lib "battclock.resource" Alias "#4" ()
 Declare Function ReadBattClock Lib "battclock.resource" Alias "#5" () As Long
 Declare Sub WriteBattClock Lib "battclock.resource" Alias "#6" (ByVal time_ As Long)
-Declare Function ReadBattClockMem Lib "battclock.resource" Alias "#7" (ByVal offset As Long, ByVal length As Long) As Long
-Declare Sub WriteBattClockMem Lib "battclock.resource" Alias "#8" (ByVal data As Long, ByVal offset As Long, ByVal length As Long)
 
 ' --- constants ---
 ' resources/battclock.h

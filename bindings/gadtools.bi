@@ -29,12 +29,6 @@ Declare Sub DrawBevelBoxA Lib "gadtools.library" Alias "#24" (ByVal rport As Lon
 Declare Function GetVisualInfoA Lib "gadtools.library" Alias "#26" (ByVal screen_ As Long, ByVal taglist_ As Long) As Long
 ' GetVisualInfo: variadic, left out
 Declare Sub FreeVisualInfo Lib "gadtools.library" Alias "#28" (ByVal vi As Long)
-Declare Sub GTReserved0 Lib "gadtools.library" Alias "#29" ()
-Declare Sub GTReserved1 Lib "gadtools.library" Alias "#30" ()
-Declare Sub GTReserved2 Lib "gadtools.library" Alias "#31" ()
-Declare Sub GTReserved3 Lib "gadtools.library" Alias "#32" ()
-Declare Sub GTReserved4 Lib "gadtools.library" Alias "#33" ()
-Declare Sub GTReserved5 Lib "gadtools.library" Alias "#34" ()
 Declare Function GT_GetGadgetAttrsA Lib "gadtools.library" Alias "#35" (ByVal gad As Long, ByVal win As Long, ByVal req As Long, ByVal taglist_ As Long) As Long
 ' GT_GetGadgetAttrs: variadic, left out
 

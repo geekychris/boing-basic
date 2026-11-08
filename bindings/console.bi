@@ -6,10 +6,6 @@
 ' --- interface "main" ---
 Declare Function CDInputHandler Lib "console.device" Alias "#4" (ByVal events As Long, ByVal consoleDevice As Long) As Long
 Declare Function RawKeyConvert Lib "console.device" Alias "#5" (ByVal events As Long, ByVal buffer As String, ByVal length As Long, ByVal keyMap As Long) As Long
-Declare Function GetConSnip Lib "console.device" Alias "#6" () As Long
-Declare Function SetConSnip Lib "console.device" Alias "#7" (ByVal snip As String) As Long
-Declare Sub AddConSnipHook Lib "console.device" Alias "#8" (ByVal hook As Long)
-Declare Sub RemConSnipHook Lib "console.device" Alias "#9" (ByVal hook As Long)
 
 ' --- constants ---
 ' devices/console.h

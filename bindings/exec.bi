@@ -173,8 +173,6 @@ Declare Function Emulate Lib "exec.library" Alias "#170" (ByVal InitPC As Long, 
 ' EmulateTags: variadic, left out
 ' DebugPrintF: variadic, left out
 Declare Function IsNative Lib "exec.library" Alias "#173" (ByVal code As Long) As Long
-Declare Function RawMayGetChar Lib "exec.library" Alias "#174" () As Long
-Declare Sub RawPutChar Lib "exec.library" Alias "#175" (ByVal c As Long)
 Declare Sub GetCPUInfo Lib "exec.library" Alias "#176" (ByVal TagList_ As Long)
 ' GetCPUInfoTags: variadic, left out
 Declare Function OwnerOfMem Lib "exec.library" Alias "#178" (ByVal Address As Long) As Long
@@ -191,35 +189,12 @@ Declare Function GetTail Lib "exec.library" Alias "#188" (ByVal list As Long) As
 Declare Function GetSucc Lib "exec.library" Alias "#189" (ByVal node As Long) As Long
 Declare Function GetPred Lib "exec.library" Alias "#190" (ByVal node As Long) As Long
 Declare Sub IceColdReboot Lib "exec.library" Alias "#191" ()
-Declare Function KMemCacheCreate Lib "exec.library" Alias "#192" (ByVal VMA As Long, ByVal Name_ As String, ByVal Size As Long, ByVal Align As Long, ByVal Constructor As Long, ByVal Destructor As Long, ByVal Flag As Long, ByVal UserData As Long) As Long
-Declare Sub KMemCacheDestroy Lib "exec.library" Alias "#193" (ByVal Cache As Long)
-Declare Function KMemCacheAlloc Lib "exec.library" Alias "#194" (ByVal Cache As Long, ByVal Flags As Long) As Long
-Declare Sub KMemCacheFree Lib "exec.library" Alias "#195" (ByVal Cache As Long, ByVal object_ As Long)
-Declare Sub KMemCacheGrow Lib "exec.library" Alias "#196" (ByVal Cache As Long, ByVal Flags As Long)
-Declare Function KMemCacheReap Lib "exec.library" Alias "#197" (ByVal Cache As Long, ByVal NumPages As Long, ByVal Flags As Long) As Long
-Declare Function KMemCacheFind Lib "exec.library" Alias "#198" (ByVal Name_ As String) As Long
-Declare Function PageGet Lib "exec.library" Alias "#199" (ByVal VMA As Long, ByVal numPages As Long, ByVal alignment As Long) As Long
-Declare Function PageMap Lib "exec.library" Alias "#200" (ByVal pageList As Long, ByVal numPages As Long, ByVal attrs As Long, ByVal Flags As Long) As Long
-Declare Sub PageUnmap Lib "exec.library" Alias "#201" (ByVal pageList As Long, ByVal numPages As Long)
-Declare Sub PageDrop Lib "exec.library" Alias "#202" (ByVal pageList As Long, ByVal numPages As Long)
-Declare Function PageFindByVA Lib "exec.library" Alias "#203" (ByVal addressSpace As Long, ByVal virtualAddress As Long) As Long
-Declare Sub PageHash Lib "exec.library" Alias "#204" (ByVal page As Long)
-Declare Sub PageUnhash Lib "exec.library" Alias "#205" (ByVal page As Long)
-Declare Function PageBackendAlloc Lib "exec.library" Alias "#206" (ByVal order As Long, ByVal flags As Long) As Long
-Declare Sub PageBackendFree Lib "exec.library" Alias "#207" (ByVal addr As Long, ByVal order As Long)
-Declare Sub PageBackendLock Lib "exec.library" Alias "#208" ()
-Declare Sub PageBackendUnlock Lib "exec.library" Alias "#209" ()
 Declare Function RMapAlloc Lib "exec.library" Alias "#213" (ByVal Map As Long, ByVal size As Long, ByVal flags As Long) As Long
 Declare Sub RMapFree Lib "exec.library" Alias "#214" (ByVal Map As Long, ByVal addr As Long, ByVal size As Long)
-Declare Function VMAreaInit Lib "exec.library" Alias "#215" (ByVal addrspace As Long, ByVal shared As Long, ByVal area As Long, ByVal TagList_ As Long) As Long
-' VMAreaInitTags: variadic, left out
-Declare Sub VMAreaTerm Lib "exec.library" Alias "#217" (ByVal area As Long)
 Declare Function AllocVecTagList Lib "exec.library" Alias "#218" (ByVal size As Long, ByVal tags As Long) As Long
 ' AllocVecTags: variadic, left out
-Declare Function PageMapAligned Lib "exec.library" Alias "#220" (ByVal pageList As Long, ByVal numPages As Long, ByVal alignment As Long, ByVal attrs As Long, ByVal Flags As Long) As Long
 Declare Function RMapExtAlloc Lib "exec.library" Alias "#221" (ByVal Map As Long, ByVal size As Long, ByVal alignment As Long, ByVal flags As Long) As Long
 Declare Sub RMapExtFree Lib "exec.library" Alias "#222" (ByVal Map As Long, ByVal addr As Long, ByVal size As Long)
-Declare Function PageBackendAllocAligned Lib "exec.library" Alias "#223" (ByVal order As Long, ByVal alignment As Long, ByVal flags As Long) As Long
 Declare Function AllocNamedMemory Lib "exec.library" Alias "#224" (ByVal byteSize As Long, ByVal space_ As String, ByVal name_ As String, ByVal tagList_ As Long) As Long
 ' AllocNamedMemoryTags: variadic, left out
 Declare Function FreeNamedMemory Lib "exec.library" Alias "#226" (ByVal space_ As String, ByVal name_ As String) As Long
@@ -230,10 +205,6 @@ Declare Function AttemptNamedMemory Lib "exec.library" Alias "#230" (ByVal space
 Declare Sub UnlockNamedMemory Lib "exec.library" Alias "#231" (ByVal space_ As String, ByVal name_ As String)
 Declare Function ScanNamedMemory Lib "exec.library" Alias "#232" (ByVal scHook As Long, ByVal flags As Long, ByVal user As Long) As Long
 Declare Function AllocTaskMemEntry Lib "exec.library" Alias "#233" (ByVal memList As Long) As Long
-Declare Function PagerFindPageOut Lib "exec.library" Alias "#234" (ByVal nFlags As Long) As Long
-Declare Function PagerPageIn Lib "exec.library" Alias "#235" (ByVal pPage As Long, ByVal nFlags As Long) As Long
-Declare Function PagerPageOut Lib "exec.library" Alias "#236" (ByVal pPage As Long, ByVal nFlags As Long, ByVal pReceiver As Long) As Long
-Declare Function PagerAssignPager Lib "exec.library" Alias "#237" (ByVal pPage As Long, ByVal nFlags As Long) As Long
 Declare Sub MutexObtain Lib "exec.library" Alias "#238" (ByVal Mutex As Long)
 Declare Function MutexAttempt Lib "exec.library" Alias "#239" (ByVal Mutex As Long) As Long
 Declare Sub MutexRelease Lib "exec.library" Alias "#240" (ByVal Mutex As Long)
@@ -246,20 +217,8 @@ Declare Function GetTaskAttrs Lib "exec.library" Alias "#246" (ByVal task As Lon
 ' GetTaskAttrsTags: variadic, left out
 Declare Function FindResidentTagList Lib "exec.library" Alias "#250" (ByVal tagList_ As Long) As Long
 ' FindResidentTags: variadic, left out
-Declare Sub RWLockObtainRead Lib "exec.library" Alias "#252" (ByVal RWLock As Long)
-Declare Sub RWLockReleaseRead Lib "exec.library" Alias "#253" (ByVal RWLock As Long)
-Declare Function RWLockAttemptRead Lib "exec.library" Alias "#254" (ByVal RWLock As Long) As Long
-Declare Function RWLockAttemptReadWithSignal Lib "exec.library" Alias "#255" (ByVal RWLock As Long, ByVal SigSet As Long) As Long
-Declare Sub RWLockObtainWrite Lib "exec.library" Alias "#256" (ByVal RWLock As Long)
-Declare Sub RWLockReleaseWrite Lib "exec.library" Alias "#257" (ByVal RWLock As Long)
-Declare Function RWLockAttemptWrite Lib "exec.library" Alias "#258" (ByVal RWLock As Long) As Long
-Declare Function RWLockAttemptWriteWithSignal Lib "exec.library" Alias "#259" (ByVal RWLock As Long, ByVal SigSet As Long) As Long
 Declare Sub GetSystemInfo Lib "exec.library" Alias "#260" (ByVal TagList_ As Long)
 ' GetSystemInfoTags: variadic, left out
-' ForbidLocal: variadic, left out
-' PermitLocal: variadic, left out
-' DisableLocal: variadic, left out
-' EnableLocal: variadic, left out
 Declare Sub SetTaskAffinity Lib "exec.library" Alias "#266" (ByVal task As Long, ByVal TagList_ As Long)
 ' SetTaskAffinityTags: variadic, left out
 
@@ -715,6 +674,5 @@ Public Const RTC_MATCHWORD = 19196
 Public Const INCLUDE_VERSION = 51
 Public Const TRUE_ = 1
 Public Const FALSE_ = 0
-Public Const NULL_ = 0
 Public Const BYTEMASK = 255
 Public Const LIBRARY_MINIMUM = 50

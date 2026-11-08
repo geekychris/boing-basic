@@ -170,35 +170,84 @@ def main():
     img = "walkero/amigagccondocker:os4-gcc11-arm64" if os.uname().machine in ("arm64", "aarch64") \
         else "walkero/amigagccondocker:os4-gcc11-amd64"
     img = os.environ.get("PPC_IMAGE", img)
-    script = ('for f in %s; do ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc -D__USE_OLD_TIMEVAL__ -fsyntax-only -w '
-              '-fmax-errors=1000 $f >$f.log 2>&1; echo "$f $?"; done') % " ".join(
-                  os.path.relpath(p, ROOT) for _, p in files)
-    r = subprocess.run(["docker", "run", "--rm", "-v", ROOT + ":/src", "-w", "/src", img, "sh", "-c", script],
-                       capture_output=True, text=True)
-    if r.returncode != 0 and not r.stdout:
-        print(r.stderr)
-        return 2
-    bad_assert, header_bad, ok = [], [], 0
-    for line in r.stdout.split("\n"):
-        if not line.strip():
-            continue
-        f, rc = line.rsplit(" ", 1)
-        log = open(os.path.join(ROOT, f + ".log")).read()
-        asserts = [l for l in log.split("\n") if "static assertion failed" in l]
-        if asserts:
-            bad_assert.extend(asserts)
-        elif rc != "0":
-            first = next((l for l in log.split("\n") if "error" in l), "?")
-            header_bad.append("%s: %s" % (os.path.basename(f), first.strip()))
-        else:
-            ok += 1
-    print("compiled: %d libraries fully proven, %d with header problems, %d failed assertions" %
-          (ok, len(header_bad), len(bad_assert)))
+    # compile each file; a line the compiler rejects (a function the C struct doesn't have, a
+    # constant the headers don't define) is commented out and recorded, then the file is
+    # compiled again, so every other assertion of that library is still checked
+    rels = [os.path.relpath(p, ROOT) for _, p in files]
+    unknown_members, undefined_consts, header_bad, bad_assert = [], [], [], []
+    pending = list(rels)
+    for rnd in range(12):
+        if not pending:
+            break
+        script = ('for f in %s; do ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc -D__USE_OLD_TIMEVAL__ -fsyntax-only -w '
+                  '-fmax-errors=100000 $f >$f.log 2>&1; echo "$f $?"; done') % " ".join(pending)
+        r = subprocess.run(["docker", "run", "--rm", "-v", ROOT + ":/src", "-w", "/src", img, "sh", "-c", script],
+                           capture_output=True, text=True)
+        if r.returncode != 0 and not r.stdout:
+            print(r.stderr)
+            return 2
+        nxt = []
+        for line in r.stdout.split("\n"):
+            if not line.strip():
+                continue
+            f, rc = line.rsplit(" ", 1)
+            if rc == "0":
+                continue
+            log = open(os.path.join(ROOT, f + ".log")).read()
+            src = open(os.path.join(ROOT, f), encoding="latin-1").read().split("\n")
+            drop = set()
+            lines = log.split("\n")
+            for i, l in enumerate(lines):
+                mm = re.match(r"^%s:(\d+):\d+: error: (.*)" % re.escape(f), l)
+                if not mm:
+                    continue
+                ln, msg = int(mm.group(1)), mm.group(2)
+                if (src[ln - 1] if ln - 1 < len(src) else "").startswith("#define"):
+                    # reported at the macro: the use is in a following "in expansion of macro" note
+                    for l2 in lines[i + 1:i + 6]:
+                        m2 = re.match(r"^%s:(\d+):\d+: note: in expansion of macro" % re.escape(f), l2)
+                        if m2:
+                            ln = int(m2.group(1))
+                            break
+                code = src[ln - 1] if ln - 1 < len(src) else ""
+                if "static assertion failed" in msg:
+                    bad_assert.append("%s: %s" % (os.path.basename(f), msg))
+                    drop.add(ln)
+                elif code.startswith("SLOT("):
+                    unknown_members.append("%s: %s" % (os.path.basename(f), code))
+                    drop.add(ln)
+                elif code.startswith("CONST("):
+                    undefined_consts.append("%s: %s" % (os.path.basename(f), code))
+                    drop.add(ln)
+            if not drop:            # an error in the SDK headers themselves
+                first = next((l for l in log.split("\n") if "error" in l), "?")
+                header_bad.append("%s: %s" % (os.path.basename(f), first.strip()))
+                continue
+            for ln in drop:
+                src[ln - 1] = "/* rejected: " + src[ln - 1] + " */"
+            open(os.path.join(ROOT, f), "w", encoding="latin-1").write("\n".join(src))
+            nxt.append(f)
+        pending = nxt
+    print("compiled: %d libraries; %d failed assertions; %d Declares naming a function the C struct "
+          "doesn't have; %d constants the headers don't define; %d files whose SDK headers don't compile" %
+          (len(files), len(bad_assert), len(unknown_members), len(undefined_consts), len(header_bad)))
     for h in header_bad:
         print("HEADER PROBLEM:", h)
-    for b in bad_assert[:200]:
+    # where the SDK's XML and its C header disagree (the XML lists functions past the end of the
+    # C struct); the runtime refuses slots past the interface's PositiveSize anyway (error 453)
+    KNOWN_SDK = {"screenblanker.c: SLOT(ScreenBlankerIFace, LogPuts, 12);",
+                 "screenblanker.c: SLOT(ScreenBlankerIFace, LogFmtA, 13);"}
+    unknown_members = sorted(set(unknown_members))
+    for u in unknown_members:
+        print("SDK XML/HEADER DISAGREE (known):" if u in KNOWN_SDK else "NO SUCH MEMBER:", u)
+    unknown_members = [u for u in unknown_members if u not in KNOWN_SDK]
+    for u in undefined_consts[:300]:
+        print("UNDEFINED CONST:", u)
+    bad_assert = sorted(set(bad_assert))
+    undefined_consts = sorted(set(undefined_consts))
+    for b in bad_assert[:300]:
         print("ASSERTION FAILED:", b)
-    fail = bool(bad_assert or argc_bad or (a.strict and header_bad))
+    fail = bool(bad_assert or argc_bad or unknown_members or (a.strict and (header_bad or undefined_consts)))
     print("bindproof:", "FAIL" if fail else "PASS")
     return 1 if fail else 0
 

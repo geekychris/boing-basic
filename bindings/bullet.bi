@@ -12,4 +12,3 @@ Declare Function ObtainInfoA Lib "bullet.library" Alias "#8" (ByVal glyphEngine 
 ' ObtainInfo: variadic, left out
 Declare Function ReleaseInfoA Lib "bullet.library" Alias "#10" (ByVal glyphEngine As Long, ByVal tagList_ As Long) As Long
 ' ReleaseInfo: variadic, left out
-Declare Function GetGlyphMap Lib "bullet.library" Alias "#12" (ByVal glyphEngine As Long, ByVal glyphCode As Long, ByVal glyphMap As Long) As Long

@@ -106,8 +106,6 @@ Declare Function XorRegionRegion Lib "graphics.library" Alias "#102" (ByVal srcR
 Declare Function AndRegionRegion Lib "graphics.library" Alias "#103" (ByVal srcRegion As Long, ByVal destRegion As Long) As Long
 Declare Sub SetRGB4CM Lib "graphics.library" Alias "#104" (ByVal colorMap As Long, ByVal colindex As Long, ByVal red As Long, ByVal green As Long, ByVal blue As Long)
 Declare Sub BltMaskBitMapRastPort Lib "graphics.library" Alias "#105" (ByVal srcBitMap As Long, ByVal xSrc As Long, ByVal ySrc As Long, ByVal destRP As Long, ByVal xDest As Long, ByVal yDest As Long, ByVal xSize As Long, ByVal ySize As Long, ByVal minterm As Long, ByVal bltMask As Long)
-Declare Sub GfxInternal1 Lib "graphics.library" Alias "#106" ()
-Declare Sub GfxInternal2 Lib "graphics.library" Alias "#107" ()
 Declare Function AttemptLockLayerRom Lib "graphics.library" Alias "#108" (ByVal layer As Long) As Long
 Declare Function GfxNew Lib "graphics.library" Alias "#109" (ByVal gfxNodeType As Long) As Long
 Declare Sub GfxFree Lib "graphics.library" Alias "#110" (ByVal gfxNodePtr As Long)
@@ -123,9 +121,6 @@ Declare Function OpenMonitor Lib "graphics.library" Alias "#119" (ByVal monitorN
 Declare Function CloseMonitor Lib "graphics.library" Alias "#120" (ByVal monitorSpec As Long) As Long
 Declare Function FindDisplayInfo Lib "graphics.library" Alias "#121" (ByVal displayID As Long) As Long
 Declare Function NextDisplayInfo Lib "graphics.library" Alias "#122" (ByVal displayID As Long) As Long
-Declare Sub AddDisplayInfo Lib "graphics.library" Alias "#123" (ByVal displayInfoRecord As Long)
-Declare Sub AddDisplayInfoData Lib "graphics.library" Alias "#124" (ByVal handle As Long, ByVal buf As String, ByVal size As Long, ByVal tagID As Long, ByVal displayID As Long)
-Declare Function SetDisplayInfoData Lib "graphics.library" Alias "#125" (ByVal handle As Long, ByVal buf As Long, ByVal size As Long, ByVal tagID As Long, ByVal displayID As Long) As Long
 Declare Function GetDisplayInfoData Lib "graphics.library" Alias "#126" (ByVal handle As Long, ByVal buf As Long, ByVal size As Long, ByVal tagID As Long, ByVal displayID As Long) As Long
 Declare Sub FontExtent Lib "graphics.library" Alias "#127" (ByVal font As Long, ByVal fontExtent As Long)
 Declare Function ReadPixelLine8 Lib "graphics.library" Alias "#128" (ByVal rp As Long, ByVal xstart As Long, ByVal ystart As Long, ByVal width As Long, ByVal array_ As Long, ByVal tempRP As Long) As Long
@@ -134,8 +129,6 @@ Declare Function ReadPixelArray8 Lib "graphics.library" Alias "#130" (ByVal rp A
 Declare Function WritePixelArray8 Lib "graphics.library" Alias "#131" (ByVal rp As Long, ByVal xstart As Long, ByVal ystart As Long, ByVal xstop As Long, ByVal ystop As Long, ByVal array_ As Long, ByVal temprp As Long) As Long
 Declare Function GetVPModeID Lib "graphics.library" Alias "#132" (ByVal vp As Long) As Long
 Declare Function ModeNotAvailable Lib "graphics.library" Alias "#133" (ByVal modeID As Long) As Long
-Declare Function WeighTAMatch Lib "graphics.library" Alias "#134" (ByVal reqTextAttr As Long, ByVal targetTextAttr As Long, ByVal targetTags As Long) As Long
-' WeighTAMatchTags: variadic, left out
 Declare Sub EraseRect Lib "graphics.library" Alias "#136" (ByVal rp As Long, ByVal xMin As Long, ByVal yMin As Long, ByVal xMax As Long, ByVal yMax As Long)
 Declare Function ExtendFont Lib "graphics.library" Alias "#137" (ByVal font As Long, ByVal fontTags As Long) As Long
 ' ExtendFontTags: variadic, left out
@@ -144,7 +137,6 @@ Declare Function CalcIVG Lib "graphics.library" Alias "#140" (ByVal v As Long, B
 Declare Function AttachPalExtra Lib "graphics.library" Alias "#141" (ByVal cm As Long, ByVal vp As Long) As Long
 Declare Function ObtainBestPenA Lib "graphics.library" Alias "#142" (ByVal cm As Long, ByVal r As Long, ByVal g As Long, ByVal b As Long, ByVal tags As Long) As Long
 ' ObtainBestPen: variadic, left out
-Declare Sub GfxInternal3 Lib "graphics.library" Alias "#144" ()
 Declare Sub SetRGB32 Lib "graphics.library" Alias "#145" (ByVal vp As Long, ByVal n As Long, ByVal r As Long, ByVal g As Long, ByVal b As Long)
 Declare Function GetAPen Lib "graphics.library" Alias "#146" (ByVal rp As Long) As Long
 Declare Function GetBPen Lib "graphics.library" Alias "#147" (ByVal rp As Long) As Long
@@ -155,7 +147,6 @@ Declare Function SetChipRev Lib "graphics.library" Alias "#151" (ByVal want As L
 Declare Sub SetABPenDrMd Lib "graphics.library" Alias "#152" (ByVal rp As Long, ByVal apen As Long, ByVal bpen As Long, ByVal drawmode As Long)
 Declare Sub GetRGB32 Lib "graphics.library" Alias "#153" (ByVal cm As Long, ByVal firstcolor As Long, ByVal ncolors As Long, ByVal table As Long)
 Declare Function BltBitMapTagList Lib "graphics.library" Alias "#154" (ByVal tags As Long) As Long
-Declare Function SetDefaultMonitor Lib "graphics.library" Alias "#155" (ByVal mon As Long) As Long
 Declare Function AllocBitMap Lib "graphics.library" Alias "#156" (ByVal sizex As Long, ByVal sizey As Long, ByVal depth As Long, ByVal flags As Long, ByVal friendBitmap As Long) As Long
 Declare Sub FreeBitMap Lib "graphics.library" Alias "#157" (ByVal bm As Long)
 Declare Function GetExtSpriteA Lib "graphics.library" Alias "#158" (ByVal ss As Long, ByVal tags As Long) As Long
@@ -208,16 +199,6 @@ Declare Function LockBitMapToBoardTagList Lib "graphics.library" Alias "#204" (B
 ' LockBitMapToBoardTags: variadic, left out
 Declare Sub UnlockBitMapFromBoard Lib "graphics.library" Alias "#206" (ByVal lock_ As Long, ByVal modified As Long)
 Declare Function GetBoardBytesPerRow Lib "graphics.library" Alias "#207" (ByVal boardNum As Long, ByVal pixelFormat As Long, ByVal width As Long) As Long
-Declare Function InitBoardTagList Lib "graphics.library" Alias "#208" (ByVal boardName As String, ByVal tags As Long) As Long
-' InitBoardTags: variadic, left out
-Declare Function CreateDisplayInfoData Lib "graphics.library" Alias "#210" (ByVal boardInfo As Long) As Long
-Declare Function PIP_OpenTagList Lib "graphics.library" Alias "#211" (ByVal Tags As Long) As Long
-' PIP_OpenTags: variadic, left out
-Declare Function PIP_Close Lib "graphics.library" Alias "#213" (ByVal window As Long) As Long
-Declare Function PIP_SetTagList Lib "graphics.library" Alias "#214" (ByVal window As Long, ByVal Tags As Long) As Long
-' PIP_SetTags: variadic, left out
-Declare Function PIP_GetTagList Lib "graphics.library" Alias "#216" (ByVal window As Long, ByVal Tags As Long) As Long
-' PIP_GetTags: variadic, left out
 Declare Sub SetRastColor Lib "graphics.library" Alias "#218" (ByVal rp As Long, ByVal color As Long)
 
 ' --- constants ---
@@ -651,19 +632,6 @@ Public Const LAYERINFO_ComposeHook = &H80000067
 Public Const LAYERINFO_ComposeLock = &H80000068
 Public Const LCM_COMPOSE = 0
 Public Const LCM_DAMAGE = 1
-' graphics/minterm.h
-Public Const ABC = 128
-Public Const ABNC = 64
-Public Const ANBC = 32
-Public Const ANBNC = 16
-Public Const NABC = 8
-Public Const NABNC = 4
-Public Const NANBC = 2
-Public Const NANBNC = 1
-Public Const A_OR_B = 252
-Public Const A_OR_C = 250
-Public Const A_XOR_C = 90
-Public Const A_TO_D = 240
 ' graphics/modeid.h
 Public Const INVALID_ID = &HFFFFFFFF
 Public Const MONITOR_ID_MASK = &HFFFF1000
@@ -1109,8 +1077,8 @@ Public Const CT_COLORMASK = 15
 Public Const CT_COLORFONT = 1
 Public Const CT_GREYFONT = 2
 Public Const CT_ANTIALIAS = 4
-Public Const CTB_MAPCOLOR = 0
-Public Const CTF_MAPCOLOR = 1
+Public Const CTB_MAPCOLOR = 8
+Public Const CTF_MAPCOLOR = 256
 ' graphics/videocontrol.h
 Public Const VTAG_END_CM = 0
 Public Const VTAG_CHROMAKEY_CLR = &H80000000

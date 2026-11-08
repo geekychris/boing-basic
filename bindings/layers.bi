@@ -40,8 +40,6 @@ Declare Function LayerOccluded Lib "layers.library" Alias "#36" (ByVal layer As 
 Declare Function HideLayer Lib "layers.library" Alias "#37" (ByVal layer As Long) As Long
 Declare Function ShowLayer Lib "layers.library" Alias "#38" (ByVal layer As Long, ByVal infront_of As Long) As Long
 Declare Function SetLayerInfoBounds Lib "layers.library" Alias "#39" (ByVal li As Long, ByVal bounds As Long) As Long
-Declare Function AllocClipRect Lib "layers.library" Alias "#40" (ByVal li As Long) As Long
-Declare Sub FreeClipRect Lib "layers.library" Alias "#41" (ByVal li As Long, ByVal cr As Long)
 Declare Function CreateLayerA Lib "layers.library" Alias "#42" (ByVal li As Long, ByVal tlist As Long) As Long
 ' CreateLayer: variadic, left out
 Declare Function ChangeLayerShape Lib "layers.library" Alias "#44" (ByVal layer As Long, ByVal region As Long, ByVal hook As Long) As Long

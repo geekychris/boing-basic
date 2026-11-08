@@ -4,7 +4,6 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function LocaleARexxHost Lib "locale.library" Alias "#4" (ByVal parameters As Long, ByVal result As Long) As Long
 Declare Sub CloseCatalog Lib "locale.library" Alias "#5" (ByVal catalog As Long)
 Declare Sub CloseLocale Lib "locale.library" Alias "#6" (ByVal locale As Long)
 Declare Function ConvToLower Lib "locale.library" Alias "#7" (ByVal locale As Long, ByVal character As Long) As Long
@@ -28,7 +27,6 @@ Declare Function OpenCatalogA Lib "locale.library" Alias "#24" (ByVal locale As 
 ' OpenCatalog: variadic, left out
 Declare Function OpenLocale Lib "locale.library" Alias "#26" (ByVal name_ As String) As Long
 Declare Function ParseDate Lib "locale.library" Alias "#27" (ByVal locale As Long, ByVal date_ As Long, ByVal fmtTemplate As String, ByVal getCharFunc As Long) As Long
-Declare Function SetDefaultLocale Lib "locale.library" Alias "#28" (ByVal locale As Long) As Long
 Declare Function StrConvert Lib "locale.library" Alias "#29" (ByVal locale As Long, ByVal string_ As String, ByVal buffer As Long, ByVal bufferSize As Long, ByVal type_ As Long) As Long
 Declare Function StrnCmp Lib "locale.library" Alias "#30" (ByVal locale As Long, ByVal string1 As String, ByVal string2 As String, ByVal length As Long, ByVal type_ As Long) As Long
 Declare Function Locale_DateToStr Lib "locale.library" Alias "#31" (ByVal datetime As Long) As Long

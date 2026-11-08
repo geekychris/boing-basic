@@ -4,8 +4,6 @@
 ' (pass vbNullString for NULL, Space(n) for a buffer the function fills).
 
 ' --- interface "main" ---
-Declare Function GetIcon Lib "icon.library" Alias "#6" (ByVal name_ As String, ByVal icon As Long, ByVal freelist As Long) As Long
-Declare Function PutIcon Lib "icon.library" Alias "#7" (ByVal name_ As String, ByVal icon As Long) As Long
 Declare Sub FreeFreeList Lib "icon.library" Alias "#8" (ByVal freelist As Long)
 Declare Function AddFreeList Lib "icon.library" Alias "#11" (ByVal freelist As Long, ByVal mem As Long, ByVal size As Long) As Long
 Declare Function GetDiskObject Lib "icon.library" Alias "#12" (ByVal name_ As String) As Long

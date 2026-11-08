@@ -5,4 +5,3 @@
 
 ' --- interface "main" ---
 Declare Function PICTURE_GetClass Lib "datatypes/picture.datatype" Alias "#4" () As Long
-Declare Sub PICTURE_Private Lib "datatypes/picture.datatype" Alias "#5" ()
