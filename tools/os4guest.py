@@ -247,7 +247,7 @@ def have_fetch(m):
     global _have_fetch
     if _have_fetch is None:
         out = m.tool("amiga_dos_command", command="list %s LFORMAT %%n" % FETCH)
-        _have_fetch = "bbfetch" in out and "not found" not in out.lower()
+        _have_fetch = out.strip().endswith("bbfetch")
     return _have_fetch
 
 
@@ -361,11 +361,23 @@ def setup(m):
     src = os.path.join(ROOT, "tools/os4/bbfetch.c")
     m.tool("amiga_dos_command", command="makedir DH1:bbtools QUIET")
     bridge_push(m, src, "DH1:bbtools/bbfetch.c")
-    out = m.tool("amiga_dos_command", command="SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 -o DH1:bbtools/bbfetch DH1:bbtools/bbfetch.c -lauto")
-    print(out)
-    ptr = os.path.join(ROOT, "build/os4/ptr")
     bridge_push(m, os.path.join(ROOT, "tools/os4/ptr.c"), "DH1:bbtools/ptr.c")
-    print(m.tool("amiga_dos_command", command="SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 -o DH1:bbtools/ptr DH1:bbtools/ptr.c -lauto"))
+    # compile in the background (GCC takes longer than the bridge's 30 s command timeout)
+    import time
+    for tool in ("bbfetch", "ptr"):
+        m.tool("amiga_dos_command", command="delete DH1:bbtools/%s QUIET" % tool)
+        m.tool("amiga_dos_command", command="run >NIL: SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 "
+               "-o DH1:bbtools/%s DH1:bbtools/%s.c -lauto >RAM:%s.log" % (tool, tool, tool))
+        t0 = time.time()
+        while time.time() - t0 < 900:       # GCC on the guest: 15 s to several minutes
+            time.sleep(10)
+            out = m.tool("amiga_dos_command", command="list DH1:bbtools/%s LFORMAT %%n" % tool)
+            if out.strip().endswith(tool):
+                time.sleep(3)           # let the linker close the file
+                break
+        else:
+            print(m.tool("amiga_dos_command", command="type RAM:%s.log" % tool))
+            raise RuntimeError("building %s on the guest failed" % tool)
     print(m.tool("amiga_dos_command", command="list DH1:bbtools"))
     global _have_fetch
     _have_fetch = None
