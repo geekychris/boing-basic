@@ -48,6 +48,13 @@ static char *exe_dir(const char *argv0)
     char buf[2048];
     const char *slash;
     if (home && *home) return xstrdup(home);
+#ifdef __amigaos4__
+    /* AmigaOS: PROGDIR: is the directory boing was loaded from (no PATH variable, and "."
+       isn't the current directory there); the BOING: assign, if any, wins */
+    (void)argv0; (void)buf; (void)slash;
+    if (access("BOING:include/boing.h", R_OK) == 0) return xstrdup("BOING:");
+    return xstrdup("PROGDIR:");
+#endif
     if (strchr(argv0, '/') || strchr(argv0, ':')) snprintf(buf, sizeof buf, "%s", argv0);
     else {
         /* search PATH */
@@ -93,8 +100,13 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
     fwrite(c.p, 1, c.n, f);
     fclose(f);
     dir = exe_dir(argv0);
-    inc = xsprintf("%s/include", dir);
-    lib = xsprintf("%s", dir);
+    /* "Work:Boing" + "/include"; but "PROGDIR:" + "include" */
+    {
+        size_t dl = strlen(dir);
+        const char *sep = dl && (dir[dl - 1] == ':' || dir[dl - 1] == '/') ? "" : "/";
+        inc = xsprintf("%s%sinclude", dir, sep);
+        lib = xsprintf("%s", dir);
+    }
     if (!file_exists(xsprintf("%s/boing.h", inc))) {
         /* installed layout: bin/boing, lib/libboing.a, include/boing/boing.h */
         char *alt = xsprintf("%s/../include/boing", dir);
@@ -102,13 +114,21 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
     }
     if (!cc || !*cc) {
 #ifdef __amigaos4__
-        cc = "gcc";
+        /* the SDK's native GCC 11; a shell without sdk-startup has no path to it */
+        cc = access("SDK:gcc/bin/gcc", X_OK) == 0 ? "SDK:gcc/bin/gcc" : "gcc";
 #else
         cc = "cc";
 #endif
     }
+#ifdef __amigaos4__
+    /* never -mcpu=440/440fp: GCC then inlines string functions with dlmzb., which only the
+       440/460 has (real X5000, A1222 and G3/G4 machines crash); see docs/os4.md */
+    cmd = xsprintf("%s -mcrt=newlib -mcpu=powerpc %s -D__USE_OLD_TIMEVAL__ -I\"%s\" \"%s\" -o \"%s\" -L\"%s\" "
+                   "-lboing -lauto -lm %s", cc, debug ? "-g -O0" : "-O2", inc, cpath, outp, lib, extra ? extra : "");
+#else
     cmd = xsprintf("%s %s -I\"%s\" \"%s\" -o \"%s\" -L\"%s\" -lboing -lm %s", cc,
                    debug ? "-g -O0" : "-O2", inc, cpath, outp, lib, extra ? extra : "");
+#endif
     rc = system(cmd);
     if (!keep_c) remove(cpath);
     if (rc != 0) {

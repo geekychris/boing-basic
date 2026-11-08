@@ -1,5 +1,5 @@
 #!/bin/sh
-# os4-form-test.sh [vm|native|both] - the BASIC forms test (tests/os4/formbas) on the QEMU
+# os4-form-test.sh [vm|native|both] - the BASIC forms test (tests-os4/formbas) on the QEMU
 # guest: `boing run formbas.bbp` (vm) and/or the native build from `boing build --target os4`.
 # The program prints "CLICK x y"; this script clicks there with tools/os4/ptr (only when the
 # test's window is on the front screen) and expects ok_Click to run. Holds the emulator lock.
@@ -13,7 +13,7 @@ sys.path.insert(0, "tools")
 import os4guest as g
 mode = sys.argv[1]
 m = g.MCP(g.URL)
-T = "tests/os4/formbas/"
+T = "tests-os4/formbas/"
 TITLE = "Boing BASIC form test - running"
 def run(cmd, label):
     out_f = "RAM:bbform/%s.out" % label
