@@ -632,7 +632,8 @@ static int translate(T *t, int32_t pc)
 }
 
 static const JBackend *g_be_for_scan;
-int jit_no_fsqrt;             /* BOING_JIT_NOSQRT=1: compile as for a CPU without fsqrt (testing) */
+int jit_no_fsqrt;
+int jit_min_ops = 8;            /* BOING_JIT_MINOPS: smallest compiled piece that is not a whole loop */             /* BOING_JIT_NOSQRT=1: compile as for a CPU without fsqrt (testing) */
 
 static int region_end(VMImage *img, VMProc *p, int32_t start)
 {
@@ -679,7 +680,10 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
             if (tg == start) back = 1;
             if (tg >= 0 && tg <= pc) backward = 1;
         }
-        if (!back && !(nops >= 2 && (backward || (end < img->ncode && (img->code[end] == I_R_CALLS || img->code[end] == I_R_SQRT_D))))) return 0;
+        /* a stretch that is not a whole loop must be long enough to pay for entering and
+           leaving compiled code around it (under QEMU each entry/exit is expensive: short
+           pieces between calls made call-heavy code slower) */
+        if (!back && !(nops >= jit_min_ops && (backward || (end < img->ncode && (img->code[end] == I_R_CALLS || img->code[end] == I_R_SQRT_D))))) return 0;
     }
     memset(&t, 0, sizeof t);
     memset(a, 0, sizeof *a);
@@ -814,6 +818,7 @@ void jit_init(void)
     }
     const char *e = getenv("BOING_JIT");
     const char *th = getenv("BOING_JIT_THRESHOLD");
+    if (getenv("BOING_JIT_MINOPS")) jit_min_ops = atoi(getenv("BOING_JIT_MINOPS"));
     if (getenv("BOING_JIT_NOSQRT")) jit_no_fsqrt = atoi(getenv("BOING_JIT_NOSQRT")) != 0;
     if (e) g_enabled = atoi(e) != 0;
     if (th) jit_threshold = atoi(th);
