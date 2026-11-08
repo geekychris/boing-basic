@@ -16,7 +16,7 @@ static void usage(void)
             "Boing BASIC " BOING_VERSION "\n"
             "usage:\n"
             "  boing run   prog.bas|prog.bbp|prog.bbc [args]   compile to bytecode and run\n"
-            "  boing build prog.bas|prog.bbp [-o out] [--keep-c] [--debug]   native executable\n"
+            "  boing build prog.bas|prog.bbp [-o out] [--keep-c] [--debug] [--target host|os4]\n"
             "  boing check prog.bas|prog.bbp                    check only (file:line:col: error: ...)\n"
             "  boing compile prog.bas -o prog.bbc               write a bytecode file\n"
             "  boing emit-c prog.bas [-o prog.c]                write the generated C\n"
@@ -188,14 +188,26 @@ int main(int argc, char **argv)
         return 0;
     }
     if (!strcmp(cmd, "build")) {
-        const char *out = NULL;
+        const char *out = NULL, *target = NULL;
         int i, keep = 0, debug = 0;
         for (i = 3; i < argc; i++) {
             if (!strcmp(argv[i], "-o") && i + 1 < argc) out = argv[++i];
             else if (!strcmp(argv[i], "--keep-c")) keep = 1;
             else if (!strcmp(argv[i], "--debug")) debug = 1;
+            else if (!strcmp(argv[i], "--target") && i + 1 < argc) target = argv[++i];
             else { fprintf(stderr, "boing: unknown option %s\n", argv[i]); return 5; }
         }
+        if (target && strcmp(target, "os4") == 0) {
+            /* cross build from the host: tools/boing-build-os4.sh (Docker) */
+            char *dir = exe_dir(argv[0]);
+            char *script = xsprintf("%s/../tools/boing-build-os4.sh", dir);
+            char *c;
+            if (!file_exists(script)) { fprintf(stderr, "boing: %s not found\n", script); return 10; }
+            c = xsprintf("BOING=\"%s/boing\" sh \"%s\" \"%s\"%s%s%s%s%s", dir, script, argv[2], out ? " -o \"" : "", out ? out : "",
+                         out ? "\"" : "", keep ? " --keep-c" : "", debug ? " --debug" : "");
+            return system(c) == 0 ? 0 : 1;
+        }
+        if (target && strcmp(target, "host") != 0) { fprintf(stderr, "boing: unknown target %s (host, os4)\n", target); return 5; }
         return cmd_build(argv[0], argv[2], out, keep, debug);
     }
     usage();

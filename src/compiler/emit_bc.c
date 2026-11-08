@@ -629,10 +629,27 @@ static void for_stmt(E *e, Node *s)
     assign(e, ctr, s->b);
     l = push_loop(e, EXIT_FOR);
     top = here(e);
-    expr(e, ctr);
-    load_var(e, lim->sym);
-    load_var(e, stp->sym);
-    patch_add(&l->exits, jump(e, I_FORCHKV));
+    if (s->d->kind == E_CONST && is_scalar(ctr->ty) && ctr->ty->kind != T_BOOLEAN) {
+        /* typed counter with a constant step (a global, field, element...): compare directly */
+        CVal *sv = &s->d->cv;
+        double step = (sv->type == T_INTEGER || sv->type == T_LONG || sv->type == T_BYTE) ? (double)sv->i : sv->d;
+        int cop;
+        switch (ctr->ty->kind) {
+        case T_LONG: cop = I_CMP_L; break;
+        case T_CURRENCY: cop = I_CMP_C; break;
+        case T_INTEGER: case T_BYTE: cop = I_CMP_I; break;
+        default: cop = I_CMP_D; break;
+        }
+        expr(e, ctr);
+        load_var(e, lim->sym);
+        op1(e, cop, step >= 0 ? BB_CMP_GT : BB_CMP_LT);
+        patch_add(&l->exits, jump(e, I_JT));
+    } else {
+        expr(e, ctr);
+        load_var(e, lim->sym);
+        load_var(e, stp->sym);
+        patch_add(&l->exits, jump(e, I_FORCHKV));
+    }
     block(e, &s->list);
     {
         /* ctr = ctr + step */
