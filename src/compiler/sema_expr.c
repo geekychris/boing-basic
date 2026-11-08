@@ -906,8 +906,8 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
     Sym *s = scope_find(c->scope, e->name);
     int bi;
     if (s && s->is_retvar && args && s->proc) {
-        /* F(...) inside F: recursive call (unless F returns an array) */
-        if (s->ty->kind != T_ARRAY) {
+        /* F(...) inside F: a recursive call */
+        {
             Sym *ps = scope_find(c->mod->scope, e->name);
             if (ps && ps->kind == SK_PROC) s = ps;
             else if (ps && ps->kind == SK_PROPGROUP) s = ps;

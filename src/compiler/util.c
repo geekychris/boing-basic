@@ -151,15 +151,15 @@ Scope *scope_new(Scope *parent)
     Scope *s = (Scope *)xcalloc(1, sizeof(Scope));
     s->parent = parent;
     s->cap = 16;
-    s->tab = (Sym **)xcalloc((size_t)s->cap, sizeof(Sym *));
+    s->tab = (ScopeEnt **)xcalloc((size_t)s->cap, sizeof(ScopeEnt *));
     return s;
 }
 
 Sym *scope_find_local(Scope *s, const char *name)
 {
-    Sym *e;
+    ScopeEnt *e;
     for (e = s->tab[hash_name(name) & (unsigned)(s->cap - 1)]; e; e = e->next)
-        if (name_eq(e->name, name)) return e;
+        if (name_eq(e->sym->name, name)) return e->sym;
     return NULL;
 }
 
@@ -172,28 +172,32 @@ Sym *scope_find(Scope *s, const char *name)
     return NULL;
 }
 
+/* a symbol may be in several scopes (module and global): entries are separate */
 void scope_add(Scope *s, Sym *sym)
 {
     unsigned h;
+    ScopeEnt *n;
     if (s->n * 2 >= s->cap) {
         int oc = s->cap, i;
-        Sym **old = s->tab;
+        ScopeEnt **old = s->tab;
         s->cap *= 2;
-        s->tab = (Sym **)xcalloc((size_t)s->cap, sizeof(Sym *));
+        s->tab = (ScopeEnt **)xcalloc((size_t)s->cap, sizeof(ScopeEnt *));
         for (i = 0; i < oc; i++) {
-            Sym *e = old[i], *n;
-            for (; e; e = n) {
-                n = e->next;
-                h = hash_name(e->name) & (unsigned)(s->cap - 1);
+            ScopeEnt *e = old[i], *nx;
+            for (; e; e = nx) {
+                nx = e->next;
+                h = hash_name(e->sym->name) & (unsigned)(s->cap - 1);
                 e->next = s->tab[h];
                 s->tab[h] = e;
             }
         }
         free(old);
     }
+    n = (ScopeEnt *)xcalloc(1, sizeof(ScopeEnt));
+    n->sym = sym;
     h = hash_name(sym->name) & (unsigned)(s->cap - 1);
-    sym->next = s->tab[h];
-    s->tab[h] = sym;
+    n->next = s->tab[h];
+    s->tab[h] = n;
     s->n++;
 }
 

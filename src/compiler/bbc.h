@@ -243,9 +243,10 @@ struct Sym {
     int label_id;
 };
 
+typedef struct ScopeEnt { Sym *sym; struct ScopeEnt *next; } ScopeEnt;
 struct Scope {
     Scope *parent;
-    Sym **tab;
+    ScopeEnt **tab;
     int cap, n;
 };
 Scope *scope_new(Scope *parent);

@@ -601,7 +601,10 @@ static Node *parse_proc(P *p, Token *t, int flags)
         n->suffix = suf;
     }
     parse_params(p, &n->list);
-    if (n->op != PK_SUB && n->op != PK_PLET && n->op != PK_PSET) n->a = parse_as_type(p, n);
+    if (n->op != PK_SUB && n->op != PK_PLET && n->op != PK_PSET) {
+        n->a = parse_as_type(p, n);
+        if (n->a && is(p, TK_LP) && tkn(p, 1)->kind == TK_RP) { adv(p); adv(p); n->flags |= NF_ARRAY; }
+    }
     end_stmt(p);
     p->in_proc = 1;
     parse_block(p, &n->list2);
