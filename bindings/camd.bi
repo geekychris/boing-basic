@@ -7,22 +7,22 @@
 Declare Function LockCAMD Lib "camd.library" Alias "#4" (ByVal locktype As Long) As Long
 Declare Sub UnlockCAMD Lib "camd.library" Alias "#5" (ByVal lock_ As Long)
 Declare Function CreateMidiA Lib "camd.library" Alias "#6" (ByVal TagList As Long) As Long
-Declare Function CreateMidi Lib "camd.library" Alias "#7" (ByVal arg As Long) As Long
+' CreateMidi: variadic, left out
 Declare Sub DeleteMidi Lib "camd.library" Alias "#8" (ByVal mn As Long)
 Declare Function SetMidiAttrsA Lib "camd.library" Alias "#9" (ByVal mi As Long, ByVal tags As Long) As Long
-Declare Function SetMidiAttrs Lib "camd.library" Alias "#10" (ByVal mi As Long, ByVal arg As Long) As Long
+' SetMidiAttrs: variadic, left out
 Declare Function GetMidiAttrsA Lib "camd.library" Alias "#11" (ByVal mi As Long, ByVal attrs As Long) As Long
-Declare Function GetMidiAttrs Lib "camd.library" Alias "#12" (ByVal mi As Long, ByVal arg As Long) As Long
+' GetMidiAttrs: variadic, left out
 Declare Function NextMidi Lib "camd.library" Alias "#13" (ByVal last As Long) As Long
 Declare Function FindMidi Lib "camd.library" Alias "#14" (ByVal name_ As String) As Long
 Declare Sub FlushMidi Lib "camd.library" Alias "#15" (ByVal mi As Long)
 Declare Function AddMidiLinkA Lib "camd.library" Alias "#16" (ByVal mi As Long, ByVal type_ As Long, ByVal TagsList As Long) As Long
-Declare Function AddMidiLink Lib "camd.library" Alias "#17" (ByVal mi As Long, ByVal type_ As Long, ByVal arg As Long) As Long
+' AddMidiLink: variadic, left out
 Declare Sub RemoveMidiLink Lib "camd.library" Alias "#18" (ByVal ml As Long)
 Declare Function SetMidiLinkAttrsA Lib "camd.library" Alias "#19" (ByVal ml As Long, ByVal tags As Long) As Long
-Declare Function SetMidiLinkAttrs Lib "camd.library" Alias "#20" (ByVal ml As Long, ByVal arg As Long) As Long
+' SetMidiLinkAttrs: variadic, left out
 Declare Function GetMidiLinkAttrsA Lib "camd.library" Alias "#21" (ByVal ml As Long, ByVal attrs As Long) As Long
-Declare Function GetMidiLinkAttrs Lib "camd.library" Alias "#22" (ByVal ml As Long, ByVal arg As Long) As Long
+' GetMidiLinkAttrs: variadic, left out
 Declare Function NextClusterLink Lib "camd.library" Alias "#23" (ByVal mc As Long, ByVal last As Long, ByVal type_ As Long) As Long
 Declare Function NextMidiLink Lib "camd.library" Alias "#24" (ByVal mi As Long, ByVal last As Long, ByVal type_ As Long) As Long
 Declare Function MidiLinkConnected Lib "camd.library" Alias "#25" (ByVal ml As Long) As Long

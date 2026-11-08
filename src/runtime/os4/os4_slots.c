@@ -132,10 +132,8 @@ const struct bb_slot bb_slots[] = {
     { "bullet.library", "main", "OpenEngine", 4, 0 },
     { "bullet.library", "main", "ReleaseInfoA", 10, 2 },
     { "bullet.library", "main", "SetInfoA", 6, 2 },
-    { "camd.library", "main", "AddMidiLink", 17, 3 },
     { "camd.library", "main", "AddMidiLinkA", 16, 3 },
     { "camd.library", "main", "CloseMidiDevice", 40, 1 },
-    { "camd.library", "main", "CreateMidi", 7, 1 },
     { "camd.library", "main", "CreateMidiA", 6, 1 },
     { "camd.library", "main", "DeleteMidi", 8, 1 },
     { "camd.library", "main", "EndClusterNotify", 43, 1 },
@@ -143,10 +141,8 @@ const struct bb_slot bb_slots[] = {
     { "camd.library", "main", "FindMidi", 14, 1 },
     { "camd.library", "main", "FlushMidi", 15, 1 },
     { "camd.library", "main", "GetMidi", 29, 2 },
-    { "camd.library", "main", "GetMidiAttrs", 12, 2 },
     { "camd.library", "main", "GetMidiAttrsA", 11, 2 },
     { "camd.library", "main", "GetMidiErr", 35, 1 },
-    { "camd.library", "main", "GetMidiLinkAttrs", 22, 2 },
     { "camd.library", "main", "GetMidiLinkAttrsA", 21, 2 },
     { "camd.library", "main", "GetSysEx", 32, 3 },
     { "camd.library", "main", "LockCAMD", 4, 1 },
@@ -164,9 +160,7 @@ const struct bb_slot bb_slots[] = {
     { "camd.library", "main", "QuerySysEx", 33, 1 },
     { "camd.library", "main", "RemoveMidiLink", 18, 1 },
     { "camd.library", "main", "RethinkCAMD", 41, 0 },
-    { "camd.library", "main", "SetMidiAttrs", 10, 2 },
     { "camd.library", "main", "SetMidiAttrsA", 9, 2 },
-    { "camd.library", "main", "SetMidiLinkAttrs", 20, 2 },
     { "camd.library", "main", "SetMidiLinkAttrsA", 19, 2 },
     { "camd.library", "main", "SkipSysEx", 34, 1 },
     { "camd.library", "main", "StartClusterNotify", 42, 1 },
@@ -2102,4 +2096,4 @@ const struct bb_slot bb_slots[] = {
     { "xena.resource", "main", "AllocResource", 4, 2 },
     { "xena.resource", "main", "FreeResource", 5, 1 },
 };
-const int bb_num_slots = 2097;
+const int bb_num_slots = 2091;

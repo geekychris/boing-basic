@@ -10,9 +10,26 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
                                                       run a BASIC test with build/os4/boing (VM)
                                                       and/or natively built; exit 1 unless PASS
     tools/os4guest.py tool NAME '{json args}'          any devbench MCP tool
+    tools/os4guest.py setup                            once per guest disk: build DH1:bbtools/bbfetch
+                                                      (on the guest, SDK GCC) and copy ptr there
+    tools/os4guest.py reapers                          report (and with --kill, close) Grim Reapers
+
+Fast deploy: files bigger than BB_HTTP_MIN (16 KB) go over HTTP, not the serial bridge: this
+script serves them from the Mac on 127.0.0.1 (QEMU's user-mode network makes that the guest's
+gateway, 192.168.101.2) and DH1:bbtools/bbfetch fetches them, checking length and CRC-32. The
+bridge only carries the command. Without bbfetch on the guest (run `setup`) big files are
+refused rather than pushed through the bridge (big bridge pushes have killed the guest).
+Parent directories are created.
+
+Sharing the guest: every command takes a FIFO ticket (/tmp/amiga-emu.queue, oldest first) and
+then amiga_mcp's emulator lock + banner, holds it only for that command, and gives it up when
+the bridge stops answering (BB_SILENT, 90 s of no heartbeat) or the session is too long
+(BB_SESSION_TIMEOUT, 600 s). After `test`/`bas` runs it looks for Grim Reaper windows and
+reports them (BB_KILL_REAPERS=1 closes them).
 
 Env: OS4_MCP (default http://localhost:3010/mcp; :3000 can be shadowed, see amiga_mcp memory),
-AMIGA_MCP (the amiga_mcp checkout, for scripts/claude_busy.py), BB_BANNER=0 to skip the banner.
+AMIGA_MCP (the amiga_mcp checkout, for scripts/claude_busy.py), BB_BANNER=0 to skip the banner
+and the lock (read-only probes only).
 """
 import contextlib
 import json
@@ -56,6 +73,73 @@ class MCP:
         return text
 
 
+QUEUE = "/tmp/amiga-emu.queue"
+
+
+@contextlib.contextmanager
+def fifo_ticket():
+    """Wait until our ticket is the oldest live one (flock alone isn't FIFO: new jobs jumped
+    the queue). Tickets of dead processes are dropped."""
+    import time
+    os.makedirs(QUEUE, exist_ok=True)
+    me = os.path.join(QUEUE, "%015.3f-%d" % (time.time(), os.getpid()))
+    open(me, "w").write(" ".join(sys.argv) + "\n")
+    try:
+        while True:
+            live = []
+            for t in sorted(os.listdir(QUEUE)):
+                try:
+                    pid = int(t.rsplit("-", 1)[1])
+                    os.kill(pid, 0)
+                    live.append(t)
+                except (ValueError, ProcessLookupError, IndexError):
+                    try:
+                        os.unlink(os.path.join(QUEUE, t))
+                    except OSError:
+                        pass
+                except PermissionError:
+                    live.append(t)
+            if not live or os.path.join(QUEUE, live[0]) == me:
+                break
+            time.sleep(2)
+        yield
+    finally:
+        try:
+            os.unlink(me)
+        except OSError:
+            pass
+
+
+def watchdog():
+    """Exit (which releases the emulator lock) if the bridge goes silent or we hold it too long."""
+    import threading
+    import time
+    silent_max = float(os.environ.get("BB_SILENT", "90"))
+    session_max = float(os.environ.get("BB_SESSION_TIMEOUT", "600"))
+    status_url = URL.rsplit("/mcp", 1)[0] + "/api/status"
+    t0 = time.time()
+
+    def run():
+        while True:
+            time.sleep(10)
+            why = None
+            if time.time() - t0 > session_max:
+                why = "session longer than %ds" % session_max
+            else:
+                try:
+                    d = json.load(urllib.request.urlopen(status_url, timeout=5))
+                    s = d.get("bridgeSilentSec")
+                    if not d.get("connected") or (s is not None and s > silent_max):
+                        why = "bridge silent (%s s) or disconnected" % s
+                except Exception:
+                    pass
+            if why:
+                sys.stderr.write("os4guest: giving up the guest: %s\n" % why)
+                sys.stderr.flush()
+                os._exit(3)
+    threading.Thread(target=run, daemon=True).start()
+
+
 @contextlib.contextmanager
 def testing(message):
     if os.environ.get("BB_BANNER") == "0":
@@ -63,11 +147,100 @@ def testing(message):
         return
     sys.path.insert(0, os.path.join(AMIGA_MCP, "scripts"))
     from claude_busy import claude_testing
-    with claude_testing(URL, message):
-        yield
+    with fifo_ticket():
+        watchdog()
+        with claude_testing(URL, message):
+            yield
+
+
+HTTP_MIN = int(os.environ.get("BB_HTTP_MIN", "16384"))
+BRIDGE_MAX = int(os.environ.get("BB_BRIDGE_MAX", "100000"))
+FETCH = "DH1:bbtools/bbfetch"
+GATEWAYS = ("192.168.101.2", "192.168.100.2")
+_server = None
+_made = set()
+
+
+def _serve():
+    """A one-directory HTTP server on 127.0.0.1 (the guest's gateway), started on demand."""
+    global _server
+    if _server:
+        return _server
+    import http.server
+    import threading
+    d = tempfile.mkdtemp(prefix="os4serve-")
+
+    class H(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *a, **k):
+            super().__init__(*a, directory=d, **k)
+
+        def log_message(self, *a):
+            pass
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    _server = (srv, d)
+    return _server
+
+
+def mkdirs(m, dest):
+    """Create the parent directories of an Amiga path (push to a missing directory hangs)."""
+    parent = dest.rsplit("/", 1)[0] if "/" in dest else None
+    if not parent or parent.endswith(":") or parent in _made:
+        return
+    parts, cur = [], parent
+    vol, rest = cur.split(":", 1)
+    acc = vol + ":"
+    for seg in rest.split("/"):
+        if not seg:
+            continue
+        acc = acc + seg if acc.endswith(":") else acc + "/" + seg
+        parts.append(acc)
+    m.tool("amiga_dos_command", command="makedir " + " ".join('"%s"' % x for x in parts) + " QUIET")
+    _made.add(parent)
+
+
+def http_push(m, local, dest):
+    import zlib
+    srv, d = _serve()
+    name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
+    shutil.copy(local, os.path.join(d, name))
+    data = open(local, "rb").read()
+    crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
+    port = srv.server_address[1]
+    try:
+        out = ""
+        for gw in GATEWAYS:
+            out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' % (FETCH, gw, port, name, dest, crc))
+            if "OK %d" % len(data) in out:
+                return "pushed %s (%d bytes, HTTP, crc %s)" % (dest, len(data), crc)
+        raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))
+    finally:
+        os.unlink(os.path.join(d, name))
+
+
+_have_fetch = None
+
+
+def have_fetch(m):
+    global _have_fetch
+    if _have_fetch is None:
+        out = m.tool("amiga_dos_command", command="list %s LFORMAT %%n" % FETCH)
+        _have_fetch = "bbfetch" in out and "not found" not in out.lower()
+    return _have_fetch
 
 
 def push(m, local, dest):
+    mkdirs(m, dest)
+    size = os.path.getsize(local)
+    if size >= HTTP_MIN and have_fetch(m):
+        return http_push(m, local, dest)
+    if size > BRIDGE_MAX and os.environ.get("BB_FORCE_BRIDGE") != "1":
+        raise RuntimeError("%s is %d bytes: too big for the serial bridge (it has killed the guest); "
+                           "run `tools/os4guest.py setup` once to enable HTTP deploys" % (local, size))
+    return bridge_push(m, local, dest)
+
+
+def bridge_push(m, local, dest):
     # ELF files padded to a 1 KB multiple: the bridge's push can wedge on a tiny last chunk
     # (AmiForge tools/m1push.sh); trailing zeros don't matter to the ELF loader.
     src = local
@@ -151,6 +324,40 @@ def bas(m, src, mode):
     return ok
 
 
+def reapers(m, kill=False):
+    """Grim Reaper requesters on the guest (crashed tasks): returns how many; closes them with kill."""
+    out = m.tool("amiga_dos_command", command="status")
+    n = out.count("GrimReaper")
+    if n and kill:
+        for _ in range(n):
+            m.tool("amiga_dos_command", command="DH1:bbtools/ptr reaper")
+    return n
+
+
+def setup(m):
+    """Build bbfetch on the guest with the SDK's GCC (no Docker needed) and install ptr."""
+    src = os.path.join(ROOT, "tools/os4/bbfetch.c")
+    m.tool("amiga_dos_command", command="makedir DH1:bbtools QUIET")
+    bridge_push(m, src, "DH1:bbtools/bbfetch.c")
+    out = m.tool("amiga_dos_command", command="SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 -o DH1:bbtools/bbfetch DH1:bbtools/bbfetch.c -lauto")
+    print(out)
+    ptr = os.path.join(ROOT, "build/os4/ptr")
+    bridge_push(m, os.path.join(ROOT, "tools/os4/ptr.c"), "DH1:bbtools/ptr.c")
+    print(m.tool("amiga_dos_command", command="SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 -o DH1:bbtools/ptr DH1:bbtools/ptr.c -lauto"))
+    print(m.tool("amiga_dos_command", command="list DH1:bbtools"))
+    global _have_fetch
+    _have_fetch = None
+    # self-test: a 300 KB file through HTTP, checked by CRC
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".bin")
+    tmp.write(os.urandom(300000))
+    tmp.close()
+    import time
+    t0 = time.time()
+    print(http_push(m, tmp.name, "RAM:bbfetch-selftest.bin"), "in %.1f s" % (time.time() - t0))
+    m.tool("amiga_dos_command", command="delete RAM:bbfetch-selftest.bin QUIET")
+    os.unlink(tmp.name)
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -166,8 +373,19 @@ def main():
                 print(push(m, args[i], args[i + 1]))
         elif cmd == "dos":
             print(m.tool("amiga_dos_command", command=args[0]))
+        elif cmd == "setup":
+            setup(m)
+        elif cmd == "reapers":
+            n = reapers(m, kill="--kill" in args)
+            print("%d Grim Reaper requester(s)%s" % (n, " closed" if n and "--kill" in args else ""))
+            return 1 if n else 0
         elif cmd == "bas":
-            return 0 if bas(m, args[0], args[1] if len(args) > 1 else "both") else 1
+            ok = bas(m, args[0], args[1] if len(args) > 1 else "both")
+            n = reapers(m, kill=os.environ.get("BB_KILL_REAPERS") == "1")
+            if n:
+                print("GRIM REAPER: %d crashed task(s) on the guest" % n)
+                return 1
+            return 0 if ok else 1
         elif cmd == "test":
             # run it in the background with its output in a file, and poll: a test stuck in a
             # requester must not block the bridge's shell
@@ -192,6 +410,10 @@ def main():
             else:
                 out += "\nFAIL (timed out after %ds; the test is still running on the guest)" % limit
             print(out)
+            n = reapers(m, kill=os.environ.get("BB_KILL_REAPERS") == "1")
+            if n:
+                print("GRIM REAPER: %d crashed task(s) on the guest%s" % (n, " (closed)" if os.environ.get("BB_KILL_REAPERS") == "1" else " - close them (reapers --kill)"))
+                return 1
             return 0 if re.search(r"^PASS\b", out, re.M) else 1
         else:
             print(__doc__)

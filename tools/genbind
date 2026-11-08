@@ -117,9 +117,12 @@ def parse_xml(path):
         methods = []
         for slot, m in enumerate(itf.findall("method")):
             args = [(a.get("name"), a.get("type")) for a in m.findall("arg")]
+            # varargs are <vararg/>, or (camd.xml) an <arg type="..."/>
+            dots = any((t or "").strip() == "..." for _, t in args)
+            args = [(n, t) for n, t in args if (t or "").strip() != "..."]
             methods.append({
                 "name": m.get("name"), "result": m.get("result", "void"), "slot": slot,
-                "args": args, "vararg": m.find("vararg") is not None,
+                "args": args, "vararg": m.find("vararg") is not None or dots,
                 "status": m.get("status", "implemented"),
             })
         ifaces.append({"name": itf.get("name"), "version": itf.get("version", "1.0"),

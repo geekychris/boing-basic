@@ -1,8 +1,9 @@
-/* ptr X Y [click|double|move] [TITLE] - move the pointer to (X, Y) on the front screen and click,
+/* ptr X Y [click|double|move] [TITLE]   |   ptr reaper - move the pointer to (X, Y) on the front screen and click,
  * through input.device (for driving tests on the guest; QEMU's relative mouse is accelerated).
  * With TITLE, only if a window with that title is on the front screen (it is activated
  * first); otherwise nothing happens and the return code is 5: the guest is shared, input
  * must not reach someone else's program. */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <proto/exec.h>
@@ -12,7 +13,39 @@
 #include <devices/inputevent.h>
 #include <intuition/intuitionbase.h>
 
+/* "ptr reaper": close the front Grim Reaper requester by clicking its middle button (Kill)
+ * at the bottom centre of its window. Prints the number closed. */
+static int reaper(void)
+{
+    struct IntuitionBase *ib = (struct IntuitionBase *)IntuitionBase;
+    struct Window *found = NULL;
+    uint32 lock = IIntuition->LockIBase(0);
+    for (struct Screen *sc = ib->FirstScreen; sc && !found; sc = sc->NextScreen)
+        for (struct Window *w = sc->FirstWindow; w; w = w->NextWindow)
+            if (w->Title && !strcmp((const char *)w->Title, "The Grim Reaper")) found = w;
+    IIntuition->UnlockIBase(lock);
+    if (!found) {
+        printf("0\n");
+        return 0;
+    }
+    char x[16], y[16], t[] = "The Grim Reaper", c[] = "click";
+    snprintf(x, sizeof x, "%d", found->LeftEdge + found->Width / 2);
+    snprintf(y, sizeof y, "%d", found->TopEdge + found->Height - 21);
+    char *av[] = { "ptr", x, y, c, t, NULL };
+    extern int ptr_main(int, char **);
+    int r = ptr_main(5, av);
+    printf("%d\n", r == 0);
+    return r;
+}
+
+int ptr_main(int argc, char **argv);
 int main(int argc, char **argv)
+{
+    if (argc == 2 && !strcmp(argv[1], "reaper")) return reaper();
+    return ptr_main(argc, argv);
+}
+
+int ptr_main(int argc, char **argv)
 {
     if (argc < 3) return 5;
     if (argc > 4) {

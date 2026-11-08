@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""bindproof - prove the generated bindings (bindings/*.bi) against the AmigaOS 4 SDK.
+
+    tools/bindproof [--sdk DIR] [--out build/bindproof] [--no-compile] [lib ...]
+
+It checks what users get (the .bi files), not genbind's own tables, against sources genbind
+does not read:
+
+1. Slots: for every `Declare ... Alias "#n"` it writes a C `_Static_assert` that
+   offsetof(struct <X>IFace, <Function>) == sizeof(struct InterfaceData) + n * sizeof(APTR),
+   so the C compiler checks the slot against the SDK's interface struct (interfaces/<lib>.h).
+2. Argument counts: the Declare's argument count against the C prototype of the struct member
+   in interfaces/<lib>.h (parsed here; the XML genbind uses is a different file).
+3. Constants: for every `Public Const NAME = value` a `_Static_assert` that the SDK header's
+   NAME, evaluated by the C compiler, equals the value (as 32 bits).
+
+The C files go to build/bindproof/<lib>.c, one per library, and are compiled with
+`ppc-amigaos-gcc -fsyntax-only` in the walkero Docker image (tools/build-os4.sh's image). A
+failed assertion is a binding bug and makes the exit code 1. A file whose SDK headers don't
+compile on their own is reported as such ("header problem"), with the slot/constant checks of
+that library unproven, and doesn't fail the run unless --strict.
+"""
+import argparse
+import os
+import re
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.normpath(os.path.join(HERE, ".."))
+DEFAULT_SDK = os.path.normpath(os.path.join(ROOT, "../refs/os4-sdk/base/Include"))
+
+DECL_RE = re.compile(r'^Declare (Function|Sub) (\w+) Lib "([^"]+)"(?: Interface "([^"]+)")? Alias "#(\d+)" \((.*)\)')
+CONST_RE = re.compile(r'^Public Const (\w+) = (&H[0-9A-F]{8}|-?\d+)\s*$')
+
+
+def split_args(s):
+    s = s.strip()
+    if not s:
+        return []
+    depth, cur, out = 0, "", []
+    for ch in s:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    out.append(cur)
+    return [a.strip() for a in out if a.strip()]
+
+
+def c_prototypes(path):
+    """{struct name: {member: argc after Self (or None if variadic)}} from an interfaces/*.h"""
+    text = open(path, encoding="latin-1").read()
+    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+    out = {}
+    for sm in re.finditer(r"struct\s+(\w+)\s*\{(.*?)\n\};", text, re.S):
+        members = {}
+        for mm in re.finditer(r"\(\s*\*\s*(\w+)\s*\)\s*\((.*?)\)\s*;", sm.group(2), re.S):
+            args = split_args(mm.group(2))
+            if args and "Self" in args[0]:
+                args = args[1:]
+            members[mm.group(1)] = None if any(a == "..." for a in args) else len(args)
+        out[sm.group(1)] = members
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--sdk", default=DEFAULT_SDK)
+    ap.add_argument("--out", default=os.path.join(ROOT, "build/bindproof"))
+    ap.add_argument("--bindings", default=os.path.join(ROOT, "bindings"))
+    ap.add_argument("--no-compile", action="store_true")
+    ap.add_argument("--strict", action="store_true", help="header problems fail the run too")
+    ap.add_argument("libs", nargs="*")
+    a = ap.parse_args()
+    os.makedirs(a.out, exist_ok=True)
+    inc = os.path.join(a.sdk, "include_h")
+
+    # interface struct names and include lists from the XML (only for naming the struct)
+    xmls = {}
+    for f in os.listdir(os.path.join(a.sdk, "interfaces")):
+        if f.endswith(".xml"):
+            try:
+                r = ET.parse(os.path.join(a.sdk, "interfaces", f)).getroot()
+            except ET.ParseError:
+                continue
+            xmls[f[:-4]] = {
+                "includes": [i.text for i in r.findall("include") if i.text],
+                "structs": {i.get("name"): i.get("struct") for i in r.findall("interface")},
+            }
+
+    total = {"slots": 0, "argc": 0, "consts": 0}
+    argc_bad, files = [], []
+    for bi in sorted(os.listdir(a.bindings)):
+        if not bi.endswith(".bi"):
+            continue
+        lib = bi[:-3]
+        if a.libs and lib not in a.libs:
+            continue
+        x = xmls.get(lib)
+        if not x:
+            continue
+        ihdr = os.path.join(inc, "interfaces", lib + ".h")
+        protos = c_prototypes(ihdr) if os.path.exists(ihdr) else {}
+        slots, consts, cur_hdr, hdrs = [], [], None, []
+        for line in open(os.path.join(a.bindings, bi), encoding="latin-1"):
+            line = line.rstrip("\n")
+            m = DECL_RE.match(line)
+            if m:
+                iface = m.group(4) or "main"
+                struct = x["structs"].get(iface)
+                name = m.group(2)
+                # the C name: drop the library / interface prefixes genbind adds on clashes
+                for pre in (lib[:1].upper() + lib[1:] + "_", iface[:1].upper() + iface[1:] + "_"):
+                    if name.startswith(pre) and struct and name[len(pre):] in protos.get(struct, {}):
+                        name = name[len(pre):]
+                name = name.rstrip("_") if struct and name.rstrip("_") in protos.get(struct, {}) else name
+                nargs = len(split_args(m.group(6)))
+                slots.append((struct, name, int(m.group(5)), nargs))
+                if struct in protos and name in protos[struct]:
+                    total["argc"] += 1
+                    if protos[struct][name] != nargs:
+                        argc_bad.append("%s %s->%s: .bi has %d arguments, the C prototype %s" %
+                                        (lib, struct, name, nargs, protos[struct][name]))
+                continue
+            if line.startswith("' ") and re.match(r"^' [\w]+/[\w.]+\.h$", line):
+                cur_hdr = line[2:]
+                if cur_hdr not in hdrs:
+                    hdrs.append(cur_hdr)
+                continue
+            m = CONST_RE.match(line)
+            if m:
+                v = m.group(2)
+                val = int(v[2:], 16) if v.startswith("&H") else int(v) & 0xFFFFFFFF
+                cname = m.group(1)
+                consts.append((cname.rstrip("_") if cname.endswith("_") else cname, val))
+        c = ["/* Generated by tools/bindproof from bindings/%s: the slots and constants of the" % bi,
+             " * Boing BASIC bindings checked against the SDK's own headers by the C compiler. */",
+             "#include <stddef.h>", "#include <exec/types.h>", "#include <exec/interfaces.h>"]
+        for h in x["includes"] + hdrs:
+            c.append("#include <%s>" % h)
+        if os.path.exists(ihdr):
+            c.append("#include <interfaces/%s.h>" % lib)
+        c.append("#define SLOT(S, F, N) _Static_assert(offsetof(struct S, F) == sizeof(struct InterfaceData) + (N) * sizeof(APTR), #S \"->\" #F \" is not slot \" #N)")
+        c.append("#define CONST(NAME, V) _Static_assert((uint32)(NAME) == (uint32)(V##UL), #NAME \" != \" #V)")
+        for struct, name, slot, _ in slots:
+            if struct and os.path.exists(ihdr):
+                c.append("SLOT(%s, %s, %d);" % (struct, name, slot))
+                total["slots"] += 1
+        for name, val in consts:
+            c.append("CONST(%s, 0x%08X);" % (name, val))
+            total["consts"] += 1
+        path = os.path.join(a.out, lib + ".c")
+        open(path, "w", encoding="latin-1").write("\n".join(c) + "\n")
+        files.append((lib, path))
+
+    print("bindproof: %d libraries, %d slot assertions, %d constant assertions, %d argument counts compared" %
+          (len(files), total["slots"], total["consts"], total["argc"]))
+    for b in argc_bad:
+        print("ARGC MISMATCH:", b)
+    if a.no_compile:
+        return 1 if argc_bad else 0
+
+    img = "walkero/amigagccondocker:os4-gcc11-arm64" if os.uname().machine in ("arm64", "aarch64") \
+        else "walkero/amigagccondocker:os4-gcc11-amd64"
+    img = os.environ.get("PPC_IMAGE", img)
+    script = ('for f in %s; do ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc -D__USE_OLD_TIMEVAL__ -fsyntax-only -w '
+              '-fmax-errors=1000 $f >$f.log 2>&1; echo "$f $?"; done') % " ".join(
+                  os.path.relpath(p, ROOT) for _, p in files)
+    r = subprocess.run(["docker", "run", "--rm", "-v", ROOT + ":/src", "-w", "/src", img, "sh", "-c", script],
+                       capture_output=True, text=True)
+    if r.returncode != 0 and not r.stdout:
+        print(r.stderr)
+        return 2
+    bad_assert, header_bad, ok = [], [], 0
+    for line in r.stdout.split("\n"):
+        if not line.strip():
+            continue
+        f, rc = line.rsplit(" ", 1)
+        log = open(os.path.join(ROOT, f + ".log")).read()
+        asserts = [l for l in log.split("\n") if "static assertion failed" in l]
+        if asserts:
+            bad_assert.extend(asserts)
+        elif rc != "0":
+            first = next((l for l in log.split("\n") if "error" in l), "?")
+            header_bad.append("%s: %s" % (os.path.basename(f), first.strip()))
+        else:
+            ok += 1
+    print("compiled: %d libraries fully proven, %d with header problems, %d failed assertions" %
+          (ok, len(header_bad), len(bad_assert)))
+    for h in header_bad:
+        print("HEADER PROBLEM:", h)
+    for b in bad_assert[:200]:
+        print("ASSERTION FAILED:", b)
+    fail = bool(bad_assert or argc_bad or (a.strict and header_bad))
+    print("bindproof:", "FAIL" if fail else "PASS")
+    return 1 if fail else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
