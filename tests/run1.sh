@@ -7,6 +7,12 @@ case "$ext" in bbp) group=$(basename "$(dirname "$dir")") ;; esac
 id="$group-$base"
 res="$TMP/$id.result"
 cd "$dir" || exit 1
+if [ "$group" = symbols ]; then
+    "$BOING" symbols "$src" > "$TMP/$id.got" 2>&1
+    if cmp -s "$TMP/$id.got" "$base.sym"; then echo "PASS $id" > "$res"
+    else echo "FAIL $id (symbols)" > "$res"; diff "$base.sym" "$TMP/$id.got" > "$TMP/$id.diff"; fi
+    exit 0
+fi
 if [ "$group" = errors ]; then
     "$BOING" check "$base.bas" > "$TMP/$id.got" 2>&1
     if cmp -s "$TMP/$id.got" "$base.err"; then echo "PASS $id" > "$res"

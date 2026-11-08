@@ -114,7 +114,7 @@ void print_symbols(Program *p, Module *m, FILE *out)
         case D_PROC: case D_DECLARE: case D_EVENT: {
             vis(&b, d->flags);
             if (d->kind == D_DECLARE) {
-                buf_printf(&b, "Declare %s %s Lib \"%s\"", d->op == PK_SUB ? "Sub" : "Function", d->name, d->b ? d->b->name : "");
+                buf_printf(&b, "Declare %s %s Lib \"%s\" ", d->op == PK_SUB ? "Sub" : "Function", d->name, d->b ? d->b->name : "");
             } else if (d->kind == D_EVENT) buf_printf(&b, "Event %s", d->name);
             else {
                 if (d->flags & NF_STATIC) buf_puts(&b, "Static ");
