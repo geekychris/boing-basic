@@ -1355,6 +1355,7 @@ static void vm_exec(VM *vm, int entry)
                 pc += 4;
                 break;
             }
+            case I_UNKEEP: bb_v_set(&fr->keep, bb_v_empty()); pc++; break;
             case I_ARRLIT: {
                 int n = pc[1], i;
                 int32_t lb = 0, ub = n - 1;

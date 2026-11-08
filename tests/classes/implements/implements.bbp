@@ -1,0 +1,5 @@
+Name=Shapes
+Module=main.bas
+Class=IShape.cls
+Class=Circle.cls
+Class=Square.cls

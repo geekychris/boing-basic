@@ -32,6 +32,7 @@ typedef struct E {
     int **wev_hidden_field;     /* per class: per field: hidden field index, -1 */
     int *wev_of_global;         /* per global: wev index */
     int **wev_of_field;
+    int used_keep;              /* statement used the frame's keep-alive slot */
 } E;
 
 static int emit_w(E *e, int32_t w)
@@ -204,17 +205,20 @@ static void addr(E *e, Node *n)
     }
     case E_INDEX: {
         int i;
+        if (!is_lvalue(n->a)) e->used_keep = 1;
         addr(e, n->a);
         for (i = 0; i < n->list.n; i++) expr(e, n->list.v[i]);
         op1(e, I_ELEM, n->list.n);
         return;
     }
     case E_FIELD:
+        if (!is_lvalue(n->a)) e->used_keep = 1;
         if (n->a->kind == E_VAR || n->a->kind == E_INDEX || n->a->kind == E_FIELD || n->a->kind == E_MFIELD) addr(e, n->a);
         else expr(e, n->a);
         op2(e, I_UFIELD, n->udt->index, n->field);
         return;
     case E_MFIELD:
+        e->used_keep = 1;
         expr(e, n->a);
         op3(e, I_MFIELD, n->cls->index, n->sym->index, vt_of(n->ty));
         return;
@@ -692,7 +696,17 @@ static void label_ref(E *e, Sym *l, int at)
     patch_add(&e->label_refs[l->label_id], at);
 }
 
+static void stmt1(E *e, Node *s);
 static void stmt(E *e, Node *s)
+{
+    int outer = e->used_keep;
+    e->used_keep = 0;
+    stmt1(e, s);
+    if (e->used_keep) op0(e, I_UNKEEP);
+    e->used_keep = outer;
+}
+
+static void stmt1(E *e, Node *s)
 {
     int i;
     line(e, s);

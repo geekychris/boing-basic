@@ -1,0 +1,6 @@
+# class basics
+Name=Basics
+Startup=Sub Main
+Module=main.bas
+Class=Counter.cls
+Class=Account.cls

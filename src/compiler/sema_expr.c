@@ -1439,6 +1439,8 @@ Node *check_expr(Ctx *c, Node *e, int mode)
 {
     CVal v;
     memset(&v, 0, sizeof v);
+    /* already checked (a node passed through twice, e.g. a property Let's value) */
+    if (e->ty && e->kind != E_INT && e->kind != E_FLT) return e;
     switch (e->kind) {
     case E_INT:
         v.type = e->ty->kind;

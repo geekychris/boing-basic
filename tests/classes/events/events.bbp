@@ -1,0 +1,4 @@
+Name=Events
+Module=main.bas
+Class=Ticker.cls
+Class=Listener.cls
