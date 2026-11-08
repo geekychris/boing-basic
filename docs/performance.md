@@ -196,19 +196,31 @@ the particles are one `PSetMany` call.
 
 ### AmigaOS 4.1 (QEMU sam460ex, emulated PPC 460), 2026-11-08, ms per frame
 
-| | logic | hud | draw | blit | frame | fps |
-|---|---:|---:|---:|---:|---:|---:|
-| native, logic only (500 frames) | 0.697 | 0.469 | - | - | 1.24 | 808 |
-| native, SoftCanvas (100 frames) | 1.089 | 0.692 | 42.7 | 27.3 | 71.9 | 14 |
+Measured right after a guest reboot. (Before that, a guest that had been up for hours ran the
+same code ~10x slower, e.g. 28.8 fps for the game. The QEMU guest degrades over time; numbers
+from a degraded guest are not comparable.)
 
-Native builds give the same state and picture hashes on the guest as on the Mac (945687 after
-500 frames; picture 725540 after 100 frames). The guest runs this code ~350x slower than an
-M-series Mac. Open on the guest:
+The real game, native (`Glimmerfield --bench 1000`: the bot plays in the form window, frames
+back to back, on the Canvas control):
 
-- VM runs: OS4 boing builds before main 4b089ef corrupted their stack (fixed). `boing run` of a
-  multi-file project crashes on OS4 (bb-core has the repro), so the VM bench runs as one
-  generated `.bas` (`examples/glimmerfield/tools/single.py`).
-- `--jit`: the PPC JIT crashed on the guest because of that stack bug; it is being retested.
-- The real game on the Canvas control (window blit with BltBitMapTags): not yet run on the guest.
-- `Format$` is slow on newlib (the HUD line costs 0.47 ms/frame on the guest, 0.001 on the Mac),
-  and native programs exit with an unfreed signal (reported to bb-core).
+| blit method (`--blit`) | logic | draw | blit | frame | fps |
+|---|---:|---:|---:|---:|---:|
+| friend bitmap R5G6B5PC (3; the default) | 0.30 | 1.73 | 0.94 | 4.05 | 247 |
+| ARGB32 `BltBitMapTags` (1) | 0.17 | 1.72 | 2.32 | 5.16 | 194 |
+| RGB16 buffer + `BltBitMapTags` (2) | 0.22 | 1.57 | 2.59 | 5.44 | 184 |
+| 2x scale (800 x 600 window), friend bitmap | 0.21 | 1.87 | 5.63 | 8.68 | 115 |
+| 2x scale, ARGB32 | 0.26 | 1.84 | 10.21 | 13.26 | 75 |
+
+The console bench (`Bench.bbp`, logic only and with the off-screen Canvas):
+
+| | logic | frame | fps |
+|---|---:|---:|---:|
+| VM (`boing run Bench.bbp --bench 300`) | 0.95 | 1.46 | 684 |
+| native, with `--canvas` (300 frames) | 0.52 | 2.64 | 380 |
+
+All guest runs give the same state hashes as the Mac, and the Canvas picture hash too (536314
+after 300 frames): the drawing is pixel-identical on PPC. The guest is roughly 100-300x slower
+than an M-series Mac on this code. VM against native on the guest: about 2x for the game logic
+(0.95 vs ~0.5 ms/frame).
+
+Open: `--jit` on the guest (being verified by bb-core); the VM running the form game itself.

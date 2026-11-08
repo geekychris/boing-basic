@@ -6,6 +6,7 @@ It is VB's PictureBox cut down to what a game needs, plus double buffering, imag
 
 - In a form it is the `.afg` kind `canvas`: `canvas id=view width=400 height=300`. The
   layout reserves at least that size, and the picture is centred if the layout makes it bigger.
+  `scale=2` (up to 4) shows the picture 2x bigger: the program still draws 400 x 300.
 - Off-screen, on every platform (the Mac too): `Set cv = CreateObject("Boing.Canvas")`, then
   `cv.Resize 400, 300`. The tests and console benchmarks use this.
 
@@ -27,6 +28,12 @@ the canvas size: the **back buffer**. Nothing appears in the window until `Refre
 one `BltBitMapTags(BLITT_ARGB32 → window RastPort)`, which converts to the screen's pixel
 format and clips to the window. So drawing never flickers, and a frame costs one blit. The
 canvas re-shows its last picture by itself when the window opens or is resized.
+
+On AmigaOS 4 the default (`BlitMode` 0) converts the picture into an off-screen bitmap of the
+screen's own pixel format (a "friend" bitmap: R5G6B5, R5G6B5PC, A8R8G8B8 or B8G8R8A8, written
+through `LockBitMapTags`), then copies that to the window with `BltBitMapRastPort`. On the
+QEMU guest's 16-bit screen this takes 0.94 ms for 400 x 300, against 2.3 ms for the 32-bit
+ARGB `BltBitMapTags` blit. Other screen formats use the ARGB blit.
 
 Drawing is the same on every platform, pixel for pixel. `Hash` returns a checksum of the
 picture, so a program can be tested off-screen on the Mac (`tests/graphics/`).
@@ -50,6 +57,9 @@ interpreter. Draw many points with `PSetMany`, and pre-draw repeated shapes into
 | `Target` | Long | the image being drawn into, 0 = the back buffer (same as `SetTarget`) |
 | `Frames` | Long, R/O | how many times `Refresh` was called |
 | `Name` | String, R/O | |
+| `Scale` | Long, R/O | the `.afg`'s `scale=` |
+| `BlitMode` | Long | how `Refresh` gets the picture into the window (all canvases): 0 = the best the platform has (default), 1 = a 32-bit ARGB blit, 2 = converted to 16-bit first, 3 = through an off-screen bitmap in the screen's own format |
+| `BlitInfo` | String, R/O | the method `Refresh` used last, e.g. `friend bitmap R5G6B5PC` |
 
 ## Methods
 
