@@ -1394,6 +1394,25 @@ int sema_program(Program *p)
             /* module-level WithEvents in a standard module */
         }
     }
+    /* module variables used only by their module's main program become its locals
+     * (fast slots in the VM, registers in C) */
+    {
+        int k, n = 0;
+        for (k = 0; k < p->nglobals; k++) {
+            Sym *s = p->globals[k];
+            Proc *mp = s->user;
+            if (s->storage == ST_GLOBAL && !s->shared && mp && mp->kind == PK_MAIN && mp->mod == s->mod &&
+                !s->is_new && !s->withevents && !s->is_public && !s->mod->is_form) {
+                s->storage = ST_LOCAL;
+                proc_local_add(mp, s);
+                continue;
+            }
+            p->globals[n] = s;
+            s->index = n;
+            n++;
+        }
+        p->nglobals = n;
+    }
     /* startup */
     if (!p->startup && p->nmods) p->startup = p->mods[0];
     if (p->startup) {

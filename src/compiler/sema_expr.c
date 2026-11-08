@@ -925,6 +925,10 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
         switch (s->kind) {
         case SK_VAR: {
             Node *v = mk_var(e, s);
+            if (s->storage == ST_GLOBAL) {
+                if (!s->user) s->user = c->proc;
+                else if (s->user != c->proc) s->shared = 1;
+            }
             if (s->storage == ST_FIELD && c->cls == NULL) ERR(c, e, "'%s' is an instance variable", s->name);
             if (!args) return v;
             if (s->ty->kind == T_ARRAY) {

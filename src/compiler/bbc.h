@@ -241,6 +241,8 @@ struct Sym {
     Proc *pget, *plet, *pset;   /* SK_PROPGROUP */
     Sym *next;              /* scope chain */
     int label_id;
+    Proc *user;             /* globals: the one procedure using it, if only one */
+    int shared;             /* globals: used by several procedures (or from outside) */
 };
 
 typedef struct ScopeEnt { Sym *sym; struct ScopeEnt *next; } ScopeEnt;
