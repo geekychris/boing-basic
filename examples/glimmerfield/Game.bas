@@ -1,10 +1,11 @@
 ' Glimmerfield - game logic (no drawing, no OS calls)
 '
 ' You fly a skiff through a wrapping field of drifting glimmer crystals.
-' A shot cracks a crystal into two smaller ones; the smallest shards
-' shatter, but a shard you leave alone slowly regrows into a crystal.
+' A shot cracks a big crystal into three smaller ones and a middle one
+' into two; the smallest shards shatter, but a shard you leave alone
+' slowly grows back into a crystal.
 ' From wave 2, wisps hunt you down. Hits in quick succession build a
-' combo multiplier (up to x9).
+' combo multiplier (up to x5).
 '
 ' Everything that decides the game is integer maths (positions are 8-bit
 ' fixed point, angles are 0..255) driven by our own Park-Miller random
@@ -340,8 +341,8 @@ End Sub
 Private Sub StartWave(ByVal n As Long)
     Dim k As Long, big As Long, x As Long, y As Long
     wave = n
-    big = 2 + n
-    If big > 10 Then big = 10
+    big = 3 + 2 * n
+    If big > 14 Then big = 14
     For k = 1 To big
         ' along the edges, away from the ship in the middle
         If RandL(2) = 0 Then
@@ -353,9 +354,9 @@ Private Sub StartWave(ByVal n As Long)
         End If
         SpawnShard x, y, 3, RandL(256), RandL(4)
     Next k
-    wispsLeft = n - 1
-    If wispsLeft > 8 Then wispsLeft = 8
-    wispTimer = 240
+    wispsLeft = 2 * (n - 1)
+    If wispsLeft > 10 Then wispsLeft = 10
+    wispTimer = 200
     sfx = sfx Or SFX_WAVE
     AddPop ARENA_W \ 2 - 24, ARENA_H \ 2 - 30, "WAVE " & CStr(n)
 End Sub
@@ -386,7 +387,7 @@ Public Sub NewGame(ByVal seed As Long)
     frame = 0
     combo = 1
     comboTimer = 0
-    nextLife = 10000
+    nextLife = 25000
     waveTimer = 0
     overTimer = 0
     sfx = 0
@@ -404,11 +405,11 @@ End Sub
 Private Sub AddScore(ByVal pts As Long, ByVal x As Long, ByVal y As Long)
     Dim gained As Long
     If comboTimer > 0 Then
-        If combo < 9 Then combo = combo + 1
+        If combo < 5 Then combo = combo + 1
     Else
         combo = 1
     End If
-    comboTimer = 45
+    comboTimer = 30
     gained = pts * combo
     score = score + gained
     If combo > 1 Then
@@ -418,7 +419,7 @@ Private Sub AddScore(ByVal pts As Long, ByVal x As Long, ByVal y As Long)
     End If
     If score >= nextLife Then
         lives = lives + 1
-        nextLife = nextLife + 10000
+        nextLife = nextLife + 25000
         sfx = sfx Or SFX_LIFE
     End If
 End Sub
@@ -528,7 +529,7 @@ Private Sub UpdateShip()
         ship.vx = ship.vx + CosA(ship.ang) * 20 \ 256
         ship.vy = ship.vy + SinA(ship.ang) * 20 \ 256
         Burst (ship.x - CosA(ship.ang) * 6) / FP, (ship.y - SinA(ship.ang) * 6) / FP, _
-              2, COL_FLAME, 1.5!
+              3, COL_FLAME, 1.5!
     End If
     ship.vx = ship.vx - ship.vx \ 48
     ship.vy = ship.vy - ship.vy \ 48
@@ -603,14 +604,18 @@ Private Sub UpdateShards()
             shards(i).x = WrapL(shards(i).x + shards(i).vx, AW)
             shards(i).y = WrapL(shards(i).y + shards(i).vy, AH)
             shards(i).ang = (shards(i).ang + shards(i).spin) And 255
-            If shards(i).size = 1 Then
+            If shards(i).size < 3 Then
+                ' a shard left alone grows back: 1 -> 2 after 16 s, 2 -> 3 after 26 s
                 shards(i).grow = shards(i).grow + 1
-                If shards(i).grow >= 900 Then
-                    shards(i).size = 2
+                If shards(i).grow >= 500 * shards(i).size + 300 Then
+                    shards(i).size = shards(i).size + 1
                     shards(i).grow = 0
                     sfx = sfx Or SFX_REGROW
-                    Burst shards(i).x / FP, shards(i).y / FP, 10, COL_HUE0 + shards(i).hue, 1!
+                    Burst shards(i).x / FP, shards(i).y / FP, 12, COL_HUE0 + shards(i).hue, 1!
                 End If
+            ElseIf ((frame + shards(i).ang) And 7) = 0 Then
+                ' big crystals glitter
+                Burst shards(i).x / FP, shards(i).y / FP, 1, COL_HUE0 + shards(i).hue, 0.7!
             End If
             shardCount = shardCount + 1
         End If
@@ -653,7 +658,7 @@ Private Sub UpdateWisps()
         If wispTimer <= 0 Then
             SpawnWisp
             wispsLeft = wispsLeft - 1
-            wispTimer = 300
+            wispTimer = 180
         End If
     End If
 End Sub
@@ -697,14 +702,15 @@ Private Sub CrackShard(ByVal i As Long, ByVal hitAng As Long)
     shards(i).active = False
     Select Case sz
         Case 3
-            pts = 20
+            pts = 10
         Case 2
-            pts = 50
+            pts = 25
         Case Else
-            pts = 100
+            pts = 50
     End Select
     AddScore pts, x \ FP, y \ FP
-    Burst x / FP, y / FP, 6 + sz * 6, COL_HUE0 + h, 1! + sz
+    Burst x / FP, y / FP, 10 + sz * 10, COL_HUE0 + h, 1! + sz
+    If sz = 3 Then SpawnShard x, y, 2, hitAng + 112 + RandL(32), h
     If sz > 1 Then
         SpawnShard x, y, sz - 1, hitAng + 40 + RandL(24), h
         SpawnShard x, y, sz - 1, hitAng - 40 - RandL(24), h
@@ -761,7 +767,7 @@ Private Sub Collide()
                         wisps(w).vy = wisps(w).vy + bullets(b).vy \ 4
                         If wisps(w).hp <= 0 Then
                             wisps(w).active = False
-                            AddScore 200, wisps(w).x \ FP, wisps(w).y \ FP
+                            AddScore 150, wisps(w).x \ FP, wisps(w).y \ FP
                             Burst wisps(w).x / FP, wisps(w).y / FP, 40, COL_WISP, 2.5!
                             sfx = sfx Or SFX_WISP
                         Else
