@@ -45,8 +45,10 @@ tools/boing-build-os4.sh examples/calculator/calc.bbp -o build/calc
 (the host `boing emit-c` writes the C, the Docker cross compiler compiles and links it with
 `build/os4/libboing.a`; `boing build --target os4` runs this script).
 
-On the Amiga, `boing build` uses the SDK's native GCC 11.5 (`SDK:gcc/bin/gcc`, the SDK being
-installed with its `SDK:` assign). The Boing BASIC directory, assigned as `BOING:`, holds:
+On the Amiga, `boing build` uses the SDK's native GCC 11.5 (`SDK:gcc/bin/gcc` when it exists,
+else `gcc` from the path; the SDK installed with its `SDK:` assign). It finds the headers and
+`libboing.a` in `BOING:` if that assign exists, else next to the `boing` executable
+(`PROGDIR:`). The Boing BASIC directory holds:
 
 ```
 BOING:boing              the compiler/VM
@@ -59,9 +61,13 @@ BOING:examples/
 and the compile is
 
 ```
-SDK:gcc/bin/gcc -mcrt=newlib -O2 -mcpu=powerpc -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4
-    -IBOING:include prog.c BOING:lib/libboing.a -lauto -lm -o prog
+SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 -D__USE_OLD_TIMEVAL__ -IBOING:include prog.c
+    -o prog -LBOING: -lboing -lauto -lm
 ```
+
+Stack: ReAction's layout code needs more stack than a CLI started with `run` (or a small
+Workbench icon setting) gives. `os4/forms.c` carries a `$STACK:262144` cookie, so every program
+linking the forms runtime (the `boing` VM and native builds) asks for 256 KB.
 
 `tools/os4-native-test.sh tests/os4/*.c` checks that path: it pushes the headers and
 `libboing.a` to `RAM:boing/` on the guest, compiles each test there with the SDK GCC and runs it.
@@ -116,10 +122,16 @@ tools/os4shot.py examples/calculator/calc.afg docs/images/calculator.png
 | test | checks | result (2026-11-07, QEMU sam460ex, OS 4.1 FE) |
 |---|---|---|
 | `tests/os4/declare_test.c` | Declare glue: slots by name and `#n`, 11-argument calls (stack args), devices, errors 48/453 | 21/21 cross and native |
-| `tests/os4/forms_test.c` | a form from .afg text: properties, AddItem/RemoveItem, timer, an injected mouse click calls `ok_Click`, typed keys fire `name_Change`/`KeyPress`, list click, `Form_Unload` Cancel | 38/38 cross and native |
+| `tests/os4/forms_test.c` | a form from .afg text: properties, AddItem/RemoveItem, timer, an injected mouse click calls `ok_Click`, typed keys fire `name_Change`/`KeyPress`, list click, slider drag (`Scroll`/`Change`), `Form_KeyDown`/`KeyPress`, `Visible`, MsgBox and InputBox answered by injected keys, `Form_Unload` Cancel | 38/38 (first 38 checks) cross and native; 44/46 with the later checks |
+| `tests-os4/formbas/` (`tools/os4-form-test.sh`) | the same from BASIC, VM and native: a .bbp with form + code-behind, properties, `form.control` access, TypeName, a real click on OK calling `ok_Click` | see below |
 | `tests/os4/sys_test.c` | Command, App.Path, Shell, Environ, Dir with patterns and vbDirectory, Kill, MkDir/RmDir, FileCopy, Name, clipboard (restored afterwards) | 30/30 |
 
 Input injection uses input.device (`IND_WRITEEVENT`) from inside the test, at the control's
-screen position (`bb_ctl_screen_box`), so it needs no host-side mouse control.
+screen position (`bb_ctl_screen_box`), so it needs no host-side mouse control. Because the
+guest is shared, the tests inject only while their own window is the active window on the
+front screen (checked through IntuitionBase), and skip the check otherwise; `tools/os4/ptr`
+(absolute pointer + click) takes a window title and does nothing unless that window is on
+the front screen. Lesson learned: a key sent while another window is active goes to that
+program (the launcher started a game).
 
 ![calculator](images/calculator.png) ![file viewer](images/fileviewer.png)
