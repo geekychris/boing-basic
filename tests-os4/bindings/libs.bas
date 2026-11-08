@@ -68,8 +68,10 @@ Private Sub TestDos()
     Check LCase(Right(RTrim(Replace(buf, Chr(0), " ")), 15)) = "boing_bind_test", "the name ends in boing_bind_test"
     Dos_UnLock lk
     k = IoErr()                ' (the first call of a Declare opens its library, which sets IoErr)
-    Check Dos_Lock("T:boing_no_such_file", SHARED_LOCK) = 0, "Lock of a missing file = 0"
-    Check IoErr() = ERROR_OBJECT_NOT_FOUND, "IoErr() = ERROR_OBJECT_NOT_FOUND"
+    ' IoErr right after the call: Print (Check) writes to the console, which resets it
+    lk = Dos_Lock("T:boing_no_such_file", SHARED_LOCK): k = IoErr()
+    Check lk = 0, "Lock of a missing file = 0"
+    Check k = ERROR_OBJECT_NOT_FOUND, "IoErr() = ERROR_OBJECT_NOT_FOUND"
     Kill "T:boing_bind_test"
     Check SetVar("boing_bind_var", "Boing!", 6, GVF_LOCAL_ONLY) <> 0, "dos SetVar (local)"
     buf = Space(32)
