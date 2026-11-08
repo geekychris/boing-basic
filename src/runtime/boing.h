@@ -36,7 +36,12 @@ extern "C" {
 #define BB_NORETURN __attribute__((noreturn))
 #define BB_LIKELY(x) __builtin_expect(!!(x), 1)
 #define BB_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#if defined(__clang__)
 #define BB_INLINE static inline __attribute__((always_inline))
+#else
+/* artificial: debuggers step over these helpers as part of the BASIC line that uses them */
+#define BB_INLINE static inline __attribute__((always_inline, artificial))
+#endif
 #define BB_UNUSED __attribute__((unused))
 #else
 #define BB_UNUSED

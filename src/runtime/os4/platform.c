@@ -32,7 +32,19 @@ char *bb_plat_stack_limit(char *here)
 }
 
 void bb_plat_init(int argc, char **argv) { (void)argc; (void)argv; }
-void bb_plat_shutdown(void) { fflush(stdout); }
+static struct MsgPort *ec_port;           /* bb_plat_seconds' EClock timer, freed at exit */
+static struct TimeRequest *ec_tr;
+static struct TimerIFace *ec_itimer;
+static int ec_open;
+
+void bb_plat_shutdown(void)
+{
+    fflush(stdout);
+    if (ec_itimer) { IExec->DropInterface((struct Interface *)ec_itimer); ec_itimer = NULL; }
+    if (ec_open) { IExec->CloseDevice((struct IORequest *)ec_tr); ec_open = 0; }
+    if (ec_tr) { IExec->FreeSysObject(ASOT_IOREQUEST, ec_tr); ec_tr = NULL; }
+    if (ec_port) { IExec->FreeSysObject(ASOT_PORT, ec_port); ec_port = NULL; }     /* its signal bit */
+}
 
 int bb_plat_break(void)
 {
@@ -87,22 +99,21 @@ void bb_plat_localtime(bb_tm *tm)
 /* monotonic, EClock resolution (timer.device's ReadEClock) */
 double bb_plat_seconds(void)
 {
-    static struct MsgPort *port;
-    static struct TimeRequest *tr;
-    static struct TimerIFace *ITimer_;
     static int tried;
     struct EClockVal ev;
     uint32 freq;
     if (!tried) {
         tried = 1;
-        port = (struct MsgPort *)IExec->AllocSysObjectTags(ASOT_PORT, TAG_DONE);
-        if (port) tr = (struct TimeRequest *)IExec->AllocSysObjectTags(ASOT_IOREQUEST, ASOIOR_Size, sizeof(struct TimeRequest),
-                                                                       ASOIOR_ReplyPort, port, TAG_DONE);
-        if (tr && IExec->OpenDevice(TIMERNAME, UNIT_ECLOCK, (struct IORequest *)tr, 0) == 0)
-            ITimer_ = (struct TimerIFace *)IExec->GetInterface((struct Library *)tr->Request.io_Device, "main", 1, NULL);
+        ec_port = (struct MsgPort *)IExec->AllocSysObjectTags(ASOT_PORT, TAG_DONE);
+        if (ec_port) ec_tr = (struct TimeRequest *)IExec->AllocSysObjectTags(ASOT_IOREQUEST, ASOIOR_Size, sizeof(struct TimeRequest),
+                                                                             ASOIOR_ReplyPort, ec_port, TAG_DONE);
+        if (ec_tr && IExec->OpenDevice(TIMERNAME, UNIT_ECLOCK, (struct IORequest *)ec_tr, 0) == 0) {
+            ec_open = 1;
+            ec_itimer = (struct TimerIFace *)IExec->GetInterface((struct Library *)ec_tr->Request.io_Device, "main", 1, NULL);
+        }
     }
-    if (ITimer_) {
-        freq = ITimer_->ReadEClock(&ev);
+    if (ec_itimer) {
+        freq = ec_itimer->ReadEClock(&ev);
         if (freq) return ((double)ev.ev_hi * 4294967296.0 + (double)ev.ev_lo) / (double)freq;
     }
     {
