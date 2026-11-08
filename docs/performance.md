@@ -128,6 +128,14 @@ is identical with and without the JIT for every program.
 | fib | 6.6 | 8.3 | 2.7 | 4.4 | 0.6x |
 | mandelbrot | 6.8 | 6.6 | (too short to measure through the bridge) | | |
 
+Native builds (cross-compiled, `tools/boing-build-os4.sh`) on the guest, wall seconds with
+a ~3.0 s launch floor for a small executable: int_loop 3.0, sieve 3.1 (both ~0 net), double_math
+10.4 (~7.4 net). Under QEMU's TCG, native integer loops stay inside translated blocks while every
+interpreter dispatch (an indirect branch; boing's OS4 build does use threaded dispatch, 207
+indirect branches in vm_exec) leaves them for a hash lookup, so the VM:native ratio is far worse
+on the emulator (bb-game: ~25x on Glimmerfield's logic) than on real hardware or the Mac (5-7x).
+Floating point is dominated by QEMU's soft-float, where the JIT is within ~15 % of native.
+
 fib has no loops: the JIT only adds checks at calls and returns, so it gains nothing (and the
 measured loss is larger than on the Mac, 6 %, partly noise). The JIT test suite on the guest
 (BOING_JIT_THRESHOLD=1, every loop compiled, 41 single-file tests incl. tests/jit/edges.bas)
