@@ -179,6 +179,36 @@ Slow paths the game found and how they ended up:
   doesn't speed up the logic (it is call- and module-variable heavy).
 - Lexer: `1000000# / 200000#` was read as a date literal (fixed in eea3c41).
 
-### AmigaOS 4.1 (QEMU sam460ex)
+### The Canvas control vs a BASIC framebuffer (macOS, main 31a995d, ms per frame)
 
-Pending: guest runs of VM, JIT and native, and the real game on the Canvas control.
+`--canvas` renders the same frames through the Canvas control's C engine
+(`CreateObject("Boing.Canvas")`, off-screen) instead of SoftCanvas. "blit" is 0 there because
+an off-screen Canvas has no window to blit to.
+
+| | draw (SoftCanvas, BASIC) | draw (Canvas, C) |
+|---|---:|---:|
+| VM | 0.396 (+ blit 0.469) | 0.028 |
+| native | 0.110 (+ blit 0.138) | 0.016 |
+
+With the Canvas the VM is within 2x of native for drawing: the frame's ~150 Canvas calls are
+cheap (members are found once per call site, arguments read straight from the Variants), and
+the particles are one `PSetMany` call.
+
+### AmigaOS 4.1 (QEMU sam460ex, emulated PPC 460), 2026-11-08, ms per frame
+
+| | logic | hud | draw | blit | frame | fps |
+|---|---:|---:|---:|---:|---:|---:|
+| native, logic only (500 frames) | 0.697 | 0.469 | - | - | 1.24 | 808 |
+| native, SoftCanvas (100 frames) | 1.089 | 0.692 | 42.7 | 27.3 | 71.9 | 14 |
+
+Native builds give the same state and picture hashes on the guest as on the Mac (945687 after
+500 frames; picture 725540 after 100 frames). The guest runs this code ~350x slower than an
+M-series Mac. Open on the guest:
+
+- VM runs: OS4 boing builds before main 4b089ef corrupted their stack (fixed). `boing run` of a
+  multi-file project crashes on OS4 (bb-core has the repro), so the VM bench runs as one
+  generated `.bas` (`examples/glimmerfield/tools/single.py`).
+- `--jit`: the PPC JIT crashed on the guest because of that stack bug; it is being retested.
+- The real game on the Canvas control (window blit with BltBitMapTags): not yet run on the guest.
+- `Format$` is slow on newlib (the HUD line costs 0.47 ms/frame on the guest, 0.001 on the Mac),
+  and native programs exit with an unfreed signal (reported to bb-core).
