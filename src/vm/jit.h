@@ -20,6 +20,7 @@ typedef struct bb_jitctx {
     double scratch;             /* PPC: int <-> double conversion */
     double zero;                /* 0.0 */
     double magic;               /* PPC: 2^52 + 2^31 (0x4330000080000000) */
+    double fmax;                /* largest Single (3.402823466e38): Single range checks */
 } bb_jitctx;
 
 typedef int32_t (*bb_jitfn)(bb_jitctx *ctx);
@@ -84,6 +85,8 @@ typedef struct JBackend {
     void (*bind)(JA *a, int label);
     void (*finish)(JA *a);                       /* resolve branches */
     void (*fsqrt)(JA *a, int d, int x);          /* NULL if the CPU has none */
+    void (*ldfs)(JA *a, int f, int base, int32_t off);   /* load a Single, as a double */
+    void (*stfs)(JA *a, int f, int base, int32_t off);   /* store a double as a Single (round to nearest) */
 } JBackend;
 
 #define JMAXLAB 4096

@@ -12,8 +12,10 @@ branch, For loops, 1-D/2-D array elements, UDT fields, ByRef parameter access, `
 *region* is a run of consecutive register ops. A loop whose body consists only of these ops
 (which is what typed numeric loops compile to) is one region. Arrays may be locals,
 globals or array fields of `Me` (class methods). A region ends at a call (`R_CALLS`), a
-return, `Sqr` on a backend without a square root instruction (PPC), and the Single ops
-(`R_*_F*`: Single values are loaded and stored, but Single arithmetic is interpreted).
+return, `Sqr` on a backend without a square root instruction (PPC). Single arithmetic is
+compiled as double arithmetic followed by VB's range check (an exit) and a rounding store
+(`lfs`/`stfs` on PPC, `fcvt` on arm64), exactly what the interpreter and the C back end do.
+Module-level scalars and scalar fields of `Me` are operands too.
 A loop body cut by a call or `Sqr` is compiled in pieces: from the loop head to the call,
 and from the instruction after the call (a *resume point*: the VM looks there for compiled
 code when the call returns or after it computed `Sqr`) to the back-edge, which continues in

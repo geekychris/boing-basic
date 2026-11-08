@@ -189,7 +189,7 @@ int main(int argc, char **argv)
                 JA a;
                 switch (w[0]) {
                 case I_R_FORINC_I: case I_R_FORINC_L: case I_R_FORINC_D: case I_R_JCMP_LRR: case I_R_JCMP_LRI:
-                case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: tg = w[4]; break;
+                case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: case I_R_JCMP_FRR: tg = w[4]; break;
                 case I_R_JNZ: case I_R_JZ: tg = w[2]; break;
                 case I_R_JMP: tg = w[1]; break;
                 /* resume points after a call / Sqr (the VM re-enters compiled code there) */

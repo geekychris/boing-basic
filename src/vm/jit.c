@@ -294,6 +294,32 @@ static void dbl_op(T *t, int32_t pc, int what, int form, const int32_t *w)
     be->stf(a, JF2, JB_L, SLOT_U(w[1]));
 }
 
+/* Single arithmetic: computed in double, then VB's range check (exit), stored rounded */
+static void sng_range_store(T *t, int f, int ex, int32_t dslot)
+{
+    const JBackend *be = t->be;
+    JA *a = t->a;
+    int other = f == JF0 ? JF1 : JF0;
+    be->ldf(a, other, JB_CTX, (int32_t)offsetof(bb_jitctx, fmax));
+    be->fcmp_b(a, JC_GT, f, other, ex);
+    be->fneg(a, other, other);
+    be->fcmp_b(a, JC_LT, f, other, ex);
+    be->stfs(a, f, JB_L, SLOT_U(dslot));
+}
+
+static void sng_op(T *t, int32_t pc, int what, const int32_t *w)
+{
+    const JBackend *be = t->be;
+    JA *a = t->a;
+    int ex = exit_to(t, pc);
+    be->ldfs(a, JF0, JB_L, SLOT_U(w[2]));
+    be->ldfs(a, JF1, JB_L, SLOT_U(w[3]));
+    if (what == 3) be->fbzero(a, JF1, ex);
+    be->fop(a, what, JF2, JF0, JF1);
+    if (what == 3) be->fchk(a, JF2, ex);
+    sng_range_store(t, JF2, ex, w[1]);
+}
+
 static void for_test(T *t, int k, int32_t pc, int32_t c, int32_t l, int32_t s, int32_t target, int inc)
 {
     /* chk: if (s >= 0 ? c > l : c < l) goto target
@@ -413,6 +439,39 @@ static int translate(T *t, int32_t pc)
     case I_R_DIV_DRR: dbl_op(t, pc, 3, 0, w); return 1;
     case I_R_DIV_DRK: dbl_op(t, pc, 3, 1, w); return 1;
     case I_R_DIV_DKR: dbl_op(t, pc, 3, 2, w); return 1;
+    case I_R_ADD_FRR: sng_op(t, pc, 0, w); return 1;
+    case I_R_SUB_FRR: sng_op(t, pc, 1, w); return 1;
+    case I_R_MUL_FRR: sng_op(t, pc, 2, w); return 1;
+    case I_R_DIV_FRR: sng_op(t, pc, 3, w); return 1;
+    case I_R_NEG_F:
+        be->ldfs(a, JF0, JB_L, SLOT_U(w[2]));
+        be->fneg(a, JF0, JF0);
+        be->stfs(a, JF0, JB_L, SLOT_U(w[1]));
+        return 1;
+    case I_R_CVT_IF: case I_R_CVT_LF:
+        ld_int(t, op == I_R_CVT_LF ? K_L : K_I, JI0, w[2]);
+        be->fcvt(a, JF0, JI0);
+        be->stfs(a, JF0, JB_L, SLOT_U(w[1]));
+        return 1;
+    case I_R_CVT_DF:
+        be->ldf(a, JF2, JB_L, SLOT_U(w[2]));
+        sng_range_store(t, JF2, exit_to(t, pc), w[1]);
+        return 1;
+    case I_R_CVT_FD:
+        be->ldfs(a, JF0, JB_L, SLOT_U(w[2]));
+        be->stf(a, JF0, JB_L, SLOT_U(w[1]));
+        return 1;
+    case I_R_JCMP_FRR: {
+        int go = ja_label(a), skip = ja_label(a);
+        be->ldfs(a, JF0, JB_L, SLOT_U(w[2]));
+        be->ldfs(a, JF1, JB_L, SLOT_U(w[3]));
+        be->fcmp_b(a, cond_of(w[1]), JF0, JF1, go);
+        be->b(a, skip);
+        be->bind(a, go);
+        branch_to(t, pc, w[4]);
+        be->bind(a, skip);
+        return 1;
+    }
     case I_R_NEG_D:
         be->ldf(a, JF0, JB_L, SLOT_U(w[2]));
         be->fneg(a, JF0, JF0);
@@ -543,6 +602,13 @@ static int translate(T *t, int32_t pc)
         be->ldp(a, JP1, JB_L, SLOT_U(w[2]));
         store_elem(t, w[1], w[3]);
         return 1;
+    case I_R_LDG: case I_R_STG: {
+        /* scalar global */
+        int vt = w[1], st = op == I_R_STG;
+        be->addp_off(a, JP1, JB_G, (st ? w[2] : w[3]) * 16 + 8);
+        if (st) store_elem(t, vt, w[3]); else load_elem(t, vt, w[2]);
+        return 1;
+    }
     case I_R_LDMF: case I_R_STMF: {
         /* scalar field of Me: f[idx] of the VMObj in slot 0 */
         int vt = w[1], st = op == I_R_STMF, base;
@@ -578,7 +644,7 @@ static int region_end(VMImage *img, VMProc *p, int32_t start)
         int op = img->code[pc];
         if (op < I_R_FIRST || op >= I__COUNT) break;
         if (op == I_R_SQRT_D && g_be_for_scan && (!g_be_for_scan->fsqrt || jit_no_fsqrt)) break;
-        if (op == I_R_CALLS || op == I_R_RET || op >= I_R_ADD_FRR) break;
+        if (op == I_R_CALLS || op == I_R_RET) break;
         pc += 1 + bb_opwords[op];
     }
     return pc;
@@ -603,7 +669,7 @@ int jit_compile_region(const JBackend *be, VMImage *img, VMProc *p, int32_t star
             int32_t tg = -1;
             nops++;
             switch (w[0]) {
-            case I_R_JCMP_LRR: case I_R_JCMP_LRI: case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: tg = w[4]; break;
+            case I_R_JCMP_LRR: case I_R_JCMP_LRI: case I_R_JCMP_IRR: case I_R_JCMP_IRI: case I_R_JCMP_DRR: case I_R_JCMP_DRK: case I_R_JCMP_FRR: tg = w[4]; break;
             case I_R_FORINC_I: case I_R_FORINC_L: case I_R_FORINC_D: tg = w[4]; break;
             case I_R_JNZ: case I_R_JZ: tg = w[2]; break;
             case I_R_JMP: tg = w[1]; break;

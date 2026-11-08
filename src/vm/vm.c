@@ -802,7 +802,7 @@ static void vm_exec(VM *vm, int entry)
         bb_value *G = vm->globals;
         int jit_on = jit_enabled() && img->jitno && img->jitcode;
         bb_jitctx jc;
-        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; }
+        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; } jc.fmax = 3.402823466e38;
 #define SYNC() (vm->sp = sp)
 #define RELOAD() (fr = &vm->frames[vm->nframes - 1], pc = fr->pc, sp = vm->sp, L = fr->base)
         for (;;) {
@@ -902,6 +902,8 @@ static void vm_exec(VM *vm, int entry)
         [I_R_RET] = &&L_R_RET,
         [I_R_LDMF] = &&L_R_LDMF,
         [I_R_STMF] = &&L_R_STMF,
+        [I_R_LDG] = &&L_R_LDG,
+        [I_R_STG] = &&L_R_STG,
         [I_R_ADD_FRR] = &&L_R_ADD_FRR,
         [I_R_SUB_FRR] = &&L_R_SUB_FRR,
         [I_R_MUL_FRR] = &&L_R_MUL_FRR,
@@ -1109,6 +1111,8 @@ static void vm_exec(VM *vm, int entry)
                 JCMP(R_JCMP_FRR, double, RSL(2).u.f, RSL(3).u.f)
                 RCASE(R_LDMF) L[pc[2]] = ((VMObj *)L[0].u.o)->f[pc[3]]; pc += 4; RNEXT();
                 RCASE(R_STMF) ((VMObj *)L[0].u.o)->f[pc[2]].u = L[pc[3]].u; pc += 4; RNEXT();
+                RCASE(R_LDG) L[pc[2]] = G[pc[3]]; pc += 4; RNEXT();
+                RCASE(R_STG) G[pc[2]].u = L[pc[3]].u; pc += 4; RNEXT();
                 RCASE(R_LDREF) rload(&L[pc[2]], pc[1], L[pc[3]].u.p); pc += 4; RNEXT();
                 RCASE(R_STREF) rstore(pc[1], L[pc[2]].u.p, &L[pc[3]]); pc += 4; RNEXT();
 #if !(defined(__GNUC__) && !defined(BB_NO_THREADED))

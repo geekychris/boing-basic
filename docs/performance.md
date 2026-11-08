@@ -33,22 +33,22 @@ have been measured on the guest.
 | benchmark | VM (s) | VM+JIT (s) | native (s) | VM/native | JIT/native | C (s) | native/C | same output |
 |---|---:|---:|---:|---:|---:|---:|---:|:---:|
 | arrays | 0.213 | 0.106 | 0.046 | 4.6x | 2.3x | - | - | yes |
-| calls | 0.079 | 0.082 | 0.017 | 4.8x | 5.0x | - | - | yes |
-| coll | 0.122 | 0.122 | 0.118 | 1.0x | 1.0x | - | - | yes |
-| double_math | 0.242 | 0.079 | 0.030 | 8.2x | 2.7x | 0.019 | 1.6x | yes |
-| fannkuch | 0.096 | 0.045 | 0.026 | 3.6x | 1.7x | 0.016 | 1.7x | yes |
-| fib | 0.063 | 0.063 | 0.010 | 6.2x | 6.2x | 0.007 | 1.5x | yes |
-| fileio | 0.156 | 0.153 | 0.147 | 1.1x | 1.0x | - | - | yes |
-| int_loop | 0.116 | 0.079 | 0.019 | 6.1x | 4.1x | 0.019 | 1.0x | yes |
-| mandelbrot | 0.027 | 0.022 | 0.008 | 3.2x | 2.7x | 0.005 | 1.5x | yes |
-| nbody | 0.315 | 0.168 | 0.027 | 11.6x | 6.2x | 0.013 | 2.2x | yes |
-| objects | 0.219 | 0.219 | 0.023 | 9.5x | 9.5x | - | - | yes |
-| select | 0.122 | 0.127 | 0.016 | 7.4x | 7.7x | - | - | yes |
-| sieve | 0.113 | 0.048 | 0.027 | 4.2x | 1.8x | 0.012 | 2.2x | yes |
-| strings | 0.229 | 0.228 | 0.121 | 1.9x | 1.9x | - | - | yes |
-| udt | 0.089 | 0.054 | 0.010 | 9.4x | 5.7x | - | - | yes |
-| variants | 0.308 | 0.314 | 0.198 | 1.6x | 1.6x | - | - | yes |
-| glimmerfield | 0.307 | 0.298 | 0.060 | 5.1x | 4.9x | - | - | yes |
+| calls | 0.080 | 0.076 | 0.015 | 5.3x | 5.1x | - | - | yes |
+| coll | 0.122 | 0.122 | 0.119 | 1.0x | 1.0x | - | - | yes |
+| double_math | 0.230 | 0.079 | 0.031 | 7.5x | 2.6x | 0.020 | 1.6x | yes |
+| fannkuch | 0.103 | 0.045 | 0.027 | 3.8x | 1.7x | 0.016 | 1.7x | yes |
+| fib | 0.066 | 0.068 | 0.010 | 6.5x | 6.7x | 0.007 | 1.4x | yes |
+| fileio | 0.152 | 0.151 | 0.146 | 1.0x | 1.0x | - | - | yes |
+| int_loop | 0.122 | 0.078 | 0.019 | 6.4x | 4.1x | 0.019 | 1.0x | yes |
+| mandelbrot | 0.026 | 0.022 | 0.008 | 3.2x | 2.7x | 0.006 | 1.5x | yes |
+| nbody | 0.319 | 0.167 | 0.025 | 12.8x | 6.7x | 0.013 | 2.0x | yes |
+| objects | 0.153 | 0.159 | 0.030 | 5.0x | 5.2x | - | - | yes |
+| select | 0.120 | 0.124 | 0.016 | 7.3x | 7.6x | - | - | yes |
+| sieve | 0.119 | 0.050 | 0.027 | 4.4x | 1.9x | 0.012 | 2.2x | yes |
+| strings | 0.224 | 0.224 | 0.118 | 1.9x | 1.9x | - | - | yes |
+| udt | 0.089 | 0.054 | 0.010 | 9.2x | 5.6x | - | - | yes |
+| variants | 0.309 | 0.307 | 0.195 | 1.6x | 1.6x | - | - | yes |
+| glimmerfield | 0.294 | 0.222 | 0.058 | 5.1x | 3.8x | - | - | yes |
 | glimmerfield_draw | 0.252 | 0.149 | 0.069 | 3.7x | 2.2x | - | - | yes |
 
 `glimmerfield` and `glimmerfield_draw` are the real-world rows: bb-game's Glimmerfield
@@ -100,7 +100,12 @@ Calls and the game (*(Glimmerfield)*):
   methods get the fast frame (early-bound `CALLM`) and the fast return, which drops `Me`
   itself (objects VM 0.219 -> 0.156 s). Native method calls on a receiver that is not a
   local now hold a reference for the call, as VB does (objects native 0.024 -> 0.030 s:
-  correctness first; `Set g = Nothing` inside a method of g's object freed it mid-call).
+  correctness first; `Set g = Nothing` inside a method of g's object freed it mid-call);
+- module-level (and Static) scalars are register operands (`R_LDG` / `R_STG`; bb-game's
+  `g = g + 1` 7.9 -> 5.5 ns, 3.1 ns with the JIT);
+- the JIT compiles Single arithmetic (load as double, VB's range check as an exit, store
+  rounded: `lfs`/`stfs` on PPC), so loops over Single fields are no longer cut
+  (glimmerfield VM+JIT 0.300 -> 0.222 s).
 
 What changed in the native back end: array bounds failures go to a `noreturn` function, so
 GCC/clang can keep element addresses in registers across statements (nbody 0.061 -> 0.027 s).

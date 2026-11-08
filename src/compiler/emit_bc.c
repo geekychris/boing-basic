@@ -972,6 +972,7 @@ static int inline_call(E *e, Node *n)
 
 static int rx(E *e, Node *n, int dst);
 static int me_field(E *e, Node *n, int k);
+static int glob_var(Node *n, int k);
 static void reg_call(E *e, Node *n, int dst)
 {
     int s[4] = {0, 0, 0, 0}, i;
@@ -1018,6 +1019,11 @@ static int rx(E *e, Node *n, int dst)
     if (k == 3 && is_sng_const(n)) {
         d = dst >= 0 ? dst : rtemp(e, k);
         op2(e, I_R_MOVK, d, add_const(e, bb_v_single((bb_single)n->cv.d)));
+        return d;
+    }
+    if (glob_var(n, k)) {
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, I_R_LDG, rvt(n->ty), d, n->sym->index);
         return d;
     }
     if (me_field(e, n, k)) {
@@ -1118,15 +1124,26 @@ static int me_field(E *e, Node *n, int k)
     return e->me && n->kind == E_VAR && n->sym->storage == ST_FIELD && k >= 0 && rkind(n->ty) == k;
 }
 
+/* a scalar module-level (or Static) variable */
+static int glob_var(Node *n, int k)
+{
+    return n->kind == E_VAR && (n->sym->storage == ST_GLOBAL || n->sym->storage == ST_STATIC) && k >= 0 && rkind(n->ty) == k;
+}
+
 static int reg_value_ok(E *e, Node *v, int k)
 {
     return reg_arith(v, k) || reg_var(e, v, k) >= 0 || reg_mem(e, v) || v->kind == E_CONST || reg_sqrt(v) || reg_call_ok(v) ||
-           (v->kind == E_VAR && is_ref_slot(v->sym)) || me_field(e, v, k);
+           (v->kind == E_VAR && is_ref_slot(v->sym)) || me_field(e, v, k) || glob_var(v, k);
 }
 
 static int reg_assign(E *e, Node *t, Node *v)
 {
     int k = rkind(t->ty), slot;
+    if (glob_var(t, k) && rkind(v->ty) == k && reg_value_ok(e, v, k)) {
+        int src = rx(e, v, -1);
+        op3(e, I_R_STG, rvt(t->ty), t->sym->index, src);
+        return 1;
+    }
     if (me_field(e, t, k) && rkind(v->ty) == k && reg_value_ok(e, v, k)) {
         int src = rx(e, v, -1);
         op3(e, I_R_STMF, rvt(t->ty), t->sym->index, src);
