@@ -114,5 +114,32 @@ real = fake2.tool
 fake2.tool = lambda name, **a: ("[OK] 1900" if a.get("command", "").endswith("ALL.1.LEFT NAME ROOT") else real(name, **a))
 check(not ik.icon_on_screen(fake2), "install-kit: an icon outside the screen fails the check")
 
+# the installer doesn't start on a guest with a Grim Reaper or a silent Workbench
+class SickGuest(FakeGuest):
+    def __init__(self, reaper, wb):
+        FakeGuest.__init__(self)
+        self.reaper, self.wb = reaper, wb
+
+    def tool(self, name, **a):
+        if name == "amiga_dos_command" and a["command"] == "status":
+            return "Process  5: Loaded as command: SYS:System/GrimReaper\n" if self.reaper else ""
+        if name == "amiga_arexx_send" and not self.wb:
+            return "Timeout waiting for ARexx result"
+        if name == "amiga_dos_command" and a["command"].startswith("info"):
+            raise AssertionError("got past the preflight")
+        return FakeGuest.tool(self, name, **a)
+
+
+for reaper, wb, what in ((True, True, "a Grim Reaper"), (False, False, "a silent Workbench")):
+    sick = SickGuest(reaper, wb)
+    try:
+        ik.install(sick)
+        refused = False
+    except RuntimeError as e:
+        refused = "not installing" in str(e)
+    except AssertionError:
+        refused = False
+    check(refused and not opened, "install-kit: refuses to start on a guest with %s" % what)
+
 print("PASS kit guards" if ok else "FAIL kit guards")
 sys.exit(0 if ok else 1)

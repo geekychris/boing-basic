@@ -306,6 +306,15 @@ def backdrop_entry(m):
 def install(m):
     lha_size = os.path.getsize(KIT)
     need = unpacked_size() + (8 << 20)      # the archive goes to RAM:; the old drawer goes after the swap
+    # a guest with crashed tasks or a Workbench that doesn't answer ARexx has hung the swap
+    # half-way before (a Copy and WBRun waiting forever): don't start on one
+    n = g.reapers(m)
+    if n:
+        raise RuntimeError("the guest has %d Grim Reaper requester(s) (a crashed task): not installing; "
+                           "restart the guest first" % n)
+    if "--no-icon" not in args and not wb_alive(m):
+        raise RuntimeError("Workbench doesn't answer ARexx (the desktop icon needs it): not installing; "
+                           "restart the guest first")
     hits = running_from_kit(m)
     if hits:
         raise RuntimeError("these run from the kit on the guest; quit them first: %s" % "; ".join(hits))
