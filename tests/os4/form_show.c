@@ -38,8 +38,19 @@ int main(int argc, char **argv)
     size_t n = fread(text, 1, sizeof text - 200, fp);
     fclose(fp);
     text[n] = 0;
-    /* a 1 s timer to close it: appended as the root layout's last child */
-    strcat(text, "\n  timer id=_shot interval=1000\n");
+    /* a 1 s timer to close it: the root layout's first child (menus may follow the layout, so
+       not at the end) */
+    {
+        char *root = strstr(text, "\nvlayout");
+        if (!root) root = strstr(text, "\nhlayout");
+        char *eol = root ? strchr(root + 1, '\n') : NULL;
+        static const char t[] = "\n  timer id=_shot interval=1000";
+        if (eol) {
+            memmove(eol + sizeof t - 1, eol, strlen(eol) + 1);
+            memcpy(eol, t, sizeof t - 1);
+        } else
+            strcat(text, t);
+    }
     char err[200];
     form = bb_form_load(text, argv[1], on_event, NULL, NULL, err, sizeof err);
     if (!form) {
