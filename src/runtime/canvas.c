@@ -39,6 +39,7 @@ struct bb_canvas {
     int32_t frames;
     int32_t scale;               /* shown scale x scale times bigger */
     uint32_t *sbuf;              /* the scaled picture */
+    int32_t alpha;               /* Alpha: 255 = opaque drawing (default), 0..254 see-through */
 };
 
 static bb_canvas *ctl_canvases;
@@ -139,9 +140,51 @@ static void need_count(const bb_array *a, int32_t n)
 
 /* ---------------------------------------------------------------- drawing */
 
+/* see-through drawing (Canvas.Alpha < 255): n pixels at p get col over them with alpha a
+ * (1..254). Two multiplies a pixel on packed channels; 50% is (s + d) / 2 per channel without
+ * multiplies; black (shadows) one multiply pair less. The alpha byte becomes the larger one. */
+static void blend_span(uint32_t *p, int32_t n, uint32_t col, int32_t a)
+{
+    uint32_t A = a == 128 ? 128u : (uint32_t)(a + (a >> 7)), IA = 256u - A;
+    uint32_t srb = (col & 0xFF00FFu) * A, sg = (col & 0xFF00u) * A, sa = (uint32_t)a << 24;
+    int32_t i;
+    for (i = 0; i < n; i++)
+        if (!(p[i] >> 24)) break;
+    if (i < n) {
+        /* a transparent pixel (an image): it takes the colour with this alpha */
+        for (i = 0; i < n; i++)
+            if (!(p[i] >> 24)) p[i] = (col & 0xFFFFFFu) | ((uint32_t)a << 24);
+            else blend_span(p + i, 1, col, a);
+        return;
+    }
+    if (a == 128) {
+        uint32_t s = col & 0xFFFFFFu;
+        for (i = 0; i < n; i++) {
+            uint32_t d = p[i], da = d & 0xFF000000u;
+            p[i] = ((s & d) + (((s ^ d) & 0xFEFEFEu) >> 1)) | (da > sa ? da : sa);
+        }
+        return;
+    }
+    if (!(col & 0xFFFFFFu)) {
+        for (i = 0; i < n; i++) {
+            uint32_t d = p[i], da = d & 0xFF000000u;
+            p[i] = ((((d & 0xFF00FFu) * IA) >> 8) & 0xFF00FFu) | ((((d & 0xFF00u) * IA) >> 8) & 0xFF00u) | (da > sa ? da : sa);
+        }
+        return;
+    }
+    for (i = 0; i < n; i++) {
+        uint32_t d = p[i], da = d & 0xFF000000u;
+        p[i] = (((srb + (d & 0xFF00FFu) * IA) >> 8) & 0xFF00FFu) | (((sg + (d & 0xFF00u) * IA) >> 8) & 0xFF00u) |
+               (da > sa ? da : sa);
+    }
+}
+
 static inline void plot(bb_canvas *c, int32_t x, int32_t y, uint32_t col)
 {
-    if ((uint32_t)x < (uint32_t)c->tw && (uint32_t)y < (uint32_t)c->th) c->tp[y * c->tw + x] = col;
+    if ((uint32_t)x < (uint32_t)c->tw && (uint32_t)y < (uint32_t)c->th) {
+        if (c->alpha >= 255) c->tp[y * c->tw + x] = col;
+        else if (c->alpha > 0) blend_span(c->tp + y * c->tw + x, 1, col, c->alpha);
+    }
 }
 
 static void hspan(bb_canvas *c, int32_t x1, int32_t x2, int32_t y, uint32_t col)
@@ -154,6 +197,10 @@ static void hspan(bb_canvas *c, int32_t x1, int32_t x2, int32_t y, uint32_t col)
     if (x2 >= c->tw) x2 = c->tw - 1;
     if (x1 > x2) return;
     p = c->tp + y * c->tw;
+    if (c->alpha < 255) {
+        if (c->alpha > 0) blend_span(p + x1, x2 - x1 + 1, col, c->alpha);
+        return;
+    }
     for (i = x1; i <= x2; i++) p[i] = col;
 }
 
@@ -229,19 +276,35 @@ static void line(bb_canvas *c, int32_t x1, int32_t y1, int32_t x2, int32_t y2, u
 static void circle(bb_canvas *c, int32_t cx, int32_t cy, int32_t r, uint32_t col, int filled)
 {
     int32_t x = r, y = 0, e = 1 - r;
+    int32_t wbuf[513], *w = wbuf, k;
     if (r < 0) return;
-    while (x >= y) {
-        if (filled) {
-            hspan(c, cx - x, cx + x, cy + y, col);
-            hspan(c, cx - x, cx + x, cy - y, col);
-            hspan(c, cx - y, cx + y, cy + x, col);
-            hspan(c, cx - y, cx + y, cy - x, col);
-        } else {
-            plot(c, cx + x, cy + y, col); plot(c, cx + y, cy + x, col);
-            plot(c, cx - y, cy + x, col); plot(c, cx - x, cy + y, col);
-            plot(c, cx - x, cy - y, col); plot(c, cx - y, cy - x, col);
-            plot(c, cx + y, cy - x, col); plot(c, cx + x, cy - y, col);
+    if (filled) {
+        /* the half-width of each row (the midpoint steps visit rows more than once: each is
+         * filled once, so see-through drawing blends once) */
+        if (r > 512) {
+            if (!(w = (int32_t *)malloc(sizeof(int32_t) * (size_t)(r + 1)))) bb_raise(7, NULL);
         }
+        for (k = 0; k <= r; k++) w[k] = -1;
+        while (x >= y) {
+            if (w[y] < x) w[y] = x;
+            if (w[x] < y) w[x] = y;
+            y++;
+            if (e < 0) e += 2 * y + 1;
+            else { x--; e += 2 * (y - x) + 1; }
+        }
+        for (k = 0; k <= r; k++) {
+            if (w[k] < 0) continue;
+            hspan(c, cx - w[k], cx + w[k], cy + k, col);
+            if (k) hspan(c, cx - w[k], cx + w[k], cy - k, col);
+        }
+        if (w != wbuf) free(w);
+        return;
+    }
+    while (x >= y) {
+        plot(c, cx + x, cy + y, col); plot(c, cx + y, cy + x, col);
+        plot(c, cx - y, cy + x, col); plot(c, cx - x, cy + y, col);
+        plot(c, cx - x, cy - y, col); plot(c, cx - y, cy - x, col);
+        plot(c, cx + y, cy - x, col); plot(c, cx + x, cy - y, col);
         y++;
         if (e < 0) e += 2 * y + 1;
         else { x--; e += 2 * (y - x) + 1; }
@@ -412,7 +475,7 @@ enum {
     M_FREEIMAGE, M_SETTARGET, M_DRAWIMAGE, M_DRAWIMAGEPART, M_IMAGEWIDTH, M_IMAGEHEIGHT, M_KEYDOWN,
     M_SAVEIMAGE, M_INJECTKEY, M_RESIZE,
     P_WIDTH, P_HEIGHT, P_FORECOLOR, P_FILLCOLOR, P_BACKCOLOR, P_CURRENTX, P_CURRENTY, P_FRAMES,
-    P_TARGET, P_NAME, P_BLITMODE, P_BLITINFO, P_SCALE, P_LEFT, P_TOP
+    P_TARGET, P_NAME, P_BLITMODE, P_BLITINFO, P_SCALE, P_LEFT, P_TOP, P_ALPHA
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -428,7 +491,7 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"Width", P_WIDTH}, {"ScaleWidth", P_WIDTH}, {"Height", P_HEIGHT}, {"ScaleHeight", P_HEIGHT},
     {"ForeColor", P_FORECOLOR}, {"FillColor", P_FILLCOLOR}, {"BackColor", P_BACKCOLOR},
     {"CurrentX", P_CURRENTX}, {"CurrentY", P_CURRENTY}, {"Frames", P_FRAMES}, {"Target", P_TARGET},
-    {"Name", P_NAME}, {"BlitMode", P_BLITMODE}, {"BlitInfo", P_BLITINFO}, {"Scale", P_SCALE},
+    {"Name", P_NAME}, {"BlitMode", P_BLITMODE}, {"BlitInfo", P_BLITINFO}, {"Scale", P_SCALE}, {"Alpha", P_ALPHA},
     {"Left", P_LEFT}, {"Top", P_TOP},
 };
 
@@ -764,6 +827,12 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
             canvas_blit_mode = m;
         } else *ret = bb_v_long(canvas_blit_mode);
         return;
+    case P_ALPHA:
+        if (setting) {
+            int32_t a = to_l(&argv[argc - 1]);
+            c->alpha = a < 0 ? 0 : a > 255 ? 255 : a;
+        } else *ret = bb_v_long(c->alpha);
+        return;
     case P_SCALE:
         if (setting) bb_raise(383, NULL);
         *ret = bb_v_long(c->scale);
@@ -821,6 +890,7 @@ bb_obj *bb_canvas_new(int32_t w, int32_t h, bb_ctl *ctl)
     resize(c, w > 0 ? w : 320, h > 0 ? h : 200);
     c->ctl = ctl;
     c->scale = 1;
+    c->alpha = 255;
     if (ctl) {
         c->next = ctl_canvases;
         ctl_canvases = c;

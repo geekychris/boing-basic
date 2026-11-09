@@ -301,15 +301,18 @@ static void blit_scaled(bb_canvas *c, const cv_image *im, int32_t sx, int32_t sy
     free(xmap);
 }
 
+/* u / 255 for u <= 255 * 255 + 127, without a divide (slow on the PPC guest); exact */
+#define DIV255(u) (((u) + 1 + (((u) + 1) >> 8)) >> 8)
+
 static inline uint32_t blend_px(uint32_t d, uint32_t s, uint32_t a)
 {
     /* s over d with alpha a (0..255), rounded; result opaque if d was */
     uint32_t ia = 255 - a, r, g, b, da;
     if (!(d >> 24)) return (s & 0xFFFFFFu) | (a << 24);
-    r = (((s >> 16) & 255) * a + ((d >> 16) & 255) * ia + 127) / 255;
-    g = (((s >> 8) & 255) * a + ((d >> 8) & 255) * ia + 127) / 255;
-    b = ((s & 255) * a + (d & 255) * ia + 127) / 255;
-    da = (d >> 24) + (((255 - (d >> 24)) * a + 127) / 255);
+    r = DIV255(((s >> 16) & 255) * a + ((d >> 16) & 255) * ia + 127);
+    g = DIV255(((s >> 8) & 255) * a + ((d >> 8) & 255) * ia + 127);
+    b = DIV255((s & 255) * a + (d & 255) * ia + 127);
+    da = (d >> 24) + DIV255((255 - (d >> 24)) * a + 127);
     return (da << 24) | (r << 16) | (g << 8) | b;
 }
 
@@ -332,7 +335,7 @@ static void blit_blend(bb_canvas *c, const cv_image *im, int32_t sx, int32_t sy,
         const uint32_t *s = im->px + (sy + j) * im->w + sx;
         uint32_t *d = c->tp + (y + j) * c->tw + x;
         for (i = 0; i < sw; i++) {
-            uint32_t a = ((s[i] >> 24) * (uint32_t)alpha) / 255;
+            uint32_t a = alpha == 255 ? s[i] >> 24 : DIV255((s[i] >> 24) * (uint32_t)alpha);
             if (!a) continue;
             d[i] = a == 255 ? s[i] : blend_px(d[i], s[i], a);
         }

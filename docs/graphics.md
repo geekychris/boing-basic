@@ -61,6 +61,7 @@ interpreter. Draw many points with `PSetMany`, and pre-draw repeated shapes into
 | `Left`, `Top` | Long, R/O | where the canvas control is in its window (0 off-screen) |
 | `BlitMode` | Long | how `Refresh` gets the picture into the window (all canvases): 0 = the best the platform has (default), 1 = a 32-bit ARGB blit, 2 = converted to 16-bit first, 3 = through an off-screen bitmap in the screen's own format |
 | `BlitInfo` | String, R/O | the method `Refresh` used last, e.g. `friend bitmap R5G6B5PC` |
+| `Alpha` | Long | 0..255: how opaque drawing is (default 255). Below 255, `PSet`, `Line`, `Box`, `Rect`, `Circle`, `Polygon`, text and the paint helpers' spans blend over what is there (glows, see-through ramps, shadows); `Cls` and the image copies don't. 128 and black (shadows) are fast paths; on an image, transparent pixels take the colour with that alpha. For images with their own alpha use `DrawImageBlend` |
 
 ## Methods
 
