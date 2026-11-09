@@ -424,7 +424,7 @@ enum {
     M_PLAYSOUND, M_PLAYSOUNDPRI, M_STOPVOICE, M_STOPSOUNDS, P_VOICEPLAYING, P_VOICEVOLUME,
     P_VOICEPAN, P_VOICERATE, P_SOUNDVOLUME, P_SOUNDENABLED, P_VOICES,
     M_PLAYPATTERN, M_SETSAMPLEBYTES, M_GETSAMPLEBYTES, P_CHANNELPOS, P_SONGSPEED, P_SONGTEMPO,
-    P_SONGRESTART, M_SFXDEFINE, M_SFXTONE, M_SFXNOISE, M_SFX, P_SFXSOUND
+    P_SONGRESTART, M_SFXDEFINE, M_SFXTONE, M_SFXNOISE, M_SFX, P_SFXSOUND, M_STATE, M_SCOPES
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -464,7 +464,7 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"PlayPattern", M_PLAYPATTERN}, {"SetSampleBytes", M_SETSAMPLEBYTES},
     {"GetSampleBytes", M_GETSAMPLEBYTES}, {"ChannelPos", P_CHANNELPOS}, {"SongSpeed", P_SONGSPEED},
     {"SongTempo", P_SONGTEMPO}, {"SongRestart", P_SONGRESTART}, {"SfxDefine", M_SFXDEFINE},
-    {"SfxTone", M_SFXTONE}, {"SfxNoise", M_SFXNOISE}, {"Sfx", M_SFX}, {"SfxSound", P_SFXSOUND},
+    {"SfxTone", M_SFXTONE}, {"SfxNoise", M_SFXNOISE}, {"Sfx", M_SFX}, {"SfxSound", P_SFXSOUND}, {"State", M_STATE}, {"Scopes", M_SCOPES},
 };
 
 static int32_t au_find(const bb_class *cls, const char *name)
@@ -993,6 +993,58 @@ static void dispatch(int32_t id, int kind, int argc, bb_value *argv, bb_value *r
         return;
     case P_VOICES: *ret = bb_v_long(BBA_VOICES); return;
 
+    /* ---- batched reads: one late-bound call per frame instead of many ---- */
+    case M_STATE: {
+        /* State(): Long array 0..55, see docs/audio.md */
+        bb_array *a = bb_arr_new1(BB_LONG, 0, 55);
+        bb_long *d = (bb_long *)a->data;
+        bb_value v;
+        int c;
+        d[0] = p->playing ? -1 : 0;
+        d[1] = p->paused ? -1 : 0;
+        d[2] = p->pos;
+        d[3] = p->row;
+        d[4] = !p->song ? 0 : p->pat_mode >= 0 ? p->pat_mode : p->song->order[p->pos];
+        d[5] = p->tick;
+        d[6] = p->speed;
+        d[7] = p->bpm;
+        d[8] = p->ended;
+        d[9] = p->playing && p->song ? song_num(p->song) : 0;
+        d[10] = p->song ? p->song->nch : 0;
+        d[11] = audio_plat_cpu_load();
+        for (c = 0; c < BBA_MAXCH; c++) {
+            const bba_chan *ch = &p->ch[c];
+            bb_long *e = d + 16 + c * 5;
+            e[0] = ch->active ? ch->vu : 0;
+            e[1] = ch->note;
+            e[2] = ch->smp;
+            e[3] = ch->outvol;
+            e[4] = ch->active && !p->paused ? (bb_long)ch->pos : -1;
+        }
+        v = bb_v_make(BB_ARRAY | BB_LONG);
+        v.u.a = a;
+        *ret = v;
+        return;
+    }
+    case M_SCOPES: {
+        /* Scopes(n [, channels]): channel c's last n samples at c * n */
+        int32_t n = argl(argc, argv, 0), nc = argl_opt(argc, argv, 1, p->song ? p->song->nch : 4), c, k;
+        bb_array *a;
+        bb_value v;
+        range(n, 1, BBA_SCOPE, 5);
+        range(nc, 1, BBA_MAXCH, 5);
+        a = bb_arr_new1(BB_LONG, 0, n * nc - 1);
+        for (c = 0; c < nc; c++) {
+            const bba_chan *ch = &p->ch[c];
+            for (k = 0; k < n; k++)
+                ((bb_long *)a->data)[c * n + k] = ch->scope[(ch->scope_pos - (uint32_t)(n - k)) & (BBA_SCOPE - 1)];
+        }
+        v = bb_v_make(BB_ARRAY | BB_LONG);
+        v.u.a = a;
+        *ret = v;
+        return;
+    }
+
     /* ---- tracker extras ---- */
     case M_PLAYPATTERN: {
         int32_t n = argl(argc, argv, 0), pat = argl(argc, argv, 1), row = argl_opt(argc, argv, 2, 0);
@@ -1116,6 +1168,18 @@ static void dispatch(int32_t id, int kind, int argc, bb_value *argv, bb_value *r
     bb_raise(438, NULL);
 }
 
+static int is_snapshot(int32_t id)
+{
+    switch (id) {
+    case P_PLAYING: case P_PAUSED: case P_CURRENTSONG: case P_SONGENDED: case P_POSITION:
+    case P_ROW: case P_PATTERN: case P_TICK: case P_SPEED: case P_TEMPO: case P_MUTE:
+    case P_CHANNELVOLUME: case P_CHANNELVU: case P_CHANNELNOTE: case P_CHANNELSAMPLE:
+    case P_CHANNELPOS: case P_VOICEPLAYING: case P_CPULOAD: case P_RATE: case P_PCMHASH:
+        return 1;
+    }
+    return 0;
+}
+
 static void au_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
 {
     bb_cleanup cl;
@@ -1135,6 +1199,15 @@ static void au_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         int32_t maxs = argl_opt(argc, argv, 2, 600);
         range(maxs, 1, 3600, 5);
         render_to_wav(s, path, maxs);
+        return;
+    }
+    /* reads the mixer only writes (positions, levels, scopes): no lock. They are single
+     * aligned words (a racy read is at worst one chunk old), and MutexObtain/Release cost
+     * two exec calls per Audio call, which is slow under QEMU. Songs and sounds are only
+     * freed by this task, so the pointers stay valid. */
+    if (id == M_SCOPE || id == M_STATE || id == M_SCOPES || (kind == BB_INV_GET && argc <= 1 && is_snapshot(id))) {
+        pump_null();
+        dispatch(id, kind, argc, argv, ret);
         return;
     }
     cl.prev = bb_cleanups;

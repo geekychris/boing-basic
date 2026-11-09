@@ -185,9 +185,9 @@ End Sub
 
 ' a hash of the shown picture
 Public Function Hash() As Long
-    Dim i As Long, h As Long
+    Dim i As Long, hv As Long
     For i = 0 To NPIX - 1 Step 7
-        h = (h * 31 + (shown(i) And 65535) + shown(i) \ 65536) Mod 1000003
+        hv = (hv * 31 + (shown(i) And 65535) + shown(i) \ 65536) Mod 1000003
     Next i
-    Hash = h
+    Hash = hv
 End Function

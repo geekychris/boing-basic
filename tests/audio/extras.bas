@@ -46,3 +46,12 @@ au.SaveMusic s, "x.mod"
 t = au.LoadMusic("x.mod")
 Print "restart kept "; au.SongRestart(t)
 Kill "x.mod"
+' batched reads
+Dim st() As Long, sc() As Long
+s = au.LoadMusic("fx.mod")
+au.PlayMusic s
+au.Render 5000
+st = au.State()
+Print "state: playing "; st(0); " pos "; st(2); " row "; st(3); " = "; au.Row; " speed "; st(6); " ch "; st(10); " ch0 note "; st(17); " = "; au.ChannelNote(0); " vu "; st(16) = au.ChannelVU(0)
+sc = au.Scopes(96)
+Print "scopes "; UBound(sc) + 1; " ch1 same: "; sc(96 + 95) = au.Scope(1, 96)(95)

@@ -1,0 +1,2 @@
+hideconst.bas:4:9: warning: local 'acc' hides constant 'ACC' (line 1)
+hideconst.bas:13:9: warning: local 'limit' hides constant 'Limit' (line 2)
