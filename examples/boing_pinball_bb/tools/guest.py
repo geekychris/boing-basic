@@ -24,8 +24,8 @@ sys.path.insert(0, ROOT + "/examples/common/tools")
 import os4guest as g
 import guest_game as gg
 
-SHOTS_SSH = {"m1": "chriscollins@m1.local", "m1b": "chriscollins@m1.local"}
-HMP_PORT = {"m1": 2348, "m1b": 2448}.get(g.GUEST, 2348)
+SHOTS_SSH = {"m1b": "chriscollins@m1.local", "m1c": "chriscollins@m1.local"}
+HMP_PORT = {"m1b": 2448, "m1c": 2548}.get(g.GUEST, 2348)
 
 
 def push_project(m, bbp):

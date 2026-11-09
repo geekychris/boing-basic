@@ -15,7 +15,7 @@ On the AmigaOS 4 guest (QEMU sam460ex), in the interpreter:
 | ![The title: Comet Tour's backglass](screenshots/os4-title.png) | ![Comet Tour](screenshots/os4-comet.png) |
 | ![Deep Dive](screenshots/os4-deep.png) | ![Robot Foundry](screenshots/os4-foundry.png) |
 | ![Deep Dive's backglass](screenshots/os4-title_deep.png) | ![Robot Foundry's backglass](screenshots/os4-title_foundry.png) |
-| ![The controls](screenshots/os4-help1.png) | ![High scores](screenshots/os4-scores.png) |
+| ![The controls (the same pixels on the Mac)](screenshots/os4-help1.png) | ![High scores](screenshots/os4-scores.png) |
 
 | Table | |
 |---|---|
@@ -122,16 +122,19 @@ picture, so a frame stays at about 40 Canvas calls:
 
 The game in its window, the bot playing Comet Tour, `BoingPinball --bench 1500` (frames back to
 back, 20 ms of game time each: 2.4 physics steps a frame, 640 x 512 shown every frame), on the
-m1b guest (QEMU sam460ex on an unloaded Mac mini M1), 2026-11-08:
+agents' guests on m1.local (QEMU sam460ex on a Mac mini M1), 2026-11-08, after bb-core's typed
+`Int`/`Fix` and `MulShr`/`MulDiv` (the fixed-point helpers use them):
 
-| | fps | logic | draw | blit (ms per frame) |
-|---|---:|---:|---:|---:|
-| VM (`boing run`) | **84.5** | 4.89 | 4.80 | 1.77 |
-| VM + JIT (`boing run --jit`) | 76.2 | 5.74 | 5.31 | 1.72 |
-| native (`boing build --target os4`) | 217.3 | 0.43 | 2.47 | 1.61 |
+| | guest | fps | logic | draw | blit (ms per frame) |
+|---|---|---:|---:|---:|---:|
+| VM (`boing run`) | m1b | **88.9** | 4.38 | 4.78 | 1.69 |
+| VM | m1c (AmiForge running too) | 77.7 | 5.06 | 5.47 | 1.96 |
+| VM + JIT (`boing run --jit`) | m1c | 77.7 | 5.29 | 5.33 | 1.87 |
+| native (`boing build --target os4`) | m1c | 225.5 | 0.28 | 2.34 | 1.65 |
 
-With the music and the sound effects playing (AHI, `--bench 1500 --withsound`): VM 77.8 fps
-(logic 5.12, draw 5.39, blit 1.98).
+Earlier, on m1b with main of a few hours before: VM 84.5, JIT 76.2, native 217.3; the VM with
+the music and the sound effects playing (AHI, `--bench 1500 --withsound`) 77.8 fps (logic 5.12,
+draw 5.39, blit 1.98).
 
 All three give the same state hash (F9AFA545) and picture hash (2032836992) as the Mac, so the
 game is the same on PPC in every build. The game needs 50 fps; the interpreter has 70 % to
