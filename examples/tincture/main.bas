@@ -79,7 +79,10 @@ End Sub
 
 Private Sub Form_Activate()
     Static started As Boolean
-    If logActive Then Debug.Print "active"
+    If logActive Then
+        Debug.Print "geom " & Me.Left & " " & Me.Top & " " & view.Left & " " & view.Top & " " & view.Width & " " & view.Height
+        Debug.Print "active"
+    End If
     If started Then Exit Sub
     started = True
     UpdateAll
@@ -181,6 +184,7 @@ End Sub
 
 Private Sub view_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As Long)
     Dim dx As Long, dy As Long
+    If logActive Then Debug.Print "down " & X & " " & Y & " " & Button
     lastMX = X: lastMY = Y
     statusMsg = ""
     If (Button And 4) <> 0 Or view.KeyDown(vbKeySpace) Then
@@ -196,6 +200,7 @@ End Sub
 
 Private Sub view_MouseMove(Button As Integer, Shift As Integer, X As Long, Y As Long)
     Dim dx As Long, dy As Long
+    If logActive Then Debug.Print "move " & X & " " & Y & " " & Button
     lastMX = X: lastMY = Y
     If panning Then
         ScrollBy (panX - X) * 100 \ zoomPct, (panY - Y) * 100 \ zoomPct
@@ -226,6 +231,7 @@ Private Sub view_MouseUp(Button As Integer, Shift As Integer, X As Long, Y As Lo
     AfterToolEvent
     needTools = True: needTitle = True
     UpdateAll
+    If logActive Then Debug.Print "up " & X & " " & Y & " undo=" & UndoCount() & " pixel=" & RunCommand("GETPIXEL " & dx & " " & dy)
 End Sub
 
 Private Sub view_MouseWheel(Delta As Integer)

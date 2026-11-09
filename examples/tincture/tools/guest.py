@@ -4,14 +4,17 @@
     BB_GUEST=m1 examples/tincture/tools/guest.py push             sources, help, icons, binaries -> DH1:tincture/
     BB_GUEST=m1 examples/tincture/tools/guest.py smoke [SHOTDIR]  every tool through the real handlers, undo all,
                                                                   redo all, a screenshot; checks it quits cleanly
+    BB_GUEST=m1 examples/tincture/tools/guest.py input [SHOTDIR]  real mouse input into its own active window:
+                                                                  steer into the view, paint a stroke, check it
     BB_GUEST=m1 examples/tincture/tools/guest.py demo [SHOTDIR]   paints demo/*.tsc scripts, screenshots each
     BB_GUEST=m1 examples/tincture/tools/guest.py bench [N]        --bench N strokes: native, VM, VM --jit
     BB_GUEST=m1 examples/tincture/tools/guest.py run 'ARGS'       run the VM build with ARGS, print its output
 
 Needs build/os4/boing (tools/build-os4.sh) and, for native runs, build/Tincture
 (build/boing build examples/tincture/Tincture.bbp --target os4 -o build/Tincture).
-Takes the guest's FIFO ticket, emulator lock and banner (tools/os4guest.py). Sends no input:
-the smoke and bench modes drive Tincture's own event handlers.
+Takes the guest's FIFO ticket, emulator lock and banner (tools/os4guest.py). Only `input`
+sends input, and only while Tincture reports (--log) that its window is the active one and
+the pointer is over its picture; the other modes drive Tincture's own event handlers.
 """
 import os, subprocess, sys, tempfile, time
 
@@ -130,6 +133,71 @@ def demo(m, shots):
         print(name, "ok" if ok else dos(m, "type %s.err" % outf), "gone:", gone(m))
 
 
+def last_move(m, outf):
+    out = dos(m, "type %s" % outf)
+    mv = [l.split() for l in out.splitlines() if l.startswith("move ")]
+    return (int(mv[-1][1]), int(mv[-1][2])) if mv else None
+
+
+def is_active(m, outf):
+    out = dos(m, "type %s" % outf)
+    st = [l.strip() for l in out.splitlines() if l.strip() in ("active", "inactive")]
+    return bool(st) and st[-1] == "active"
+
+
+def input_test(m, shots, native=True):
+    """Real mouse input into Tincture's own (active) window: steer the pointer into the view
+    using the positions Tincture reports, paint a stroke, check it in the log."""
+    os.makedirs(shots, exist_ok=True)
+    outf = "RAM:tincture_in.log"
+    dos(m, "delete %s QUIET" % outf)
+    prog = ("%s/Tincture" % DIR) if native and os.path.exists(ROOT + "/build/Tincture") else vm_cmd()
+    launch(m, "%s --size 320x200 --hold 45 --log >%s *>%s.err" % (prog, outf, outf))
+    out = wait_for(m, outf, "active", 120)
+    if not out:
+        print(dos(m, "type %s.err" % outf))
+        return False
+    geom = [l.split() for l in out.splitlines() if l.startswith("geom ")][-1]
+    wl, wt, vl, vt = (int(v) for v in geom[1:5])
+    mv = lambda dx, dy: m.tool("amiga_input_mouse_move", dx=dx, dy=dy)
+    for _ in range(6):
+        mv(-400, -400)                       # park at the top-left corner
+    tx, ty = wl + vl + 120, wt + vt + 120     # a point in the view
+    x = y = 0
+    while x < tx or y < ty:                   # small steps: no pointer acceleration
+        sx, sy = min(20, tx - x), min(20, ty - y)
+        mv(sx, sy)
+        x += sx
+        y += sy
+    time.sleep(1)
+    pos = last_move(m, outf)
+    print("pointer in the view at", pos)
+    for _ in range(6):                        # correct towards view (120, 120)
+        if not pos or (abs(pos[0] - 120) <= 2 and abs(pos[1] - 120) <= 2):
+            break
+        mv(max(-20, min(20, 120 - pos[0])), max(-20, min(20, 120 - pos[1])))
+        time.sleep(0.6)
+        pos = last_move(m, outf)
+    if not pos or not is_active(m, outf):
+        print("not over our active window: no clicks sent", pos)
+        return False
+    m.tool("amiga_input_click", button="left", direction="down")
+    for _ in range(12):
+        mv(10, 3)
+        time.sleep(0.1)
+    m.tool("amiga_input_click", button="left", direction="up")
+    time.sleep(1.5)
+    out = dos(m, "type %s" % outf)
+    ups = [l for l in out.splitlines() if l.startswith("up ")]
+    print("\n".join(l for l in out.splitlines() if l.startswith(("down ", "up "))))
+    hmp_shot(os.path.join(shots, "input_stroke"))
+    ok = bool(ups) and "undo=1" in ups[-1] and "pixel=#000000" in ups[-1]
+    wait_for(m, outf, "quit", 90)
+    time.sleep(2)
+    print("process gone:", gone(m))
+    return ok and gone(m)
+
+
 def bench(m, n):
     runs = [("native", "%s/Tincture" % DIR), ("vm", vm_cmd()),
             ("jit", "%s/boing run --jit %s/Tincture.bbp" % (DIR, DIR))]
@@ -159,6 +227,11 @@ def main():
             if ok and os.path.exists(ROOT + "/build/Tincture"):
                 ok = smoke(m, shots, native=True)
             print("SMOKE", "PASS" if ok else "FAIL")
+            sys.exit(0 if ok else 1)
+        elif what == "input":
+            push_all(m)
+            ok = input_test(m, sys.argv[2] if len(sys.argv) > 2 else os.path.join(tempfile.gettempdir(), "tincture"))
+            print("INPUT", "PASS" if ok else "FAIL")
             sys.exit(0 if ok else 1)
         elif what == "demo":
             push_all(m)
