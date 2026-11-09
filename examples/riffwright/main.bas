@@ -58,6 +58,8 @@ Private Sub Form_Load()
     StarterSamples
     SongChanged
     filereq.Visible = False
+    menuFollow = followOn: menuView = curView
+    mnuFollow.Checked = followOn
     ParseArgs
     Frame True
     view.Refresh
@@ -75,8 +77,104 @@ End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
     HandleKey KeyCode, Shift
+    AfterInput
+End Sub
+
+' after any input: requests for the window, menu check marks, the picture
+Private Sub AfterInput()
     If reqAction <> "" Then DoRequest
+    SyncMenus
     If Frame(False) Then view.Refresh
+End Sub
+
+Private menuFollow As Boolean, menuEdit As Boolean, menuView As Long
+
+Private Sub SyncMenus()
+    If followOn <> menuFollow Then mnuFollow.Checked = followOn: menuFollow = followOn
+    If editOn <> menuEdit Then mnuEditMode.Checked = editOn: menuEdit = editOn
+    If curView <> menuView Then
+        menuView = curView
+        Select Case curView
+            Case V_PATTERN: mnuVPattern.Checked = True
+            Case V_SAMPLES: mnuVSamples.Checked = True
+            Case V_SONG: mnuVSong.Checked = True
+        End Select
+    End If
+End Sub
+
+' ---- menus: each item does what its key does
+Private Sub MenuKey(ByVal k As Integer, ByVal sh As Integer)
+    HandleKey k, sh
+    AfterInput
+End Sub
+
+Private Sub mnuNew_Click(): MenuKey vbKeyN, 8: End Sub
+Private Sub mnuOpen_Click(): MenuKey vbKeyO, 8: End Sub
+Private Sub mnuSave_Click(): MenuKey vbKeyS, 8: End Sub
+Private Sub mnuSaveAs_Click(): MenuKey vbKeyS, 9: End Sub
+Private Sub mnuLoadSmp_Click(): reqAction = "loadsample": AfterInput: End Sub
+Private Sub mnuSaveSmp_Click(): reqAction = "savesample": AfterInput: End Sub
+Private Sub mnuQuit_Click(): MenuKey vbKeyQ, 8: End Sub
+Private Sub mnuUndo_Click(): MenuKey vbKeyZ, 8: End Sub
+Private Sub mnuRedo_Click(): MenuKey vbKeyY, 8: End Sub
+Private Sub mnuCut_Click(): PatternMenu vbKeyX, 8: End Sub
+Private Sub mnuCopy_Click(): PatternMenu vbKeyC, 8: End Sub
+Private Sub mnuPaste_Click(): PatternMenu vbKeyV, 8: End Sub
+Private Sub mnuMix_Click(): PatternMenu vbKeyB, 8: End Sub
+Private Sub mnuSelAll_Click(): PatternMenu vbKeyA, 8: End Sub
+Private Sub mnuTrUp_Click(): PatternMenu vbKeyT, 8: End Sub
+Private Sub mnuTrDown_Click(): PatternMenu vbKeyT, 9: End Sub
+Private Sub mnuOctUp_Click(): PatternMenu vbKeyT, 12: End Sub
+Private Sub mnuOctDown_Click(): PatternMenu vbKeyT, 13: End Sub
+Private Sub mnuInterp_Click(): PatternMenu vbKeyI, 8: End Sub
+Private Sub mnuSetSmp_Click(): PatternMenu vbKeyK, 8: End Sub
+Private Sub mnuPlaySong_Click(): MenuKey vbKeyF5, 0: End Sub
+Private Sub mnuPlayPat_Click(): MenuKey vbKeyF6, 0: End Sub
+Private Sub mnuPlayRow_Click(): MenuKey vbKeyF7, 0: End Sub
+Private Sub mnuStop_Click(): MenuKey vbKeyEscape, 0: End Sub
+Private Sub mnuFollow_Click()
+    followOn = mnuFollow.Checked: menuFollow = followOn
+    AfterInput
+End Sub
+Private Sub mnuEditMode_Click()
+    editOn = mnuEditMode.Checked: menuEdit = editOn
+    AfterInput
+End Sub
+Private Sub mnuVPattern_Click(): SetView V_PATTERN: AfterInput: End Sub
+Private Sub mnuVSamples_Click(): SetView V_SAMPLES: AfterInput: End Sub
+Private Sub mnuVSong_Click(): SetView V_SONG: AfterInput: End Sub
+Private Sub mnuGuide_Click(): reqAction = "help": AfterInput: End Sub
+Private Sub mnuKeys_Click(): reqAction = "helpkeys": AfterInput: End Sub
+Private Sub mnuAbout_Click()
+    MsgBox "Riffwright 1.0" & vbLf & vbLf & "A ProTracker music editor written in Boing BASIC." & vbLf & _
+        "Demo songs: CC0, free to use for anything.", vbInformation, "About Riffwright"
+End Sub
+
+' block commands work in the pattern editor
+Private Sub PatternMenu(ByVal k As Integer, ByVal sh As Integer)
+    If curView <> V_PATTERN Then SetView V_PATTERN
+    MenuKey k, sh
+End Sub
+
+' ---- mouse on the canvas
+Private Sub view_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    MouseDown Button, Shift, X, Y
+    AfterInput
+End Sub
+
+Private Sub view_MouseMove(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    MouseMove Button, Shift, X, Y
+    If Frame(False) Then view.Refresh
+End Sub
+
+Private Sub view_MouseUp(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    MouseUp Button, Shift, X, Y
+    AfterInput
+End Sub
+
+Private Sub view_MouseWheel(Delta As Integer)
+    MouseWheel Delta
+    AfterInput
 End Sub
 
 Private Sub tick_Timer()
@@ -140,6 +238,18 @@ Private Function ConfirmDiscard() As Boolean
     ConfirmDiscard = (MsgBox("The song has unsaved changes. Throw them away?", vbYesNo + vbQuestion, "Riffwright") = vbYes)
 End Function
 
+' the AmigaGuide manual, at a node (asynchronously, with MultiView)
+Private Sub ShowGuide(ByVal node As String)
+    Dim p As String
+    p = App.Path
+    If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+    p = p & "Riffwright.guide"
+    If Len(Dir$(p)) = 0 Then Say "no " & p: Exit Sub
+    On Error Resume Next
+    Shell "run >NIL: SYS:Utilities/MultiView """ & p & """ DOCUMENT " & node
+    If Err.Number <> 0 Then Say "can't open the guide: " & Err.Description
+End Sub
+
 Private Function AskFile(ByVal title As String, ByVal pattern As String, ByVal save As Boolean) As String
     filereq.DialogTitle = title
     filereq.Pattern = pattern
@@ -185,7 +295,9 @@ Private Sub DoRequest()
         Case "quit"
             If ConfirmDiscard() Then songDirty = False: Unload Me
         Case "help"
-            Say "help: see Riffwright.guide"
+            ShowGuide "Main"
+        Case "helpkeys"
+            ShowGuide "Keys"
         Case "title"
             s = InputBox("Song title (20 characters):", "Riffwright", TitleText())
             If s <> "" Then EdTitle s
