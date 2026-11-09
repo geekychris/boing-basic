@@ -4,7 +4,7 @@ Music (ProTracker modules) and sound effects for games and the tracker. One obje
 `Boing.Audio`, drives one software mixer:
 
 ```basic
-Dim au As Object
+Dim au As Audio                          ' or As Object; As Audio checks member names at compile time
 Set au = CreateObject("Boing.Audio")     ' every Audio object is the same mixer
 song = au.LoadMusic("PROGDIR:glimmer.mod")
 au.PlayMusic song
