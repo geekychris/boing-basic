@@ -93,6 +93,12 @@ static void p_stfs(JA *a, int f, int b, int32_t off)
     ldst(a, 52, 663, 3, b, off);                                          /* stfs f3 */
 }
 
+static void p_shift(JA *a, int kind, int d, int x, int y)
+{
+    static const int xo[] = {24, 792, 536};          /* slw, sraw, srw: ra = rs op rb */
+    E(X(ir(x), ir(d), ir(y), xo[kind]));
+}
+
 static void p_copy16(JA *a, int db, int32_t doff, int sb, int32_t soff)
 {
     /* through f3: two doubles (bit patterns are copied unchanged by lfd/stfd) */
@@ -260,5 +266,5 @@ const JBackend jit_ppc32 = {
     "ppc32", p_entry, p_ret_pc, p_ld16s, p_ld16u, p_st16, p_ld32, p_st32, p_ldp, p_ldf, p_stf, p_copy16, p_li,
     p_add_ovf, p_sub_ovf, p_mul_ovf, p_add, p_sub, p_mul, p_and, p_or, p_xor, p_neg, p_sdiv, p_srem, p_fit16,
     p_cmp, p_cmpi, p_cmpu, p_cmpiu, p_bcond, p_b, p_bnullp, p_addp_idx, p_addp_off, p_fop, p_fneg, p_fcvt, p_fchk,
-    p_fbzero, p_fcmp_b, p_poll, p_bind, p_finish, NULL, p_ldfs, p_stfs
+    p_fbzero, p_fcmp_b, p_poll, p_bind, p_finish, NULL, p_ldfs, p_stfs, p_shift
 };

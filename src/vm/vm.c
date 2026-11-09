@@ -972,6 +972,9 @@ static void vm_exec(VM *vm, int entry)
         [I_R_LDG] = &&L_R_LDG,
         [I_R_JF1Z] = &&L_R_JF1Z,
         [I_R_FORSKIPF] = &&L_R_FORSKIPF,
+        [I_R_SHL_LRR] = &&L_R_SHL_LRR,
+        [I_R_SHRA_LRR] = &&L_R_SHRA_LRR,
+        [I_R_SHRL_LRR] = &&L_R_SHRL_LRR,
         [I_R_JCMPF1_LI] = &&L_R_JCMPF1_LI,
         [I_R_STG] = &&L_R_STG,
         [I_R_ADD_FRR] = &&L_R_ADD_FRR,
@@ -1186,6 +1189,9 @@ static void vm_exec(VM *vm, int entry)
                 RCASE(R_JF1Z) { fr->pc = pc; vm->sp = sp; bb_array *A = RARR(pc[2]); char *ep = (char *)bb_arr_elem1(A, RSL(3).u.l);
                     if ((*(bb_int *)(ep + A->udt->fields[pc[4]].offset) != 0) == (pc[1] != 0)) {
                         int32_t t_ = pc[5]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } else pc += 6; RNEXT(); }
+                RCASE(R_SHL_LRR) { int32_t n_ = RSL(3).u.l; if (BB_UNLIKELY((uint32_t)n_ > 31)) RERR(bb_shift_range_error()); SETL(pc[1], bb_shl(RSL(2).u.l, n_)); pc += 4; RNEXT(); }
+                RCASE(R_SHRA_LRR) { int32_t n_ = RSL(3).u.l; if (BB_UNLIKELY((uint32_t)n_ > 31)) RERR(bb_shift_range_error()); SETL(pc[1], bb_shra(RSL(2).u.l, n_)); pc += 4; RNEXT(); }
+                RCASE(R_SHRL_LRR) { int32_t n_ = RSL(3).u.l; if (BB_UNLIKELY((uint32_t)n_ > 31)) RERR(bb_shift_range_error()); SETL(pc[1], bb_shrl(RSL(2).u.l, n_)); pc += 4; RNEXT(); }
                 RCASE(R_FORSKIPF) {
                     /* Next of `For i ...: If arr(i).flag Then ...: Next`: step past the entries whose
                        flag is 0 without dispatching (pc[4] body start = that If, pc[5] its body,

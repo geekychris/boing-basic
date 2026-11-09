@@ -171,6 +171,11 @@ extern int32_t bb_poll_count;
 void bb_poll_slow(void);
 /* Dim x As New C: the object is created when x is first used */
 BB_INLINE bb_obj *bb_autonew(bb_obj **p, bb_obj *(*ctor)(void)) { if (!*p) *p = ctor(); return *p; }
+/* Shl / ShrA / ShrL: 32-bit shifts of a Long (Shl wraps, no overflow); count 0..31, else error 5 */
+void bb_shift_range_error(void) BB_NORETURN;
+BB_INLINE bb_long bb_shl(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return (bb_long)((uint32_t)x << n); }
+BB_INLINE bb_long bb_shra(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return x < 0 ? (bb_long)~(~(uint32_t)x >> n) : (bb_long)((uint32_t)x >> n); }
+BB_INLINE bb_long bb_shrl(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return (bb_long)((uint32_t)x >> n); }
 BB_INLINE void bb_poll(void) { if (BB_UNLIKELY(--bb_poll_count < 0)) bb_poll_slow(); }
 /* Native procedures call bb_enter on entry: error 28 "Out of stack space" when the
    stack is nearly exhausted (bb_stack_limit is set by bb_rt_init; NULL = unknown). */

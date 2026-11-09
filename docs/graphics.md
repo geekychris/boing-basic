@@ -120,3 +120,7 @@ view.DrawImage ship, px - 8, py - 8          ' each frame
 The Glimmerfield game (`examples/glimmerfield`) draws about 60 polygons, 300 particles, text
 and circles per frame through a Canvas. Its timings are in
 [performance.md](performance.md#game-benchmark).
+
+Lines whose ends lie far outside the canvas (e.g. projected 3D edges ending near the camera) are
+clipped to the canvas plus a 1024-pixel band before they are stepped, so their cost is bounded
+by the canvas size; lines within that band are drawn exactly as before.

@@ -8,6 +8,7 @@
  * call itself.
  */
 #include "canvas.h"
+#include <math.h>
 #include "canvas_font.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -163,13 +164,56 @@ static void fill_rect(bb_canvas *c, int32_t x1, int32_t y1, int32_t x2, int32_t 
     for (y = y1; y <= y2; y++) hspan(c, x1, x2, y, col);
 }
 
+/* Liang-Barsky: clip the segment to [lo, hi] boxes; returns 0 if nothing is left */
+static int clip_seg(double *x1, double *y1, double *x2, double *y2, double xlo, double ylo, double xhi, double yhi)
+{
+    double t0 = 0, t1 = 1, dx = *x2 - *x1, dy = *y2 - *y1;
+    double p[4], q[4];
+    int i;
+    p[0] = -dx; q[0] = *x1 - xlo;
+    p[1] = dx;  q[1] = xhi - *x1;
+    p[2] = -dy; q[2] = *y1 - ylo;
+    p[3] = dy;  q[3] = yhi - *y1;
+    for (i = 0; i < 4; i++) {
+        if (p[i] == 0) { if (q[i] < 0) return 0; continue; }
+        {
+            double r = q[i] / p[i];
+            if (p[i] < 0) { if (r > t1) return 0; if (r > t0) t0 = r; }
+            else { if (r < t0) return 0; if (r < t1) t1 = r; }
+        }
+    }
+    {
+        double ax = *x1, ay = *y1;
+        *x1 = ax + t0 * dx; *y1 = ay + t0 * dy;
+        *x2 = ax + t1 * dx; *y2 = ay + t1 * dy;
+    }
+    return 1;
+}
+
+#define LINE_GUARD 1024     /* lines within this far of the target are drawn unclipped (exact pixels) */
+
 static void line(bb_canvas *c, int32_t x1, int32_t y1, int32_t x2, int32_t y2, uint32_t col)
 {
-    int32_t dx = x2 > x1 ? x2 - x1 : x1 - x2, dy = y2 > y1 ? y1 - y2 : y2 - y1;
-    int32_t sx = x1 < x2 ? 1 : -1, sy = y1 < y2 ? 1 : -1, e = dx + dy, e2;
-    /* both ends far off the same side: nothing to draw */
+    int32_t dx, dy, sx, sy, e, e2;
+    /* both ends off the same side: nothing to draw */
     if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) || (x1 >= c->tw && x2 >= c->tw) || (y1 >= c->th && y2 >= c->th))
         return;
+    if (x1 < -LINE_GUARD || x2 < -LINE_GUARD || y1 < -LINE_GUARD || y2 < -LINE_GUARD ||
+        x1 > c->tw + LINE_GUARD || x2 > c->tw + LINE_GUARD || y1 > c->th + LINE_GUARD || y2 > c->th + LINE_GUARD) {
+        /* a very long line (e.g. a projected 3D edge ending near the camera): clip it to the
+           target plus the guard band first, so the work is bounded by the target's size */
+        double fx1 = x1, fy1 = y1, fx2 = x2, fy2 = y2;
+        if (!clip_seg(&fx1, &fy1, &fx2, &fy2, -LINE_GUARD, -LINE_GUARD, c->tw + LINE_GUARD, c->th + LINE_GUARD)) return;
+        x1 = (int32_t)floor(fx1 + 0.5); y1 = (int32_t)floor(fy1 + 0.5);
+        x2 = (int32_t)floor(fx2 + 0.5); y2 = (int32_t)floor(fy2 + 0.5);
+        if ((x1 < 0 && x2 < 0) || (y1 < 0 && y2 < 0) || (x1 >= c->tw && x2 >= c->tw) || (y1 >= c->th && y2 >= c->th))
+            return;
+    }
+    dx = x2 > x1 ? x2 - x1 : x1 - x2;
+    dy = y2 > y1 ? y1 - y2 : y2 - y1;
+    sx = x1 < x2 ? 1 : -1;
+    sy = y1 < y2 ? 1 : -1;
+    e = dx + dy;
     if (y1 == y2) { hspan(c, x1, x2, y1, col); return; }
     for (;;) {
         plot(c, x1, y1, col);

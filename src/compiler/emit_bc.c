@@ -1091,6 +1091,16 @@ static int rx(E *e, Node *n, int dst)
         reg_call(e, n, d);
         return d;
     }
+    if (k == 1 && n->kind == E_BUILTIN && n->list.n == 2 &&
+        (name_eq(builtins[n->bi].name, "Shl") || name_eq(builtins[n->bi].name, "ShrA") || name_eq(builtins[n->bi].name, "ShrL"))) {
+        const char *nm = builtins[n->bi].name;
+        int sa = rx(e, n->list.v[0], -1), sb;
+        if (impure(n->list.v[1]) && n->list.v[0]->kind == E_VAR) { int t = rtemp(e, 1); op2(e, I_R_MOV, t, sa); sa = t; }
+        sb = rx(e, n->list.v[1], -1);
+        d = dst >= 0 ? dst : rtemp(e, k);
+        op3(e, name_eq(nm, "Shl") ? I_R_SHL_LRR : name_eq(nm, "ShrA") ? I_R_SHRA_LRR : I_R_SHRL_LRR, d, sa, sb);
+        return d;
+    }
     if (sgn_arg(n, k)) {
         /* d = 0; if x > 0 then d = 1; if x < 0 then d = -1 (compare-and-branch only) */
         Node *x = sgn_arg(n, k);
@@ -1263,7 +1273,9 @@ static int reg_assign(E *e, Node *t, Node *v)
     if (k < 0 || t->kind != E_VAR || rkind(v->ty) != k) return 0;
     slot = reg_var(e, t, k);
     if (slot < 0) return 0;
-    if (!reg_value_ok(e, v, k) && !sgn_arg(v, k)) return 0;
+    if (!reg_value_ok(e, v, k) && !sgn_arg(v, k) &&
+        !(k == 1 && v->kind == E_BUILTIN && (name_eq(builtins[v->bi].name, "Shl") || name_eq(builtins[v->bi].name, "ShrA") || name_eq(builtins[v->bi].name, "ShrL"))))
+        return 0;
     rx(e, v, slot);
     return 1;
 }

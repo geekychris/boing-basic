@@ -1,0 +1,4 @@
+Name=shadow
+Startup=Sub Main
+Module=A3Scene.bas
+Module=Game.bas
