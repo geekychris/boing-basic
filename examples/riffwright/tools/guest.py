@@ -18,6 +18,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.dirname(HERE)
 ROOT = os.path.abspath(os.path.join(APP, "../.."))
 sys.path.insert(0, ROOT + "/tools")
+os.environ.setdefault("BB_SESSION_TIMEOUT", "290")   # the guests' rule: at most 5 minutes per lock ticket
 import os4guest as g  # noqa: E402
 
 DIR = "DH1:riffwright"
@@ -155,11 +156,24 @@ def bench(m, n, extra="", only=None):
         outf = "RAM:riffwright_%s.out" % name
         dos(m, "delete %s QUIET" % outf)
         dos(m, "run >NIL: %s %s --bench %d %s >%s *>%s.err" % (cmd, SONG, n, extra, outf, outf))
-        out = wait_for(m, outf, "worst ms", 300)
+        out = wait_for(m, outf, "worst ms", 150)
         print("==", name, "\n" + (out or dos(m, "type %s.err" % outf)))
         res[name] = out
         time.sleep(2)
     return res
+
+
+def bench_main():
+    n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
+    modes = sys.argv[3].split(",") if len(sys.argv) > 3 else ["native", "vm", "jit"]
+    extra = " ".join(sys.argv[4:])
+    m = g.MCP(g.URL)
+    for mode in modes:
+        with g.testing("Riffwright bench %s" % mode):
+            try:
+                bench(m, n, extra, [mode])
+            finally:
+                cleanup(m)
 
 
 def main():
@@ -176,9 +190,8 @@ def main():
               print("SMOKE", "PASS" if ok else "FAIL")
               rc = 0 if ok else 1
           elif what == "bench":
+              # one ticket for the push, then one ticket per mode (bench_main)
               push_all(m)
-              bench(m, int(sys.argv[2]) if len(sys.argv) > 2 else 500,
-                    " ".join(sys.argv[4:]), sys.argv[3].split(",") if len(sys.argv) > 3 else None)
           elif what == "start":
               # the gentlest check: start, screenshot, let it quit by itself
               push_all(m)
@@ -195,6 +208,8 @@ def main():
         time.sleep(1)
         if cleanup(m):
             print("(had to stop leftover processes)")
+    if what == "bench" and rc == 0:
+        bench_main()
     sys.exit(rc)
 
 
