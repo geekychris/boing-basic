@@ -77,6 +77,9 @@ Private Sub Form_Load()
     Loop
     UpdateMenus
     Trace "load 10: UpdateMenus"
+    On Error Resume Next
+    App.ARexxPort = "PENWRIGHT"
+    On Error GoTo 0
     UpdateTitle
     Trace "load 11: UpdateTitle"
     Redraw
@@ -125,7 +128,7 @@ Private Sub UpdateBars()
     If a And A_UNDER Then s = s & "  Underline"
     s = s & "  " & z & "pt"
     If HasSelection() Then s = s & "   (" & Len(RunCommand("GETSELECTION")) & " chars selected)"
-    If s <> lastStatus Then status.Caption = s: lastStatus = s
+    If s <> lastStatus Then sb.Text = s: lastStatus = s
 End Sub
 
 Private Function SizeIndex(ByVal z As Long) As Long
@@ -137,7 +140,7 @@ Private Function SizeIndex(ByVal z As Long) As Long
 End Function
 
 Private Sub ShowStatus(ByVal s As String)
-    status.Caption = s
+    sb.Text = s
     lastStatus = s
     page.Refresh
 End Sub
@@ -377,29 +380,65 @@ Private Sub align_Click()
     End Select
 End Sub
 
-Private Sub findbtn_Click()
-    CmdFind
-End Sub
 
-Private Sub spellbtn_Click()
-    CmdSpell
-End Sub
 
 ' ---- commands that ask -------------------------------------------------------------------
 
 Private Function ConfirmDiscard() As Boolean
     Dim a As Integer
     If Not DocModified Then ConfirmDiscard = True: Exit Function
-    a = MsgBox("The document has unsaved changes. Save them first?", vbYesNoCancel Or vbQuestion, "Penwright")
-    If a = vbCancel Then Exit Function
-    If a = vbYes Then
+    a = AskSaveDiscard("The document has unsaved changes." & vbLf & "Save them first?")
+    If a = 3 Then Exit Function
+    If a = 1 Then
         CmdSave
         If DocModified Then Exit Function
     End If
     ConfirmDiscard = True
 End Function
 
-Private Function AskFile(ByVal title As String, ByVal def As String) As String
+' 1 = Save, 2 = Discard, 3 = Cancel (the runtime's requester with own buttons, else MsgBox)
+Private Function AskSaveDiscard(ByVal prompt As String) As Integer
+    Dim a As Integer
+    On Error GoTo NoDialog
+    a = dlg.ShowMessage(prompt, "_Save|_Discard|_Cancel", "Penwright", vbQuestion)
+    If a < 1 Or a > 3 Then a = 3
+    AskSaveDiscard = a
+    Exit Function
+NoDialog:
+    a = MsgBox(Replace(prompt, vbLf, " "), vbYesNoCancel Or vbQuestion, "Penwright")
+    If a = vbYes Then
+        AskSaveDiscard = 1
+    ElseIf a = vbNo Then
+        AskSaveDiscard = 2
+    Else
+        AskSaveDiscard = 3
+    End If
+End Function
+
+' a file name from the asl requester (the runtime's CommonDialog); "" if cancelled
+Private Function AskFile(ByVal title As String, ByVal def As String, ByVal saving As Boolean, ByVal pattern As String) As String
+    Dim k As Long
+    On Error GoTo NoDialog
+    dlg.DialogTitle = title
+    dlg.Filter = pattern
+    k = InStrRev(Replace(def, ":", "/"), "/")
+    If k > 0 Then
+        dlg.InitDir = Left$(def, k)
+        dlg.FileName = Mid$(def, k + 1)
+    Else
+        dlg.FileName = def
+    End If
+    If saving Then
+        dlg.Flags = &H2
+        dlg.ShowSave
+    Else
+        dlg.Flags = &H1000
+        dlg.ShowOpen
+    End If
+    If dlg.Cancelled Then Exit Function
+    AskFile = dlg.FileName
+    Exit Function
+NoDialog:
     AskFile = Trim$(InputBox(title, "Penwright", def))
 End Function
 
@@ -412,7 +451,7 @@ End Sub
 
 Private Sub CmdOpen()
     Dim f As String
-    f = AskFile("Open a document (.pwd, .rtf or text):", PwPath)
+    f = AskFile("Open a document", PwPath, False, "Documents|#?.(pwd|rtf|txt|text|doc)")
     If f <> "" Then OpenFile f
 End Sub
 
@@ -424,7 +463,7 @@ End Sub
 
 Private Sub CmdSaveAs()
     Dim f As String
-    f = AskFile("Save the document as:", IIf(PwPath = "", "RAM:Untitled.pwd", PwPath))
+    f = AskFile("Save the document as", IIf(PwPath = "", "Untitled.pwd", PwPath), True, "#?.pwd")
     If f = "" Then Exit Sub
     If LCase$(Right$(f, 4)) <> ".pwd" Then f = f & ".pwd"
     Exec "SAVE " & f
@@ -435,7 +474,7 @@ Private Sub CmdExport()
     Dim f As String, k As String
     k = LCase$(Trim$(InputBox("Export as: rtf, html or txt", "Penwright", "rtf")))
     If k = "" Then Exit Sub
-    f = AskFile("Export to file:", "RAM:document." & k)
+    f = AskFile("Export to file", "document." & k, True, "#?." & k)
     If f <> "" Then Exec "EXPORT " & k & " " & f
     If PwRC = 0 Then ShowStatus "Exported to " & f
 End Sub
@@ -515,7 +554,12 @@ Private Sub CmdCount()
 End Sub
 
 Private Sub ShowHelp()
-    Shell "run >NIL: SYS:Utilities/Multiview PROGDIR:Penwright.guide"
+    On Error Resume Next
+    App.ShowHelp App.Path & "/Penwright.guide", "Main"
+    If Err.Number <> 0 Then
+        Err.Clear
+        Shell "run >NIL: SYS:Utilities/Multiview PROGDIR:Penwright.guide"
+    End If
 End Sub
 
 ' ---- timer: caret blink, scripts, autosave ---------------------------------------------------
@@ -684,9 +728,9 @@ Private Sub mnuMarks_Click(): ShowMarks = mnuMarks.Checked: Redraw: End Sub
 Private Sub ExportKind(ByVal k As String)
     Dim f As String, base As String
     base = PwPath
-    If base = "" Then base = "RAM:document.pwd"
+    If base = "" Then base = "document.pwd"
     If InStrRev(base, ".") > 0 Then base = Left$(base, InStrRev(base, ".") - 1)
-    f = AskFile("Export as " & UCase$(k) & " to:", base & "." & k)
+    f = AskFile("Export as " & UCase$(k), base & "." & k, True, "#?." & k)
     If f = "" Then Exit Sub
     Exec "EXPORT " & k & " " & f
     If PwRC = 0 Then ShowStatus "Exported to " & f
@@ -839,4 +883,41 @@ Private Sub Trace(ByVal s As String)
     Open traceFile For Append As #fn
     Print #fn, s
     Close #fn
+End Sub
+
+' ---- ARexx: the PENWRIGHT port (the commands of PwScript.bas: INSERTTEXT, BOLD ON, SAVE ...)
+
+Sub ARexx_Command(Cmd As String, Args As String, Result As String)
+    Result = RunCommand(Cmd & " " & Args)
+    App.ARexxRC = PwRC
+    AfterCommand
+    If PwQuit Then Unload Me
+End Sub
+
+' ---- files dropped on the window open, each in a document of its own
+
+Private Sub Form_OLEDragDrop(Count As Integer, X As Integer, Y As Integer)
+    Dim i As Integer
+    For i = 0 To Count - 1
+        OpenFile App.DropFile(i)
+    Next i
+End Sub
+
+' ---- printing: the text, wrapped to 76 columns, through the printer driver
+
+Private Sub mnuPrint_Click()
+    Dim lines() As String, i As Long
+    On Error GoTo Failed
+    If DocTitle <> "" Then Printer.Print DocTitle: Printer.Print ""
+    lines = Split(DocToText(76), vbLf)
+    For i = 0 To UBound(lines)
+        Printer.Print lines(i)
+    Next i
+    Printer.EndDoc
+    ShowStatus "Printed " & NP & " paragraphs"
+    Exit Sub
+Failed:
+    ShowStatus "Can't print: " & Err.Description
+    On Error Resume Next
+    Printer.KillDoc
 End Sub

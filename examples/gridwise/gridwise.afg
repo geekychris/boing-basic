@@ -1,28 +1,31 @@
 # AmiForge GUI (edit with Tools > GUI Designer)
-window name=gridwise title="Gridwise" width=660 height=470 resizable=1
+window name=gridwise title="Gridwise" width=660 height=480 resizable=1 dropfiles=1 iconify=1
 vlayout id=root
-  hlayout weight=0
-    button id=tbNew text="New" weight=0 hint="New sheet (Amiga-N)"
-    button id=tbOpen text="Open" weight=0 hint="Open a sheet or CSV file (Amiga-O)"
-    button id=tbSave text="Save" weight=0 hint="Save (Amiga-S)"
-    space weight=0 width=8
-    button id=tbUndo text="Undo" weight=0 hint="Undo (Amiga-Z)"
-    button id=tbRedo text="Redo" weight=0 hint="Redo (Amiga-Y)"
-    space weight=0 width=8
-    button id=tbBold text="B" weight=0 hint="Bold (Amiga-B)"
-    button id=tbItalic text="I" weight=0 hint="Italic (Amiga-I)"
-    chooser id=tbFormat items="General|Integer|Fixed|Thousands|Thousands .00|Percent|Percent .00|Currency|Scientific|Date|Time" selected=0 weight=0 hint="Number format"
-    space weight=0 width=8
-    button id=tbSum text="Sum" weight=0 hint="AutoSum: a SUM of the numbers above (Amiga-U)"
-    button id=tbChart text="Chart" weight=0 hint="Bar chart of the selection"
-    space
+  toolbar id=tb weight=0
+    tool id=tbNew text="New" image="TBImages:new" hint="New sheet (Amiga-N)" menu=mnuNew
+    tool id=tbOpen text="Open" image="TBImages:open" hint="Open a sheet or CSV file (Amiga-O)" menu=mnuOpen
+    tool id=tbSave text="Save" image="TBImages:save" hint="Save (Amiga-S)" menu=mnuSave
+    tool id=tbPrint text="Print" image="TBImages:print" hint="Print the sheet" menu=mnuPrint
+    tool separator=1
+    tool id=tbUndo text="Undo" image="TBImages:undo" hint="Undo (Amiga-Z)" menu=mnuUndo
+    tool id=tbRedo text="Redo" image="TBImages:redo" hint="Redo (Amiga-Y)" menu=mnuRedo
+    tool separator=1
+    tool id=tbCut text="Cut" image="TBImages:cut" hint="Cut (Amiga-X)" menu=mnuCut
+    tool id=tbCopy text="Copy" image="TBImages:copy" hint="Copy (Amiga-C)" menu=mnuCopy
+    tool id=tbPaste text="Paste" image="TBImages:paste" hint="Paste (Amiga-V)" menu=mnuPaste
+    tool separator=1
+    tool id=tbBold text="Bold" image="TBImages:bold" hint="Bold (Amiga-B)" menu=mnuBold
+    tool id=tbItalic text="Italic" image="TBImages:italic" hint="Italic (Amiga-I)" menu=mnuItalic
+    tool id=tbSum text="Sum" image="TBImages:sum" hint="AutoSum (Amiga-U)" menu=mnuAutoSum
+    tool id=tbChart text="Chart" image="TBImages:chart" hint="Bar chart of the selection" menu=mnuBar
   hlayout weight=0
     label id=cellname text="A1      "
+    chooser id=tbFormat items="General|Integer|Fixed|Thousands|Thousands .00|Percent|Percent .00|Currency|Scientific|Date|Time" selected=0 weight=0 hint="Number format"
     string id=formula text=""
     button id=enter text="_Enter" weight=0
   canvas id=grid width=660 height=420 contextmenu=mnuCell
-  hlayout weight=0
-    label id=status text="Ready"
+  statusbar id=sb panels="Ready|A1|General" widths="0|120|150"
+  commondialog id=dlg title="Gridwise" filter="Sheets|#?.(gws|csv)"
   timer id=tick interval=250 enabled=1
 menu id=mnuProject text="Project"
   menu id=mnuNew text="New" key=N
@@ -41,6 +44,8 @@ menu id=mnuProject text="Project"
   menu text=-
   menu id=mnuImport text="Import CSV..."
   menu id=mnuExport text="Export CSV..." key=E
+  menu text=-
+  menu id=mnuPrint text="Print..." key=P
   menu text=-
   menu id=mnuHelp text="Help..."
   menu id=mnuAbout text="About..."

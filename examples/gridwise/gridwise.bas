@@ -85,6 +85,9 @@ Private Sub Form_Load()
     Loop
     UpdateRecent
     Trace "load 9: UpdateRecent"
+    On Error Resume Next
+    App.ARexxPort = "GRIDWISE"
+    On Error GoTo 0
     UpdateTitle
     Trace "load 10: UpdateTitle"
     Redraw
@@ -179,7 +182,7 @@ Private Sub Redraw()
 End Sub
 
 Private Sub ShowStatus(ByVal s As String)
-    status.Caption = s
+    sb.Text = s
     lastStatus = s
     grid.Refresh
 End Sub
@@ -187,7 +190,12 @@ End Sub
 ' the cell name, the formula bar and the status line
 Private Sub UpdateBars()
     Dim r1 As Long, c1 As Long, r2 As Long, c2 As Long, s As String, sum As Double, cnt As Long, r As Long, c As Long
-    If SelName() <> lastCellName Then lastCellName = SelName(): cellname.Caption = lastCellName
+    If SelName() <> lastCellName Then
+        lastCellName = SelName()
+        cellname.Caption = lastCellName
+        sb.Panel(1) = lastCellName
+    End If
+    If sb.Panel(2) <> NumFormatName(GetFormat(curR, curC) And 255) Then sb.Panel(2) = NumFormatName(GetFormat(curR, curC) And 255)
     If Not editing Then
         If formula.Text <> GetSrc(curR, curC) Then
             settingText = True
@@ -221,7 +229,7 @@ Private Sub UpdateBars()
         s = s & "      " & NumFormatName(GetFormat(curR, curC) And 255)
     End If
     If editing Then s = "Editing " & CellName(curR, curC) & " - Return enters, Tab enters and moves right"
-    If s <> lastStatus Then status.Caption = s: lastStatus = s
+    If s <> lastStatus Then sb.Text = s: lastStatus = s
     If editing Then grid.Refresh
 End Sub
 
@@ -442,16 +450,58 @@ End Sub
 
 ' ---- commands that ask the user -----------------------------------------------------------
 
-Private Function AskFile(ByVal title As String, ByVal def As String) As String
+' a file name from the asl requester (the runtime's CommonDialog); "" if cancelled
+Private Function AskFile(ByVal title As String, ByVal def As String, ByVal saving As Boolean, ByVal pattern As String) As String
+    Dim k As Long
+    On Error GoTo NoDialog
+    dlg.DialogTitle = title
+    dlg.Filter = pattern
+    k = InStrRev(Replace(def, ":", "/"), "/")
+    If k > 0 Then
+        dlg.InitDir = Left$(def, k)
+        dlg.FileName = Mid$(def, k + 1)
+    Else
+        dlg.FileName = def
+    End If
+    If saving Then
+        dlg.Flags = &H2                       ' ask before overwriting
+        dlg.ShowSave
+    Else
+        dlg.Flags = &H1000                    ' the file must exist
+        dlg.ShowOpen
+    End If
+    If dlg.Cancelled Then Exit Function
+    AskFile = dlg.FileName
+    Exit Function
+NoDialog:
     AskFile = Trim$(InputBox(title, "Gridwise", def))
+End Function
+
+' 1 = Save, 2 = Discard, 3 = Cancel (the runtime's requester with own buttons, else MsgBox)
+Private Function AskSaveDiscard(ByVal prompt As String) As Integer
+    Dim a As Integer
+    On Error GoTo NoDialog
+    a = dlg.ShowMessage(prompt, "_Save|_Discard|_Cancel", "Gridwise", vbQuestion)
+    If a < 1 Or a > 3 Then a = 3
+    AskSaveDiscard = a
+    Exit Function
+NoDialog:
+    a = MsgBox(Replace(prompt, vbLf, " "), vbYesNoCancel Or vbQuestion, "Gridwise")
+    If a = vbYes Then
+        AskSaveDiscard = 1
+    ElseIf a = vbNo Then
+        AskSaveDiscard = 2
+    Else
+        AskSaveDiscard = 3
+    End If
 End Function
 
 Private Function ConfirmDiscard() As Boolean
     Dim a As Integer
     If Not Modified Then ConfirmDiscard = True: Exit Function
-    a = MsgBox("The sheet has unsaved changes. Save them first?", vbYesNoCancel Or vbQuestion, "Gridwise")
-    If a = vbCancel Then Exit Function
-    If a = vbYes Then
+    a = AskSaveDiscard("The sheet has unsaved changes." & vbLf & "Save them first?")
+    If a = 3 Then Exit Function
+    If a = 1 Then
         CmdSave
         If Modified Then Exit Function
     End If
@@ -466,7 +516,7 @@ End Sub
 Private Sub CmdOpen()
     Dim f As String
     If Not ConfirmDiscard() Then Exit Sub
-    f = AskFile("Open a sheet (.gws or .csv):", DocPath)
+    f = AskFile("Open a sheet", DocPath, False, "Sheets|#?.(gws|csv)")
     If f = "" Then Exit Sub
     OpenFile f
 End Sub
@@ -498,7 +548,7 @@ End Sub
 
 Private Sub CmdSaveAs()
     Dim f As String
-    f = AskFile("Save the sheet as:", IIf(DocPath = "", "RAM:Untitled.gws", DocPath))
+    f = AskFile("Save the sheet as", IIf(DocPath = "", "Untitled.gws", DocPath), True, "#?.gws")
     If f = "" Then Exit Sub
     If LCase$(Right$(f, 4)) <> ".gws" Then f = f & ".gws"
     Exec "SAVE " & f
@@ -507,7 +557,7 @@ End Sub
 
 Private Sub CmdExportCsv()
     Dim f As String
-    f = AskFile("Export the values as CSV to:", "RAM:sheet.csv")
+    f = AskFile("Export the values as CSV", IIf(DocPath = "", "sheet.csv", Replace(DocPath, ".gws", ".csv")), True, "#?.csv")
     If f = "" Then Exit Sub
     Exec "EXPORTCSV " & f
 End Sub
@@ -541,7 +591,12 @@ Private Sub CmdChart()
 End Sub
 
 Private Sub CmdHelp()
-    Shell "run >NIL: SYS:Utilities/Multiview PROGDIR:Gridwise.guide"
+    On Error Resume Next
+    App.ShowHelp App.Path & "/Gridwise.guide", "Main"
+    If Err.Number <> 0 Then
+        Err.Clear
+        Shell "run >NIL: SYS:Utilities/Multiview PROGDIR:Gridwise.guide"
+    End If
 End Sub
 
 Private Sub CmdQuit()
@@ -587,7 +642,7 @@ Private Sub mnuSaveAs_Click(): CmdSaveAs: End Sub
 Private Sub mnuImport_Click()
     Dim f As String
     If Not ConfirmDiscard() Then Exit Sub
-    f = AskFile("Import a CSV file:", "")
+    f = AskFile("Import a CSV file", "", False, "#?.(csv|txt)")
     If f <> "" Then Exec "IMPORTCSV " & f
 End Sub
 Private Sub mnuExport_Click(): CmdExportCsv: End Sub
@@ -866,16 +921,7 @@ End Sub
 
 ' ---- button bar ---------------------------------------------------------------------------
 
-Private Sub tbNew_Click(): CmdNew: End Sub
-Private Sub tbOpen_Click(): CmdOpen: End Sub
-Private Sub tbSave_Click(): CmdSave: End Sub
-Private Sub tbUndo_Click(): Exec "UNDO": End Sub
-Private Sub tbRedo_Click(): Exec "REDO": End Sub
-Private Sub tbBold_Click(): Exec "BOLD": End Sub
-Private Sub tbItalic_Click(): Exec "ITALIC": End Sub
-Private Sub tbSum_Click(): Exec "AUTOSUM": End Sub
 Private Sub mnuAutoSum_Click(): Exec "AUTOSUM": End Sub
-Private Sub tbChart_Click(): CmdChartKind "BAR": End Sub
 
 Private Sub tbFormat_Click()
     If settingFormat Then Exit Sub
@@ -908,4 +954,56 @@ Private Sub Trace(ByVal s As String)
     Open traceFile For Append As #fn
     Print #fn, s
     Close #fn
+End Sub
+
+' ---- ARexx: the GRIDWISE port (the commands of Script.bas: SETCELL A1 =SUM(B1:B9), GETCELL A1 ...)
+
+Sub ARexx_Command(Cmd As String, Args As String, Result As String)
+    Result = RunCommand(Cmd & " " & Args)
+    App.ARexxRC = ScriptRC
+    AfterCommand
+    If WantQuit Then Unload Me
+End Sub
+
+' ---- files dropped on the window open (a sheet or a CSV file)
+
+Private Sub Form_OLEDragDrop(Count As Integer, X As Integer, Y As Integer)
+    If Count < 1 Then Exit Sub
+    If Not ConfirmDiscard() Then Exit Sub
+    OpenFile App.DropFile(0)
+End Sub
+
+' ---- printing: the used cells as a text table (column widths from the sheet), then the charts
+
+Private Sub mnuPrint_Click()
+    Dim mr As Long, mc As Long, r As Long, c As Long, line_ As String, t As String, w As Long, i As Long, cv As Object
+    UsedArea mr, mc
+    If mr < 0 Then ShowStatus "Nothing to print": Exit Sub
+    On Error GoTo Failed
+    If DocPath <> "" Then Printer.Print DocPath: Printer.Print ""
+    For r = 0 To mr
+        line_ = ""
+        For c = 0 To mc
+            w = colW(c) \ 7
+            If w < 3 Then w = 3
+            t = Left$(CellText(r, c), w)
+            If CellAlign(r, c) = AL_RIGHT Then line_ = line_ & Space$(w - Len(t)) & t Else line_ = line_ & t & Space$(w - Len(t))
+            line_ = line_ & " "
+        Next c
+        Printer.Print RTrim$(line_)
+    Next r
+    For i = 0 To NCharts - 1
+        Printer.NewPage
+        Set cv = CreateObject("Boing.Canvas")
+        cv.Resize chW(i), chH(i)
+        DrawChart cv, i, 0, 0, chW(i), chH(i)
+        Printer.PaintPicture cv
+    Next i
+    Printer.EndDoc
+    ShowStatus "Printed " & (mr + 1) & " rows and " & NCharts & " charts"
+    Exit Sub
+Failed:
+    ShowStatus "Can't print: " & Err.Description
+    On Error Resume Next
+    Printer.KillDoc
 End Sub
