@@ -213,6 +213,11 @@ per frame with the batched calls, and keep the Audio object in a module-level va
 | `State()` | a Long array (0 To 55): 0 Playing, 1 Paused (True = -1), 2 Position, 3 Row, 4 Pattern, 5 Tick, 6 Speed, 7 Tempo, 8 SongEnded, 9 CurrentSong, 10 Channels, 11 CpuLoad, 12-15 reserved; channel c at 16 + c * 5: VU, note, sample, volume, ChannelPos |
 | `Scopes(n [, channels])` | one Long array with every channel's `Scope(c, n)`: channel c at c * n (channels = the song's, default) |
 
+Measured on the m1b guest (2026-11-09): a scalar read 0.9 us; `State()`, `Scope()` and
+`Scopes()` about 40 us each in the VM but about 1 us in a native build. bb-core traced the VM
+figure to the QEMU guest's small software-refilled TLB (the array code's extra pages), not to
+copying; real X5000/A1222 hardware shouldn't see it. So in the VM call them once a frame.
+
 
 Reading the play state (`Position`, `Row`, `Pattern`, `Tick`, `Speed`, `Tempo`, `Playing`,
 `Paused`, `SongEnded`, `Mute`, `Channel*`, `Scope`, `VoicePlaying`, `CpuLoad`) takes no lock:
