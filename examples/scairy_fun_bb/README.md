@@ -57,10 +57,12 @@ Kept from the C original:
 
 Changed:
 
-- **Drawing** is Boing.Engine3D: each segment is one pass of the engine (Begin, its strips in
-  one `QuadsW` call at one depth, the models standing on it, Flush), so the painter's order by
-  segment is render.c's. The engine draws the models (render.c's add_model) with the same
-  culling and face order.
+- **Drawing** is Boing.Engine3D, one pass a frame. Each segment's strips (verges, road, lines,
+  rails) and scenery are worked out once, when it comes into view, and kept in a ring of 64 slots
+  (made again every 8 frames where water moves); each frame they go to the engine with one
+  `QuadsW` call at the depth of the segment's far edge, and every model standing on a segment
+  sorts just in front of it, so the painter's order by segment is render.c's. The engine draws
+  the models (render.c's add_model) with the same culling and face order.
 - **The picture is 320 x 256** (shown 2x); the C on AmigaOS 4 draws at 640 x 512.
 - **High scores**: a table of eight, saved beside the program, with name entry when a game ends
   (cancelled or home).

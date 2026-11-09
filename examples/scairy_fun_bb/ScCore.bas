@@ -470,9 +470,11 @@ End Function
 Private Function LaneClear(ByVal lane As Long, ByVal z As Long, ByVal dz0 As Long, ByVal dz1 As Long, ByVal skip As Long) As Boolean
     Dim i As Long, dz As Long
     For i = 0 To MAX_OBJS - 1
-        If i <> skip And obType(i) <> OBJ_NONE And obLane(i) = lane Then
-            dz = obZ(i) - z
-            If dz > dz0 * SEGF And dz < dz1 * SEGF Then Exit Function
+        If obLane(i) = lane Then
+            If obType(i) <> OBJ_NONE And i <> skip Then
+                dz = obZ(i) - z
+                If dz > dz0 * SEGF And dz < dz1 * SEGF Then Exit Function
+            End If
         End If
     Next i
     LaneClear = True
@@ -685,16 +687,19 @@ End Function
 
 Private Sub VehicleFollow(ByVal i As Long)
     Dim best As Long, leadV As Long, dz As Long, gap As Long, des As Long, t As Long, k As Long, ln As Long, found As Boolean
-    Dim lim As Long, near As Boolean
+    Dim lim As Long, near As Boolean, t2 As Long
     best = 5 * SEGF
     t = obVt(i)
     ln = objLen(obType(i))
     For k = 0 To MAX_OBJS - 1
-        If k <> i And obType(k) <> OBJ_NONE And obV(k) >= 0 And obType(k) <> OBJ_CYCLIST And obType(k) <> OBJ_DEBRIS Then
-            If Abs(obD(k) - obD(i)) <= 40 * 16 Then
-                dz = obZ(k) - obZ(i)
-                If dz > 0 And dz < best Then
-                    best = dz: leadV = obV(k): found = True
+        t2 = obType(k)
+        If t2 <> OBJ_NONE Then
+            If k <> i And obV(k) >= 0 And t2 <> OBJ_CYCLIST And t2 <> OBJ_DEBRIS Then
+                If Abs(obD(k) - obD(i)) <= 40 * 16 Then
+                    dz = obZ(k) - obZ(i)
+                    If dz > 0 And dz < best Then
+                        best = dz: leadV = obV(k): found = True
+                    End If
                 End If
             End If
         End If
@@ -840,12 +845,14 @@ Private Sub ObjectsUpdate()
                         ' round a cyclist, within the lane
                         tgt = LaneCentre(obLane(i)) * 16
                         For k = 0 To MAX_OBJS - 1
-                            ahead = obZ(k) - obZ(i)
-                            If ahead > -SEGF And ahead < 6 * SEGF And Abs(obD(k) - tgt) < 34 * 16 Then
-                                If obType(k) = OBJ_CYCLIST Then
-                                    tgt = obD(k) - 34 * 16
-                                ElseIf obType(k) = OBJ_DEBRIS Then
-                                    tgt = SwerveTo(k)
+                            If obType(k) = OBJ_CYCLIST Or obType(k) = OBJ_DEBRIS Then
+                                ahead = obZ(k) - obZ(i)
+                                If ahead > -SEGF And ahead < 6 * SEGF And Abs(obD(k) - tgt) < 34 * 16 Then
+                                    If obType(k) = OBJ_CYCLIST Then
+                                        tgt = obD(k) - 34 * 16
+                                    ElseIf obType(k) = OBJ_DEBRIS Then
+                                        tgt = SwerveTo(k)
+                                    End If
                                 End If
                             End If
                         Next k
