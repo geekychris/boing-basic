@@ -14,7 +14,7 @@ if [ "$group" = symbols ]; then
     exit 0
 fi
 if [ "$group" = errors ]; then
-    "$BOING" check "$base.bas" > "$TMP/$id.got" 2>&1
+    "$BOING" check "$src" > "$TMP/$id.got" 2>&1
     if cmp -s "$TMP/$id.got" "$base.err"; then echo "PASS $id" > "$res"
     else echo "FAIL $id (check)" > "$res"; diff "$base.err" "$TMP/$id.got" > "$TMP/$id.diff"; fi
     exit 0

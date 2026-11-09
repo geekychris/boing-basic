@@ -117,6 +117,9 @@ struct bb_class {
   read is a GET with the index arguments (`list.List(3)` → GET "List", argc 1). `*ret` is
   Empty on entry. Arguments are borrowed; any entry may be `BB_REF` (use `bb_v_deref`).
   Wrong argument counts → `bb_raise(450)`, bad values → `bb_raise(380)` or 13.
+  Variables passed to a late-bound call (array variables too) arrive as `BB_REF` values, so a
+  method can write results into them; an array arrives as `BB_REF | BB_ARRAY | elem` whose
+  `u.p` is the `bb_array **`.
 - The VM and generated C call members of `Object`/`Variant` expressions *late bound*
   through `bb_invoke(obj, name, kind, argc, argv)` (it calls `find` then `invoke`). Both
   back ends use `bb_invoke_site` / `bb_v_invoke_site` with a zeroed `bb_site` per call

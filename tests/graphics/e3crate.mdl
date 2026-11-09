@@ -1,0 +1,7 @@
+# a crate with a lid, for engine3d.bas
+box body shade -20 20 0 30 -20 20
+v -10 30 -10      # 8
+v  10 30 -10
+v  10 40 -10
+v -10 40 -10
+f 5 8 11 10 9     # a fin, as given

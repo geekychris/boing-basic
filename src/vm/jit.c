@@ -432,6 +432,16 @@ static int translate(T *t, int32_t pc)
     case I_R_MOD_LRR: int_op(t, pc, K_L, 4, 0, w); return 1;
     case I_R_MOD_LRI: int_op(t, pc, K_L, 4, 1, w); return 1;
     case I_R_AND_LRR: int_op(t, pc, K_L, 5, 0, w); return 1;
+    case I_R_SHL_LRR: case I_R_SHRA_LRR: case I_R_SHRL_LRR:
+        /* count outside 0..31: the interpreter raises error 5 */
+        ex = exit_to(t, pc);
+        ld_int(t, K_L, JI0, w[2]);
+        ld_int(t, K_L, JI1, w[3]);
+        be->cmpiu(a, JI1, 32);
+        be->bcond(a, JC_GEU, ex);
+        be->shift(a, op == I_R_SHL_LRR ? 0 : op == I_R_SHRA_LRR ? 1 : 2, JI2, JI0, JI1);
+        st_int(t, K_L, JI2, w[1]);
+        return 1;
     case I_R_AND_LRI: int_op(t, pc, K_L, 5, 1, w); return 1;
     case I_R_OR_LRR: int_op(t, pc, K_L, 6, 0, w); return 1;
     case I_R_OR_LRI: int_op(t, pc, K_L, 6, 1, w); return 1;

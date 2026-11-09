@@ -1,0 +1,43 @@
+Engine3D
+sin 0  65536  46341  628 -65536 -65536 
+atan2 8192  49152  32768  15658 
+isqrt 1000  65535  5000  250000 
+hash 912EFCF7 fix 294912  21845  131072 
+rand 19081  17033 -1031181384 
+rot 43157  62528  46121  yaw 0  65536 -65536  mul-46121 -18512 
+apply 30  20 -10 
+table 0  65536 -64277 
+cam 0  60 -300  0  2000  u 1  near 12  horizon 79 
+xform 100 -2  305 
+project True 243  129  behind False
+visible True False False
+placed 10  60 -300  u 16  near 192 
+xform16 1431 -29  4890 
+saved 10  16 
+models 1  2  3  verts 12  6  17  faces 7  16  vtx 5  r 98 
+models polys 9  dropped 0  hash 5A8003F
+rotated polys 9  dropped 0  hash 7ADB2EE4
+arrays 4  2  file 5  12  7 
+arrays+file polys 5  dropped 0  hash 28F644D3
+batch polys 9  dropped 0  hash 3583E8A
+scene polys 167  dropped 0  hash 63B62FB4
+horizon 79  pen4 AA8855 30201
+grid 1  h 4  192512 -11 
+terrain polys 1281  dropped 0  hash 675AB2F5
+window polys 144  dropped 0  hash 4E01060F
+flat grid polys 9  dropped 0  hash 5FA19E1D
+gh 5 
+shaded polys 7  dropped 0  hash 6A6BA03F
+fog polys 1479  dropped 0  hash 5C1BFD49
+roll 5000 
+roll polys 3  dropped 0  hash 4840C8D7
+sub2 polys 3  dropped 0  hash 52300F
+text polys 3  dropped 0  hash 11F4E0F1
+width 24  72  pixel FFFFFF
+bad model 380 
+bad n 5 
+short array 9 
+attach 13 
+missing 53 
+member 438 
+no canvas 91 

@@ -1319,6 +1319,29 @@ static void add_vb_constants(Program *p)
     }
 }
 
+/* a module-level declaration with the name of another module's Public hides it in this module
+   (legal in VB, names are case-insensitive): a warning, it is easy to do by accident */
+static void warn_shadows(Program *p)
+{
+    int i, b;
+    for (i = 0; i < p->nmods; i++) {
+        Module *m = p->mods[i];
+        Scope *sc = m->scope;
+        if (!sc) continue;
+        for (b = 0; b < sc->cap; b++) {
+            ScopeEnt *en;
+            for (en = sc->tab[b]; en; en = en->next) {
+                Sym *s = en->sym, *g;
+                if (s->is_public || (s->kind != SK_VAR && s->kind != SK_CONST && s->kind != SK_PROC)) continue;
+                g = scope_find_local(p->global, s->name);
+                if (!g || g == s || !g->is_public || !g->mod || g->mod == m) continue;
+                if (g->kind != SK_VAR && g->kind != SK_CONST && g->kind != SK_PROC) continue;
+                diag_warn(p, s->file, s->line, s->col, "'%s' hides the Public '%s' of module %s here", s->name, g->name, g->mod->name);
+            }
+        }
+    }
+}
+
 int sema_program(Program *p)
 {
     int i;
@@ -1366,6 +1389,7 @@ int sema_program(Program *p)
     for (i = 0; i < p->nmods; i++) resolve_implements(p, p->mods[i]);
     for (i = 0; i < p->nclasses; i++) layout_class(p, p->classes[i]);
     for (i = 0; i < p->nclasses; i++) check_implements(p, p->classes[i]);
+    warn_shadows(p);
     /* form controls: module-level Object variables */
     for (i = 0; i < p->nmods; i++) {
         Module *m = p->mods[i];

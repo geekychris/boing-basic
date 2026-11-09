@@ -87,6 +87,7 @@ typedef struct JBackend {
     void (*fsqrt)(JA *a, int d, int x);          /* NULL if the CPU has none */
     void (*ldfs)(JA *a, int f, int base, int32_t off);   /* load a Single, as a double */
     void (*stfs)(JA *a, int f, int base, int32_t off);   /* store a double as a Single (round to nearest) */
+    void (*shift)(JA *a, int kind, int d, int x, int y); /* 0 shl, 1 arithmetic shr, 2 logical shr; y in 0..31 */
 } JBackend;
 
 #define JMAXLAB 4096

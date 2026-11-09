@@ -1,0 +1,6 @@
+# Boing BASIC project: Engine3D demo benchmark (off-screen, console)
+Name=Engine3DBench
+Startup=Sub Main
+Module=Scene.bas
+Module=BenchMain.bas
+Stack=262144

@@ -5,13 +5,13 @@ WARN     = -std=c99 -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare
 B        = build
 PLAT    ?= posix
 
-RT_SRC   = $(wildcard src/runtime/*.c) $(wildcard src/runtime/$(PLAT)/*.c)
+RT_SRC   = $(wildcard src/runtime/*.c) $(wildcard src/runtime/a3d/*.c) $(wildcard src/runtime/$(PLAT)/*.c)
 CC_SRC   = $(wildcard src/compiler/*.c)
 VM_SRC   = $(wildcard src/vm/*.c)
 RT_OBJ   = $(patsubst src/%.c,$(B)/obj/%.o,$(RT_SRC))
 CC_OBJ   = $(patsubst src/%.c,$(B)/obj/%.o,$(CC_SRC))
 VM_OBJ   = $(patsubst src/%.c,$(B)/obj/%.o,$(VM_SRC))
-HDRS     = $(wildcard src/runtime/*.h src/runtime/$(PLAT)/*.h src/compiler/*.h src/compiler/*.def src/vm/*.h)
+HDRS     = $(wildcard src/runtime/*.h src/runtime/a3d/*.h src/runtime/$(PLAT)/*.h src/compiler/*.h src/compiler/*.def src/vm/*.h)
 
 all: $(B)/boing $(B)/libboing.a $(B)/include/boing.h
 

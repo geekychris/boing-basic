@@ -50,6 +50,9 @@ dimensions, column-major like VB. Fixed arrays need constant bounds. `ReDim Pres
 only the last dimension. Assigning an array copies it (`a = b`). Functions can return arrays
 (`Function F() As Long()`).
 
+A module-level declaration with the name of another module's `Public` (names are
+case-insensitive) hides it in that module, as in VB; `boing check` and the compiler warn about it.
+
 Implicit declaration without `Option Explicit`: an unknown name becomes a local Variant, or
 the suffix's type.
 
