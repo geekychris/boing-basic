@@ -89,16 +89,14 @@ def main():
             key("h"); time.sleep(1)
             key("space")
             ok &= wait_for("state play", 60) is not None
-            time.sleep(4)
-            shot("4_flying")
-            key("b")                                     # the autopilot lands it
-            ok &= wait_for("state result", 90) is not None
+            time.sleep(1)
+            shot("4_flying")                             # (--place: the autopilot lands it)
+            ok &= wait_for("state result", 60) is not None
             time.sleep(1)
             shot("5_landed")
-            o = wait_for("ships 1\nstate play", 60) or out()
-            time.sleep(1)
-            key("b")                                     # autopilot off: it drops from 6 m
-            ok &= wait_for("state over", 90) is not None
+            ok &= wait_for("level 2 score", 60) is not None
+            key("b")                                     # autopilot off: it falls
+            ok &= wait_for("state over", 120) is not None
             time.sleep(1)
             shot("6_over")
             time.sleep(3)

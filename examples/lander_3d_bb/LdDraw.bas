@@ -530,7 +530,7 @@ Public Sub DrawHelp(ByVal page As Long)
         Txt 8, 56 + k * 14, 1, lines(k)
     Next k
     Txt 8, 244, PEN_HUD, IIf(page = 1, "PAGE 1 OF 2", "PAGE 2 OF 2")
-    Txt 156, 244, PEN_GREEN, "HELP: NEXT  FIRE: FLY"
+    Txt 148, 244, PEN_GREEN, "HELP: NEXT  FIRE: FLY"
 End Sub
 
 ' (new) a name for the high scores, over the demo

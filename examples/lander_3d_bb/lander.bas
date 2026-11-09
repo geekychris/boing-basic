@@ -13,7 +13,8 @@
 '   Lander3D --dir PATH         where the pictures, module and scores are (boing run: App.Path
 '                               is boing's own folder)
 '   Lander3D --ships N          ships a game (default 3; tests)
-'   Lander3D --place            each level starts 6 m over the x1 pad, still (tests: a quick landing)
+'   Lander3D --place            the first level starts 6 m over the x1 pad, still, with the
+'                               autopilot on (tests: a quick landing)
 '
 ' Keys: Space/J full thrust, Q/E steady throttle, cursor keys/WASD tip the lander,
 ' P pause, B autopilot, Help/H the rules, M music, N sound, F1 timing, F2 high scores,
@@ -174,10 +175,11 @@ Private Sub Frame(ByVal steps As Long)
         gWorldChanged = False
     End If
     If gState <> lastState Then
-        If placeArg And gState = LS_PLAY Then           ' the original's "place pad" hook
+        If placeArg And gState = LS_PLAY And lastState = LS_TITLE Then     ' the original's "place pad" hook
             ld.px = padX(0): ld.pz = padZ(0): ld.py = padY(0) + FromI(6)
             ld.vx = 0: ld.vy = 0: ld.vz = 0
             ld.pitch = 0: ld.roll = 0: ld.wp = 0: ld.wr = 0
+            gDemo = True
         End If
         If gLog Then Print "state " & Choose(gState + 1, "title", "play", "result", "over", "entry", "scores") & _
                            " " & wName(ld.world) & " level " & gLevel & " score " & gScore & " ships " & gShips
