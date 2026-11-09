@@ -24,8 +24,10 @@ sys.path.insert(0, ROOT + "/examples/common/tools")
 import os4guest as g
 import guest_game as gg
 
+if g.GUEST == "m1":
+    sys.exit("guest.py: m1 is the user's guest; use BB_GUEST=m1b, m1c or local")
 SHOTS_SSH = {"m1b": "chriscollins@m1.local", "m1c": "chriscollins@m1.local"}
-HMP_PORT = {"m1b": 2448, "m1c": 2548}.get(g.GUEST, 2348)
+HMP_PORT = {"m1b": 2448, "m1c": 2548, "local": 2348}[g.GUEST]   # QEMU monitors (2348 on m1.local is the user's m1)
 
 
 def push_project(m, bbp):
