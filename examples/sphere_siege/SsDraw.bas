@@ -224,9 +224,9 @@ End Sub
 Private Sub Xf(ByVal x As Long, ByVal y As Long, ByVal z As Long)
     Dim v As FV
     v.x = x - cpfx: v.y = y - cpfy: v.z = z - cpfz
-    qx = ShrA(FvDot(v, cR), 14)
-    qy = ShrA(FvDot(v, cU), 14)
-    qz = ShrA(FvDot(v, cF), 14)
+    qx = ShrA(MulShr(v.x, cR.x, 16) + MulShr(v.y, cR.y, 16) + MulShr(v.z, cR.z, 16), 14)
+    qy = ShrA(MulShr(v.x, cU.x, 16) + MulShr(v.y, cU.y, 16) + MulShr(v.z, cU.z, 16), 14)
+    qz = ShrA(MulShr(v.x, cF.x, 16) + MulShr(v.y, cF.y, 16) + MulShr(v.z, cF.z, 16), 14)
 End Sub
 
 ' whole units, fast (the grid)
@@ -318,14 +318,20 @@ End Sub
 ' units) at angle a + k * 65536 / n, alternate points at r * inner / 256
 Private Sub Shape(ByVal cx As Long, ByVal cy As Long, ByVal cz As Long, ByVal n As Long, ByVal r As Long, _
                   ByVal inner As Long, ByVal a As Long, ByVal pp As Long, ByVal bias As Long)
-    Dim k As Long, ang As Long, rr As Long
+    Dim k As Long, ang As Long, rr As Long, i As Long, f As Long, s0 As Long, sn As Long, cs As Long
     If cz < NEAR_Z * 4 + r \ 2 Then Exit Sub
     If n > 8 Then n = 8
     For k = 0 To n - 1
         ang = a + (k * 65536) \ n
         If k And 1 Then rr = (r * inner) \ 256 Else rr = r
-        pvx(k) = cx + ShrA(A3Sin(ang) * rr, 16)
-        pvy(k) = cy + ShrA(A3Cos(ang) * rr, 16)
+        ' A3Sin and A3Cos written out (a call costs more than this in the VM on the guest)
+        i = (ang And &HFF00&) \ 256: f = ang And 255: s0 = a3SinTab(i)
+        sn = s0 + ShrA((a3SinTab(i + 1) - s0) * f, 8)
+        ang = ang + 16384
+        i = (ang And &HFF00&) \ 256: f = ang And 255: s0 = a3SinTab(i)
+        cs = s0 + ShrA((a3SinTab(i + 1) - s0) * f, 8)
+        pvx(k) = cx + ShrA(sn * rr, 16)
+        pvy(k) = cy + ShrA(cs * rr, 16)
         pvz(k) = cz
     Next k
     A3Poly cam, cz + bias, pp, n

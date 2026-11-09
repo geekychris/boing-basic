@@ -116,14 +116,14 @@ End Sub
 
 ' ---------- vectors ----------
 Public Function FvDot(a As FV, b As FV) As Long
-    FvDot = FMul(a.x, b.x) + FMul(a.y, b.y) + FMul(a.z, b.z)
+    FvDot = MulShr(a.x, b.x, 16) + MulShr(a.y, b.y, 16) + MulShr(a.z, b.z, 16)
 End Function
 
 Public Sub FvCross(a As FV, b As FV, o As FV)
     Dim rx As Long, ry As Long, rz As Long
-    rx = FMul(a.y, b.z) - FMul(a.z, b.y)
-    ry = FMul(a.z, b.x) - FMul(a.x, b.z)
-    rz = FMul(a.x, b.y) - FMul(a.y, b.x)
+    rx = MulShr(a.y, b.z, 16) - MulShr(a.z, b.y, 16)
+    ry = MulShr(a.z, b.x, 16) - MulShr(a.x, b.z, 16)
+    rz = MulShr(a.x, b.y, 16) - MulShr(a.y, b.x, 16)
     o.x = rx
     o.y = ry
     o.z = rz
@@ -139,7 +139,7 @@ Public Sub FvNorm(v As FV)
     End If
     v.x = FDiv(v.x, ln): v.y = FDiv(v.y, ln): v.z = FDiv(v.z, ln)
     s = (3 * FONE - FvDot(v, v)) \ 2
-    v.x = FMul(v.x, s): v.y = FMul(v.y, s): v.z = FMul(v.z, s)
+    v.x = MulShr(v.x, s, 16): v.y = MulShr(v.y, s, 16): v.z = MulShr(v.z, s, 16)
 End Sub
 
 ' a turned towards b by angle ang, b away from a: a turn in their plane
@@ -147,12 +147,12 @@ Private Sub TurnFV(a As FV, b As FV, ByVal ang As Long)
     Dim c As Long, s As Long, ax As Long, ay As Long, az As Long
     c = A3Cos(ang)
     s = A3Sin(ang)
-    ax = FMul(a.x, c) + FMul(b.x, s)
-    ay = FMul(a.y, c) + FMul(b.y, s)
-    az = FMul(a.z, c) + FMul(b.z, s)
-    b.x = FMul(b.x, c) - FMul(a.x, s)
-    b.y = FMul(b.y, c) - FMul(a.y, s)
-    b.z = FMul(b.z, c) - FMul(a.z, s)
+    ax = MulShr(a.x, c, 16) + MulShr(b.x, s, 16)
+    ay = MulShr(a.y, c, 16) + MulShr(b.y, s, 16)
+    az = MulShr(a.z, c, 16) + MulShr(b.z, s, 16)
+    b.x = MulShr(b.x, c, 16) - MulShr(a.x, s, 16)
+    b.y = MulShr(b.y, c, 16) - MulShr(a.y, s, 16)
+    b.z = MulShr(b.z, c, 16) - MulShr(a.z, s, 16)
     a.x = ax: a.y = ay: a.z = az
 End Sub
 
@@ -160,9 +160,9 @@ End Sub
 Private Sub Perp(v As FV, u As FV)
     Dim k As Long
     k = FvDot(v, u)
-    v.x = v.x - FMul(u.x, k)
-    v.y = v.y - FMul(u.y, k)
-    v.z = v.z - FMul(u.z, k)
+    v.x = v.x - MulShr(u.x, k, 16)
+    v.y = v.y - MulShr(u.y, k, 16)
+    v.z = v.z - MulShr(u.z, k, 16)
     FvNorm v
 End Sub
 
@@ -209,9 +209,9 @@ Public Sub SsShipPos(p As FV)
 End Sub
 
 Public Sub SsEnemyPos(ByVal k As Long, p As FV)
-    p.x = FMul(en(k).d.x, en(k).r)
-    p.y = FMul(en(k).d.y, en(k).r)
-    p.z = FMul(en(k).d.z, en(k).r)
+    p.x = MulShr(en(k).d.x, en(k).r, 16)
+    p.y = MulShr(en(k).d.y, en(k).r, 16)
+    p.z = MulShr(en(k).d.z, en(k).r, 16)
 End Sub
 
 Public Function SsEnemyLive(ByVal k As Long) As Boolean
@@ -650,16 +650,16 @@ Public Function SsBot() As Long
         If SsEnemyLive(k) Then
             ' lead it: where it will be when a shot gets there
             SsLocal en(k).d, lx, ly, lz
-            lead = (SS_R * FONE + FMul(lz, en(k).r)) \ (SS_SHOT_SPEED * FONE)
+            lead = (SS_R * FONE + MulShr(lz, en(k).r, 16)) \ (SS_SHOT_SPEED * FONE)
             FvCross en(k).ax, en(k).d, n
             c = A3Cos(en(k).w * lead)
             sn = A3Sin(en(k).w * lead)
-            pd.x = FMul(en(k).d.x, c) + FMul(n.x, sn)
-            pd.y = FMul(en(k).d.y, c) + FMul(n.y, sn)
-            pd.z = FMul(en(k).d.z, c) + FMul(n.z, sn)
+            pd.x = MulShr(en(k).d.x, c, 16) + MulShr(n.x, sn, 16)
+            pd.y = MulShr(en(k).d.y, c, 16) + MulShr(n.y, sn, 16)
+            pd.z = MulShr(en(k).d.z, c, 16) + MulShr(n.z, sn, 16)
             SsLocal pd, lx, ly, lz
             lat = Abs(lx) + Abs(ly)
-            If FMul(lat, en(k).r) < 50 * FONE And ssFireCool = 0 Then inp = inp Or SS_IN_FIRE
+            If MulShr(lat, en(k).r, 16) < 50 * FONE And ssFireCool = 0 Then inp = inp Or SS_IN_FIRE
             If en(k).phase = PH_SWOOP Then cost = lat Else cost = lat + FONE \ 8
             If cost < bcost Then
                 bcost = cost
