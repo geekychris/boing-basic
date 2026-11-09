@@ -359,3 +359,13 @@ the call overhead of ~60 engine calls; its logic (7.2 ms) is BASIC.
 Natively built, Tank Duel is faster with A3Scene (490 fps) than with the engine (395): there the
 BASIC 3D is compiled C too, and each engine call goes through late-bound dispatch (Variant
 arguments, member lookup per call site). Both are far above the 25 fps frame rate the games run at.
+
+### Canvas.Alpha on m1b's guest (VM, 320 x 256)
+
+| | ms |
+|---|---:|
+| full-screen `Box`, opaque | 0.23 |
+| full-screen `Box`, `Alpha` 100 | 0.63 |
+| full-screen `Box`, `Alpha` 128 (fast path) | 0.55 |
+| full-screen black `Box`, `Alpha` 150 (shadow path) | 0.59 |
+| a 64 x 64 glow image with alpha, `DrawImageBlend` | 0.105 |
