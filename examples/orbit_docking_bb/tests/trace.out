@@ -1,0 +1,26 @@
+bot seed 1234 level 1, 4413 ticks: level 6 docks 5 crashes 3 lives 0 score 13942 fuel 23920640 fail 7 over 1 won 0 events 16/E632B27E hash EFE8A63F
+  vectors.h: EFE8A63F
+bot seed 7920 level 1, 3701 ticks: level 6 docks 6 crashes 0 lives 3 score 18382 fuel 12058624 fail 0 over 0 won 1 events 13/47D29988 hash F95C7580
+bot seed 15839 level 1, 4199 ticks: level 6 docks 5 crashes 3 lives 0 score 14060 fuel 15400960 fail 7 over 1 won 0 events 16/BB9A80BA hash BECDD7C4
+bot seed 23758 level 1, 4604 ticks: level 6 docks 6 crashes 2 lives 1 score 18112 fuel 7274496 fail 7 over 0 won 1 events 16/7ED5BB18 hash 2130A4B5
+bot seed 7921 level 2, 3508 ticks: level 6 docks 4 crashes 3 lives 0 score 11474 fuel 29032448 fail 7 over 1 won 0 events 16/8FA3F1E3 hash AFEFA9A4
+bot seed 15840 level 2, 3818 ticks: level 6 docks 4 crashes 3 lives 0 score 11584 fuel 21626880 fail 7 over 1 won 0 events 17/C191F7E1 hash 90B08692
+bot seed 23759 level 2, 2919 ticks: level 5 docks 3 crashes 3 lives 0 score 7922 fuel 19300352 fail 7 over 1 won 0 events 13/D127B084 hash 83681775
+bot seed 7922 level 3, 3394 ticks: level 5 docks 2 crashes 3 lives 0 score 5802 fuel 0 fail 2 over 1 won 0 events 13/93345D93 hash 6360760E
+bot seed 15841 level 3, 3126 ticks: level 6 docks 4 crashes 1 lives 2 score 13208 fuel 196608 fail 2 over 0 won 1 events 12/42BFD8D4 hash 27719CD3
+bot seed 23760 level 3, 3177 ticks: level 6 docks 4 crashes 1 lives 2 score 13746 fuel 13500416 fail 2 over 0 won 1 events 12/56F93008 hash 57E76364
+bot seed 7923 level 4, 2680 ticks: level 6 docks 3 crashes 1 lives 2 score 10776 fuel 5832704 fail 7 over 0 won 1 events 9/098298D7 hash 14553241
+bot seed 15842 level 4, 2194 ticks: level 6 docks 3 crashes 0 lives 3 score 10888 fuel 5439488 fail 0 over 0 won 1 events 6/E1DF7B8F hash 7BEE002A
+bot seed 23761 level 4, 2461 ticks: level 6 docks 3 crashes 1 lives 2 score 10806 fuel 4259840 fail 2 over 0 won 1 events 10/214E59DF hash 40490E0B
+bot seed 7924 level 5, 1531 ticks: level 6 docks 2 crashes 0 lives 3 score 7752 fuel 5111808 fail 0 over 0 won 1 events 4/C05D2D68 hash F55A935E
+bot seed 15843 level 5, 2130 ticks: level 6 docks 1 crashes 3 lives 0 score 3726 fuel 18677760 fail 7 over 1 won 0 events 8/E0D793D2 hash 626D5BCD
+bot seed 23762 level 5, 1461 ticks: level 6 docks 2 crashes 0 lives 3 score 7918 fuel 9568256 fail 0 over 0 won 1 events 4/7C4A9F9C hash F0CA8DB5
+bot seed 7925 level 6, 1449 ticks: level 6 docks 1 crashes 1 lives 2 score 4092 fuel 6586368 fail 7 over 0 won 1 events 4/A51408A1 hash 4E883E9F
+bot seed 15844 level 6, 1170 ticks: level 6 docks 0 crashes 3 lives 0 score 0 fuel 24182784 fail 7 over 1 won 0 events 6/C8B51E15 hash 92F68E58
+bot seed 23763 level 6, 1281 ticks: level 6 docks 1 crashes 1 lives 2 score 4076 fuel 5636096 fail 7 over 0 won 1 events 4/76C61E21 hash 9E54EE6C
+random seed 101 level 2, 3000 ticks: level 2 docks 0 crashes 1 lives 2 score 0 fuel 0 fail 1 over 0 won 0 events 4/FFD08916 hash F51D7EF5
+random seed 202 level 3, 3000 ticks: level 3 docks 0 crashes 2 lives 1 score 0 fuel 0 fail 1 over 0 won 0 events 7/B2295A81 hash 04B3F1DE
+random seed 303 level 4, 3000 ticks: level 4 docks 0 crashes 2 lives 1 score 0 fuel 0 fail 1 over 0 won 0 events 7/B2295A81 hash A8D0D7A2
+random seed 404 level 5, 2609 ticks: level 5 docks 0 crashes 3 lives 0 score 0 fuel 0 fail 1 over 1 won 0 events 9/64CD5A6A hash D7D0C36C
+random seed 505 level 6, 3000 ticks: level 6 docks 0 crashes 2 lives 1 score 0 fuel 10977280 fail 1 over 0 won 0 events 6/4D6EBDE7 hash 245DC392
+random seed 606 level 1, 2817 ticks: level 1 docks 0 crashes 3 lives 0 score 0 fuel 0 fail 1 over 1 won 0 events 9/64CD5A6A hash 7540F819

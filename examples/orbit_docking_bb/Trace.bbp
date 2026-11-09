@@ -1,0 +1,7 @@
+# Boing BASIC project: Orbit Docking's rules against the C original (tools/trace.sh prints the same)
+Name=OrbitTrace
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=OdCore.bas
+Module=TraceMain.bas
+Stack=262144
