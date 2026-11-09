@@ -281,6 +281,7 @@ Public Function LoadMod(ByVal path As String) As Boolean
     End If
     songPath = path
     songDirty = False
+    DeriveSpeedTempo
     LoadMod = True
     Exit Function
 bad:
@@ -442,4 +443,16 @@ Public Sub FitPatternCount()
     Next i
     If hp >= m And songLen < 128 Then orders(songLen) = hp: m = hp + 1
     nPat = m
+End Sub
+
+' read the start speed and tempo from row 0 of the first pattern (after a load, undo, ...)
+Public Sub DeriveSpeedTempo()
+    Dim p As Long, c As Long, k As Long
+    initSpeed = 6: initTempo = 125
+    p = orders(0)
+    For c = 0 To nch - 1
+        k = CellIdx(p, 0, c)
+        If cFx(k) = 15 And cPrm(k) > 0 And cPrm(k) < 32 Then initSpeed = cPrm(k)
+        If cFx(k) = 15 And cPrm(k) >= 32 Then initTempo = cPrm(k)
+    Next c
 End Sub

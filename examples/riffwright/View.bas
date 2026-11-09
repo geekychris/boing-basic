@@ -501,7 +501,7 @@ Public Sub DrawSongView(ByVal field As Long, ByVal curPos As Long, ByVal playPos
     Dim i As Long, x As Long, y As Long, labels As Variant, vals(0 To 4) As String, col As Long
     cv.Box 0, PY0 - 12, scrW, PH + 12, cBg
     cv.DrawText 8, PY0 - 6, "SONG", cTitle
-    labels = Array("TITLE", "SPEED", "TEMPO (BPM)", "LENGTH", "RESTART")
+    labels = Array("TITLE", "START SPEED", "START TEMPO", "LENGTH", "RESTART")
     vals(0) = TitleText()
     vals(1) = CStr(initSpeed)
     vals(2) = CStr(initTempo)

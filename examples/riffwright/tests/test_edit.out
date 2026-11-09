@@ -49,6 +49,8 @@ orders: 3  0  3  1  patterns 4
 orders: 2  3  1 
 orders: 3  0  3  1 
 free pattern: 2 
+ok   speed/tempo into row 0
+  row 0: C-2 05 ... | --- .. ... | --- .. F8C | --- .. F04 -> 4  140 
 [Undo Me] 6  125 
 []
 smp1 len 1000 vol 50 fine-1 loop 100  900 

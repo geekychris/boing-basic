@@ -557,7 +557,7 @@ End Sub
 
 Private Sub SongKey(ByVal k As Integer, ByVal shift As Boolean, ByVal ctrl As Boolean, _
                     ByVal alt As Boolean, ByVal amiga As Boolean)
-    Dim d As Long, h As Long
+    Dim d As Long, h As Long, ok As Boolean
     If songField = 5 Then
         Select Case k
             Case vbKeyLeft: GoPosition curPos - 1: typedCount = 0
@@ -594,8 +594,15 @@ Private Sub SongKey(ByVal k As Integer, ByVal shift As Boolean, ByVal ctrl As Bo
             If k = vbKeyLeft Then d = -1 Else d = 1
             If shift Then d = d * 10
             Select Case songField
-                Case 1: EdSpeedTempo initSpeed + d, initTempo: SetPlayerSpeed
-                Case 2: EdSpeedTempo initSpeed, initTempo + d: SetPlayerSpeed
+                Case 1, 2
+                    If songField = 1 Then ok = EdSpeedTempo(initSpeed + d, initTempo) Else ok = EdSpeedTempo(initSpeed, initTempo + d)
+                    If ok Then
+                        SetPlayerSpeed
+                        InvalidatePattern
+                        Say "speed " & initSpeed & ", tempo " & initTempo & " (Fxx in row 0 of pattern " & orders(0) & ")"
+                    Else
+                        Say "row 0 of pattern " & orders(0) & " has no free effect column for it"
+                    End If
                 Case 3: EdSongLength songLen + d
                 Case 4
                     UndoSong "restart"
@@ -705,6 +712,7 @@ End Function
 
 ' after a load or new song
 Public Sub SongChanged()
+    DeriveSpeedTempo
     ClearUndo
     MirrorAll
     ResetCursor

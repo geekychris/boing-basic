@@ -172,6 +172,10 @@ play position (green).
 
 Title, speed (ticks per row at the start), tempo (BPM at the start), song length and the
 restart position. Up / Down choose, Left / Right change (Shift: 10), Return edits the title.
+
+A module has no header field for the start speed and tempo: Riffwright keeps them as F
+commands (Fxx below 20 = speed, 20 and up = tempo) in row 0 of the first pattern played, as
+ProTracker users do, and reads them from there when it loads a song.
 @endnode
 
 @node Playing "Playing"
