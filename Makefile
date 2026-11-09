@@ -15,7 +15,15 @@ HDRS     = $(wildcard src/runtime/*.h src/runtime/a3d/*.h src/runtime/audio/*.h 
 
 all: $(B)/boing $(B)/libboing.a $(B)/include/boing.h
 
-$(B)/obj/%.o: src/%.c $(HDRS)
+# objects depend on a stamp of the compiler and flags (rewritten only when they change): a build
+# with other CFLAGS into the same directory rebuilds everything instead of mixing objects
+FLAGS_LINE := $(CC) $(shell $(CC) -dumpversion 2>/dev/null) | $(WARN) $(CFLAGS) | $(PLAT)
+$(B)/flags.stamp: FORCE
+	@mkdir -p $(B)
+	@echo '$(FLAGS_LINE)' | cmp -s - $@ || echo '$(FLAGS_LINE)' > $@
+FORCE:
+
+$(B)/obj/%.o: src/%.c $(HDRS) $(B)/flags.stamp
 	@mkdir -p $(dir $@)
 	$(CC) $(WARN) $(CFLAGS) -c $< -o $@
 
@@ -32,6 +40,7 @@ $(B)/include/boing.h: $(wildcard src/runtime/*.h)
 
 test: all
 	@sh tools/stackcheck.sh
+	@sh tools/flags-check.sh
 	@sh tools/os4-build-check.sh
 	@for f in tests/c/*.c; do $(CC) $(WARN) $(CFLAGS) -I$(B)/include -o $(B)/ctest_$$(basename $$f .c) $$f $(B)/libboing.a -lm && $(B)/ctest_$$(basename $$f .c) || exit 1; done
 	@sh tests/run.sh
@@ -49,7 +58,7 @@ test: all
 clean:
 	rm -rf $(B)
 
-.PHONY: all test clean
+.PHONY: all test clean FORCE
 
 bench: all
 	python3 tools/bench.py $(BENCH_ARGS)

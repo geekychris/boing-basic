@@ -44,8 +44,17 @@ TEST_BINS := $(patsubst tests/os4/%.c,$(OUT)/tests/%,$(TEST_SRCS))
 
 all: $(OUT)/libboing.a $(if $(MAIN_SRCS),$(OUT)/boing) $(TEST_BINS)
 
+# every object depends on a stamp of the compiler, the flags and the -O2 file list: change any of
+# them and everything rebuilds (an incremental build over objects made with other flags mixed
+# -O2 and -Os code and drew wrongly). The stamp is rewritten only when its text changes.
+FLAGS_LINE := $(CC) $(shell $(CC) -dumpversion 2>/dev/null) | $(CFLAGS) | $(LDFLAGS) | -O2: $(notdir $(HOT_OBJS))
+$(OUT)/flags.stamp: FORCE
+	@mkdir -p $(OUT)
+	@echo '$(FLAGS_LINE)' | cmp -s - $@ || echo '$(FLAGS_LINE)' > $@
+FORCE:
+
 # -MMD: rebuild objects when a header or .def they include changes (builtins.def!)
-$(OUT)/obj/%.o: src/%.c
+$(OUT)/obj/%.o: src/%.c $(OUT)/flags.stamp
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
@@ -59,7 +68,7 @@ $(OUT)/libboing.a: $(RT_OBJS)
 $(OUT)/boing: $(TOOL_OBJS) $(OUT)/libboing.a
 	$(CC) $(LDFLAGS) -o $@ $(TOOL_OBJS) $(OUT)/libboing.a $(LIBS)
 
-$(OUT)/tests/%: tests/os4/%.c $(OUT)/libboing.a
+$(OUT)/tests/%: tests/os4/%.c $(OUT)/libboing.a $(OUT)/flags.stamp
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(OUT)/libboing.a $(LIBS)
 
@@ -72,7 +81,7 @@ check-cpu: all
 clean:
 	rm -rf $(OUT)
 
-.PHONY: all check-cpu clean
+.PHONY: all check-cpu clean FORCE
 
 # tools run on the guest by the test scripts
 $(OUT)/ptr: tools/os4/ptr.c
