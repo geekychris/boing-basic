@@ -7,6 +7,24 @@ a control to write its event code.
 
 Work in progress. See [docs/DESIGN.md](docs/DESIGN.md).
 
+## Gallery
+
+Games and applications written in Boing BASIC, on the AmigaOS 4.1 guest. All of them, with
+what each one shows off and how fast it runs: **[docs/gallery.md](docs/gallery.md)**.
+
+<table>
+<tr>
+<td><a href="docs/gallery.md#glimmerfield"><img src="examples/glimmerfield/docs/guest-2x.png" width="400" alt="Glimmerfield"></a></td>
+<td><a href="docs/gallery.md#riffwright"><img src="examples/riffwright/docs/guest_pattern_playing.png" width="400" alt="Riffwright"></a></td>
+</tr>
+<tr><td align="center">Glimmerfield, an arcade game (Canvas, MOD music)</td><td align="center">Riffwright, a ProTracker editor (Boing.Audio)</td></tr>
+<tr>
+<td><a href="docs/gallery.md#stack-tower"><img src="examples/stack_tower_bb/screenshots/os4-playing.png" width="400" alt="Stack Tower"></a></td>
+<td><a href="docs/gallery.md#tincture"><img src="examples/tincture/gallery/sunset.png" width="400" alt="Tincture"></a></td>
+</tr>
+<tr><td align="center">Stack Tower, a puzzle on Engine3D</td><td align="center">Tincture, a paint program</td></tr>
+</table>
+
 ## Building and using it (host: macOS / Linux)
 
 ```

@@ -13,6 +13,8 @@ Both back ends share one runtime library (`libboing`): values, strings, arrays, 
 functions, error handling, file I/O, forms and the OS bindings. A program must behave the same
 under both; the test suite runs every test program through both and compares the output.
 
+What has been built with it so far, with screenshots: the [gallery](gallery.md).
+
 ## Decisions (agreed with the user, 2026-11-07)
 
 - Dialect: classic **VB6**. Not VB.NET.
