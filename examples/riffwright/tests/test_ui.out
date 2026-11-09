@@ -24,3 +24,12 @@ speed 7
 ok   Amiga+1 pattern view
 Amiga+S asks the form to: save
 frame hash 1801054453 
+LOAD -> 0 Boing Shuffle
+PLAY 2 -> 0 playing playing=True
+POSITION -> 0 2
+STOP -> 0 stopped playing=False
+POSITION 4 -> 0 4
+POSITION 99 -> 5 bad position
+SAVE -> 0 rexx.mod same
+LOAD missing -> 10 File not found
+JUMP -> 10 unknown command JUMP

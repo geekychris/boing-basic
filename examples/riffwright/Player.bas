@@ -94,12 +94,12 @@ End Sub
 
 ' where the player is: position, pattern, row, and how far into the row (0..255)
 Public Sub PlayerPoll(pos As Long, pat As Long, row As Long, frac As Long)
-    Dim rowsec As Double, t As Double, rows As Long
+    Dim rowsec As Double, t As Double, nrows As Long
     rowsec = initSpeed * 2.5 / initTempo
     t = (Timer - simStart) / rowsec
-    rows = Int(t)
-    frac = Int((t - rows) * 256)
-    row = simRow + rows
+    nrows = Int(t)
+    frac = Int((t - nrows) * 256)
+    row = simRow + nrows
     pos = simPos: pat = simPat
     Do While row >= ROWS
         row = row - ROWS

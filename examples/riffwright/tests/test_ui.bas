@@ -114,4 +114,28 @@ Sub Main()
     Next i
     t = Timer - t
     If Environ$("RIFF_BENCH") <> "" Then Print "ms per frame:"; Format$(t * 1000 / n, "0.00")
+    RexxTests
+End Sub
+
+Sub RexxTests()
+    Dim rc As Long, r As String
+    r = RexxCommand("LOAD", "../demos/boing_shuffle.mod", rc)
+    Print "LOAD ->"; rc; r
+    r = RexxCommand("PLAY", "2", rc)
+    Print "PLAY 2 ->"; rc; r; " playing="; playing
+    r = RexxCommand("POSITION", "", rc)
+    Print "POSITION ->"; rc; r
+    r = RexxCommand("STOP", "", rc)
+    Print "STOP ->"; rc; r; " playing="; playing
+    r = RexxCommand("POSITION", "4", rc)
+    Print "POSITION 4 ->"; rc; r
+    r = RexxCommand("POSITION", "99", rc)
+    Print "POSITION 99 ->"; rc; r
+    r = RexxCommand("SAVE", "rexx.mod", rc)
+    Print "SAVE ->"; rc; r; " "; CompareFiles("rexx.mod", "../demos/boing_shuffle.mod")
+    Kill "rexx.mod"
+    r = RexxCommand("LOAD", """nothing.mod""", rc)
+    Print "LOAD missing ->"; rc; r
+    r = RexxCommand("JUMP", "", rc)
+    Print "JUMP ->"; rc; r
 End Sub

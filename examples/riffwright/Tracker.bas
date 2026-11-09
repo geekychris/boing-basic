@@ -670,3 +670,62 @@ Public Sub SongChanged()
     ResetCursor
     If curSmp < 1 Then curSmp = 1
 End Sub
+
+' ---------------------------------------------------------------- ARexx
+' A command for the RIFFWRIGHT port: returns the result string; rc gets 0, 5 (warning) or
+' 10 (error). LOAD and SAVE are done here (no requester); the form only passes them on.
+Public Function RexxCommand(ByVal cmd As String, ByVal args As String, rc As Long) As String
+    Dim n As Long
+    rc = 0
+    args = Trim$(args)
+    If Left$(args, 1) = """" And Right$(args, 1) = """" And Len(args) >= 2 Then args = Mid$(args, 2, Len(args) - 2)
+    Select Case UCase$(cmd)
+        Case "PLAY"
+            If args <> "" Then n = CLng(Val(args)) Else n = curPos
+            If n < 0 Or n >= songLen Then rc = 5: RexxCommand = "bad position": Exit Function
+            curPos = n: curPat = orders(n)
+            StartSong n, 0
+            RexxCommand = "playing"
+        Case "STOP"
+            StopSong
+            RexxCommand = "stopped"
+        Case "LOAD"
+            If args = "" Then rc = 10: RexxCommand = "LOAD needs a file": Exit Function
+            StopPlayer
+            If LoadMod(args) Then
+                SongChanged
+                Say "loaded " & songFileName() & " (ARexx)"
+                RexxCommand = TitleText()
+            Else
+                rc = 10: RexxCommand = lastError
+                NewSong 4
+                SongChanged
+            End If
+        Case "SAVE"
+            If args = "" Then args = songPath
+            If args = "" Then rc = 10: RexxCommand = "SAVE needs a file": Exit Function
+            If SaveMod(args) Then RexxCommand = args Else rc = 10: RexxCommand = lastError
+        Case "POSITION"
+            If args <> "" Then
+                n = CLng(Val(args))
+                If n < 0 Or n >= songLen Then rc = 5: RexxCommand = "bad position": Exit Function
+                GoPosition n
+                If playing Then SeekSong n
+            End If
+            If playing Then
+                Dim pp As Long, ppat As Long, pr As Long, fr As Long
+                PlayerPoll pp, ppat, pr, fr
+                RexxCommand = CStr(pp)
+            Else
+                RexxCommand = CStr(curPos)
+            End If
+        Case "TITLE"
+            RexxCommand = TitleText()
+        Case "VERSION"
+            RexxCommand = "Riffwright 1.0"
+        Case Else
+            rc = 10
+            RexxCommand = "unknown command " & cmd
+    End Select
+    frameDirty = True
+End Function
