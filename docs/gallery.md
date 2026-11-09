@@ -4,13 +4,15 @@
 
 Boing BASIC is a Visual Basic 6 style language for AmigaOS 4.1 (PowerPC). A program runs in the interpreter (a bytecode VM, with an optional PowerPC JIT) for a quick edit-run cycle, or is compiled to C and built with GCC into a native executable. Forms are designed in the [AmiForge](https://github.com/geekychris/amiforge) IDE; the runtime brings a Canvas for 2D graphics, Engine3D for filled 3D, a ProTracker player and sound effects through AHI, menus, dialogs and ReAction gadgets, an ARexx port, and `Declare` for calling any AmigaOS library. See the [README](../README.md) and the [design](DESIGN.md).
 
-Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 6 games, 6 applications and 6 examples and tools.
+Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 14 games, 6 applications and 6 examples and tools.
 
 **Games**
 
 <table>
 <tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#boing-pinball"><img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="200" alt="Boing Pinball"><br>Boing Pinball</a></td><td align="center" valign="bottom"><a href="#ace-pilot-2"><img src="../examples/ace_pilot2_bb/screenshots/os4-strafing.png" width="200" alt="Ace Pilot 2"><br>Ace Pilot 2</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/gallery/driving.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/gallery/driving.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td><td align="center" valign="bottom"><a href="#block-breaker-3d">Block Breaker 3D</a></td><td align="center" valign="bottom"><a href="#canyon-rail">Canyon Rail</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#drone-courier">Drone Courier</a></td><td align="center" valign="bottom"><a href="#harbour-crane">Harbour Crane</a></td><td align="center" valign="bottom"><a href="#marble-tilt">Marble Tilt</a></td><td align="center" valign="bottom"><a href="#ridge-runner">Ridge Runner</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#sphere-siege">Sphere Siege</a></td><td align="center" valign="bottom"><a href="#tank-duel">Tank Duel</a></td></tr>
 </table>
 
 **Applications**
@@ -144,6 +146,70 @@ A self-driving car game: score while the autopilot drives, and grab the wheel ju
 *On autopilot*
 
 [README](../examples/scairy_fun_bb/README.md) · [source](../examples/scairy_fun_bb/)
+
+### Block Breaker 3D
+
+Breakout down a tunnel: move a paddle frame on the near opening and send the ball at a block of bricks at the far end, over 8 levels with capsules.
+
+**Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+[README](../examples/block_breaker_3d/README.md) · [source](../examples/block_breaker_3d/)
+
+### Canyon Rail
+
+A rail shooter down a winding canyon: move the sight, shoot turrets, drones and their bolts, then a guardian at the end of each stage.
+
+**Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+[README](../examples/canyon_rail/README.md) · [source](../examples/canyon_rail/)
+
+### Drone Courier
+
+Parcel deliveries by drone across a city of towers: collect at the depot pad, land gently on the customer's pad, beat the clock and the wind.
+
+**Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+[README](../examples/drone_courier/README.md) · [source](../examples/drone_courier/)
+
+### Harbour Crane
+
+A gantry crane loading a ship that rolls in the swell: swing containers onto the deck by trolley and winch, and keep her level.
+
+**Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+[README](../examples/harbour_crane/README.md) · [source](../examples/harbour_crane/)
+
+### Marble Tilt
+
+Tilt a floating maze board to roll a marble to the exit: holes, gates, bumpers, sand and checkpoints over 8 levels against the clock.
+
+**Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+[README](../examples/marble_tilt/README.md) · [source](../examples/marble_tilt/)
+
+### Ridge Runner
+
+A hover-bike race down a winding valley against three rivals, through gates that add time, over six tracks.
+
+**Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+[README](../examples/ridge_runner/README.md) · [source](../examples/ridge_runner/)
+
+### Sphere Siege
+
+A shooter inside a hollow sphere: your ship rides the shell facing the centre, and shots cross it to the far wall.
+
+**Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+[README](../examples/sphere_siege/README.md) · [source](../examples/sphere_siege/)
+
+### Tank Duel
+
+A tank fight in a walled arena seen from the turret: shells bounce once off the walls, over 8 rounds of scouts, mortars and bulwarks.
+
+**Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+[README](../examples/tank_duel/README.md) · [source](../examples/tank_duel/)
 
 ## Applications
 
