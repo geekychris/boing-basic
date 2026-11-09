@@ -611,7 +611,10 @@ static void collect_labels(Ctx *c, NodeList *body)
         }
         collect_labels(c, &s->list);
         collect_labels(c, &s->list2);
-        if (s->kind == S_IF || s->kind == S_SELECT) {
+        /* If branches keep their bodies in list2 of the branch nodes (Case bodies too, but the
+           recursion above already walks a Case node's list2: walking it here as well made a
+           label inside a Case "defined twice") */
+        if (s->kind == S_IF) {
             int k;
             for (k = 0; k < s->list.n; k++) collect_labels(c, &s->list.v[k]->list2);
         }
