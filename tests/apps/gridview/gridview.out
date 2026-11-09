@@ -57,6 +57,14 @@ hit (45,20) True 0  0 False
 hit (5,5) True-1 -1 False
 hit edge True-1  0 True
 chart at  0 False
+ROWHEIGHT 3 30 -> 
+ROWHEIGHT 3 -> 30
+ROWHEIGHT 0 9 -> ROWHEIGHT row [pixels] [rc 10]
+SELECT A1 -> A1
+tall row hash B052290 RowY(4)  91  visible  25 
+hit in row 3: True 2  0 
+row edge at row 3 bottom:  2  none: -1 
+saved: True
 SETCELL A1 =SUM( -> the formula ends too early [rc 5]
 FOO -> unknown command FOO [rc 10]
 SELECT ZZ -> bad range ZZ [rc 10]

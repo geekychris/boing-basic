@@ -18,7 +18,7 @@ Private lastStatus As String
 Private lastCellName As String
 Private lastFind As String
 Private clipText As String
-Private dragMode As Long              ' 1 cells, 2 column width, 3 move chart, 4 size chart, 5 columns, 6 rows
+Private dragMode As Long              ' 1 cells, 2 column width, 3 move chart, 4 size chart, 5 columns, 6 rows, 7 row height
 Private dragX As Long, dragY As Long, dragW As Long, dragH As Long, dragCol As Long
 Private scriptLog As String
 Private autosaveTicks As Long
@@ -669,6 +669,11 @@ Private Sub grid_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As 
         Exit Sub
     End If
     selChart = -1
+    r = RowEdgeAt(X, Y)
+    If r >= 0 Then
+        dragMode = 7: dragCol = r: dragY = Y: dragH = rowH(r)
+        Exit Sub
+    End If
     If Not HitTest(X, Y, r, c, edge) Then Exit Sub
     If edge Then
         dragMode = 2: dragCol = c: dragX = X: dragW = colW(c)
@@ -719,6 +724,12 @@ Private Sub grid_MouseMove(Button As Integer, Shift As Integer, X As Long, Y As 
         If w < 12 Then w = 12
         If w > 600 Then w = 600
         colW(dragCol) = w
+        Modified = True
+    Case 7
+        w = dragH + Y - dragY
+        If w < 8 Then w = 8
+        If w > 200 Then w = 200
+        rowH(dragCol) = w
         Modified = True
     Case 3
         MoveChartTo selChart, dragW + X - dragX, dragH + Y - dragY

@@ -35,6 +35,15 @@ Sub Main()
     Print "hit (5,5) "; HitTest(5, 5, r, c, e); r; c; e
     Print "hit edge "; HitTest(RHDR_W + 96 - 1, 5, r, c, e); r; c; e
     Print "chart at "; ChartAt(ColX(chCol(0)) + 10, RowY(chRow(0)) + 10, k); k
+    ' row heights
+    LogLines = ""
+    RunScript "ROWHEIGHT 3 30" & vbLf & "ROWHEIGHT 3" & vbLf & "ROWHEIGHT 0 9" & vbLf & "SELECT A1", True
+    Print LogLines;
+    DrawGrid cv
+    Print "tall row hash "; Hex$(cv.Hash); " RowY(4) "; RowY(4); " visible "; VisibleRows()
+    Print "hit in row 3: "; HitTest(60, HDR_H + 15 + 15 + 20, r, c, e); r; c
+    Print "row edge at row 3 bottom: "; RowEdgeAt(10, HDR_H + 60); " none: "; RowEdgeAt(10, HDR_H + 37)
+    Print "saved: "; (InStr(SerializeSheet(), "R" & vbTab & "3" & vbTab & "30") > 0)
     ' errors from commands
     LogLines = ""
     RunScript "SETCELL A1 =SUM(" & vbLf & "FOO" & vbLf & "SELECT ZZ" & vbLf & "FORMAT weird" & vbLf & "GETFORMULA A1" & vbLf & "UNDO" & vbLf & "GETCELL A1" & vbLf & "FIND transport" & vbLf & "SORT B DESC" & vbLf & "VERSION", True

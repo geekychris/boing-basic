@@ -51,6 +51,7 @@ Public cFmt() As Long
 Public cCode() As Long                ' start in pCode, -1 = not a formula
 Public cCodeLen() As Long
 Public colW() As Long                 ' column widths in pixels (the UI's, saved with the sheet)
+Public rowH() As Long                 ' row heights in pixels
 Public Modified As Boolean
 Public CurrencySymbol As String
 Public LastError As String            ' why the last SetCell formula did not compile
@@ -138,6 +139,8 @@ Public Sub NewSheet(ByVal rows As Long, ByVal cols As Long)
     NB = (rows + 31) \ 32
     ReDim rHead(0 To cols * NB - 1)
     ReDim colW(0 To cols - 1)
+    ReDim rowH(0 To rows - 1)
+    For i = 0 To rows - 1: rowH(i) = 15: Next i
     For i = 0 To NCELLS - 1
         cCode(i) = -1
         dHead(i) = -1
@@ -1832,8 +1835,10 @@ End Sub
 ' Every formula's references are rewritten; the last rows/columns fall off the sheet.
 Public Sub InsertRowsCols(ByVal isCol As Boolean, ByVal at As Long, ByVal n As Long)
     Dim src() As String, fm() As Long, r As Long, c As Long, sr As Long, sc As Long, id As Long, s As String
-    Dim w() As Long
+    Dim w() As Long, hh() As Long
     BeginSnapshot
+    ReDim hh(0 To NR - 1)
+    For r = 0 To NR - 1: hh(r) = rowH(r): Next r
     ReDim src(0 To NCELLS - 1)
     ReDim fm(0 To NCELLS - 1)
     For id = 0 To NCELLS - 1
@@ -1863,6 +1868,15 @@ Public Sub InsertRowsCols(ByVal isCol As Boolean, ByVal at As Long, ByVal n As L
             End If
         Next c
     Next r
+    If Not isCol Then
+        For r = 0 To NR - 1
+            sr = r
+            If r >= at Then
+                If n > 0 And r < at + n Then sr = -1 Else sr = r - n
+            End If
+            If sr >= 0 And sr < NR Then rowH(r) = hh(sr) Else rowH(r) = 15
+        Next r
+    End If
     If isCol Then
         For c = 0 To NC - 1
             sc = c
@@ -1993,6 +2007,12 @@ Public Function SerializeSheet() As String
             parts(n) = "W" & vbTab & ColName(c) & vbTab & CStr(colW(c)): n = n + 1
         End If
     Next c
+    For id = 0 To NR - 1
+        If rowH(id) <> 15 Then
+            If n > UBound(parts) Then ReDim Preserve parts(0 To n * 2)
+            parts(n) = "R" & vbTab & CStr(id + 1) & vbTab & CStr(rowH(id)): n = n + 1
+        End If
+    Next id
     For id = 0 To NCELLS - 1
         If cSrc(id) <> "" Or cFmt(id) <> 0 Then
             If n > UBound(parts) Then ReDim Preserve parts(0 To n * 2)
@@ -2016,6 +2036,7 @@ Public Sub LoadLines(ByVal body As String, rest As String)
     Dim lines() As String, i As Long, f() As String, r As Long, c As Long, id As Long
     ClearAll
     For c = 0 To NC - 1: colW(c) = 72: Next c
+    For r = 0 To NR - 1: rowH(r) = 15: Next r
     rest = ""
     If body = "" Then Exit Sub
     lines = Split(body, vbLf)
@@ -2032,6 +2053,13 @@ Public Sub LoadLines(ByVal body As String, rest As String)
                         cFmt(id) = Val(f(2))       ' SetRaw may set a format from "15%"
                     End If
                 End If
+            End If
+        ElseIf Left$(lines(i), 2) = "R" & vbTab Then
+            f = Split(lines(i), vbTab)
+            If UBound(f) >= 2 Then
+                r = Val(f(1)) - 1
+                If r >= 0 And r < NR Then rowH(r) = Val(f(2))
+                If rowH(r) < 8 Then rowH(r) = 8
             End If
         ElseIf Left$(lines(i), 2) = "W" & vbTab Then
             f = Split(lines(i), vbTab)

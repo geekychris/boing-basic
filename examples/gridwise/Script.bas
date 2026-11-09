@@ -159,6 +159,18 @@ Public Function RunCommand(ByVal line As String) As String
             colW(c) = n
             Modified = True
         End If
+    Case "ROWHEIGHT"
+        r = Val(a1) - 1
+        If r < 0 Or r >= NR Then RunCommand = Bad("ROWHEIGHT row [pixels]"): Exit Function
+        If a2 = "" Then
+            RunCommand = CStr(rowH(r)): WantRedraw = False
+        Else
+            n = Val(a2)
+            If n < 8 Then n = 8
+            If n > 200 Then n = 200
+            rowH(r) = n
+            Modified = True
+        End If
     Case "INSERTROW", "DELETEROW", "INSERTCOL", "DELETECOL"
         n = Val(a1): If n < 1 Then n = 1
         Select Case cmd

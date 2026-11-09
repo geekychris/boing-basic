@@ -4,7 +4,7 @@
 Option Explicit
 
 Public Const HDR_H As Long = 16       ' column header height
-Public Const ROW_H As Long = 15       ' row height
+Public Const ROW_H As Long = 15       ' default row height (rowH() in Sheet.bas has each row's)
 Public Const RHDR_W As Long = 40      ' row header width
 
 Public vw As Long, vh As Long          ' the picture size
@@ -47,9 +47,19 @@ Public Function SelName() As String
     If r1 = r2 And c1 = c2 Then SelName = CellName(r1, c1) Else SelName = RangeName(r1, c1, r2, c2)
 End Function
 
+' the rows that fit fully from topRow
 Public Function VisibleRows() As Long
-    VisibleRows = (vh - HDR_H) \ ROW_H
-    If VisibleRows < 1 Then VisibleRows = 1
+    Dim y As Long, r As Long, n As Long
+    y = HDR_H
+    r = topRow
+    Do While r < NR
+        y = y + rowH(r)
+        If y > vh Then Exit Do
+        n = n + 1
+        r = r + 1
+    Loop
+    If n < 1 Then n = 1
+    VisibleRows = n
 End Function
 
 ' the columns that fit fully from leftCol
@@ -71,7 +81,10 @@ End Function
 Public Sub EnsureVisible()
     Dim x As Long, c As Long
     If curR < topRow Then topRow = curR
-    If curR >= topRow + VisibleRows() Then topRow = curR - VisibleRows() + 1
+    If curR > topRow + 200 Then topRow = curR - 20
+    Do While curR >= topRow + VisibleRows() And topRow < curR
+        topRow = topRow + 1
+    Loop
     If curC < leftCol Then leftCol = curC
     Do While curC >= leftCol + VisibleCols() And leftCol < curC
         leftCol = leftCol + 1
@@ -107,7 +120,30 @@ Public Function ColX(ByVal c As Long) As Long
 End Function
 
 Public Function RowY(ByVal r As Long) As Long
-    RowY = HDR_H + (r - topRow) * ROW_H
+    Dim y As Long, i As Long
+    y = HDR_H
+    If r >= topRow Then
+        For i = topRow To r - 1
+            If i >= NR Then y = y + ROW_H Else y = y + rowH(i)
+        Next i
+    Else
+        For i = r To topRow - 1: y = y - rowH(i): Next i
+    End If
+    RowY = y
+End Function
+
+' the row whose bottom edge is within 3 pixels of y in the row header, -1 if none
+Public Function RowEdgeAt(ByVal x As Long, ByVal y As Long) As Long
+    Dim r As Long, yy As Long
+    RowEdgeAt = -1
+    If x >= RHDR_W Or y < HDR_H Then Exit Function
+    yy = HDR_H
+    r = topRow
+    Do While r < NR And yy < vh
+        yy = yy + rowH(r)
+        If Abs(yy - y) <= 3 Then RowEdgeAt = r: Exit Function
+        r = r + 1
+    Loop
 End Function
 
 ' which cell is at (x, y): r = -1 for the column header, c = -1 for the row header.
@@ -119,7 +155,14 @@ Public Function HitTest(ByVal x As Long, ByVal y As Long, r As Long, c As Long, 
     If y < HDR_H Then
         r = -1
     Else
-        r = topRow + (y - HDR_H) \ ROW_H
+        r = topRow
+        Dim yy As Long
+        yy = HDR_H
+        Do While r < NR
+            If y < yy + rowH(r) Then Exit Do
+            yy = yy + rowH(r)
+            r = r + 1
+        Loop
         If r >= NR Then Exit Function
     End If
     If x < RHDR_W Then
@@ -163,7 +206,7 @@ Public Sub ChartPos(ByVal i As Long, x As Long, y As Long)
     Else
         For c = chCol(i) To leftCol - 1: x = x - colW(c): Next c
     End If
-    y = HDR_H + (chRow(i) - topRow) * ROW_H
+    y = RowY(chRow(i))
 End Sub
 
 ' ---- drawing -------------------------------------------------------------------------------
@@ -187,7 +230,18 @@ Public Sub DrawGrid(cv As Object)
     th = cv.TextHeight("A")
     cw = cv.TextWidth("M")
     cv.Box 0, 0, vw, vh, colBack
-    nrows = (vh - HDR_H) \ ROW_H + 1
+    ' rows that are (partly) visible, and their tops
+    Dim ys(0 To 400) As Long
+    nrows = 0
+    y = HDR_H
+    r = topRow
+    Do While r < NR And y < vh And nrows < 400
+        ys(nrows) = y
+        y = y + rowH(r)
+        nrows = nrows + 1
+        r = r + 1
+    Loop
+    ys(nrows) = y
     ' column edges
     x = RHDR_W
     c = leftCol
@@ -215,16 +269,15 @@ Public Sub DrawGrid(cv As Object)
         For i = 0 To ncols
             cv.Line xs(i) - 1, HDR_H, xs(i) - 1, vh - 1, colGrid
         Next i
-        For r = 0 To nrows
-            y = HDR_H + r * ROW_H - 1
-            cv.Line RHDR_W, y, vw - 1, y, colGrid
+        For r = 1 To nrows
+            cv.Line RHDR_W, ys(r) - 1, vw - 1, ys(r) - 1, colGrid
         Next r
     End If
     ' cells
-    ty = (ROW_H - th) \ 2
     For r = topRow To topRow + nrows - 1
         If r >= NR Then Exit For
-        y = RowY(r)
+        y = ys(r - topRow)
+        ty = (rowH(r) - th) \ 2
         For c = leftCol To lastC
             If ShowFormulas Then
                 s = GetSrc(r, c)
@@ -254,7 +307,7 @@ Public Sub DrawGrid(cv As Object)
                     Loop
                     If span > w Then
                         ' wipe the grid lines the text runs over
-                        cv.Box xs(c - leftCol + 1) - 1, y, span - w, ROW_H - 1, colBack
+                        cv.Box xs(c - leftCol + 1) - 1, y, span - w, rowH(r) - 1, colBack
                     End If
                 End If
                 s = Clip(cv, s, span)
@@ -283,19 +336,19 @@ Public Sub DrawGrid(cv As Object)
     Next i
     For r = topRow To topRow + nrows - 1
         If r >= NR Then Exit For
-        y = RowY(r)
-        If r >= r1 And r <= r2 Then cv.Box 0, y, RHDR_W - 1, ROW_H - 1, colHdrSel
+        y = ys(r - topRow)
+        If r >= r1 And r <= r2 Then cv.Box 0, y, RHDR_W - 1, rowH(r) - 1, colHdrSel
         s = CStr(r + 1)
-        cv.DrawText RHDR_W - 4 - Len(s) * cw, y + ty, s, colHdrText
-        cv.Line 0, y + ROW_H - 1, RHDR_W - 1, y + ROW_H - 1, RGB(190, 194, 204)
+        cv.DrawText RHDR_W - 4 - Len(s) * cw, y + (rowH(r) - th) \ 2, s, colHdrText
+        cv.Line 0, y + rowH(r) - 1, RHDR_W - 1, y + rowH(r) - 1, RGB(190, 194, 204)
     Next r
     cv.Line 0, HDR_H - 1, vw - 1, HDR_H - 1, RGB(160, 164, 176)
     cv.Line RHDR_W - 1, 0, RHDR_W - 1, vh - 1, RGB(160, 164, 176)
     ' selection outline and the cursor
     If curR >= topRow And curR < topRow + nrows And curC >= leftCol And curC <= lastC Then
-        x = xs(curC - leftCol): y = RowY(curR)
-        cv.Rect x - 1, y - 1, colW(curC) + 1, ROW_H + 1, colCursor
-        cv.Rect x, y, colW(curC) - 1, ROW_H - 1, colCursor
+        x = xs(curC - leftCol): y = ys(curR - topRow)
+        cv.Rect x - 1, y - 1, colW(curC) + 1, rowH(curR) + 1, colCursor
+        cv.Rect x, y, colW(curC) - 1, rowH(curR) - 1, colCursor
     End If
     ' floating charts
     For i = 0 To NCharts - 1

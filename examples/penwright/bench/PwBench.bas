@@ -5,14 +5,18 @@ Option Explicit
 
 Sub Main()
     Dim t0 As Double, i As Long, n As Long, cv As Object, s As String, p As Long, o As Long, wl As Long, bad As Long
+    Dim args() As String, dictPath As String
     n = 300
-    If Command$ <> "" Then n = Val(Command$)
+    dictPath = "../penwright.dict"
+    args = Split(Trim$(Command$) & " ", " ")
+    If args(0) <> "" Then n = Val(args(0))
+    If UBound(args) >= 1 Then If args(1) <> "" Then dictPath = args(1)
     s = "Penwright lays out each paragraph into lines, with word wrap and alignment, and draws " & _
         "only what is on the screen; a change lays out just the paragraphs it touched, so typing " & _
         "stays quick in long documents. Mispelt words are marked as you type."
     NewDoc
     t0 = TimerMs
-    If Not LoadDictionary("../penwright.dict", "") Then LoadDictionary "penwright.dict", ""
+    If Not LoadDictionary(dictPath, "") Then LoadDictionary "penwright.dict", ""
     Print "load dictionary: "; Format$((TimerMs - t0), "0"); " ms"
     Set cv = CreateObject("Boing.Canvas")
     cv.Resize 660, 430

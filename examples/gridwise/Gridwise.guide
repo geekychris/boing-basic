@@ -44,7 +44,8 @@ What you type becomes:
 The status line shows the cursor cell's value and format, or the sum, average and
 count of the numbers in a selected range.
 
-Drag the right edge of a column letter to make the column wider or narrower.
+Drag the right edge of a column letter to make the column wider or narrower, the
+bottom edge of a row number to make the row taller or lower.
 The mouse wheel scrolls; Alt+cursor keys jump to the edges, Shift+Ctrl+Up/Down by a page.
 @ENDNODE
 
@@ -209,6 +210,7 @@ Commands (also usable in scripts, see @{"Command line" LINK CLI}):
   CLEAR [range]  COPY  CUT  PASTE [A1]  FILLDOWN  FILLRIGHT  UNDO  REDO
   FORMAT GENERAL|INTEGER|FIXED|THOUSANDS|THOUSANDS2|CURRENCY|PERCENT|PERCENT2|SCIENTIFIC|DATE|TIME
   BOLD [ON|OFF]  ITALIC [ON|OFF]  ALIGN LEFT|CENTER|RIGHT|AUTO  COLWIDTH B [pixels]
+  ROWHEIGHT 5 [pixels]
   INSERTROW [n]  DELETEROW [n]  INSERTCOL [n]  DELETECOL [n]  SORT [col] [ASC|DESC]
   CHART BAR|LINE|PIE [range] [title]   DELCHART [n]   CHARTS
   NEW  OPEN file  SAVE [file]  IMPORTCSV file  EXPORTCSV file
