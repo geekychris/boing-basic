@@ -4,7 +4,6 @@ Dim au As Object, s As Long, n As Long, ok As Boolean, d As Long, v As Long, h1 
 Dim p As String, t0 As Double, pos0 As Long, row0 As Long, moved As Long, load As Long, i As Long
 p = App.Path
 If Right(p, 1) <> "/" And Right(p, 1) <> ":" Then p = p & "/"
-If Dir(p & "fx.mod") = "" Then p = p & "tests-os4/audio/"    ' the VM: App.Path is boing's directory
 ok = True
 Set au = CreateObject("Boing.Audio")
 au.Open "manual", 22050
