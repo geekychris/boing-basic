@@ -86,15 +86,13 @@ Public Function UD(ByVal x As Long) As Double
     If x < 0 Then UD = CDbl(x) + 4294967296# Else UD = x
 End Function
 
-' (integer only: clearing the low bits first makes \ round down; floating point is
-' slow on the QEMU guest)
 Public Function ShrA(ByVal x As Long, ByVal k As Long) As Long
     If k = 0 Then
         ShrA = x
     ElseIf k >= 31 Then
         If x < 0 Then ShrA = -1 Else ShrA = 0
     Else
-        ShrA = (x - (x And (pow2L(k) - 1))) \ pow2L(k)
+        ShrA = Int(CDbl(x) / pow2(k))
     End If
 End Function
 
@@ -161,7 +159,7 @@ Public Function FromI(ByVal i As Long) As Long
 End Function
 
 Public Function FInt(ByVal a As Long) As Long
-    FInt = (a - (a And 65535)) \ 65536
+    FInt = Int(a / 65536#)
 End Function
 
 ' ---------- trig, square roots ----------
@@ -171,8 +169,7 @@ Public Function A3Sin(ByVal a As Long) As Long
     i = (a And &HFF00&) \ 256
     f = a And 255
     s0 = a3SinTab(i)
-    f = (a3SinTab(i + 1) - s0) * f
-    A3Sin = s0 + (f - (f And 255)) \ 256
+    A3Sin = s0 + Int((a3SinTab(i + 1) - s0) * f / 256#)
 End Function
 
 Public Function A3Cos(ByVal a As Long) As Long
@@ -181,8 +178,7 @@ Public Function A3Cos(ByVal a As Long) As Long
     i = (a And &HFF00&) \ 256
     f = a And 255
     s0 = a3SinTab(i)
-    f = (a3SinTab(i + 1) - s0) * f
-    A3Cos = s0 + (f - (f And 255)) \ 256
+    A3Cos = s0 + Int((a3SinTab(i + 1) - s0) * f / 256#)
 End Function
 
 Public Function A3AtanRatio(ByVal num As Long, ByVal den As Long) As Long

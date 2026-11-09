@@ -1,0 +1,6 @@
+# Tank Duel's rules (examples/tank_duel): autopilot fights, hashes equal to the C original's
+Name=TdTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/tank_duel/TdCore.bas
+Module=tdtest.bas
