@@ -40,6 +40,14 @@ def main():
     modes = sys.argv[2] if len(sys.argv) > 2 else "all"
     names = list(BENCHES) if which == "all" else [which]
     modes = ["vm", "jit", "native"] if modes == "all" else [modes]
+    if len(names) * len(modes) > 1:
+        # one process per run: os4guest's watchdog (5-minute session limit) counts from the
+        # first session of a process
+        rc = 0
+        for n in names:
+            for mode in modes:
+                rc |= subprocess.call([sys.executable, os.path.abspath(__file__), n, mode])
+        sys.exit(rc)
     if g.GUEST == "m1" and os.environ.get("BB_ALLOW_M1") != "1":
         sys.exit("guest_bench: m1 is the user's guest; use BB_GUEST=m1b, m1c or local")
     os.environ.setdefault("BB_SESSION_TIMEOUT", "300")
