@@ -299,8 +299,8 @@ int poly_spans(const int16_t *xs, const int16_t *ys, int n,
         int x0 = xs[i], y0 = ys[i], x1 = xs[(i + 1) % n], y1 = ys[(i + 1) % n];
         int32_t x, dx;
         if (y0 > y1) { int t = x0; x0 = x1; x1 = t; t = y0; y0 = y1; y1 = t; }
-        x = (int32_t)x0 << 16;
-        dx = y1 > y0 ? (((int32_t)(x1 - x0)) << 16) / (y1 - y0) : 0;
+        x = (int32_t)x0 * 65536;             /* (not << 16: x0 may be negative) */
+        dx = y1 > y0 ? ((int32_t)(x1 - x0) * 65536) / (y1 - y0) : 0;
         for (y = y0; y <= y1; y++, x += dx) {
             int r = y - ymin, px = (int)((x + 0x8000) >> 16);
             if (y == y1) px = x1;

@@ -758,7 +758,7 @@ static void rot_ypr(int32_t m[9], int yaw, int pitch, int roll)
     int32_t a00 = cr, a01 = -sr, a10 = (cp * sr) >> 12, a11 = (cp * cr) >> 12, a12 = -sp;
     int32_t a20 = (sp * sr) >> 12, a21 = (sp * cr) >> 12, a22 = cp;
     m[0] = (cy * a00 + sy * a20) >> 8;  m[1] = (cy * a01 + sy * a21) >> 8;  m[2] = (sy * a22) >> 8;
-    m[3] = a10 << 4;                     m[4] = a11 << 4;                     m[5] = a12 << 4;
+    m[3] = a10 * 16;                     m[4] = a11 * 16;                     m[5] = a12 * 16;
     m[6] = (-sy * a00 + cy * a20) >> 8; m[7] = (-sy * a01 + cy * a21) >> 8; m[8] = (cy * a22) >> 8;
 }
 
@@ -931,21 +931,21 @@ static void grid_free(E3Grid *g)
 /* height at a 16.16 world point, 16.16, bilinear between the four corners */
 static int32_t grid_height16(const E3Grid *g, int32_t x, int32_t z)
 {
-    int64_t gx = ((int64_t)x - ((int64_t)g->x0 << 16)) / g->cell, gz = ((int64_t)z - ((int64_t)g->z0 << 16)) / g->cell;
+    int64_t gx = ((int64_t)x - (int64_t)g->x0 * 65536) / g->cell, gz = ((int64_t)z - (int64_t)g->z0 * 65536) / g->cell;
     int32_t i, j, fx, fz, h00, h10, h01, h11;
     int64_t top, bot;
     if (gx < 0) gx = 0;
     if (gz < 0) gz = 0;
-    if (gx > ((int64_t)(g->w - 1) << 16)) gx = (int64_t)(g->w - 1) << 16;
-    if (gz > ((int64_t)(g->h - 1) << 16)) gz = (int64_t)(g->h - 1) << 16;
+    if (gx > (int64_t)(g->w - 1) * 65536) gx = (int64_t)(g->w - 1) * 65536;
+    if (gz > (int64_t)(g->h - 1) * 65536) gz = (int64_t)(g->h - 1) * 65536;
     i = (int32_t)(gx >> 16); j = (int32_t)(gz >> 16);
     fx = (int32_t)(gx & 0xFFFF); fz = (int32_t)(gz & 0xFFFF);
     if (i >= g->w - 1) { i = g->w - 2; fx = 65536; }
     if (j >= g->h - 1) { j = g->h - 2; fz = 65536; }
     h00 = g->hgt[j * g->w + i]; h10 = g->hgt[j * g->w + i + 1];
     h01 = g->hgt[(j + 1) * g->w + i]; h11 = g->hgt[(j + 1) * g->w + i + 1];
-    top = ((int64_t)h00 << 16) + (int64_t)(h10 - h00) * fx;
-    bot = ((int64_t)h01 << 16) + (int64_t)(h11 - h01) * fx;
+    top = (int64_t)h00 * 65536 + (int64_t)(h10 - h00) * fx;
+    bot = (int64_t)h01 * 65536 + (int64_t)(h11 - h01) * fx;
     return (int32_t)(top + (((bot - top) * fz) >> 16));
 }
 
@@ -1207,9 +1207,9 @@ static void set_light(bb_e3d *e, int32_t x, int32_t y, int32_t z)
     while (x > 16383 || x < -16383 || y > 16383 || y < -16383 || z > 16383 || z < -16383) { x /= 2; y /= 2; z /= 2; }
     len = a3_isqrt((uint32_t)(x * x + y * y + z * z));
     if (!len) bb_raise(5, NULL);
-    e->lix = (int32_t)(((int64_t)x << 16) / len);
-    e->liy = (int32_t)(((int64_t)y << 16) / len);
-    e->liz = (int32_t)(((int64_t)z << 16) / len);
+    e->lix = (int32_t)((int64_t)x * 65536 / len);
+    e->liy = (int32_t)((int64_t)y * 65536 / len);
+    e->liz = (int32_t)((int64_t)z * 65536 / len);
 }
 
 static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
