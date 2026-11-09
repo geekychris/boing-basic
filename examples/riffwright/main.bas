@@ -1,7 +1,50 @@
 ' Riffwright - the main window: keys, the frame timer, files
 '
-'   Riffwright [song.mod]
+'   Riffwright [song.mod] [--play] [--log] [--quit-after SEC] [--bench N]
+'     --play          start playing the song at once (follow mode)
+'     --log           print state changes (active window, loads, mode) for the guest tests
+'     --quit-after S  close after S seconds (smoke tests; unsaved changes are dropped)
+'     --bench N       play and draw N frames as fast as possible, print the timings, quit
 Option Explicit
+
+Private logOn As Boolean
+Private quitAt As Double
+Private benchN As Long
+Private benchFrames As Long
+Private benchDraw As Double
+Private benchBlit As Double
+Private benchWorst As Double
+Private benchStart As Double
+
+Private Sub LogLine(ByVal s As String)
+    If logOn Then Debug.Print s
+End Sub
+
+Private Function ParseArgs() As String
+    Dim a() As String, i As Long, song As String, play As Boolean
+    a = Split(Trim$(Command$), " ")
+    i = 0
+    Do While i <= UBound(a)
+        Select Case LCase$(a(i))
+            Case "": 
+            Case "--log": logOn = True
+            Case "--play": play = True
+            Case "--quit-after"
+                i = i + 1
+                If i <= UBound(a) Then quitAt = Timer + Val(a(i))
+            Case "--bench"
+                i = i + 1
+                If i <= UBound(a) Then benchN = CLng(Val(a(i)))
+                play = True
+            Case Else
+                song = a(i)
+        End Select
+        i = i + 1
+    Loop
+    If song <> "" Then OpenSong song
+    If play Then StartSong 0, 0
+    ParseArgs = song
+End Function
 
 Private Sub Form_Load()
     ViewInit view
@@ -11,7 +54,7 @@ Private Sub Form_Load()
     StarterSamples
     SongChanged
     filereq.Visible = False
-    If Len(Trim$(Command$)) > 0 Then OpenSong Trim$(Command$)
+    ParseArgs
     Frame True
     view.Refresh
 End Sub
@@ -33,7 +76,50 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
 End Sub
 
 Private Sub tick_Timer()
+    Dim t As Double
+    If quitAt > 0 And Timer >= quitAt Then
+        LogLine "quit"
+        songDirty = False
+        quitAt = 0
+        Unload Me
+        Exit Sub
+    End If
+    If benchN > 0 Then RunBench: Exit Sub
     If Frame(False) Then view.Refresh
+End Sub
+
+Private Sub Form_Activate()
+    LogLine "active"
+End Sub
+
+Private Sub Form_Deactivate()
+    LogLine "inactive"
+End Sub
+
+' --bench: frames as fast as they go with the pattern scrolling, then a report
+Private Sub RunBench()
+    Dim i As Long, t0 As Double, t1 As Double, t2 As Double
+    tick.Enabled = False
+    benchStart = Timer
+    For i = 1 To benchN
+        t0 = Timer
+        frameDirty = True
+        Frame True
+        t1 = Timer
+        view.Refresh
+        t2 = Timer
+        benchDraw = benchDraw + (t1 - t0)
+        benchBlit = benchBlit + (t2 - t1)
+        If t2 - t0 > benchWorst Then benchWorst = t2 - t0
+        If i Mod 25 = 0 Then DoEvents
+    Next i
+    t0 = Timer - benchStart
+    Debug.Print "bench frames"; benchN; " total"; Format$(t0, "0.000"); "s  fps "; Format$(benchN / t0, "0.0")
+    Debug.Print "  draw ms/frame "; Format$(benchDraw * 1000 / benchN, "0.000"); _
+        "  blit ms/frame "; Format$(benchBlit * 1000 / benchN, "0.000"); "  worst ms "; Format$(benchWorst * 1000, "0.0")
+    benchN = 0
+    songDirty = False
+    Unload Me
 End Sub
 
 Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
@@ -61,6 +147,7 @@ Private Sub OpenSong(ByVal path As String)
     StopPlayer
     If LoadMod(path) Then
         SongChanged
+        LogLine "loaded " & path & " " & nch & " " & nPat
         Say "loaded " & songFileName() & ": " & nch & " channels, " & nPat & " patterns"
     Else
         Say "can't load " & path & ": " & lastError
