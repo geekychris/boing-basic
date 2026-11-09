@@ -8,6 +8,8 @@ You fly a Swallow scout of Larkspur Squadron against the Grauland air service, o
 trenches and the river Sellen, from behind (the chase view) or from the cockpit, with its upper
 wing overhead, its struts, the twin guns on the cowling and their ring sight.
 
+![Mission 6, Supply Lines: the autopilot banks after the dumps (the camera banks with it), on the guest](screenshots/os4-strafing.png)
+
 
 | Key | |
 |---|---|
@@ -25,6 +27,11 @@ wing overhead, its struts, the twin guns on the cowling and their ring sight.
 | Esc | title / quit |
 
 On the title, Up / Down choose the mission to start from; Space or Return goes to its briefing.
+
+| | |
+|---|---|
+| ![The cockpit view](screenshots/os4-cockpit.png) | ![Flying home](screenshots/os4-dogfight.png) |
+| ![The title](screenshots/os4-title.png) | ![A briefing](screenshots/os4-brief.png) |
 
 The eight missions are the C's: **Dawn Patrol** (the patrol line, Wasps after the first
 marker), **Eyes in the Sky** (two balloons and their guns), **Shepherd** (escort two Herons to
@@ -100,8 +107,22 @@ Changed:
 
 ## Performance
 
-On the Mac (Apple M-series), `Bench.bbp --frames 3000 --mission 6` (the autopilot, every frame drawn on an off-screen
-canvas): VM `logic 0.013 draw 0.063 ms/frame, 13037.1 fps;  polys/frame 136.9`; native `logic 0.002 draw 0.048 ms/frame, 19994.5 fps;  polys/frame 136.9`. The VM and native
-builds give the same state and picture hashes.
+`AcePilot2 --bench 500`: the autopilot flies mission 1 from seed 1234 in the form's window, frames
+back to back, every frame drawn (the scene through Engine3D, the HUD through the Canvas) and
+shown. On **m1b** (QEMU sam460ex on an unloaded Mac), ms per frame:
 
-The guest numbers (m1b: VM, JIT, native) and the guest screenshots follow in the next update.
+| | logic | draw | blit | frame | fps |
+|---|---:|---:|---:|---:|---:|
+| VM (`boing run`) | 1.39 | 10.69 | 3.35 | 15.82 | **63.2** |
+| VM `--jit` | 1.66 | 10.67 | 3.35 | 16.03 | **62.4** |
+| native (`boing build --target os4`) | 0.24 | 3.22 | 3.16 | 6.75 | **148.2** |
+
+All three end in the same state hash (6A528BD1); about 146 polygons a frame. Played in real time
+(`--smoke 400`, the form's timer, effects through AHI) the VM shows 29.3 fps on m1b. The JIT
+doesn't help under QEMU (see docs/performance.md); the plain VM is the one to use.
+
+On the Mac (Apple M-series), `Bench.bbp --frames 3000 --mission 6`: VM `logic 0.013 draw 0.063
+ms/frame, 13037.1 fps`; native `logic 0.002 draw 0.048 ms/frame, 19994.5 fps` (136.9 polys a
+frame), the same state and picture hashes.
+
+The screenshots are from m1b (`tools/guest_shots.py OUTDIR`, one lock ticket each).
