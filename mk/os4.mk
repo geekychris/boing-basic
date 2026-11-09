@@ -22,7 +22,7 @@ LDFLAGS += -mcrt=newlib -mcpu=powerpc
 LIBS    += -lauto -lm
 
 # libboing: the portable runtime plus the OS4 parts
-RT_SRCS   := $(wildcard src/runtime/*.c) $(wildcard src/runtime/a3d/*.c) $(wildcard src/runtime/os4/*.c)
+RT_SRCS   := $(wildcard src/runtime/*.c) $(wildcard src/runtime/a3d/*.c) $(wildcard src/runtime/audio/*.c) $(wildcard src/runtime/os4/*.c)
 COMP_SRCS := $(wildcard src/compiler/*.c)
 VM_SRCS   := $(wildcard src/vm/*.c)
 MAIN_SRCS := $(wildcard src/main/*.c)

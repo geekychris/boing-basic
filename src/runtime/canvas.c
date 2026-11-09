@@ -9,6 +9,7 @@
  */
 #include "canvas.h"
 #include <math.h>
+#include "audio.h"
 #include "canvas_font.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -834,6 +835,7 @@ bb_obj *bb_create_object(const bb_str *progid)
     const char *p = bb_str_ptr(progid);
     if (!strcasecmp(p, "Boing.Canvas") || !strcasecmp(p, "Canvas")) return bb_canvas_new(320, 200, NULL);
     if (!strcasecmp(p, "Boing.Engine3D") || !strcasecmp(p, "Engine3D")) return bb_engine3d_new();
+    if (!strcasecmp(p, "Boing.Audio") || !strcasecmp(p, "Audio")) return bb_audio_new();
     bb_raise(429, NULL);
     return NULL;
 }

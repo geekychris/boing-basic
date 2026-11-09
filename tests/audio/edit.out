@@ -1,0 +1,21 @@
+bb edit test ch  8  len  1  pats  1 
+smp2 ft -2  len  64  loop  0  64 
+added pattern  1  count  2 
+order  0  1  0  len  3 
+cell 1/8/3 A#3 period 1/16/3  300  note F#2
+packed 448 = 448
+names C-1 C-2 B-3 ---  21  period  428  406 
+saved  5276 
+reloaded same: True ch  8  'bb edit test' square ft -2 
+8ch played  192  blocks, ended  1 
+hash 7729796B
+note on ch0: note  13  smp  1  vol  40  vu>0 True
+ch1 vol  10 
+off: vu  0 
+row: ch3 note A#3
+hash 7EA9DD20
+six:  6 
+wav  1695788 
+freed  9 
+bad row  9 
+bad note  380 

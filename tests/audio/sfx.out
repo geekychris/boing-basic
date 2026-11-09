@@ -1,0 +1,16 @@
+wav: len  2205  rate  22050  bits  16 
+8svx: len  1100  rate  11025  bits  8  loop True
+raw: len  1100  rate  11025  first  0  90 
+tone: len  4410  bits  16 
+tone peak  24575 
+voices  1  2 TrueTrue
+after 0.2 s: FalseTrue
+rate  44100  pan -10 
+scope peak > 1000: True
+stopped False
+pri 0 voice:  0  pri 9 voice > 0: True
+looped voice still playing: True
+disabled:  0 False
+music off: playing True
+hash 7BB6872F
+freed:  9 
