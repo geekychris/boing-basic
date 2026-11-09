@@ -1,0 +1,12 @@
+sfx 3: len  3000  rate  11822  check C23BC0
+voice TrueTrue 40 
+done False
+redefined len  100  sfx 9  0 
+speed  6  tempo  125  restart  127 
+start tempo  150 
+pattern mode: pattern  1  playing True ended  0 
+chpos True silent ch -1 
+bytes  1280  =  1280  first  136  144 
+set: len  10  data  25 -31 
+set 4: len  4 
+restart kept  1 

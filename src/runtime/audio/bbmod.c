@@ -61,6 +61,9 @@ bba_song *bba_song_new(int nch)
     if (!s) return NULL;
     s->nch = nch;
     s->song_len = 1;
+    s->restart_byte = 127;
+    s->speed = 6;
+    s->bpm = 125;
     s->npat = 1;
     s->pat = (uint8_t *)calloc(1, (size_t)BBA_ROWS * nch * 4);
     if (!s->pat) { free(s); return NULL; }
@@ -104,7 +107,10 @@ bba_song *bba_song_load(const uint8_t *d, long len)
     s->nch = nch;
     copy_name(s->name, d, 20);
     s->song_len = d[950];
+    s->restart_byte = d[951];
     s->restart = d[951] < s->song_len ? d[951] : 0;
+    s->speed = 6;
+    s->bpm = 125;
     memcpy(s->order, d + 952, 128);
     for (i = 0; i < 128; i++) {
         if (s->order[i] >= BBA_MAXPAT) s->order[i] = 0;
@@ -167,7 +173,7 @@ uint8_t *bba_song_save(const bba_song *s, long *len)
         put16(h + 28, ll / 2);
     }
     d[950] = (uint8_t)s->song_len;
-    d[951] = 127;
+    d[951] = (uint8_t)s->restart_byte;
     memcpy(d + 952, s->order, 128);
     memcpy(d + 1080, s->nch == 4 ? "M.K." : s->nch == 6 ? "6CHN" : "8CHN", 4);
     memcpy(d + 1084, s->pat, (size_t)(npat * psize));
@@ -233,6 +239,7 @@ void bba_player_init(bba_player *p, int rate)
     p->speed = 6;
     p->bpm = 125;
     p->jump_pos = p->break_row = -1;
+    p->pat_mode = -1;
     for (i = 0; i < BBA_MAXCH; i++) p->ch[i].pan = -1;
 }
 
@@ -254,9 +261,10 @@ void bba_play(bba_player *p, bba_song *s, int pos, int row)
 {
     p->song = s;
     reset_channels(p);
-    p->speed = 6;
-    p->bpm = 125;
+    p->speed = s->speed;
+    p->bpm = s->bpm;
     p->tick = 0;
+    p->pat_mode = -1;
     p->pos = pos >= 0 && pos < s->song_len ? pos : 0;
     p->row = row >= 0 && row < BBA_ROWS ? row : 0;
     p->pat_delay = p->delay_rows = 0;
@@ -265,6 +273,12 @@ void bba_play(bba_player *p, bba_song *s, int pos, int row)
     p->ended = 0;
     p->playing = 1;
     p->paused = 0;
+}
+
+void bba_play_pattern(bba_player *p, bba_song *s, int pat, int row)
+{
+    bba_play(p, s, 0, row);
+    p->pat_mode = pat >= 0 && pat < s->npat ? pat : 0;
 }
 
 void bba_stop(bba_player *p)
@@ -448,7 +462,7 @@ static void do_cell(bba_player *p, int chn, const uint8_t *r, int from_song)
 static void new_row(bba_player *p)
 {
     bba_song *s = p->song;
-    int i, pat = s->order[p->pos];
+    int i, pat = p->pat_mode >= 0 ? p->pat_mode : s->order[p->pos];
     if (pat >= s->npat) pat = 0;
     for (i = 0; i < s->nch; i++) do_cell(p, i, bba_cell(s, pat, p->row, i), 1);
 }
@@ -510,6 +524,12 @@ static void next_row(bba_player *p)
         p->row = p->break_row - 1000;
         p->break_row = -1;
         if (p->jump_pos >= 0) p->jump_pos = -1;
+        return;
+    }
+    if (p->pat_mode >= 0) {                     /* PlayPattern: the same pattern again */
+        if (p->break_row >= 0) p->row = p->break_row;
+        else if (p->jump_pos >= 0 || ++p->row >= BBA_ROWS) p->row = 0;
+        p->jump_pos = p->break_row = -1;
         return;
     }
     if (p->jump_pos >= 0 || p->break_row >= 0) {

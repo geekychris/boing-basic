@@ -73,7 +73,8 @@ arguments.
 | `NewSong([channels])` | an empty song (4 default, 6 or 8), one empty pattern, song length 1 |
 | `SaveMusic song, path` | write the song as a ProTracker module (M.K. for 4 channels, 6CHN, 8CHN) |
 | `FreeMusic song` | stops it first if it plays |
-| `PlayMusic song [, position [, row]]` | start (restart) a song |
+| `PlayMusic song [, position [, row]]` | start (restart) a song, at its `SongSpeed`/`SongTempo` |
+| `PlayPattern song, pattern [, row]` | loop one pattern (the tracker's play-pattern key); `Pattern` reports it, `Bxx`/`Dxx` stay in it, `SongEnded` doesn't count |
 | `StopMusic` | stop; channels go quiet |
 | `Pause` / `Resume` | hold the music (effects go on) |
 | `Playing` | Boolean, R/O: a song is playing (paused counts as playing) |
@@ -96,6 +97,7 @@ arguments.
 | `ChannelVU(channel)` | Long 0..64, R/O: the channel's peak level over the last chunk mixed (VU meter) |
 | `ChannelNote(channel)` | Long, R/O: the last note triggered on the channel (1..36, 0 none) |
 | `ChannelSample(channel)` | Long, R/O: its sample (1..31) |
+| `ChannelPos(channel)` | Long, R/O: the play offset in the channel's sample in bytes, -1 when silent (a waveform view's cursor) |
 | `Scope(channel, n)` | a Long array `(0 To n-1)` of the channel's last n output samples (oldest first), -128..127, n up to 1024: `Dim sc() As Long: sc = au.Scope(0, 256)`. Channel -1 = the mixed output ((left + right) / 2), -32768..32767. (A function, not a buffer to fill: arrays reach late-bound calls as copies) |
 
 ## Live playing (tracker keyboard, jingles)
@@ -117,6 +119,8 @@ is replaced is cut on channels playing it).
 |---|---|
 | `SongName(song)` | String, read/write (20 chars) |
 | `Channels(song)` | Long, R/O |
+| `SongSpeed(song)`, `SongTempo(song)` | Long, read/write: what `PlayMusic` starts with before any `Fxx` (6 and 125) |
+| `SongRestart(song)` | Long 0..127, read/write: the restart byte (951), kept as loaded and written on save (127 = none) |
 | `SongLength(song)` | Long 1..128, read/write: the used part of the order list |
 | `Order(song, position)` | Long, read/write: the pattern at that order-list position (0..127) |
 | `PatternCount(song)` | Long, R/O: patterns stored (highest used + 1) |
@@ -136,6 +140,8 @@ is replaced is cut on channels playing it).
 | `SampleFinetune(song, s)` | Long -8..7, read/write |
 | `SampleLoopStart(song, s)`, `SampleLoopLength(song, s)` | Long, read/write: bytes (loop length 0 or 2 = no loop) |
 | `SampleData(song, s, index)` | Long -128..127, read/write: one byte of the sample |
+| `SetSampleBytes song, s, bytes() [, n]` | the sample's data from an array in one call: Byte (signed 8-bit as stored, 128..255 = -128..-1), or Integer/Long (-128..127); the length becomes n (default: the whole array) |
+| `GetSampleBytes(song, s)` | the sample's data as a Byte array `(0 To len-1)` (Empty for an empty sample) |
 | `LoadSample song, s, path` | an 8SVX/WAV/raw file into sample s (converted to 8-bit mono, rate kept as is: set the note to taste) |
 | `SetSampleFromSound song, s, sound` | a sound (below) as sample s |
 | `NoteName(note)`, `NoteFromName(name)`, `NotePeriod(note [, finetune])` | helpers |
@@ -168,6 +174,34 @@ Big edits (a whole pattern) are cheapest with `Cell`/`SetCell`.
 
 Voice numbers are unique while the program runs (a voice that ended is not reused under the
 same number), so `StopVoice` on an old voice is harmless.
+
+## amiga3d-style effects
+
+For ports of the amiga3d C games: the same calls and arithmetic as `a3d_sound.c`
+(`a3_sfx_define`, `a3_tone`, `a3_noise`, `a3_sfx`), so the effects are byte for byte the
+originals'. The buffers are 8-bit, played at 11 822 Hz (Paula period 300).
+
+| Member | |
+|---|---|
+| `SfxDefine id, length [, volume [, priority]]` | id 0..63: a silent buffer of length samples (even); redefining replaces it |
+| `SfxTone id, offset, n, f0, f1, amp [, fade]` | `a3_tone` into samples offset..offset+n-1: a triangle sweeping f0 -> f1 Hz, fading over the last `fade` samples |
+| `SfxNoise id, offset, n, amp [, lowpass [, attack]]` | `a3_noise`: noise (one generator for the program, seeded as in a3d) low-passed, rising over `attack` samples, then dying away |
+| `Sfx(id [, volume])` | play it on a free voice with its priority; returns the voice (0: none, or effects off). Cheap: call it as often as you like |
+| `SfxSound(id)` | the sound number behind it (for `PlaySound` with pan or rate, `SoundData`...) |
+
+```basic
+au.SfxDefine 2, 2400, 48, 20                    ' LAND: three tones
+au.SfxTone 2, 0, 800, 523, 523, 90, 100
+au.SfxTone 2, 800, 800, 659, 659, 90, 100
+au.SfxTone 2, 1600, 800, 784, 784, 90, 200
+...
+v = au.Sfx(2)
+```
+
+A precomputed sample at a Paula period: `au.PlaySound snd, vol, 0, 3546895 \ period`.
+
+On the Mac every call works the same with no sound device (the "null" device mixes silently
+by the clock, so positions advance); `Open "manual"` makes it deterministic for tests.
 
 ## Mixing
 

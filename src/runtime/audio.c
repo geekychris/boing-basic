@@ -28,6 +28,10 @@ static uint32_t wav_frames;
 static double null_t0;
 static uint64_t null_frames;
 static int16_t *scratch;
+#define SFX_IDS 64
+#define FX_RATE (3546895 / 300)         /* amiga3d's A3_FX_PERIOD 300: 11.8 kHz */
+static int sfx_snd[SFX_IDS], sfx_vol[SFX_IDS], sfx_pri[SFX_IDS];
+static uint32_t a3_rng = 4242;          /* a3d_sound.c's noise generator, one sequence per program */
 static int exit_hooked;
 
 /* ---------------------------------------------------------------- arguments */
@@ -93,6 +97,34 @@ static const char *argstr(int argc, const bb_value *argv, int i, char *buf, size
         bb_str_release(s);
     }
     return buf;
+}
+
+static bb_array *arg_array(int argc, const bb_value *argv, int i)
+{
+    const bb_value *v;
+    if (missing(argc, argv, i)) bb_raise(449, NULL);
+    v = &argv[i];
+    if ((v->type & BB_REF) && (v->type & BB_ARRAY)) return *(bb_array **)v->u.p;
+    if (v->type & BB_REF) {
+        const bb_value *pv = (const bb_value *)v->u.p;
+        if (pv->type & BB_ARRAY) return pv->u.a;
+    } else if (v->type & BB_ARRAY) return v->u.a;
+    bb_raise(13, NULL);
+    return NULL;
+}
+
+/* element k (storage order) of a numeric array as a Long */
+static int32_t elem_l(const bb_array *a, int32_t k)
+{
+    const char *p = (const char *)a->data + (size_t)k * (size_t)a->esize;
+    switch (a->etype) {
+    case BB_BYTE: return *(const bb_byte *)p;
+    case BB_INTEGER: return *(const bb_int *)p;
+    case BB_LONG: return *(const bb_long *)p;
+    case BB_BOOLEAN: return *(const bb_bool *)p;
+    case BB_VARIANT: return to_l((const bb_value *)p);
+    default: { bb_value t = bb_elem_load(a->etype, p); int32_t r = bb_v_to_long(&t); bb_v_release(&t); return r; }
+    }
 }
 
 static void range(int32_t v, int32_t lo, int32_t hi, int err)
@@ -390,7 +422,9 @@ enum {
     M_LOADSOUND, M_CREATESOUND, P_SOUNDDATA, P_SOUNDLENGTH, P_SOUNDRATE, P_SOUNDBITS,
     P_SOUNDLOOP, P_SOUNDLOOPSTART, P_SOUNDLOOPLENGTH, M_SYNTHTONE, M_SYNTHNOISE, M_FREESOUND,
     M_PLAYSOUND, M_PLAYSOUNDPRI, M_STOPVOICE, M_STOPSOUNDS, P_VOICEPLAYING, P_VOICEVOLUME,
-    P_VOICEPAN, P_VOICERATE, P_SOUNDVOLUME, P_SOUNDENABLED, P_VOICES
+    P_VOICEPAN, P_VOICERATE, P_SOUNDVOLUME, P_SOUNDENABLED, P_VOICES,
+    M_PLAYPATTERN, M_SETSAMPLEBYTES, M_GETSAMPLEBYTES, P_CHANNELPOS, P_SONGSPEED, P_SONGTEMPO,
+    P_SONGRESTART, M_SFXDEFINE, M_SFXTONE, M_SFXNOISE, M_SFX, P_SFXSOUND
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -427,6 +461,10 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"VoicePlaying", P_VOICEPLAYING}, {"VoiceVolume", P_VOICEVOLUME}, {"VoicePan", P_VOICEPAN},
     {"VoiceRate", P_VOICERATE}, {"SoundVolume", P_SOUNDVOLUME},
     {"SoundEnabled", P_SOUNDENABLED}, {"Voices", P_VOICES},
+    {"PlayPattern", M_PLAYPATTERN}, {"SetSampleBytes", M_SETSAMPLEBYTES},
+    {"GetSampleBytes", M_GETSAMPLEBYTES}, {"ChannelPos", P_CHANNELPOS}, {"SongSpeed", P_SONGSPEED},
+    {"SongTempo", P_SONGTEMPO}, {"SongRestart", P_SONGRESTART}, {"SfxDefine", M_SFXDEFINE},
+    {"SfxTone", M_SFXTONE}, {"SfxNoise", M_SFXNOISE}, {"Sfx", M_SFX}, {"SfxSound", P_SFXSOUND},
 };
 
 static int32_t au_find(const bb_class *cls, const char *name)
@@ -567,7 +605,7 @@ static void dispatch(int32_t id, int kind, int argc, bb_value *argv, bb_value *r
             p->pat_delay = p->delay_rows = 0;
         } else *ret = bb_v_long(id == P_POSITION ? p->pos : p->row);
         return;
-    case P_PATTERN: *ret = bb_v_long(p->song ? p->song->order[p->pos] : 0); return;
+    case P_PATTERN: *ret = bb_v_long(!p->song ? 0 : p->pat_mode >= 0 ? p->pat_mode : p->song->order[p->pos]); return;
     case P_TICK: *ret = bb_v_long(p->tick); return;
     case P_SPEED:
         if (SETTING) { int32_t v = NEWV(0); range(v, 1, 31, 380); p->speed = v; }
@@ -954,6 +992,126 @@ static void dispatch(int32_t id, int kind, int argc, bb_value *argv, bb_value *r
         } else *ret = bb_v_bool(mx.sound_on);
         return;
     case P_VOICES: *ret = bb_v_long(BBA_VOICES); return;
+
+    /* ---- tracker extras ---- */
+    case M_PLAYPATTERN: {
+        int32_t n = argl(argc, argv, 0), pat = argl(argc, argv, 1), row = argl_opt(argc, argv, 2, 0);
+        bba_song *s = song(n);
+        range(pat, 0, s->npat - 1, 9);
+        range(row, 0, BBA_ROWS - 1, 9);
+        bba_play_pattern(p, s, pat, row);
+        edit_song = n;
+        return;
+    }
+    case M_SETSAMPLEBYTES: {
+        bba_song *s = song(argl(argc, argv, 0));
+        int32_t sn = argl(argc, argv, 1), n, k;
+        bba_sample *sm = sample(s, sn);
+        bb_array *a = arg_array(argc, argv, 2);
+        n = argl_opt(argc, argv, 3, a ? a->count : 0);
+        if (!a || n < 0 || n > a->count) bb_raise(9, NULL);
+        range(n, 0, 131070, 5);
+        bba_sample_changed(p, sn);
+        if (!bba_sample_resize(sm, (uint32_t)n)) bb_raise(7, NULL);
+        for (k = 0; k < (int32_t)sm->len; k++) sm->data[k] = (int8_t)(uint8_t)(elem_l(a, k) & 255);
+        return;
+    }
+    case M_GETSAMPLEBYTES: {
+        bba_sample *sm = sample(song(argl(argc, argv, 0)), argl(argc, argv, 1));
+        bb_array *a;
+        bb_value v;
+        if (!sm->len) { *ret = bb_v_empty(); return; }
+        a = bb_arr_new1(BB_BYTE, 0, (int32_t)sm->len - 1);
+        memcpy(a->data, sm->data, sm->len);
+        v = bb_v_make(BB_ARRAY | BB_BYTE);
+        v.u.a = a;
+        *ret = v;
+        return;
+    }
+    case P_CHANNELPOS: {
+        bba_chan *c = chan_arg(argc, argv, 0);
+        *ret = bb_v_long(c->active && !p->paused ? (int32_t)c->pos : -1);
+        return;
+    }
+    case P_SONGSPEED: case P_SONGTEMPO: case P_SONGRESTART: {
+        bba_song *s = song(argl(argc, argv, 0));
+        if (SETTING) {
+            int32_t v = NEWV(1);
+            if (id == P_SONGSPEED) { range(v, 1, 31, 380); s->speed = v; }
+            else if (id == P_SONGTEMPO) { range(v, 32, 255, 380); s->bpm = v; }
+            else { range(v, 0, 127, 380); s->restart_byte = v; s->restart = v < s->song_len ? v : 0; }
+        } else *ret = bb_v_long(id == P_SONGSPEED ? s->speed : id == P_SONGTEMPO ? s->bpm : s->restart_byte);
+        return;
+    }
+    case M_SFXDEFINE: {
+        /* a3d_sound.c's a3_sfx_define: an 8-bit buffer of len samples played at 11.8 kHz */
+        int32_t i = argl(argc, argv, 0), len = argl(argc, argv, 1), vol = argl_opt(argc, argv, 2, 64), pri = argl_opt(argc, argv, 3, 0);
+        range(i, 0, SFX_IDS - 1, 9);
+        range(len, 2, 131070, 5);
+        range(vol, 0, 64, 5);
+        if (sfx_snd[i] && sfx_snd[i] <= nsounds && sounds[sfx_snd[i] - 1]) {
+            bba_sound_gone(&mx, sounds[sfx_snd[i] - 1]);
+            bba_sound_free(sounds[sfx_snd[i] - 1]);
+            sounds[sfx_snd[i] - 1] = NULL;
+        }
+        sfx_snd[i] = 0;
+        sfx_snd[i] = add_sound(bba_sound_new((uint32_t)len & ~1u, FX_RATE, 8));
+        sfx_vol[i] = vol;
+        sfx_pri[i] = pri;
+        return;
+    }
+    case M_SFXTONE: case M_SFXNOISE: {
+        int32_t i = argl(argc, argv, 0), off = argl(argc, argv, 1), n = argl(argc, argv, 2), k;
+        bba_sound *snd;
+        int8_t *d;
+        range(i, 0, SFX_IDS - 1, 9);
+        snd = sound(sfx_snd[i]);
+        if (off < 0 || n < 0 || (uint32_t)off + (uint32_t)n > snd->len) bb_raise(9, NULL);
+        d = (int8_t *)snd->data + off;
+        if (id == M_SFXTONE) {          /* a3_tone: a triangle f0 -> f1 Hz, fading over the last fade */
+            int32_t f0 = argl(argc, argv, 3), f1 = argl(argc, argv, 4), amp = argl(argc, argv, 5), fade = argl_opt(argc, argv, 6, 1);
+            uint32_t ph = 0;
+            if (fade < 1) fade = 1;
+            for (k = 0; k < n; k++) {
+                int32_t f = f0 + (int32_t)(((int64_t)(f1 - f0) * k) / n), t, a = amp;
+                ph += (uint32_t)(((int64_t)f * 65536) / FX_RATE);
+                t = (int32_t)((ph >> 8) & 255);
+                t = t < 128 ? t * 2 - 128 : 383 - t * 2;
+                if (k > n - fade) a = (amp * (n - k)) / fade;
+                d[k] = (int8_t)((t * a) / 128);
+            }
+        } else {                        /* a3_noise: noise, low-passed, attack then decay */
+            int32_t amp = argl(argc, argv, 3), lp = argl_opt(argc, argv, 4, 1), att = argl_opt(argc, argv, 5, 0), acc = 0;
+            if (lp < 1) lp = 1;
+            if (att < 0) att = 0;
+            for (k = 0; k < n; k++) {
+                int32_t env, x;
+                if (k < att) env = (amp * k) / att;
+                else env = n - att > 0 ? (amp * (n - k)) / (n - att) : 0;
+                a3_rng = a3_rng * 1103515245u + 12345u;
+                x = (int32_t)((a3_rng >> 16) & 255) - 128;
+                acc += x - acc / lp;
+                d[k] = (int8_t)(((acc / lp) * env) / 128);
+            }
+        }
+        return;
+    }
+    case M_SFX: {
+        int32_t i = argl(argc, argv, 0), vol;
+        range(i, 0, SFX_IDS - 1, 9);
+        vol = argl_opt(argc, argv, 1, sfx_vol[i]);
+        range(vol, 0, 64, 5);
+        if (sfx_snd[i] && mx.sound_on)
+            *ret = bb_v_long((int32_t)bba_voice_start(&mx, sound(sfx_snd[i]), vol, 0, 0, 0, sfx_pri[i]));
+        else *ret = bb_v_long(0);
+        return;
+    }
+    case P_SFXSOUND: {
+        int32_t i = argl(argc, argv, 0);
+        range(i, 0, SFX_IDS - 1, 9);
+        *ret = bb_v_long(sfx_snd[i]);
+        return;
+    }
     }
     bb_raise(438, NULL);
 }

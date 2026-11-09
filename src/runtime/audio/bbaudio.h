@@ -33,6 +33,8 @@ typedef struct {
     char name[21];
     int nch;                    /* 4, 6 or 8 */
     int song_len, restart;
+    int restart_byte;           /* byte 951 as loaded (kept on save) */
+    int speed, bpm;             /* what PlayMusic starts with (6, 125) */
     uint8_t order[128];
     int npat;                   /* patterns stored */
     uint8_t *pat;               /* npat * 64 rows * nch cells * 4 bytes, ProTracker cell format */
@@ -62,6 +64,7 @@ typedef struct {
     int speed, bpm, tick, row, pos, pat_delay, delay_rows, jump_pos, break_row;
     int tick_left, rate;
     int ended;                  /* times the song reached its end */
+    int pat_mode;               /* >= 0: PlayPattern loops this pattern */
     bba_chan ch[BBA_MAXCH];
 } bba_player;
 
@@ -96,6 +99,7 @@ int bba_period_note(int period);                 /* nearest note, 0 for 0 */
 /* ---- the player (bbmod.c) ---- */
 void bba_player_init(bba_player *p, int rate);
 void bba_play(bba_player *p, bba_song *s, int pos, int row);
+void bba_play_pattern(bba_player *p, bba_song *s, int pat, int row);
 void bba_stop(bba_player *p);
 void bba_jump(bba_player *p, int pos, int row);
 /* a cell (4 bytes, ProTracker format) on channel ch now */
