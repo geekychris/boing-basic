@@ -875,7 +875,7 @@ static int exit_op(VMImage *img, int32_t pc)
 {
     int op = img->code[pc];
     if (op < I_R_FIRST || op >= I__COUNT) return 1;
-    if (op == I_R_CALLS || op == I_R_RET) return 1;
+    if (op == I_R_CALLS || op == I_R_RET || op == I_R_CALLB3) return 1;
     if (op == I_R_SQRT_D && g_be_for_scan && (!g_be_for_scan->fsqrt || jit_no_fsqrt)) return 1;
     return 0;
 }

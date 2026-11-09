@@ -1043,6 +1043,23 @@ static int reg_sqrt(Node *n)
     return n->kind == E_BUILTIN && name_eq(builtins[n->bi].name, "Sqr") && n->list.n == 1 && n->list.v[0]->ty->kind == T_DOUBLE;
 }
 
+/* a builtin call whose arguments and result are all register kinds (R_CALLB3) */
+static int reg_callb(Node *n, int k)
+{
+    const Builtin *b;
+    int i;
+    if (n->kind != E_BUILTIN || k < 0 || rkind(n->ty) != k || n->list.n > 3 || n->list2.n) return 0;
+    b = &builtins[n->bi];
+    if (b->flags & (BIF_SPECIAL | BIF_VARARGS | BIF_SUB | BIF_TEXT)) return 0;
+    if (b->ret != T_LONG && b->ret != T_INTEGER && b->ret != T_DOUBLE && b->ret != T_SINGLE) return 0;
+    if ((int)strlen(b->params) != n->list.n) return 0;
+    for (i = 0; i < n->list.n; i++) {
+        char ch = b->params[i];
+        if (!strchr("lidf", ch) || rkind(n->list.v[i]->ty) < 0) return 0;
+    }
+    return 1;
+}
+
 /* typed builtins with a register form: Int / Fix of a Double, MulShr (constant count), MulDiv */
 static int reg_bi(Node *n, int k)
 {
@@ -1156,6 +1173,20 @@ static int rx(E *e, Node *n, int dst)
         emit_w(e, op == I_R_MULDIV_LRRR ? sc : (int32_t)n->list.v[2]->cv.i);
         return d;
     }
+    if (reg_bi(n, k) < 0 && reg_callb(n, k) && !(k == 2 && reg_sqrt(n))) {
+        int sl[3] = {0, 0, 0}, i;
+        for (i = 0; i < n->list.n; i++) {
+            int j;
+            sl[i] = rx(e, n->list.v[i], -1);
+            /* a later argument with a call must not see an earlier variable change */
+            for (j = i + 1; j < n->list.n; j++)
+                if (impure(n->list.v[j]) && n->list.v[i]->kind == E_VAR) { int t = rtemp(e, rkind(n->list.v[i]->ty)); op2(e, I_R_MOV, t, sl[i]); sl[i] = t; break; }
+        }
+        d = dst >= 0 ? dst : rtemp(e, k);
+        emit_w(e, I_R_CALLB3); emit_w(e, d); emit_w(e, n->bi); emit_w(e, n->list.n);
+        emit_w(e, sl[0]); emit_w(e, sl[1]); emit_w(e, sl[2]);
+        return d;
+    }
     if (k == 2 && reg_sqrt(n)) {
         int a0 = rx(e, n->list.v[0], -1);
         d = dst >= 0 ? dst : rtemp(e, k);
@@ -1251,7 +1282,7 @@ static int glob_var(Node *n, int k)
 
 static int reg_value_ok(E *e, Node *v, int k)
 {
-    return reg_arith(v, k) || reg_var(e, v, k) >= 0 || reg_mem(e, v) || v->kind == E_CONST || reg_sqrt(v) || reg_bi(v, k) >= 0 || reg_call_ok(v) ||
+    return reg_arith(v, k) || reg_var(e, v, k) >= 0 || reg_mem(e, v) || v->kind == E_CONST || reg_sqrt(v) || reg_bi(v, k) >= 0 || reg_callb(v, k) || reg_call_ok(v) ||
            (v->kind == E_VAR && is_ref_slot(v->sym)) || me_field(e, v, k) || glob_var(v, k);
 }
 

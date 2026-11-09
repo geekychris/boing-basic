@@ -65,7 +65,9 @@
     OP(R_ADD_FRR, 3) OP(R_SUB_FRR, 3) OP(R_MUL_FRR, 3) OP(R_DIV_FRR, 3) OP(R_NEG_F, 2) \
     OP(R_CVT_IF, 2) OP(R_CVT_LF, 2) OP(R_CVT_DF, 2) OP(R_CVT_FD, 2) OP(R_JCMP_FRR, 4) \
     /* typed Int / Fix of a Double, Double -> Long / Integer (VB rounding), MulShr (count immediate), MulDiv */ \
-    OP(R_INT_D, 2) OP(R_FIX_D, 2) OP(R_CVT_DL, 2) OP(R_CVT_DI, 2) OP(R_MULSHR_LRRI, 4) OP(R_MULDIV_LRRR, 4)
+    OP(R_INT_D, 2) OP(R_FIX_D, 2) OP(R_CVT_DL, 2) OP(R_CVT_DI, 2) OP(R_MULSHR_LRRI, 4) OP(R_MULDIV_LRRR, 4) \
+    /* a builtin with Integer/Long/Single/Double arguments and result, from and into slots: d bi argc a1 a2 a3 */ \
+    OP(R_CALLB3, 6)
 
 enum {
 #define OP_ENUM(n, k) I_##n,

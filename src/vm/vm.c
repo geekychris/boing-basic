@@ -811,34 +811,43 @@ static void vm_poll(VM *vm)
     bb_poll_slow();
 }
 #define POLL() do { if (BB_UNLIKELY(--bb_poll_count < 0)) { fr->pc = pc; vm->sp = sp; vm_poll(vm); } } while (0)
-/* a taken backward branch: poll, then enter compiled code for the loop if it is hot */
-/* run compiled code from loop head bt_ (jf_ its code), and on into other compiled loop
-   heads it leaves for (an outer loop) */
-#define JITCHAIN(bt0_, jf0_) { int32_t bt_ = (bt0_); bb_jitfn jf_ = (jf0_); \
-    while (jf_) { int32_t np_; jc.L = L; \
-        if (BB_UNLIKELY(jit_logging)) jit_log("call @%ld fn=%p ctx=%p L=%p", (long)bt_, (void *)jf_, (void *)&jc, (void *)L); \
-        if (BB_UNLIKELY(jit_stats != NULL)) jit_stats[bt_]++; \
-        np_ = jf_(&jc); \
-        if (BB_UNLIKELY(jit_logging)) jit_log("ret %ld", (long)np_); \
-        pc = code + np_; \
-        /* left from the middle (an op it hands to the interpreter) more often than not: the \
-           compiled code is not paying for itself here; switch it off */ \
-        if (np_ > bt_ && np_ < img->jitend[bt_] && ++img->jitexit[bt_] * 2 > ++img->jitent[bt_] && img->jitent[bt_] >= 32) { \
-            img->jitcode[bt_] = NULL; img->jitno[bt_] = 1; \
-            if (BB_UNLIKELY(jit_logging)) jit_log("off @%ld: %lu exits in %lu entries", (long)bt_, (unsigned long)img->jitexit[bt_], (unsigned long)img->jitent[bt_]); } \
-        else if (!(np_ > bt_ && np_ < img->jitend[bt_])) img->jitent[bt_]++; \
-        if (np_ == bt_ || bb_poll_count < 0) break; \
-        jf_ = img->jitcode[np_]; \
-        if (!jf_ && !img->jitno[np_]) jf_ = jit_hot(img, fr->proc, np_); \
-        bt_ = np_; } }
+/* run compiled code from loop head bt (jf its code; NULL: look it up, compiling the loop when it
+   is hot), and on into other compiled loop heads it leaves for (an outer loop). Returns the
+   bytecode offset to continue at. Out of line: inlined into every branch op it made the register
+   ops ~3x bigger, more code pages per loop iteration (TLB refills under QEMU) */
+static uint32_t *jit_stats;          /* BOING_JIT_STATS (below) */
+static __attribute__((noinline)) int32_t jit_go(VMImage *img, Frame *fr, bb_jitctx *jc, bb_value *L, int32_t bt, bb_jitfn jf)
+{
+    if (!jf) {
+        jf = img->jitcode[bt];
+        if (!jf && !img->jitno[bt]) jf = jit_hot(img, fr->proc, bt);
+    }
+    while (jf) {
+        int32_t np;
+        jc->L = L;
+        if (BB_UNLIKELY(jit_logging)) jit_log("call @%ld fn=%p ctx=%p L=%p", (long)bt, (void *)jf, (void *)jc, (void *)L);
+        if (BB_UNLIKELY(jit_stats != NULL)) jit_stats[bt]++;
+        np = jf(jc);
+        if (BB_UNLIKELY(jit_logging)) jit_log("ret %ld", (long)np);
+        /* left from the middle (an op it hands to the interpreter) more often than not: the
+           compiled code is not paying for itself here; switch it off */
+        if (np > bt && np < img->jitend[bt] && ++img->jitexit[bt] * 2 > ++img->jitent[bt] && img->jitent[bt] >= 32) {
+            img->jitcode[bt] = NULL; img->jitno[bt] = 1;
+            if (BB_UNLIKELY(jit_logging)) jit_log("off @%ld: %lu exits in %lu entries", (long)bt, (unsigned long)img->jitexit[bt], (unsigned long)img->jitent[bt]);
+        } else if (!(np > bt && np < img->jitend[bt])) img->jitent[bt]++;
+        if (np == bt || bb_poll_count < 0) return np;
+        jf = img->jitcode[np];
+        if (!jf && !img->jitno[np]) jf = jit_hot(img, fr->proc, np);
+        bt = np;
+    }
+    return bt;
+}
+#define JITCHAIN(bt0_, jf0_) { pc = code + jit_go(img, fr, &jc, L, (bt0_), (jf0_)); }
 /* a taken backward branch: poll, then enter compiled code for the loop if it is hot */
 #define BACKJUMP(t_) { int32_t tj_ = (t_); POLL(); pc = code + tj_; \
-    if (BB_UNLIKELY(jit_on)) { bb_jitfn j0_ = img->jitcode[tj_]; \
-        if (!j0_ && !img->jitno[tj_]) j0_ = jit_hot(img, fr->proc, tj_); \
-        JITCHAIN(tj_, j0_) } }
+    if (BB_UNLIKELY(jit_on)) pc = code + jit_go(img, fr, &jc, L, tj_, NULL); }
 /* entering a loop body at pc: straight into its code if it is already compiled */
-#define JITENTER() { if (BB_UNLIKELY(jit_on)) { int32_t te_ = (int32_t)(pc - code); bb_jitfn j0_ = img->jitcode[te_]; \
-        if (j0_) JITCHAIN(te_, j0_) } }
+#define JITENTER() { if (BB_UNLIKELY(jit_on) && img->jitcode[pc - code]) pc = code + jit_go(img, fr, &jc, L, (int32_t)(pc - code), img->jitcode[pc - code]); }
 
 /* register-form helpers */
 const int bb_vmobj_f_offset = (int)offsetof(VMObj, f);
@@ -1101,7 +1110,8 @@ static void vm_exec(VM *vm, int entry)
         [I_R_CVT_DL] = &&L_R_CVT_DL,
         [I_R_CVT_DI] = &&L_R_CVT_DI,
         [I_R_MULSHR_LRRI] = &&L_R_MULSHR_LRRI,
-        [I_R_MULDIV_LRRR] = &&L_R_MULDIV_LRRR
+        [I_R_MULDIV_LRRR] = &&L_R_MULDIV_LRRR,
+        [I_R_CALLB3] = &&L_R_CALLB3
                 };
                 goto *rtab[op];
 #else
@@ -1218,9 +1228,7 @@ static void vm_exec(VM *vm, int entry)
                 RCASE(R_JMP) { int32_t t_ = pc[1]; if (t_ <= pc - code) BACKJUMP(t_) else pc = code + t_; } RNEXT();
                 RCASE(R_SQRT_D) { double x = RSL(2).u.d; if (BB_UNLIKELY(x < 0)) RERR(bb_raise(5, NULL)); SETD(pc[1], sqrt(x)); pc += 3;
                     /* a JIT without a square root instruction stops at Sqr: continue in the compiled rest */
-                    if (BB_UNLIKELY(jit_on) && !img->jitno[pc - code]) { int32_t rp_ = (int32_t)(pc - code); bb_jitfn j0_ = img->jitcode[rp_];
-                        if (!j0_) j0_ = jit_hot(img, fr->proc, rp_);
-                        JITCHAIN(rp_, j0_) }
+                    if (BB_UNLIKELY(jit_on) && !img->jitno[pc - code]) pc = code + jit_go(img, fr, &jc, L, (int32_t)(pc - code), NULL);
                     RNEXT(); }
                 RCASE(R_CALLS) {
                     /* call with ByVal scalar arguments from slots; result into slot pc[2] */
@@ -1275,9 +1283,7 @@ static void vm_exec(VM *vm, int entry)
                         L = fr->base;
                         pc = ret;
                         /* back in a loop body that was cut by this call: its compiled rest */
-                        if (BB_UNLIKELY(jit_on) && !img->jitno[ret - code]) { int32_t rp_ = (int32_t)(ret - code); bb_jitfn j0_ = img->jitcode[rp_];
-                            if (!j0_) j0_ = jit_hot(img, fr->proc, rp_);
-                            JITCHAIN(rp_, j0_) }
+                        if (BB_UNLIKELY(jit_on) && !img->jitno[ret - code]) pc = code + jit_go(img, fr, &jc, L, (int32_t)(ret - code), NULL);
                         RNEXT();
                     }
                     RSLOW(I_RET);
@@ -1308,6 +1314,15 @@ static void vm_exec(VM *vm, int entry)
                 RCASE(R_MULSHR_LRRI) { int64_t p_ = ((int64_t)RSL(2).u.l * RSL(3).u.l) >> pc[4];
                     if (BB_UNLIKELY(p_ != (int32_t)p_)) RERR(bb_overflow());
                     SETL(pc[1], (int32_t)p_); pc += 5; RNEXT(); }
+                RCASE(R_CALLB3) {
+                    /* no stack ops around the call: fewer code pages per loop iteration */
+                    bb_value a_[3], r_ = bb_v_empty();
+                    int32_t n_ = pc[3], k_;
+                    for (k_ = 0; k_ < n_; k_++) a_[k_] = L[pc[4 + k_]];
+                    fr->pc = pc; vm->sp = sp;
+                    call_builtin(pc[2], n_, a_, &r_);
+                    L[pc[1]] = r_;
+                    pc += 7; RNEXT(); }
                 RCASE(R_MULDIV_LRRR) { int32_t c_ = RSL(4).u.l; int64_t q_;
                     if (BB_UNLIKELY(c_ == 0)) RERR(bb_muldiv_zero());
                     q_ = ((int64_t)RSL(2).u.l * RSL(3).u.l) / c_;

@@ -16,3 +16,9 @@ int builtin_find(const char *name)
         if (name_eq(builtins[i].name, name)) return i;
     return -1;
 }
+
+#ifdef BB_PAD
+/* layout experiments (docs/performance.md): BB_PAD_STR bytes of code in the first object linked,
+   shifting all the code after it */
+__attribute__((used, noinline)) void bb_layout_pad(void) { __asm__ volatile(".space " BB_PAD_STR); }
+#endif
