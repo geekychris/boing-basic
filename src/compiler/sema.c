@@ -783,6 +783,16 @@ static Node *lvalue_of(Ctx *c, Node *e, const char *what)
     return t;
 }
 
+/* a Dim'd local with the name of a module-level or Public constant hides it in the
+   procedure (legal VB, names are case-insensitive: `Dim acc` and `Const ACC`): a warning.
+   Not for parameters: a parameter named like a constant is common and seldom a mistake */
+static void warn_hides_const(Ctx *c, const char *name, int file, int line, int col)
+{
+    Sym *g = scope_find(c->proc->mod->scope, name);
+    if (!g || g->kind != SK_CONST || !g->mod) return;
+    diag_warn(c->prog, file, line, col, "local '%s' hides constant '%s' (line %d)", name, g->name, g->line);
+}
+
 static void check_dim_local(Ctx *c, Node *s, NodeList *out)
 {
     int i;
@@ -796,6 +806,7 @@ static void check_dim_local(Ctx *c, Node *s, NodeList *out)
             ERR(c, d, "'%s' is already declared in this procedure (line %d)", d->name, o->line);
             continue;
         }
+        warn_hides_const(c, d->name, d->file, d->line, d->col);
         scope_add(c->proc->scope, v);
         v->proc = c->proc;
         if (is_static) {
