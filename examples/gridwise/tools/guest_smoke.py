@@ -12,7 +12,7 @@ screendump (QEMU HMP, over ssh for a remote guest) as PREFIX_<tag>.png. At the e
 log must end with "ok", contain every --expect text and no "[rc 10]".
 --keys TAG "A-B DOWN 3 0 RETURN" types keys while the app waits in "PAUSE n TAG", and only
 while the app's window is the active one (the app writes "active"/"inactive" to
-DH1:office/state, --state): A-x = Amiga+x, S-x = Shift+x, letters, digits, SPACE, RETURN,
+DH1:office/state, --state): A-x = Amiga+x, S-x = Shift+x, a..z (A..Z typed with Shift), digits, SPACE, RETURN,
 TAB, BS, DEL, ESC, UP, DOWN, LEFT, RIGHT.
 `guest_smoke.py --shot OUT.png` only takes a screenshot.
 Holds the guest's lock and the "CLAUDE IS TESTING" banner (tools/os4guest.py).

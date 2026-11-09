@@ -248,8 +248,11 @@ Private Sub CommitEdit(ByVal dr As Long, ByVal dc As Long)
     UpdateTitle
 End Sub
 
+' (the Change for text set by code can arrive after settingText is reset: only a text
+' that differs from the cell's is an edit)
 Private Sub formula_Change()
     If settingText Then Exit Sub
+    If formula.Text = GetSrc(curR, curC) Then Exit Sub
     If Not editing Then editing = True: UpdateBars
 End Sub
 
