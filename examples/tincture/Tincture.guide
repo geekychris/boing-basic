@@ -176,7 +176,9 @@ pictures get an icon.
          Flatten
 
 @{u}View@{uu}     Zoom In (+), Zoom Out (-), Actual Size (1), Fit in
-         Window (0), Magnifier (A-M), Pixel Grid (A-G)
+         Window (0), Magnifier (A-M), Pixel Grid (A-G), Symmetry
+         (Off, Left and Right, Top and Bottom, Four Ways: Freehand,
+         Airbrush and Eraser paint mirrored; the axes show dashed)
 
 @{u}Settings@{uu} Autosave, Create Icons, Save Settings
 @endnode
@@ -234,6 +236,7 @@ work in a script file: Tincture --script file.
   FLIP H|V / ROTATE 90|180|270 / SCALE w h / CANVASSIZE w h
   CROP [x y w h]
   INDEXED n [DITHER] / TRUECOLOUR
+  SYMMETRY OFF|H|V|4 / MAGNIFIER ON|OFF [x y] / GRID ON|OFF
   ZOOM [percent] / HASH / VERSION / QUIT
 
 Example:

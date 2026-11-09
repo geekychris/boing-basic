@@ -171,6 +171,11 @@ Private Sub DrawPane(ByVal x0 As Long, ByVal w As Long, ByVal sx0 As Long, ByVal
     ' (the main pane may draw under the magnifier: that is drawn after it)
     dX = x0 + FloorDiv((srcX - sx0) * z, 100): dY = FloorDiv((srcY - sy0) * z, 100)
     cv.DrawImageScaled comp, srcX, srcY, srcW, srcH, dX, dY, srcW * z \ 100, srcH * z \ 100, True
+    ' the symmetry axes
+    If main And symmetry <> 0 Then
+        If symmetry <> 2 Then k = x0 + FloorDiv((docW * 50 - sx0 * 100) * z \ 100, 100): cv.DashRect k, dY, 1, srcH * z \ 100, RGB(0, 200, 255), viewBack, 0
+        If symmetry >= 2 Then k = FloorDiv((docH * 50 - sy0 * 100) * z \ 100, 100): cv.DashRect dX, k, srcW * z \ 100, 1, RGB(0, 200, 255), viewBack, 0
+    End If
     ' a frame around the picture
     If main Then cv.Rect DocToViewX(0) - 1, DocToViewY(0) - 1, docW * z \ 100 + 2, docH * z \ 100 + 2, RGB(20, 20, 24)
     ' pixel grid when zoomed in far

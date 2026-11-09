@@ -22,6 +22,7 @@ by Canvas members in the runtime's C.
 - **Layers**: up to 16, with visibility, opacity, reorder, merge down, flatten, rename.
 - **Undo/redo**: one step per stroke/shape/fill/operation, 64 steps or 12 megapixels of history
   (setting). Region steps keep only the changed rectangle.
+- **Symmetry**: freehand, airbrush and eraser can paint mirrored left/right, top/bottom or four ways.
 - **View**: zoom 25 %–1600 % around the pointer (wheel, `+` `-` `1` `0`), scroll with the middle
   button / Space-drag / cursor keys, a **magnifier pane** with pixel grid, an optional grid.
 - **Files**: IFF ILBM (24-bit, or 1–8 planes with the palette; reads EHB, HAM6/8, masks), PNG

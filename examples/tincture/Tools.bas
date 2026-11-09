@@ -30,6 +30,7 @@ Public airRadius As Long, airDensity As Long
 Public fillTolerance As Long
 Public textScale As Long
 Public pendingText As String     ' the Text tool's text (set by the UI or ARexx before the click)
+Public symmetry As Long          ' freehand, airbrush, eraser mirrored: 0 off, 1 left-right, 2 top-bottom, 3 four-way
 
 ' selection (a rectangle of the picture), and the internal clipboard
 Public selActive As Boolean
@@ -160,6 +161,13 @@ End Sub
 ' ---------------------------------------------------------------- painting
 
 Private Sub Paint(ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2 As Long)
+    PaintOne x1, y1, x2, y2
+    If symmetry = 1 Or symmetry = 3 Then PaintOne docW - 1 - x1, y1, docW - 1 - x2, y2
+    If symmetry = 2 Or symmetry = 3 Then PaintOne x1, docH - 1 - y1, x2, docH - 1 - y2
+    If symmetry = 3 Then PaintOne docW - 1 - x1, docH - 1 - y1, docW - 1 - x2, docH - 1 - y2
+End Sub
+
+Private Sub PaintOne(ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2 As Long)
     Dim r As Long
     cv.SetTarget layers(curLayer).img
     If brushImg And curTool = T_FREEHAND Then
@@ -178,6 +186,13 @@ Private Sub Paint(ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2
 End Sub
 
 Private Sub SprayAt(ByVal x As Long, ByVal y As Long)
+    SprayOne x, y
+    If symmetry = 1 Or symmetry = 3 Then SprayOne docW - 1 - x, y
+    If symmetry = 2 Or symmetry = 3 Then SprayOne x, docH - 1 - y
+    If symmetry = 3 Then SprayOne docW - 1 - x, docH - 1 - y
+End Sub
+
+Private Sub SprayOne(ByVal x As Long, ByVal y As Long)
     cv.SetTarget layers(curLayer).img
     cv.Spray x, y, airRadius, airDensity, strokeCol
     cv.SetTarget 0

@@ -281,6 +281,14 @@ Public Function RunCommand(ByVal cmdline As String) As String
             SetMagnifier UCase$(Arg(w, 1)) <> "OFF"
             If Arg(w, 2) <> "" Then magX = NArg(w, 2): magY = NArg(w, 3)
         Case "GRID": showGrid = UCase$(Arg(w, 1)) <> "OFF"
+        Case "SYMMETRY"
+            Select Case UCase$(Arg(w, 1))
+                Case "OFF", "": symmetry = 0
+                Case "H", "LEFTRIGHT": symmetry = 1
+                Case "V", "TOPBOTTOM": symmetry = 2
+                Case "4", "FOUR": symmetry = 3
+                Case Else: Err.Raise 5, "Tincture", "SYMMETRY OFF|H|V|4"
+            End Select
         Case "QUIT": scriptQuit = True
         Case Else
             Err.Raise 5, "Tincture", "Unknown command " & w(0)

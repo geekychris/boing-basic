@@ -91,6 +91,12 @@ menu id=mnuView text="View"
   menu text=-
   menu id=mnuMag text="Magnifier" checkable=1 key=M
   menu id=mnuGrid text="Pixel Grid" checkable=1 key=G
+  menu text=-
+  menu id=mnuSym text="Symmetry"
+    menu id=mnuSym0 text="Off" radio=1 checked=1
+    menu id=mnuSym1 text="Left and Right" radio=1
+    menu id=mnuSym2 text="Top and Bottom" radio=1
+    menu id=mnuSym3 text="Four Ways" radio=1
 menu id=mnuSettings text="Settings"
   menu id=mnuAutosave text="Autosave" checkable=1 checked=1
   menu id=mnuIcons text="Create Icons" checkable=1 checked=1

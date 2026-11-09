@@ -230,7 +230,7 @@ End Sub
 
 Private Sub UpdateStatus()
     Dim s As String
-    If cursorIn Then s = cursorX & ", " & cursorY & "   " Else s = ""
+    If cursorIn Then s = cursorX & ", " & cursorY & " " & ColorHex(view.ImagePoint(comp, cursorX, cursorY)) & "   " Else s = ""
     s = s & docW & " x " & docH & "   " & zoomPct & "%   " & ToolName(curTool)
     If selActive Then s = s & "   sel " & selW & " x " & selH
     s = s & "   layer " & curLayer & "/" & nLayers
@@ -933,6 +933,22 @@ Private Sub mnuGrid_Click()
     showGrid = Not showGrid
     needView = True: needTitle = True
     UpdateAll
+End Sub
+
+Private Sub mnuSym0_Click()
+    symmetry = 0: needView = True: UpdateAll
+End Sub
+
+Private Sub mnuSym1_Click()
+    symmetry = 1: statusMsg = "Painting mirrored left and right": needView = True: UpdateAll
+End Sub
+
+Private Sub mnuSym2_Click()
+    symmetry = 2: statusMsg = "Painting mirrored top and bottom": needView = True: UpdateAll
+End Sub
+
+Private Sub mnuSym3_Click()
+    symmetry = 3: statusMsg = "Painting mirrored four ways": needView = True: UpdateAll
 End Sub
 
 ' ---------------------------------------------------------------- Settings menu

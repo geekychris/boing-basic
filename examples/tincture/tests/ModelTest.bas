@@ -64,6 +64,14 @@ Sub Main()
     C "PLOT 1 1"
     Check "redo gone", C("REDO") & C("UNDOCOUNT"), "4"
 
+    ' symmetry
+    C "NEW 40 30"
+    C "COLOR 0 0 0"
+    C "SYMMETRY 4"
+    C "PLOT 2 3"
+    C "SYMMETRY OFF"
+    Check "symmetry", C("GETPIXEL 2 3") & C("GETPIXEL 37 3") & C("GETPIXEL 2 26") & C("GETPIXEL 37 26") & C("UNDOCOUNT"), "#000000#000000#000000#0000001"
+
     ' flood fill
     C "NEW 40 30"
     C "COLOR 0 0 0"
