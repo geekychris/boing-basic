@@ -6,5 +6,5 @@ shows = ["Grid control with BeforeEdit/AfterEdit", "TreeView", "Tabs", "ListBrow
 
 [[shot]]
 file = "gallery/minisheet.png"
-caption = "A sheet with formulas"
+caption = "Sheet 1 of the workbook: the TreeView of sheets, the grid, the formula bar and the status bar"
 run = { project = "minisheet.bbp", secs = 10 }

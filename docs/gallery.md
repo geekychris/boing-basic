@@ -227,9 +227,9 @@ A small spreadsheet: editable cells with =SUM(B2:B10)-style formulas, a TreeView
 
 **Shows off:** Grid control with BeforeEdit/AfterEdit, TreeView, Tabs, ListBrowser columns, Splitter, Menus and status bar
 
-<img src="../examples/minisheet/gallery/minisheet.png" width="560" alt="A sheet with formulas">
+<img src="../examples/minisheet/gallery/minisheet.png" width="560" alt="Sheet 1 of the workbook: the TreeView of sheets, the grid, the formula bar and the status bar">
 
-*A sheet with formulas*
+*Sheet 1 of the workbook: the TreeView of sheets, the grid, the formula bar and the status bar*
 
 [source](../examples/minisheet/)
 
