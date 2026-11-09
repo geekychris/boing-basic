@@ -584,6 +584,7 @@ static const char *const mouse_events[] = { "MouseDown", "MouseUp", "MouseMove",
 
 static int wants_mouse(bb_form *f, bb_ctl *c)
 {
+    if (afg_get(f->afg, "name")[0] == '_') return 0;     /* the runtime's own requesters */
     for (int i = 0; mouse_events[i]; i++)
         if (!f->has || f->has(f->ud, f, c->name, mouse_events[i])) return 1;
     return 0;
