@@ -99,6 +99,9 @@ normally; logic and draw are the game's own work.
 | VM `--jit` | **31** | 10.071 | 18.680 | 3.351 | - |
 | native (`boing build --target os4`) | **143** | 0.322 | 3.289 | 3.208 | 8270 fps |
 
+Played in real time (`--demo --perf`, the form's 40 ms timer, the original's 25 fps), the VM
+build ran at 24-25 fps on the same guest, while the host's display made each blit about 9 ms.
+
 ## Tests
 
 - `make test` runs `tests/programs/tank_duel`: five autopilot fights checked against the C
