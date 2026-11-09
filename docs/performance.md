@@ -150,6 +150,23 @@ On m1's unloaded guest (bb-game, ms/frame): bench logic native 0.152, VM 0.879, 
 (whole loops only, now the default); canvas draw native 1.47, VM 7.95, VM+JIT 8.73; form game
 native 354-365 fps, VM 88.4, VM+JIT 78.7. Real PowerPC hardware: untested.
 
+How many pages a loop may touch on the QEMU guest (m1b, 2026-11-09). Every allocator (malloc,
+AllocVec PRIVATE/SHARED/EXECUTABLE, even 1 MB-aligned contiguous) is mapped with 4 KB pages,
+and cycling through more than ~28 distinct pages costs ~1.2 us per access instead of 0.002
+(build/os4x/memtlb.c). A BASIC loop that also touches N extra pages per iteration (PeekB with a
+4 KB stride) falls off that cliff at N = 24-26 natively but N = 14-16 in the VM: the VM itself
+uses ~12 pages per iteration (interpreter code, call_builtin, the dispatch table, bytecode,
+frame, stack, poll counter), native code ~3. Any C runtime call (Engine3D, Audio, arrays)
+adds 4-6 pages, which a native loop absorbs and a VM loop often doesn't. Which side of the
+cliff a VM loop lands on depends on where its code and bytecode happen to sit: the same build
+shifted by 1 KB (BB_PAD, src/compiler/builtins.c: `CFLAGS="-Os -DBB_PAD -DBB_PAD_STR=\"1024\""`)
+runs `a = o.State()` at 2.3 or 38 us, and bb-g-more's Sphere Siege grid loop at 11, 19 or 36 ms
+after unrelated edits elsewhere in its module. Cutting the VM's footprint (JIT chaining out of
+line, R_CALLB3, hot handlers together, globals beside the stack) gained 2 pages; getting near
+native would need a different interpreter layout. So on the guest, expect VM timings to move by
+large factors with layout, and build natively for speed. Real X5000/A1222 hardware has bigger,
+hardware-assisted TLBs and should not show this.
+
 The OS4 runtime and VM are built with -Os (mk/os4.mk). On the QEMU guest, how fast a VM loop
 runs depends mostly on how many distinct code and data pages it touches per iteration, because
 the guest's small software-refilled TLB is very slow to refill under QEMU. The same code with
