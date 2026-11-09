@@ -1,5 +1,5 @@
 # AmiForge GUI (edit with Tools > GUI Designer)
-window name=valley title="Ridge Runner" width=640 height=512
+window name=valley title="Ridge Runner (Boing BASIC)" width=640 height=512
 vlayout id=root
   canvas id=view width=320 height=256 scale=2
   timer id=tick interval=40 enabled=1
