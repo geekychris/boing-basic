@@ -1,0 +1,6 @@
+# Ridge Runner's rules (examples/ridge_runner): races with hashes equal to the C original's
+Name=RrTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/ridge_runner/RrCore.bas
+Module=rrtest.bas
