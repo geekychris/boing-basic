@@ -459,6 +459,62 @@ static Type *int_op_type(Type *a, Type *b)
 
 static int is_varlike(Type *t) { return t->kind == T_VARIANT || t->kind == T_OBJECT; }
 
+/* Mid$(s, i, 1) or Left$(s, 1): *ps = s, *pi = i (a Long); 0 if x is something else */
+static int one_char_of(Node *x, Node **ps, Node **pi)
+{
+    const char *nm;
+    while (x->kind == E_CONV && x->ty->kind == T_STRING && x->a->ty->kind != T_STRING) x = x->a;
+    if (x->kind != E_BUILTIN) return 0;
+    nm = builtins[x->bi].name;
+    if (name_eq(nm, "Mid") && x->list.n == 3 && x->list.v[2]->kind == E_CONST && x->list.v[2]->cv.i == 1 &&
+        x->list.v[0]->ty->kind == T_STRING && x->list.v[1]->ty->kind == T_LONG) {
+        *ps = x->list.v[0]; *pi = x->list.v[1];
+        return 1;
+    }
+    if (name_eq(nm, "Left") && x->list.n == 2 && x->list.v[1]->kind == E_CONST && x->list.v[1]->cv.i == 1 &&
+        x->list.v[0]->ty->kind == T_STRING) {
+        *ps = x->list.v[0]; *pi = NULL;
+        return 1;
+    }
+    return 0;
+}
+
+static Node *long_const(Node *at, int64_t v)
+{
+    CVal cv;
+    memset(&cv, 0, sizeof cv);
+    cv.type = T_LONG;
+    cv.i = v;
+    return mk_const_node(at, &cv);
+}
+
+static Node *bare_builtin(Ctx *c, Node *at, int bi);
+
+/* __ascat / __charat(s, i): the byte at i, no one-character string */
+static Node *char_at_node(Ctx *c, Node *at, const char *fn, Node *str, Node *idx)
+{
+    Node *n = bare_builtin(c, at, builtin_find(fn));
+    nl_push(&n->list, str);
+    nl_push(&n->list, idx ? idx : long_const(at, 1));
+    return n;
+}
+
+/* Mid$(s, i, 1) = "x" / Left$(s, 1) <> "x" (binary compare): a byte compare */
+static Node *char_compare(Ctx *c, Node *e)
+{
+    Node *str, *idx, *k;
+    int swap = 0;
+    if ((e->op != OP_EQ && e->op != OP_NE) || e->text) return NULL;
+    if (e->b->kind == E_CONST && e->b->ty->kind == T_STRING && e->b->cv.slen == 1 && one_char_of(e->a, &str, &idx)) k = e->b;
+    else if (e->a->kind == E_CONST && e->a->ty->kind == T_STRING && e->a->cv.slen == 1 && one_char_of(e->b, &str, &idx)) { k = e->a; swap = 1; }
+    else return NULL;
+    (void)swap;
+    e->a = char_at_node(c, e, "__charat", str, idx);
+    e->b = long_const(k, (unsigned char)k->cv.s[0]);
+    e->ty = &ty_boolean;
+    return e;
+}
+
 static Node *check_binop(Ctx *c, Node *e)
 {
     Type *ta, *tb, *rt = NULL;
@@ -560,6 +616,7 @@ static Node *check_binop(Ctx *c, Node *e)
         e->a = coerce(c, e->a, ct);
         e->b = coerce(c, e->b, ct);
         rt = &ty_boolean;
+        if (ct->kind == T_STRING && char_compare(c, e)) return e;
         break;
     }
     case OP_LIKE:
@@ -1062,7 +1119,14 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
         if (handled) return r;
     }
     bi = builtin_find(e->name);
-    if (bi >= 0) return make_builtin(c, e, bi, args, mode, e->suffix);
+    if (bi >= 0) {
+        Node *n = make_builtin(c, e, bi, args, mode, e->suffix);
+        Node *str, *idx;
+        /* Asc(Mid$(s, i, 1)), Asc(Left$(s, 1)): the byte */
+        if (name_eq(builtins[bi].name, "Asc") && n->list.n == 1 && one_char_of(n->list.v[0], &str, &idx))
+            return char_at_node(c, e, "__ascat", str, idx);
+        return n;
+    }
     /* implicit declaration */
     if (args) {
         ERR(c, e, "Sub, Function or array '%s' is not defined", e->name);

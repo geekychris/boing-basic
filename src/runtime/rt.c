@@ -31,6 +31,85 @@ void *bb_realloc(void *p, size_t n)
 
 void bb_free(void *p) { free(p); }
 
+/* ---- small-block pool: blocks up to 2 KB (array data, strings) are kept on free lists per size
+   class and reused. Under QEMU on the OS4 guest newlib's malloc/free cost several us each, and
+   BASIC code allocates and frees a string or an array copy per Mid$, Chr$, `a = obj.State()`.
+   Each block has an 8-byte header with its size class (keeps 8-byte alignment). Single task,
+   like the rest of the runtime. */
+#define AP_NCLASS 8                 /* 16, 32, .. 2048 bytes */
+#define AP_KEEP(c) ((c) < 3 ? 512 : 64)   /* blocks kept per class */
+#define AP_BIG 0xffu
+typedef struct ap_hdr { uint32_t cls, pad; } ap_hdr;
+static void *ap_list[AP_NCLASS];
+static int ap_count[AP_NCLASS];
+
+static int ap_class(size_t n)
+{
+    int c = 0;
+    while (c < AP_NCLASS && ((size_t)16 << c) < n) c++;
+    return c;
+}
+
+void *bb_small_alloc(size_t n)
+{
+    ap_hdr *h;
+    int c;
+    if (n == 0) return NULL;
+    c = ap_class(n);
+    if (c < AP_NCLASS) {
+        if (ap_list[c]) {
+            void *p = ap_list[c];
+            ap_list[c] = *(void **)p;
+            ap_count[c]--;
+            return p;
+        }
+        h = (ap_hdr *)malloc(sizeof(ap_hdr) + ((size_t)16 << c));
+    } else h = (ap_hdr *)malloc(sizeof(ap_hdr) + n);
+    if (!h) return NULL;
+    h->cls = c < AP_NCLASS ? (uint32_t)c : AP_BIG;
+    return h + 1;
+}
+
+void bb_small_free(void *p)
+{
+    ap_hdr *h;
+    if (!p) return;
+    h = (ap_hdr *)p - 1;
+    if (h->cls < AP_NCLASS && ap_count[h->cls] < AP_KEEP(h->cls)) {
+        *(void **)p = ap_list[h->cls];
+        ap_list[h->cls] = p;
+        ap_count[h->cls]++;
+        return;
+    }
+    free(h);
+}
+
+/* keeps the first min(old, n) bytes */
+void *bb_small_realloc(void *p, size_t n)
+{
+    ap_hdr *h;
+    void *q;
+    size_t have;
+    if (!p) return bb_small_alloc(n);
+    h = (ap_hdr *)p - 1;
+    if (h->cls == AP_BIG) {
+        if (ap_class(n) >= AP_NCLASS) {
+            h = (ap_hdr *)realloc(h, sizeof(ap_hdr) + n);
+            return h ? (void *)(h + 1) : NULL;
+        }
+        have = n;           /* shrinking into a pooled block */
+    } else {
+        have = (size_t)16 << h->cls;
+        if (n <= have) return p;
+    }
+    q = bb_small_alloc(n);
+    if (!q) return NULL;
+    memcpy(q, p, have < n ? have : n);
+    bb_small_free(p);
+    return q;
+}
+
+
 void bb_set_args_(int argc, char **argv);
 
 void bb_rt_init(int argc, char **argv)

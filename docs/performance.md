@@ -150,6 +150,15 @@ On m1's unloaded guest (bb-game, ms/frame): bench logic native 0.152, VM 0.879, 
 (whole loops only, now the default); canvas draw native 1.47, VM 7.95, VM+JIT 8.73; form game
 native 354-365 fps, VM 88.4, VM+JIT 78.7. Real PowerPC hardware: untested.
 
+Strings (bb-app-office; m1b guest, a 16,000-character scan): strings and array data share a
+small-block pool (rt.c, free lists per size class up to 2 KB) instead of newlib malloc/free;
+one-character results of Chr$, Mid$, Left$, Right$ are shared immortal strings (no allocation);
+Asc(Mid$(s, i, 1)) / Asc(Left$(s, 1)) read the byte, and Mid$(s, i, 1) = "x" / Left$(s, 1) <> "x"
+(Option Compare Binary) compare it, in the VM and native. Native: the scan 39 -> 8 ms, byte
+reads 37 -> 2 ms, Chr$/Left$ building 68 -> 12 ms. VM: byte reads 791 -> 16 ms; the scan
+(613 -> 582 ms) and building (785 -> 689 ms) stay slow: every string op (CAT, CMP_S, a string
+PUSHK) costs 3-14 us on the guest in TLB refills, not in allocation.
+
 Late-bound calls into BASIC classes and returned arrays (bb-sound; m1b guest, VM, per call):
 `x = o.Count()` (o As Object) 41 -> 1.6 us, `a = o.State()` (an 8-Long array) 72 -> 2.3 us,
 `a = k.State()` early-bound 44 -> 2.0 us, a module Function returning an array 44 -> 2.0 us.

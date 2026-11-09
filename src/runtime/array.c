@@ -118,85 +118,12 @@ static BB_NO_LIBCALL void arr_zero_bytes(void *d, size_t n)
     memset(d, 0, n);
 }
 
-/* ---- small-block pools: descriptors and data blocks up to 2 KB are kept on free lists and
-   reused. Arrays returned by functions (`a = obj.State()` every frame) are copied, and the old
-   one freed, each time: under QEMU on the OS4 guest newlib's malloc/free cost several us each.
-   Data blocks carry an 8-byte header with their size class (keeps 8-byte alignment). Single
-   task, like the rest of the runtime. */
-#define AP_NCLASS 8                 /* 16, 32, .. 2048 bytes */
-#define AP_KEEP 32                  /* blocks kept per class */
-#define AP_BIG 0xffu
-typedef struct ap_hdr { uint32_t cls, pad; } ap_hdr;
-static void *ap_list[AP_NCLASS];
-static int ap_count[AP_NCLASS];
+/* descriptors on a free list; data blocks from the runtime's small-block pool (rt.c) */
 static bb_array *ad_list;
 static int ad_count;
-
-static int ap_class(size_t n)
-{
-    int c = 0;
-    while (c < AP_NCLASS && ((size_t)16 << c) < n) c++;
-    return c;
-}
-
-static void *arr_data_alloc(size_t n)
-{
-    ap_hdr *h;
-    int c;
-    if (n == 0) return NULL;
-    c = ap_class(n);
-    if (c < AP_NCLASS) {
-        if (ap_list[c]) {
-            void *p = ap_list[c];
-            ap_list[c] = *(void **)p;
-            ap_count[c]--;
-            return p;
-        }
-        h = (ap_hdr *)malloc(sizeof(ap_hdr) + ((size_t)16 << c));
-    } else h = (ap_hdr *)malloc(sizeof(ap_hdr) + n);
-    if (!h) return NULL;
-    h->cls = c < AP_NCLASS ? (uint32_t)c : AP_BIG;
-    return h + 1;
-}
-
-static void arr_data_free(void *p)
-{
-    ap_hdr *h;
-    if (!p) return;
-    h = (ap_hdr *)p - 1;
-    if (h->cls < AP_NCLASS && ap_count[h->cls] < AP_KEEP) {
-        *(void **)p = ap_list[h->cls];
-        ap_list[h->cls] = p;
-        ap_count[h->cls]++;
-        return;
-    }
-    free(h);
-}
-
-/* keeps the first min(old, n) bytes */
-static void *arr_data_realloc(void *p, size_t n)
-{
-    ap_hdr *h;
-    void *q;
-    size_t have;
-    if (!p) return arr_data_alloc(n);
-    h = (ap_hdr *)p - 1;
-    if (h->cls == AP_BIG) {
-        if (ap_class(n) >= AP_NCLASS) {
-            h = (ap_hdr *)realloc(h, sizeof(ap_hdr) + n);
-            return h ? (void *)(h + 1) : NULL;
-        }
-        have = n;           /* shrinking into a pooled block */
-    } else {
-        have = (size_t)16 << h->cls;
-        if (n <= have) return p;
-    }
-    q = arr_data_alloc(n);
-    if (!q) return NULL;
-    arr_copy_bytes(q, p, have < n ? have : n);
-    arr_data_free(p);
-    return q;
-}
+#define arr_data_alloc(n) bb_small_alloc(n)
+#define arr_data_free(p) bb_small_free(p)
+#define arr_data_realloc(p, n) bb_small_realloc(p, n)
 
 static bb_array *arr_desc_alloc(void)
 {

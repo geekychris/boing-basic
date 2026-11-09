@@ -157,3 +157,6 @@ BI(MULSHR, "MulShr", T_LONG, 3, 3, "lll", ",,", "bb_mulshr", 0, RL(bb_mulshr(L(0
 BI(MULDIV, "MulDiv", T_LONG, 3, 3, "lll", ",,", "bb_muldiv", 0, RL(bb_muldiv(L(0), L(1), L(2))))
 BI(INTD, "__intd", T_DOUBLE, 1, 1, "d", "", "bb_int_d", 0, RD(bb_int_d(D(0))))
 BI(FIXD, "__fixd", T_DOUBLE, 1, 1, "d", "", "bb_fix_d", 0, RD(bb_fix_d(D(0))))
+/* Asc(Mid$(s, i, 1)) and Mid$(s, i, 1) / Left$(s, 1) = "x": a byte, no string (the compiler picks these) */
+BI(ASCAT, "__ascat", T_LONG, 2, 2, "sl", ",", "bb_ascat", 0, RL(bb_ascat(S(0), L(1))))
+BI(CHARAT, "__charat", T_LONG, 2, 2, "sl", ",", "bb_charat", 0, RL(bb_charat(S(0), L(1))))

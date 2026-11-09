@@ -171,6 +171,11 @@ void bb_rt_shutdown(void);                   /* flush/close files */
 void bb_end(void) BB_NORETURN;               /* the End statement: exit(0) */
 void bb_exit(int code) BB_NORETURN;
 void *bb_alloc(size_t n);                    /* zeroed; error 7 on failure */
+/* small-block pool (rt.c): free lists per size class up to 2 KB; not zeroed; NULL for n = 0 or
+   when out of memory. Only for blocks freed with bb_small_free. */
+void *bb_small_alloc(size_t n);
+void bb_small_free(void *p);
+void *bb_small_realloc(void *p, size_t n);    /* keeps min(old, n) bytes */
 void bb_set_error_file(const char *path);    /* also write the runtime-error line here (IDE) */
 /* Ctrl-C: generated loops and the VM poll this cheaply; a break prints
  * "file:line: ***Break" and ends the program with 20 */
@@ -238,6 +243,21 @@ bb_str *bb_str_alloc(int32_t len);               /* owned, uninitialised data, N
 bb_str *bb_str_from_c(const char *cstr);         /* owned */
 bb_str *bb_str_lit(const char *p, int32_t len);  /* immortal (never freed) */
 void bb_str_free_(bb_str *s);
+bb_str *bb_str_char(int c);                 /* immortal one-character string */
+void bb_raise5_(void) BB_NORETURN;
+/* Asc(Mid$(s, i, 1)): error 5 like Mid$ (i < 1) and Asc (past the end) */
+BB_INLINE bb_long bb_ascat(const bb_str *s, bb_long i)
+{
+    if (BB_UNLIKELY(i < 1 || !s || i > s->len)) bb_raise5_();
+    return (unsigned char)s->data[i - 1];
+}
+/* Mid$(s, i, 1) compared with one character: -1 past the end (Mid$ gives "") */
+BB_INLINE bb_long bb_charat(const bb_str *s, bb_long i)
+{
+    if (BB_UNLIKELY(i < 1)) bb_raise5_();
+    if (!s || i > s->len) return -1;
+    return (unsigned char)s->data[i - 1];
+}
 
 BB_INLINE bb_str *bb_str_retain(bb_str *s) { if (s && s->ref >= 0) s->ref++; return s; }
 BB_INLINE void bb_str_release(bb_str *s) { if (s && s->ref > 0 && --s->ref == 0) bb_str_free_(s); }

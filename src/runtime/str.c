@@ -9,7 +9,7 @@ bb_str *bb_str_alloc(int32_t len)
     bb_str *s;
     if (len < 0) bb_raise(5, NULL);
     if (len == 0) return NULL;
-    s = (bb_str *)malloc(sizeof(bb_str) + (size_t)len);
+    s = (bb_str *)bb_small_alloc(sizeof(bb_str) + (size_t)len);
     if (!s) bb_raise(14, NULL);
     s->ref = 1;
     s->len = len;
@@ -33,7 +33,17 @@ bb_str *bb_str_lit(const char *p, int32_t len)
     return s;
 }
 
-void bb_str_free_(bb_str *s) { free(s); }
+void bb_str_free_(bb_str *s) { bb_small_free(s); }
+void bb_raise5_(void) { bb_raise(5, NULL); }
+
+/* one-character strings, immortal and shared: Chr$, and Mid$ / Left$ / Right$ of one character */
+static struct { int32_t ref, len; char data[4]; } chr1[256];
+bb_str *bb_str_char(int c)
+{
+    c &= 255;
+    if (!chr1[c].len) { chr1[c].ref = -1; chr1[c].len = 1; chr1[c].data[0] = (char)c; chr1[c].data[1] = 0; }
+    return (bb_str *)(void *)&chr1[c];
+}
 
 bb_str *bb_str_concat(bb_str *a, bb_str *b)
 {
@@ -102,6 +112,7 @@ bb_str *bb_left(bb_str *s, bb_long n)
 {
     if (n < 0) bb_raise(5, NULL);
     if (n >= bb_str_len(s)) return bb_str_retain(s);
+    if (n == 1) return bb_str_char((unsigned char)s->data[0]);
     return bb_str_new(bb_str_ptr(s), n);
 }
 
@@ -110,6 +121,7 @@ bb_str *bb_right(bb_str *s, bb_long n)
     int32_t l = bb_str_len(s);
     if (n < 0) bb_raise(5, NULL);
     if (n >= l) return bb_str_retain(s);
+    if (n == 1) return bb_str_char((unsigned char)s->data[l - 1]);
     return bb_str_new(s->data + l - n, n);
 }
 
@@ -120,6 +132,7 @@ bb_str *bb_mid(bb_str *s, bb_long start, bb_long len)
     if (start > l) return NULL;
     if (len < 0 || len > l - start + 1) len = l - start + 1;
     if (start == 1 && len == l) return bb_str_retain(s);
+    if (len == 1) return bb_str_char((unsigned char)s->data[start - 1]);
     return bb_str_new(s->data + start - 1, len);
 }
 
@@ -318,10 +331,8 @@ bb_str *bb_strreverse(bb_str *s)
 
 bb_str *bb_chr(bb_long code)
 {
-    char c;
     if (code < 0 || code > 255) bb_raise(5, NULL);
-    c = (char)code;
-    return bb_str_new(&c, 1);
+    return bb_str_char((int)code);
 }
 
 bb_long bb_asc(bb_str *s)
