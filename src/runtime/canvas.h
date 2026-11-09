@@ -27,6 +27,9 @@ void bb_canvas_ctl_gone(bb_ctl *ctl);
 /* For the forms layer: a key went down (down = 1) or up; key is the VB key code (vbKeyLeft...,
  * 256 + raw code for keys without one). Canvas.KeyDown(k) reads this state. */
 void bb_canvas_key_event(int key, int down);
+/* For the forms layer: the picture size and scale of a control's canvas (mouse events map
+ * window pixels to canvas pixels). 0 if the control has no canvas. */
+int bb_canvas_ctl_geometry(bb_ctl *ctl, int *w, int *h, int *scale);
 
 /* The off-screen object registry (CreateObject). Raises 429 for unknown names. */
 bb_obj *bb_create_object(const bb_str *progid);

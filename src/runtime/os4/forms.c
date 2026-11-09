@@ -554,8 +554,127 @@ static uint32 idcmp_func(struct Hook *h, Object *wobj, struct IntuiMessage *m)
         for (int i = 0; i < f->nupd; i++)
             if (f->upd[i] == gid) return 0;
         if (gid && f->nupd < 32) f->upd[f->nupd++] = gid;
+    } else if (m->Class == IDCMP_MOUSEBUTTONS || m->Class == IDCMP_MOUSEMOVE ||
+               (m->Class == IDCMP_EXTENDEDMOUSE && m->Code == IMSGCODE_INTUIWHEELDATA)) {
+        /* moves are merged: only the newest position of a run counts */
+        if (m->Class == IDCMP_MOUSEMOVE && f->nmq && f->mq[f->nmq - 1].mcls == IDCMP_MOUSEMOVE) f->nmq--;
+        if (f->nmq < 32) {
+            int i = f->nmq++;
+            f->mq[i].mcls = m->Class;
+            f->mq[i].code = m->Code;
+            f->mq[i].qual = m->Qualifier;
+            f->mq[i].x = m->MouseX;
+            f->mq[i].y = m->MouseY;
+            f->mq[i].wheel = m->Class == IDCMP_EXTENDEDMOUSE ? ((struct IntuiWheelData *)m->IAddress)->WheelY : 0;
+            f->mq[i].secs = m->Seconds;
+            f->mq[i].micros = m->Micros;
+        }
     }
     return 0;
+}
+
+/* --- mouse events: <canvas>_MouseDown/MouseUp/MouseMove/DblClick/MouseWheel, Form_Mouse* --- */
+
+static const char *const mouse_events[] = { "MouseDown", "MouseUp", "MouseMove", "MouseWheel", "DblClick", NULL };
+
+static int wants_mouse(bb_form *f, bb_ctl *c)
+{
+    for (int i = 0; mouse_events[i]; i++)
+        if (!f->has || f->has(f->ud, f, c->name, mouse_events[i])) return 1;
+    return 0;
+}
+
+static int ctl_has(bb_form *f, bb_ctl *c, const char *ev) { return !f->has || f->has(f->ud, f, c->name, ev); }
+
+/* the canvas under a window position (NULL = the form itself) */
+static bb_ctl *mouse_target(bb_form *f, int x, int y)
+{
+    for (int i = 0; i < f->nctls; i++) {
+        bb_ctl *c = f->ctls[i];
+        if (c->kind != AFG_CANVAS || !c->obj || !c->visible || !c->name[0]) continue;
+        struct Gadget *g = (struct Gadget *)c->obj;
+        if (x >= g->LeftEdge && y >= g->TopEdge && x < g->LeftEdge + g->Width && y < g->TopEdge + g->Height) return c;
+    }
+    return NULL;
+}
+
+/* window pixels -> the canvas's pixels (it is centred in its box and maybe scaled up) */
+static void canvas_xy(bb_ctl *c, int wx, int wy, int32_t *x, int32_t *y)
+{
+    struct Gadget *g = (struct Gadget *)c->obj;
+    int w = g->Width, h = g->Height, s = 1;
+    bb_canvas_ctl_geometry(c, &w, &h, &s);
+    int ox = g->Width > w * s ? (g->Width - w * s) / 2 : 0, oy = g->Height > h * s ? (g->Height - h * s) / 2 : 0;
+    int dx = wx - g->LeftEdge - ox, dy = wy - g->TopEdge - oy;
+    *x = dx >= 0 ? dx / s : -((-dx + s - 1) / s);
+    *y = dy >= 0 ? dy / s : -((-dy + s - 1) / s);
+}
+
+static int vb_shift(uint32 q);
+
+static void mouse_events_handle(bb_form *f)
+{
+    for (int k = 0; k < f->nmq && f->loaded && !ending; k++) {
+        typeof(f->mq[0]) e = f->mq[k];
+        int bit = 0, up = 0;
+        if (e.mcls == IDCMP_MOUSEBUTTONS) {
+            int b = e.code & ~IECODE_UP_PREFIX;
+            bit = b == IECODE_LBUTTON ? 1 : b == IECODE_RBUTTON ? 2 : b == IECODE_MBUTTON ? 4 : 0;
+            up = (e.code & IECODE_UP_PREFIX) != 0;
+            if (!bit) continue;
+        }
+        bb_ctl *c = f->capture && f->buttons ? f->capture : mouse_target(f, e.x, e.y);
+        const char *name = c ? c->name : "Form";
+        int32_t a[4] = { 0, vb_shift(e.qual), 0, 0 };
+        if (c) canvas_xy(c, e.x, e.y, &a[2], &a[3]);
+        else {
+            a[2] = e.x - (f->win ? f->win->BorderLeft : 0);
+            a[3] = e.y - (f->win ? f->win->BorderTop : 0);
+        }
+        if (e.mcls == IDCMP_MOUSEBUTTONS && !up) {
+            f->buttons |= bit;
+            f->capture = c;
+            f->movex = a[2];
+            f->movey = a[3];
+            a[0] = bit;
+            fire(f, name, "MouseDown", 4, a);
+            if (bit == 1) {
+                if (f->last_down == c && IIntuition->DoubleClick(f->last_secs, f->last_micros, e.secs, e.micros)) {
+                    fire(f, name, "DblClick", 0, NULL);
+                    f->last_down = NULL;
+                } else {
+                    f->last_down = c;
+                    f->last_secs = e.secs;
+                    f->last_micros = e.micros;
+                }
+            }
+        } else if (e.mcls == IDCMP_MOUSEBUTTONS) {
+            /* Intuition may not report the last move before the release: report it, so a
+               drag always ends where the button went up */
+            if (a[2] != f->movex || a[3] != f->movey) {
+                int32_t m[4] = { f->buttons, a[1], a[2], a[3] };
+                f->movex = a[2];
+                f->movey = a[3];
+                fire(f, name, "MouseMove", 4, m);
+                if (ending || !f->loaded) break;
+            }
+            f->buttons &= ~bit;
+            a[0] = bit;
+            fire(f, name, "MouseUp", 4, a);
+            if (!f->buttons) f->capture = NULL;
+        } else if (e.mcls == IDCMP_MOUSEMOVE) {
+            /* only while a button is down, unless the canvas asks for every move (mousemove=1) */
+            if (!f->buttons && !(c ? afg_get_bool(c->node, "mousemove") : afg_get_bool(f->afg, "mousemove"))) continue;
+            a[0] = f->buttons;
+            f->movex = a[2];
+            f->movey = a[3];
+            fire(f, name, "MouseMove", 4, a);
+        } else {
+            int32_t d[1] = { -e.wheel };        /* VB: positive = away from the user */
+            if (c ? ctl_has(f, c, "MouseWheel") : 1) fire(f, name, "MouseWheel", 1, d);
+        }
+    }
+    f->nmq = 0;
 }
 
 bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn fn, bb_form_has_event_fn has,
@@ -596,8 +715,13 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     tg(&t, WA_SizeGadget, afg_get_bool(a, "resizable"));
     if (w > 0) tg(&t, WA_InnerWidth, w);
     if (h > 0) tg(&t, WA_InnerHeight, h);
+    for (int i = 0; i < f->nctls; i++)
+        if (f->ctls[i]->kind == AFG_CANVAS && f->ctls[i]->name[0] && wants_mouse(f, f->ctls[i])) f->mouse_wanted = 1;
+    if (wants_mouse(f, &f->self)) f->mouse_wanted = 1;
+    if (f->mouse_wanted) tg(&t, WA_ReportMouse, TRUE);
     tg(&t, WA_IDCMP, IDCMP_GADGETUP | IDCMP_CLOSEWINDOW | IDCMP_RAWKEY | IDCMP_NEWSIZE | IDCMP_ACTIVEWINDOW |
-                         IDCMP_INACTIVEWINDOW | IDCMP_MENUPICK);
+                         IDCMP_INACTIVEWINDOW | IDCMP_MENUPICK |
+                         (f->mouse_wanted ? IDCMP_MOUSEBUTTONS | IDCMP_MOUSEMOVE | IDCMP_EXTENDEDMOUSE : 0));
     if (!bbf_menus_build(f, &t)) {
         free(t.t);
         IIntuition->DisposeObject(f->root);
@@ -611,7 +735,8 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     f->idcmp_hook.h_Entry = (HOOKFUNC)idcmp_func;
     f->idcmp_hook.h_Data = f;
     tg(&t, WINDOW_IDCMPHook, (uint32)&f->idcmp_hook);
-    tg(&t, WINDOW_IDCMPHookBits, IDCMP_IDCMPUPDATE);
+    tg(&t, WINDOW_IDCMPHookBits, IDCMP_IDCMPUPDATE |
+                                     (f->mouse_wanted ? IDCMP_MOUSEBUTTONS | IDCMP_MOUSEMOVE | IDCMP_EXTENDEDMOUSE : 0));
     tg(&t, WINDOW_Layout, (uint32)f->root);
     f->winobj = new_obj(C_WINDOW, &t);
     f->self.obj = f->winobj;
@@ -1382,8 +1507,10 @@ static void handle_form(bb_form *f)
             break;
         }
         updates(f);
+        if (f->nmq) mouse_events_handle(f);
     }
     updates(f);
+    if (f->nmq) mouse_events_handle(f);
 }
 
 static void check_edits(bb_form *f)

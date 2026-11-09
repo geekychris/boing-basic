@@ -107,6 +107,15 @@ struct bb_form {
     Object *menustrip;       /* WINDOW_MenuStrip (menuclass) */
     struct Hook ctx_hook;    /* WA_ContextMenuHook */
     const char *ctx_control; /* the control the last context menu was opened over */
+    /* mouse events, noted by the IDCMP hook (with the message's position and time) */
+    struct { uint32 mcls; uint16 code, qual; int16 x, y, wheel; uint32 secs, micros; } mq[32];
+    int nmq;
+    int mouse_wanted;        /* some canvas / the form has a Mouse* event sub */
+    bb_ctl *capture;         /* the canvas that got the button press */
+    int buttons;             /* VB bits of the buttons held */
+    uint32 last_secs, last_micros;
+    bb_ctl *last_down;
+    int32_t movex, movey;    /* the last MouseMove position reported while dragging */
 };
 
 

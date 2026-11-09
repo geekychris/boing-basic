@@ -81,7 +81,9 @@ top-level menu that the right mouse button opens over that control, the OS4 way
 Style guide notes: put Quit last in the first menu with `key=Q`, About in it too; use `...`
 for items that open a requester.
 
-Status: **in progress**.
+Status: **done** (tests/os4/ui_menu_test.c: shortcuts, checkable and radio items, Enabled,
+AddMenu/RemoveMenu, a context menu with the right mouse button; 25/25 on the m1 guest).
+`PopupMenu` uses popupmenu.class; `image=` on items is not done yet.
 
 ## 2. Toolbars and status bars
 
@@ -268,7 +270,8 @@ view (`ScrollX`, `ScrollY`, `VirtualWidth`, `VirtualHeight`; event `<id>_Scroll(
 
 `Text` (a label in the gauge instead of the percentage), `ShowPercent`.
 
-Status: **planned** (canvas mouse events first: the paint app needs them).
+Status: canvas mouse events **done** (tests/os4/ui_mouse_test.c, 7/7 on m1); the rest
+**planned**.
 
 ## 5. Multiple windows, modal dialogs, tool windows
 
