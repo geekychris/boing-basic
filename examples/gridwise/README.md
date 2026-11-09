@@ -37,11 +37,14 @@ and follow the data.
   axes with "nice" steps, legends; drag to move, drag the corner to resize; saved with the sheet.
 - **Files**: its own `.gws` format (text), CSV import (separator guessed, RFC 4180 quoting) and
   export, autosave every two minutes, recent files.
-- **Amiga integration**: full menus with Amiga-key shortcuts, a context menu, AmigaGuide help
-  (`Gridwise.guide`), icons (program and `.gws` project), preferences in `ENVARC:Gridwise.prefs`.
-- **Scripting**: every command is a named command (`SETCELL A1 =SUM(B1:B9)`, `GETCELL A1`,
-  `CHART BAR A1:C5 Sales`, `SAVE file` ...; see the guide), run from `--script` files today
-  and meant for the ARexx port `GRIDWISE` once the runtime has ARexx (docs/ui.md, planned).
+- **Amiga integration**: full menus with Amiga-key shortcuts, a toolbar (TBImages), a status
+  bar, a context menu, asl file requesters and a Save/Discard/Cancel requester, files dropped
+  on the window open, AmigaGuide help (`Gridwise.guide`, Help key), printing (the cells as a
+  table, then the charts as pictures), iconify, icons (program and `.gws` project),
+  preferences in `ENVARC:Gridwise.prefs`.
+- **ARexx**: the port `GRIDWISE` takes every named command (`SETCELL A1 =SUM(B1:B9)`,
+  `GETCELL A1`, `CHART BAR A1:C5 Sales`, `SAVE file` ...; see the guide); the same commands
+  run from `--script` files.
 
 ## Files
 

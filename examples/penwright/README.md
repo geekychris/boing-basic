@@ -36,11 +36,13 @@ selection, caret and live spelling marks.
 - **Several documents**: up to eight open at once (Documents menu), recent files, autosave
   every two minutes, preferences in `ENVARC:Penwright.prefs` (default size, live spelling,
   autosave).
-- **Amiga integration**: menus with Amiga-key shortcuts, a context menu, AmigaGuide help
-  (`Penwright.guide`), icons (program and `.pwd` project).
-- **Scripting**: named commands (`INSERTTEXT`, `BOLD ON`, `STYLE HEADING1`, `FIND x WORD`,
-  `REPLACEALL "a" "b"`, `EXPORT RTF file`, `WORDCOUNT` ...; see the guide) from `--script`
-  files, and for the ARexx port `PENWRIGHT` once the runtime has ARexx (docs/ui.md, planned).
+- **Amiga integration**: menus with Amiga-key shortcuts, a toolbar (TBImages), a status bar,
+  a context menu, asl file requesters and a Save/Discard/Cancel requester, files dropped on
+  the window open (each in a document of its own), AmigaGuide help (`Penwright.guide`, Help
+  key), printing through the printer driver, iconify, icons (program and `.pwd` project).
+- **ARexx**: the port `PENWRIGHT` takes the named commands (`INSERTTEXT`, `BOLD ON`,
+  `STYLE HEADING1`, `FIND x WORD`, `REPLACEALL "a" "b"`, `EXPORT RTF file`, `WORDCOUNT` ...;
+  see the guide); the same commands run from `--script` files.
 
 ## Files
 
@@ -88,8 +90,9 @@ beside the program.
 - The canvas font has one size (6 x 9) today: sizes are kept, saved and exported (RTF/HTML),
   and laid out at their size once the Canvas gets real fonts (`HasFonts` in `PwView.bas` is
   ready for `FontSize`/`FontBold`/`FontItalic`); italic shows as a dotted underline meanwhile.
-- File names are asked with requesters for text until the runtime's file requester
-  (`commondialog`) lands; switching documents starts that document's undo history afresh.
+- Switching documents starts that document's undo history afresh.
+- Printing is plain text through the printer driver (styles are not printed); it is untested
+  (the guests have no printer).
 
 ## Performance
 

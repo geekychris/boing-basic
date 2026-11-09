@@ -14,6 +14,8 @@ log must end with "ok", contain every --expect text and no "[rc 10]".
 while the app's window is the active one (the app writes "active"/"inactive" to
 DH1:office/state, --state): A-x = Amiga+x, S-x = Shift+x, a..z (A..Z typed with Shift), digits, SPACE, RETURN,
 TAB, BS, DEL, ESC, UP, DOWN, LEFT, RIGHT.
+--rexx TAG FILE.rexx runs that ARexx script (pushed to DH1:office/) with rx while the app
+waits in "PAUSE n TAG"; its output counts for --expect (scripts drive the app's port).
 `guest_smoke.py --shot OUT.png` only takes a screenshot.
 Holds the guest's lock and the "CLAUDE IS TESTING" banner (tools/os4guest.py).
 """
@@ -86,7 +88,7 @@ def main():
     if len(a) < 2:
         sys.exit(__doc__)
     binary, script = a[0], a[1]
-    pushes, expects, shots, extra, keys = [], [], os.path.join(tempfile.gettempdir(), "office"), "", {}
+    pushes, expects, shots, extra, keys, rexx = [], [], os.path.join(tempfile.gettempdir(), "office"), "", {}, {}
     i = 2
     while i < len(a):
         if a[i] == "--push":
@@ -97,6 +99,8 @@ def main():
             shots = a[i + 1]; i += 2
         elif a[i] == "--args":
             extra = a[i + 1]; i += 2
+        elif a[i] == "--rexx":
+            rexx[a[i + 1]] = a[i + 2]; i += 3
         elif a[i] == "--keys":
             keys[a[i + 1]] = a[i + 2]; i += 3
         else:
@@ -110,10 +114,12 @@ def main():
         print(g.push(m, script, "DH1:office/" + os.path.basename(script)))
         for loc, dest in pushes:
             print(g.push(m, loc, dest))
+        for f in rexx.values():
+            print(g.push(m, f, "DH1:office/" + os.path.basename(f)))
         dos("delete DH1:office/smoke.log DH1:office/state QUIET")
         dos("run >NIL: DH1:office/%s %s --script DH1:office/%s --log DH1:office/smoke.log --state DH1:office/state"
             % (name, extra, os.path.basename(script)))
-        seen, t0, log, ok_keys = set(), time.time(), "", True
+        seen, t0, log, ok_keys, rexx_out = set(), time.time(), "", True, []
         while time.time() - t0 < float(os.environ.get("BB_TEST_TIMEOUT", "240")):
             time.sleep(1.5)
             log = dos("type DH1:office/smoke.log")
@@ -131,12 +137,17 @@ def main():
                         else:
                             send_keys(m, keys[tag])
                             time.sleep(1)
+                    if tag in rexx:
+                        out = dos("rx DH1:office/" + os.path.basename(rexx[tag]))
+                        print("rexx:", out)
+                        rexx_out.append(out)
                     screendump("%s_%s.png" % (shots, tag))
             elif last == "ok":
                 break
         print(log)
-        ok = ok_keys and log.rstrip().endswith("ok") and "[rc 10]" not in log and all(e in log for e in expects)
-        missing = [e for e in expects if e not in log]
+        everything = log + "\n".join(rexx_out)
+        ok = ok_keys and log.rstrip().endswith("ok") and "[rc 10]" not in log and all(e in everything for e in expects)
+        missing = [e for e in expects if e not in everything]
         if missing:
             print("missing:", missing)
         # leave nothing behind: the script ends with QUIT; check the window is gone
