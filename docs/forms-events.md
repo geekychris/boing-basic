@@ -532,8 +532,8 @@ grid id=sheet rows=100 cols=27 fixedrows=1 fixedcols=1 colwidth=64 editable=1 he
 |---|---|---|
 | `EnterCell` | `<id>_EnterCell()` | the current cell changed (after) |
 | `LeaveCell` | `<id>_LeaveCell()` | it is about to change |
-| `BeforeEdit` | `<id>_BeforeEdit(Cancel As Integer)` | editing is about to start |
-| `AfterEdit` | `<id>_AfterEdit()` | an edit was committed (Return, Tab, cursor keys, a click elsewhere) or Del cleared cells |
+| `BeforeEdit` | `<id>_BeforeEdit(Row As Long, Col As Long, Cancel As Integer)` | editing of that cell is about to start (VSFlexGrid's signature) |
+| `AfterEdit` | `<id>_AfterEdit(Row As Long, Col As Long)` | an edit of that cell was committed (Return, Tab, cursor keys, a click elsewhere) or Del cleared cells |
 | `Click` | `<id>_Click()` | |
 | `DblClick` | `<id>_DblClick()` | (starts editing when `Editable`) |
 | `KeyDown` | `<id>_KeyDown(KeyCode As Integer, Shift As Integer)` | a key while the grid has the focus; set KeyCode = 0 to swallow it |

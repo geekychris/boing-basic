@@ -1,0 +1,54 @@
+# AmiForge GUI
+window name=pad title="BoingPad" width=560 height=360 remember=1 iconify=1 dropfiles=1
+vlayout id=root
+  toolbar id=tb weight=0
+    tool id=tbNew text="New" image="TBImages:new" hint="New document" menu=mnuNew
+    tool id=tbOpen text="Open" image="TBImages:open" hint="Open a file" menu=mnuOpen
+    tool id=tbSave text="Save" image="TBImages:save" hint="Save" menu=mnuSave
+    tool separator=1
+    tool id=tbCut text="Cut" image="TBImages:cut" menu=mnuCut
+    tool id=tbCopy text="Copy" image="TBImages:copy" menu=mnuCopy
+    tool id=tbPaste text="Paste" image="TBImages:paste" menu=mnuPaste
+    tool separator=1
+    tool id=tbFind text="Find" image="TBImages:search" menu=mnuFind
+  texteditor id=ed contextmenu=mnuEdCtx
+  hlayout weight=0
+    string id=findText label="Find" maxchars=200
+    string id=replText label="Replace with" maxchars=200
+    checkbox id=matchCase text="_Case"
+    button id=findNext text="_Next" weight=0
+    button id=replAll text="Replace _all" weight=0
+  statusbar id=sb panels="Ready|Ln 1, Col 1|INS" widths="0|110|40"
+  commondialog id=dlg filter="Text|#?.(txt|bas|doc|readme|guide)"
+  timer id=smoke interval=0
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New" key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu id=mnuSave text="Save" key=S
+  menu id=mnuSaveAs text="Save as..." key=A
+  menu text=-
+  menu id=mnuRecent text="Recent files"
+    menu id=mnuRecent0 text="(none)" disabled=1
+  menu text=-
+  menu id=mnuAbout text="About..." key=?
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuEdit text="Edit"
+  menu id=mnuUndo text="Undo" key=Z
+  menu id=mnuRedo text="Redo" key=Y
+  menu text=-
+  menu id=mnuCut text="Cut" key=X
+  menu id=mnuCopy text="Copy" key=C
+  menu id=mnuPaste text="Paste" key=V
+  menu id=mnuSelAll text="Select all" key=L
+  menu text=-
+  menu id=mnuFind text="Find next" key=F
+menu id=mnuView text="Settings"
+  menu id=mnuFixed text="Fixed-width font" checkable=1
+  menu id=mnuFont text="Font..."
+  menu id=mnuIcons text="Create icons" checkable=1 checked=1
+menu id=mnuEdCtx text="Edit" hidden=1
+  menu id=mnuCtxCut text="Cut"
+  menu id=mnuCtxCopy text="Copy"
+  menu id=mnuCtxPaste text="Paste"
+  menu text=-
+  menu id=mnuCtxSelAll text="Select all"

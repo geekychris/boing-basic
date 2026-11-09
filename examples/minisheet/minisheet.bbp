@@ -1,0 +1,6 @@
+# Boing BASIC project: MiniSheet, a small spreadsheet showing the Grid, TreeView, tabs,
+# ListBrowser columns and a splitter (docs/ui.md section 4)
+Name=MiniSheet
+Startup=Form sheet
+Form=sheet.afg
+Stack=262144

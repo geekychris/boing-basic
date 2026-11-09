@@ -364,7 +364,8 @@ static void commit_edit(bb_ctl *c)
     g->editing = 0;
     set_cell(g, g->row, g->col, g->ebuf);
     draw_cell(c, g->row, g->col);
-    fire0(c, "AfterEdit");
+    int32_t a[2] = { g->row, g->col };       /* VSFlexGrid's AfterEdit(Row, Col) */
+    fire(c->form, c->name, "AfterEdit", 2, a);
 }
 
 static void cancel_edit(bb_ctl *c)
@@ -379,9 +380,9 @@ static int start_edit(bb_ctl *c, const char *init)
 {
     grid *g = G(c);
     if (!g->editable || g->editing || g->row < g->frows || g->col < g->fcols) return 0;
-    int32_t cancel[1] = { 0 };
-    fire(c->form, c->name, "BeforeEdit", 1, cancel);
-    if (cancel[0] || ending) return 0;
+    int32_t a[3] = { g->row, g->col, 0 };   /* BeforeEdit(Row, Col, Cancel) */
+    fire(c->form, c->name, "BeforeEdit", 3, a);
+    if (a[2] || ending) return 0;
     g->editing = 1;
     snprintf(g->ebuf, sizeof g->ebuf, "%s", init ? init : cell_text(g, g->row, g->col));
     g->ecur = strlen(g->ebuf);
@@ -678,7 +679,8 @@ int bbf_grid_key(bb_ctl *c, int raw, uint32 qual)
                     set_cell(g, r, k, "");
                     draw_cell(c, r, k);
                 }
-            fire0(c, "AfterEdit");
+            int32_t a[2] = { g->row, g->col };
+            fire(c->form, c->name, "AfterEdit", 2, a);
         }
         return 1;
     }

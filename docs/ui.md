@@ -240,8 +240,8 @@ are redrawn), with ReAction scrollers.
 | `Editable` | Boolean |
 | `Redraw` | Boolean: False while filling many cells |
 
-Events `<id>_EnterCell()`, `<id>_LeaveCell()`, `<id>_BeforeEdit(Cancel As Integer)`,
-`<id>_AfterEdit()`, `Click`, `DblClick`, `<id>_KeyDown(KeyCode As Integer, Shift As Integer)`.
+Events `<id>_EnterCell()`, `<id>_LeaveCell()`, `<id>_BeforeEdit(Row As Long, Col As Long,
+Cancel As Integer)`, `<id>_AfterEdit(Row As Long, Col As Long)`, `Click`, `DblClick`, `<id>_KeyDown(KeyCode As Integer, Shift As Integer)`.
 Typing on a cell starts editing, Return/Tab/cursor keys end it.
 
 ### Tabs (`tabs`) — clicktab.gadget with pages

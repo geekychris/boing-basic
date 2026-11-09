@@ -1,0 +1,25 @@
+# AmiForge GUI
+window name=sheet title="MiniSheet" width=620 height=400 remember=1
+vlayout id=root
+  hlayout weight=0
+    string id=cellRef label="Cell" maxchars=8 weight=0 minwidth=50
+    string id=formula maxchars=250
+  tabs id=pages
+    hlayout title="Sheet" splitter=1
+      treeview id=sheets minwidth=110 weight=20
+      grid id=grid rows=51 cols=11 fixedrows=1 fixedcols=1 colwidth=70 editable=1 headers=1 weight=80
+    vlayout title="Summary"
+      listbrowser id=summary columns="Column|Cells|Sum|Average" widths="25|25|25|25" sortable=1
+      button id=refresh text="_Refresh" weight=0
+  statusbar id=sb panels="Ready|Sum: 0" widths="0|160"
+  timer id=smoke interval=0
+menu id=mnuFile text="Project"
+  menu id=mnuClear text="Clear sheet" key=K
+  menu id=mnuExport text="Export as text..." key=E
+  menu text=-
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuFormat text="Format"
+  menu id=mnuBold text="Bold" key=B
+  menu id=mnuRed text="Red text"
+  menu id=mnuYellow text="Yellow background"
+  menu id=mnuPlain text="Plain"

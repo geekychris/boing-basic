@@ -1,0 +1,6 @@
+# Boing BASIC project: BoingPad, a text editor showing docs/ui.md (menus, toolbar, status bar,
+# CommonDialog, TextEditor, settings, ARexx, program icons, drag and drop)
+Name=BoingPad
+Startup=Form pad
+Form=pad.afg
+Stack=262144
