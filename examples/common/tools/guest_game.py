@@ -60,18 +60,32 @@ def stop_ours(m):
     for num in re.findall(r"Process\s+(\d+): Loaded as command: RAM:bbg/", st):
         m.tool("amiga_dos_command", command="break %s C" % num)
 
+# QEMU HMP monitor port per guest. On m1.local, 2348 is the USER's own guest (m1); agent test
+# guests are m1b (2448) and m1c (2548). OS4_HMP_PORT overrides.
+HMP_PORT = {"local": 2348, "spark": 2348, "m1b": 2448, "m1c": 2548}
+
+
+def hmp_port():
+    if os.environ.get("OS4_HMP_PORT"):
+        return int(os.environ["OS4_HMP_PORT"])
+    guest = os.environ.get("BB_GUEST", "local")
+    if guest not in HMP_PORT:
+        raise SystemExit("guest_game: no screenshots on BB_GUEST=%s (m1 is the user's guest)" % guest)
+    return HMP_PORT[guest]
+
 
 def screendump(out_png):
-    """The guest's screen as a PNG (QEMU's HMP monitor on port 2348 of the machine QEMU runs on)."""
+    """The guest's screen as a PNG (QEMU's HMP monitor on the machine QEMU runs on; each guest has
+    its own port, see HMP_PORT). Refuses the user's m1 guest."""
     import tempfile
     from PIL import Image
     tmp = tempfile.mktemp(suffix=".ppm")
     if g.SSH:
-        subprocess.run(["ssh", g.SSH, "printf 'screendump /tmp/bbg_shot.ppm\\n' | nc -w 3 127.0.0.1 2348 >/dev/null"], check=True)
+        subprocess.run(["ssh", g.SSH, "printf 'screendump /tmp/bbg_shot.ppm\\n' | nc -w 3 127.0.0.1 %d >/dev/null" % hmp_port()], check=True)
         time.sleep(1)
         subprocess.run(["scp", "-q", g.SSH + ":/tmp/bbg_shot.ppm", tmp], check=True)
     else:
-        subprocess.run("printf 'screendump %s\\n' | nc -w 3 127.0.0.1 2348 >/dev/null" % tmp, shell=True, check=True)
+        subprocess.run("printf 'screendump %s\\n' | nc -w 3 127.0.0.1 %d >/dev/null" % (tmp, hmp_port()), shell=True, check=True)
         time.sleep(1)
     Image.open(tmp).save(out_png)
     os.unlink(tmp)
