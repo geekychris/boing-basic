@@ -122,6 +122,8 @@ On the AmigaOS 4 guest (m1's QEMU sam460ex, `../gridwise/tools/guest_bench.py pw
 | save (.pwd text) | 426 | 403 | 73 |
 | RTF export | 4 931 | 5 222 | 460 |
 
+A repeat on m1b gave typing 60 / 70 / 7 ms and a screen 28 / 30 / 4.5 ms (VM / JIT / native).
+
 Typing costs 60 ms in the interpreter on the guest (it was 478 ms): the page draws without
 spelling marks for paragraphs not yet checked, and the timer checks a few visible
 paragraphs at a time while you pause; the paragraph you type in is checked a second after

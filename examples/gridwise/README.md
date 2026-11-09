@@ -124,6 +124,9 @@ On the AmigaOS 4 guest (m1's QEMU sam460ex, `tools/guest_bench.py`), millisecond
 | draw the grid (a screen of cells formatted for the first time) | 51 | 54 | 17 |
 | edit + recalculation + redraw (one keystroke) | 111 | 85 | 30 |
 
+A repeat on the second m1 guest (m1b, with other jobs running) gave edit + recalculation +
+redraw 138 / 99 / 31 ms and a grid redraw 61 / 65 / 19 ms (VM / JIT / native).
+
 So in the interpreter an edit, its recalculation and the redraw take about a tenth of a
 second even with every column summed over 1000 rows, and scrolling redraws at 15-20
 frames per second (cells already shown are cached and cost less). Native builds are 3-4x
