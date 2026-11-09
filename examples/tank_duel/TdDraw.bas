@@ -56,7 +56,7 @@ Public Sub DrawInit()
     skyBottom = Rgb12(&HBCD)
     a3ModelMargin = 200                 ' the biggest model (a pyramid) is 70 across
     MdlBegin mPillar
-    MdlPrism mPillar, 9, 10, 8, 26, 0, 130, True    ' (its top is above the turret's eye)
+    MdlPrism mPillar, 9, 10, 8, 26, 0, 130
     MdlBegin mPyramid
     MdlPyramid mPyramid, 11, 12, -50, 50, 0, -50, 50, 110
     MdlBegin mCrate
@@ -329,8 +329,8 @@ Private Sub Scene()
     Obstacles
     Tanks
     Missiles
-    polyTotal = polyTotal + a3NPolys
     A3Flush
+    polyTotal = polyTotal + a3NPolys
 End Sub
 
 ' the sky from skyTop down to skyBottom over 120 rows, in 8-row bands

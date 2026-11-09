@@ -181,8 +181,8 @@ Private Sub Board()
         Loop
     Next r
     BQuad -HALF, 0, -HALF, HALF, 0, -HALF, HALF, -16, -HALF, -HALF, -16, -HALF, 30, PEN_EDGE
-    polyTotal = polyTotal + a3NPolys
     A3Flush
+    polyTotal = polyTotal + a3NPolys
 End Sub
 
 Private Sub Blocks()
@@ -305,8 +305,8 @@ Private Sub Scene()
     A3Begin 2000
     Blocks
     Marble
-    polyTotal = polyTotal + a3NPolys
     A3Flush
+    polyTotal = polyTotal + a3NPolys
 End Sub
 
 Private Sub Hud()

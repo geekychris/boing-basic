@@ -23,6 +23,7 @@ Sub Main()
     gcv.Resize G_W, G_H
     SsInit
     DrawInit
+    SoundInit
     If InStr(Command$, "--grid1") > 0 Then gridDetail = 1
     startWave = rnd
     SsNewGame 1234, rnd
@@ -47,6 +48,7 @@ Sub Main()
           " picture " & gcv.Hash
     Print "time: logic " & Format$(tl / n, "0.000") & " draw " & Format$(td / n, "0.000") & " ms/frame, " & _
           Format$(n * 1000# / t, "0.0") & " fps;  polys/frame " & Format$(polyTotal / n, "0.0")
+    Print "sound: " & SfxTotal() & " effects started"
     If Len(shots) > 0 Then
         DrawTitle
         gcv.SaveImage shots & "/ss_title.ppm"

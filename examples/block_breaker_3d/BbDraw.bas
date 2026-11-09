@@ -198,8 +198,8 @@ Private Sub Tunnel()
         k = k + 1
     Loop
     Card -BB_W, -BB_H, BB_W, BB_H, BB_D, BB_D + 50, PEN_BACK
-    polyTotal = polyTotal + a3NPolys
     A3Flush
+    polyTotal = polyTotal + a3NPolys
 End Sub
 
 Private Function EmptyAt(ByVal c As Long, ByVal r As Long, ByVal l As Long) As Boolean
@@ -335,8 +335,8 @@ Private Sub Scene()
     Parts
     If Not (bbBetween <> 0 And bbStuck <> 0) Then Ball
     Paddle
-    polyTotal = polyTotal + a3NPolys
     A3Flush
+    polyTotal = polyTotal + a3NPolys
     CapsuleLetters
 End Sub
 

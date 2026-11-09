@@ -57,6 +57,13 @@ Public Sub SoundInit(ByVal withMusic As Boolean)
     End If
 End Sub
 
+Public Function SfxTotal() As Long
+    Dim i As Long
+    For i = 0 To UBound(sfxCount)
+        SfxTotal = SfxTotal + sfxCount(i)
+    Next i
+End Function
+
 Public Sub SoundCleanup()
     If au Is Nothing Then Exit Sub
     au.StopMusic

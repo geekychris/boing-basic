@@ -452,8 +452,8 @@ Private Sub Scene(ByVal showLine As Boolean)
     Enemies
     Movers
     If ssOver = 0 Then DrawShip
-    polyTotal = polyTotal + a3NPolys
     A3Flush
+    polyTotal = polyTotal + a3NPolys
 End Sub
 
 ' ---------- the HUD ----------
