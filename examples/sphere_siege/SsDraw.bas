@@ -253,6 +253,8 @@ End Sub
 ' ---------- the backdrop: stars and the shell ----------
 Private Sub StarsAndShell(cv As Object)
     Dim i As Long, x As Long, y As Long, z As Long, stp As Long, c7 As Long, c8 As Long, c9 As Long
+    Dim rx As Long, ry As Long, rz As Long, ux As Long, uy As Long, uz As Long, fx As Long, fy As Long, fz As Long
+    Dim t As Long, scx As Long, scy As Long
     nDots = 0
     For i = 0 To NSTARS - 1
         x = sX(i): y = sY(i): z = sZ(i)
@@ -270,16 +272,27 @@ Private Sub StarsAndShell(cv As Object)
     nNear = 0
     stp = 3 - gridDetail
     c7 = pen(PEN_GRID): c8 = pen(PEN_GRID + 1): c9 = pen(PEN_GRID + 2)
+    rx = cR.x: ry = cR.y: rz = cR.z: ux = cU.x: uy = cU.y: uz = cU.z: fx = cF.x: fy = cF.y: fz = cF.z
     For i = 0 To NGRID - 1 Step stp
-        Xfi gX(i), gY(i), gZ(i)
+        ' Xfi and Proj written out (calls cost in the VM)
+        x = gX(i) - cpx: y = gY(i) - cpy: z = gZ(i) - cpz
+        t = x * fx + y * fy + z * fz
+        qz = (t - (t And 16383)) \ 16384
         If qz >= 300 Then
-            If Proj() Then
-                If qz > 6400 Then
-                    AddDot c7
-                Else
-                    nearX(nNear) = px: nearY(nNear) = py
-                    If qz > 3600 Then nearC(nNear) = c8 Else nearC(nNear) = c9
-                    nNear = nNear + 1
+            t = x * rx + y * ry + z * rz
+            scx = G_W \ 2 + (((t - (t And 16383)) \ 16384) * FOV) \ qz
+            If scx >= 0 And scx < G_W Then
+                t = x * ux + y * uy + z * uz
+                scy = G_H \ 2 - (((t - (t And 16383)) \ 16384) * FOV) \ qz
+                If scy >= 0 And scy < G_H Then
+                    If qz > 6400 Then
+                        dotX(nDots) = scx: dotY(nDots) = scy: dotC(nDots) = c7
+                        nDots = nDots + 1
+                    Else
+                        nearX(nNear) = scx: nearY(nNear) = scy
+                        If qz > 3600 Then nearC(nNear) = c8 Else nearC(nNear) = c9
+                        nNear = nNear + 1
+                    End If
                 End If
             End If
         End If
