@@ -6,5 +6,5 @@ shows = ["Canvas members for the per-pixel work (fills, brushes, scaled views, c
 
 [[shot]]
 file = "gallery/sunset.png"
-caption = "The sunset demo script (`--script demo/sunset.tsc`) painted in three layers"
-run = { project = "Tincture.bbp", args = "--script demo/sunset.tsc", secs = 40, files = ["demo/*", "Icons/*.info"] }
+caption = "The sunset demo script (`--script demo/sunset.tsc`) painted in three layers, with the magnifier pane"
+run = { project = "Tincture.bbp", args = "--script demo/sunset.tsc", secs = 40, crop = [158, 56, 706, 612], files = ["demo/*", "Icons/*.info"] }

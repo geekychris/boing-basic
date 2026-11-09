@@ -1,0 +1,16 @@
+title = "Ace Pilot 2"
+category = "game"
+order = 30
+summary = "A biplane war in 3D: fly a Swallow scout over the trenches and the river Sellen, in the chase view or from the cockpit."
+shows = ["Engine3D", "Canvas (instruments, text)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game"]
+perf = "On the Mac: VM 13037 fps, native 19995 fps off-screen (`Bench.bbp --frames 3000 --mission 6`); guest numbers to follow in its README."
+
+[[shot]]
+file = "gallery/chase.png"
+caption = "The autopilot flying a mission, chase view"
+run = { project = "AcePilot2.bbp", args = "--autoplay --nosound --data {dir}", secs = 20 }
+
+[[shot]]
+file = "gallery/cockpit.png"
+caption = "The cockpit view: upper wing, struts, twin guns and ring sight"
+run = { project = "AcePilot2.bbp", args = "--autoplay --cockpit --nosound --data {dir}", secs = 20 }

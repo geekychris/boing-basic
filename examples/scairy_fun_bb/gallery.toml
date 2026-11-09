@@ -1,0 +1,11 @@
+title = "ScAIry Fun"
+category = "game"
+order = 50
+summary = "A self-driving car game: score while the autopilot drives, and grab the wheel just before it gets something wrong."
+shows = ["Engine3D maths with its own road renderer", "Canvas", "Audio: MOD music and sampled voice lines", "a port of a C amiga3d game"]
+perf = "On the Mac: VM 4736 fps, native 12523 fps off-screen (`Bench.bbp --frames 3000 --route 1`); guest numbers to follow in its README."
+
+[[shot]]
+file = "gallery/driving.png"
+caption = "On autopilot"
+run = { project = "ScairyFun.bbp", args = "--route 2 --nosound --nomusic --data {dir}", secs = 20, files = ["*.raw"] }

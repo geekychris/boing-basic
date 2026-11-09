@@ -1,0 +1,14 @@
+title = "Orbit Docking"
+category = "game"
+order = 40
+summary = "A slow, tense docking simulator: match a spinning station's roll and slide into its port, with no friction and limited fuel."
+shows = ["Engine3D", "Canvas (instruments)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game"]
+perf = "186.0 fps native, 109.4 fps in the VM, 94.6 fps with the JIT (`--bench 500`, m1b guest)."
+
+[[shot]]
+file = "screenshots/os4-approach.png"
+caption = "The approach to station 4"
+
+[[shot]]
+file = "screenshots/os4-scores.png"
+caption = "High scores"

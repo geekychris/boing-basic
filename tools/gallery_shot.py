@@ -41,7 +41,7 @@ import os4guest as g  # noqa: E402
 if g.GUEST == "m1":
     sys.exit("gallery_shot: not on BB_GUEST=m1 (the user's guest); use m1b or local")
 # QEMU's HMP monitor of each guest, on the machine QEMU runs on
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": 2448}.get(g.GUEST, 2348)))
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": 2448, "m1c": 2548}.get(g.GUEST, 2348)))
 DEST = "RAM:bbdoc/"
 
 
