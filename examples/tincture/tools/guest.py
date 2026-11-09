@@ -94,12 +94,12 @@ def vm_cmd():
     return "%s/boing run %s/Tincture.bbp" % (DIR, DIR)
 
 
-def smoke(m, shots, native=False):
+def smoke(m, shots, native=False, extra=""):
     os.makedirs(shots, exist_ok=True)
     outf = "RAM:tincture-%d.log" % int(time.time())      # own names: a crashed run may hold old ones open
     dos(m, "delete RAM:tincture-smoke.ppm RAM:tincture.trace QUIET")
     cmd = ("%s/Tincture" % DIR) if native else vm_cmd()
-    launch(m, "%s --smoke --hold 15 --log --trace >%s *>%s.err" % (cmd, outf, outf))
+    launch(m, "%s --smoke --hold 15 --log --trace %s >%s *>%s.err" % (cmd, extra, outf, outf))
     out = wait_for(m, outf, "SMOKE redo-all", 120)
     print(out or dos(m, "type %s.err" % outf))
     if out:
@@ -267,9 +267,12 @@ def main():
         elif what == "smoke":
             push_all(m)
             shots = sys.argv[2] if len(sys.argv) > 2 else os.path.join(tempfile.gettempdir(), "tincture")
-            ok = smoke(m, shots)
+            extra = " ".join(sys.argv[3:])            # e.g. --nopointer
+            native_only = "--native" in sys.argv[3:]
+            extra = extra.replace("--native", "")
+            ok = True if native_only else smoke(m, shots, extra=extra)
             if ok and os.path.exists(ROOT + "/build/Tincture"):
-                ok = smoke(m, shots, native=True)
+                ok = smoke(m, shots, native=True, extra=extra)
             print("SMOKE", "PASS" if ok else "FAIL")
             sys.exit(0 if ok else 1)
         elif what == "input":

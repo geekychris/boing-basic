@@ -19,6 +19,7 @@ Private statusPending As Boolean     ' a status update was skipped (throttled): 
 Private syncing As Boolean          ' the program is setting controls: their Click/Change events are ignored
 Private quitAt As Double            ' --smoke / --hold: quit at this Timer value
 Private holdSecs As Long
+Private noPointer As Boolean         ' True unless --pointer: per-tool pointers wait for a runtime fix
 Private logActive As Boolean        ' --log: print active/inactive and events for the guest tests
 Private traceOn As Boolean          ' --trace: each step appended to RAM:tincture.trace (survives a crash)
 
@@ -28,6 +29,7 @@ Private Sub Form_Load()
     Dim args() As String, i As Long, openPath As String, scriptPath As String, a As String, p As Long
 
     If InStr(Command$, "--trace") Then traceOn = True: Tr "load"
+    noPointer = True
     DocAttach view
     ToolsInit
     Tr "prefs"
@@ -51,6 +53,7 @@ Private Sub Form_Load()
             Case "--bench": i = i + 1: If i <= UBound(args) Then benchStrokes = CLng(args(i))
             Case "--hold": i = i + 1: If i <= UBound(args) Then holdSecs = CLng(args(i))
             Case "--log": logActive = True
+            Case "--pointer": noPointer = False      ' per-tool pointers (off: setting MousePointer at run time crashes the exit on OS4)
             Case "--trace": traceOn = True: Tr "trace on"
             Case "--size"
                 i = i + 1
@@ -194,7 +197,7 @@ End Sub
 Private Sub UpdateOnce()
     If needFit Then needFit = False: ZoomFit: needView = True
     If needView Then needView = False: Tr "render": RenderView: Tr "refresh": view.Refresh
-    If needTools Then needTools = False: Tr "toolbox": DrawToolBox tools
+    If needTools Then needTools = False: Tr "toolbox": DrawToolBox tools: SetToolPointer
     If needColours Then needColours = False: Tr "colours": DrawColourPanel colours
     If needLayers Then needLayers = False: Tr "layers": FillLayerList
     If needTitle Then needTitle = False: Tr "title": UpdateTitle
@@ -386,6 +389,20 @@ Private Sub tools_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As
         Case Else: ActSetTool t
     End Select
     UpdateAll
+End Sub
+
+' the pointer over the picture follows the tool (OS4 pointer types: 100 + type)
+Private Sub SetToolPointer()
+    Dim p As Long
+    If noPointer Then Exit Sub
+    Select Case curTool
+        Case T_FREEHAND, T_AIRBRUSH: p = 135        ' pen
+        Case T_ERASER: p = 137                      ' rubber
+        Case T_SELECT: p = 138                      ' select
+        Case Else: p = 2                            ' crosshair
+    End Select
+    On Error Resume Next
+    If view.MousePointer <> p Then view.MousePointer = p
 End Sub
 
 Private Sub AskText()
