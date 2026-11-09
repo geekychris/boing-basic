@@ -617,6 +617,10 @@ Public Function Frame(ByVal force As Boolean) As Boolean
             curRow = pr
         End If
         frameDirty = True
+        ' draw the pattern that comes next while this one plays
+        If playMode = 1 Then
+            If pp + 1 < songLen Then PrefetchPattern orders(pp + 1), 8 Else PrefetchPattern orders(0), 8
+        End If
     End If
     If message <> "" And Timer - msgTime > 4 Then message = "": frameDirty = True
     If Not (frameDirty Or force) Then Exit Function

@@ -81,7 +81,7 @@ Sub Main()
     HandleKey vbKeyF10, 0
     Check "sample view", curView = V_SAMPLES
     Check "sample view draws", Frame(True)
-    c.SaveImage "shot_samples.ppm"
+    If Environ$("RIFF_SHOTS") <> "" Then c.SaveImage Environ$("RIFF_SHOTS") & "/shot_samples.ppm"
     HandleKey vbKeyDown, 0
     HandleKey vbKeyRight, 1
     Print "sample 2 volume after Shift+Right on 64:"; smpVol(2)
@@ -93,7 +93,7 @@ Sub Main()
     HandleKey vbKeyRight, 0
     Print "speed"; initSpeed
     Frame True
-    c.SaveImage "shot_song.ppm"
+    If Environ$("RIFF_SHOTS") <> "" Then c.SaveImage Environ$("RIFF_SHOTS") & "/shot_song.ppm"
     HandleKey vbKey1, 8
     Check "Amiga+1 pattern view", curView = V_PATTERN
     ' file actions are left for the form
@@ -103,7 +103,7 @@ Sub Main()
     ' frames: draw time with the play cursor moving
     curRow = 20
     Frame True
-    c.SaveImage "shot_pattern.ppm"
+    If Environ$("RIFF_SHOTS") <> "" Then c.SaveImage Environ$("RIFF_SHOTS") & "/shot_pattern.ppm"
     Print "frame hash"; c.Hash
     t = Timer
     n = 200

@@ -28,9 +28,11 @@ Public cTitle As Long, cText As Long, cLabel As Long, cWarn As Long, cGood As Lo
 Public cWave As Long, cLoop As Long
 
 ' ---- cached images
-Private patImg As Long
-Private patImgPat As Long             ' pattern drawn in patImg (-1 = none)
-Private patImgCh As Long
+Private slotImg(0 To 1) As Long       ' two pattern images: the one shown and the next one
+Private slotPat(0 To 1) As Long       ' pattern in each (-1 = none)
+Private slotRows(0 To 1) As Long      ' rows drawn so far (64 = complete)
+Private slotCh(0 To 1) As Long
+Private patImg As Long                ' the image of the pattern shown
 Private blankRow As Long             ' a transparent row, to clear rows of patImg
 Private sideImg As Long
 Public sideDirty As Boolean
@@ -52,9 +54,10 @@ Public Sub ViewInit(c As Object)
     cTitle = RGB(255, 200, 110): cText = RGB(214, 220, 236): cLabel = RGB(120, 132, 170)
     cWarn = RGB(255, 110, 90): cGood = RGB(110, 230, 150): cMute = RGB(150, 60, 60)
     cWave = RGB(110, 214, 224): cLoop = RGB(255, 176, 64)
-    patImg = cv.CreateImage(PX0 + MAXCH * CW, ROWS * RH)
+    slotImg(0) = cv.CreateImage(PX0 + MAXCH * CW, ROWS * RH)
+    slotImg(1) = cv.CreateImage(PX0 + MAXCH * CW, ROWS * RH)
     blankRow = cv.CreateImage(PX0 + MAXCH * CW, RH)
-    patImgPat = -1
+    slotPat(0) = -1: slotPat(1) = -1
     sideImg = cv.CreateImage(scrW, PH)
     sideDirty = True
     ReDim scX(0 To SCN - 1)
@@ -84,30 +87,71 @@ End Function
 ' ---------------------------------------------------------------- pattern image
 
 Public Sub InvalidatePattern()
-    patImgPat = -1
+    slotPat(0) = -1: slotPat(1) = -1
 End Sub
 
-' make sure patImg shows pattern p (all rows)
-Public Sub EnsurePattern(ByVal p As Long)
-    Dim r As Long
-    If patImgPat = p And patImgCh = nch Then Exit Sub
-    cv.SetTarget patImg
-    cv.Cls
-    For r = 0 To ROWS - 1
-        DrawRowText r, p
+Private Function SlotOf(ByVal p As Long) As Long
+    SlotOf = -1
+    If slotPat(0) = p And slotCh(0) = nch Then SlotOf = 0
+    If slotPat(1) = p And slotCh(1) = nch Then SlotOf = 1
+End Function
+
+' draw up to n more rows of slot s
+Private Sub FillSlot(ByVal s As Long, ByVal n As Long)
+    Dim r As Long, r1 As Long
+    If slotRows(s) >= ROWS Then Exit Sub
+    cv.SetTarget slotImg(s)
+    If slotRows(s) = 0 Then cv.Cls
+    r1 = slotRows(s) + n - 1
+    If r1 > ROWS - 1 Then r1 = ROWS - 1
+    For r = slotRows(s) To r1
+        DrawRowText r, slotPat(s)
     Next r
     cv.SetTarget 0
-    patImgPat = p
-    patImgCh = nch
+    slotRows(s) = r1 + 1
 End Sub
 
-' redraw rows r0..r1 of the cached pattern after an edit (if it is the cached one)
+Private Sub ClaimSlot(ByVal s As Long, ByVal p As Long)
+    slotPat(s) = p
+    slotCh(s) = nch
+    slotRows(s) = 0
+End Sub
+
+' make the pattern image show pattern p (all rows)
+Public Sub EnsurePattern(ByVal p As Long)
+    Dim s As Long
+    s = SlotOf(p)
+    If s < 0 Then
+        ' take the slot that isn't shown
+        If slotImg(0) = patImg Then s = 1 Else s = 0
+        ClaimSlot s, p
+    End If
+    If slotRows(s) < ROWS Then FillSlot s, ROWS
+    patImg = slotImg(s)
+End Sub
+
+' draw the next pattern into the spare image a few rows per frame, so following the song
+' into it costs nothing (call once per frame while playing)
+Public Sub PrefetchPattern(ByVal p As Long, ByVal rowsPerCall As Long)
+    Dim s As Long
+    s = SlotOf(p)
+    If s < 0 Then
+        If slotImg(0) = patImg Then s = 1 Else s = 0
+        ClaimSlot s, p
+    End If
+    If slotImg(s) = patImg Then Exit Sub
+    FillSlot s, rowsPerCall
+End Sub
+
+' redraw rows r0..r1 of pattern p's image after an edit (if it is drawn)
 Public Sub RefreshRows(ByVal p As Long, ByVal r0 As Long, ByVal r1 As Long)
-    Dim r As Long
-    If p <> patImgPat Then Exit Sub
+    Dim r As Long, s As Long
+    s = SlotOf(p)
+    If s < 0 Then Exit Sub
     If r0 < 0 Then r0 = 0
-    If r1 > ROWS - 1 Then r1 = ROWS - 1
-    cv.SetTarget patImg
+    If r1 > slotRows(s) - 1 Then r1 = slotRows(s) - 1
+    If r1 < r0 Then Exit Sub
+    cv.SetTarget slotImg(s)
     For r = r0 To r1
         cv.DrawImagePart blankRow, 0, 0, PX0 + MAXCH * CW, RH, 0, r * RH, True   ' clear to transparent
         DrawRowText r, p
@@ -123,20 +167,24 @@ Private Sub DrawRowText(ByVal r As Long, ByVal p As Long)
     k = CellIdx(p, r, 0)
     For c = 0 To nch - 1
         x = PX0 + c * CW
-        If cPer(k) = 0 Then
-            cv.DrawText x, y, "---", cDim
+        If cPer(k) = 0 And cSmp(k) = 0 And cFx(k) = 0 And cPrm(k) = 0 Then
+            cv.DrawText x, y, "--- .. ...", cDim       ' an empty cell: one call
         Else
-            cv.DrawText x, y, noteName(noteOfPer(cPer(k) And 4095)), cNote
-        End If
-        If cSmp(k) = 0 Then
-            cv.DrawText x + 22, y, "..", cDim
-        Else
-            cv.DrawText x + 22, y, Hex2(cSmp(k)), cSmpC
-        End If
-        If cFx(k) = 0 And cPrm(k) = 0 Then
-            cv.DrawText x + 38, y, "...", cDim
-        Else
-            cv.DrawText x + 38, y, Hex$(cFx(k)) & Hex2(cPrm(k)), cFxC
+            If cPer(k) = 0 Then
+                cv.DrawText x, y, "---", cDim
+            Else
+                cv.DrawText x, y, noteName(noteOfPer(cPer(k) And 4095)), cNote
+            End If
+            If cSmp(k) = 0 Then
+                cv.DrawText x + 24, y, "..", cDim
+            Else
+                cv.DrawText x + 24, y, Hex2(cSmp(k)), cSmpC
+            End If
+            If cFx(k) = 0 And cPrm(k) = 0 Then
+                cv.DrawText x + 42, y, "...", cDim
+            Else
+                cv.DrawText x + 42, y, Hex$(cFx(k)) & Hex2(cPrm(k)), cFxC
+            End If
         End If
         k = k + 1
     Next c
@@ -147,11 +195,11 @@ Public Sub FieldBox(ByVal ch As Long, ByVal field As Long, x As Long, w As Long)
     x = PX0 + ch * CW
     Select Case field
         Case 0: w = 18
-        Case 1: x = x + 22: w = 6
-        Case 2: x = x + 28: w = 6
-        Case 3: x = x + 38: w = 6
-        Case 4: x = x + 44: w = 6
-        Case Else: x = x + 50: w = 6
+        Case 1: x = x + 24: w = 6
+        Case 2: x = x + 30: w = 6
+        Case 3: x = x + 42: w = 6
+        Case 4: x = x + 48: w = 6
+        Case Else: x = x + 54: w = 6
     End Select
 End Sub
 

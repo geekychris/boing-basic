@@ -7,5 +7,6 @@ Module=Samples.bas
 Module=Player.bas
 Module=View.bas
 Module=Tracker.bas
+Module=Prefs.bas
 Form=main.afg
 Stack=524288

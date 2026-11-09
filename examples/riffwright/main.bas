@@ -8,6 +8,7 @@
 Option Explicit
 
 Private logOn As Boolean
+Private testRun As Boolean        ' --quit-after / --bench: leave the preferences alone
 Private quitAt As Double
 Private benchN As Long
 Private benchFrames As Long
@@ -32,9 +33,11 @@ Private Function ParseArgs() As String
             Case "--quit-after"
                 i = i + 1
                 If i <= UBound(a) Then quitAt = Timer + Val(a(i))
+                testRun = True
             Case "--bench"
                 i = i + 1
                 If i <= UBound(a) Then benchN = CLng(Val(a(i)))
+                testRun = True
                 play = True
             Case Else
                 song = a(i)
@@ -49,6 +52,7 @@ End Function
 Private Sub Form_Load()
     ViewInit view
     TrackerInit
+    If InStr(Command$, "--quit-after") = 0 And InStr(Command$, "--bench") = 0 Then LoadPrefs
     PlayerOpen
     NewSong 4
     StarterSamples
@@ -127,6 +131,7 @@ Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
 End Sub
 
 Private Sub Form_Unload(Cancel As Integer)
+    If Not testRun Then SavePrefs
     PlayerClose
 End Sub
 
