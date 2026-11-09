@@ -12,6 +12,7 @@
 #include "audio.h"
 #include "platform.h"
 #include "audio/bbaudio.h"
+#include "fpath.h"
 
 typedef struct { bb_obj hdr; } bb_audio;
 

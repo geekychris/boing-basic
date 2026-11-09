@@ -16,6 +16,7 @@
 #include <string.h>
 #include <strings.h>
 #include <math.h>
+#include "fpath.h"
 
 typedef struct cv_image {
     int32_t w, h;

@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include "fpath.h"
 
 typedef struct formdef {
     char *module, *name, *afg, *path;

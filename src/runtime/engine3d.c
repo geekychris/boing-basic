@@ -14,6 +14,7 @@
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
+#include "fpath.h"
 
 #define ARGB(vb) (0xFF000000u | (((uint32_t)(vb) & 0xFFu) << 16) | ((uint32_t)(vb) & 0xFF00u) | \
                   (((uint32_t)(vb) >> 16) & 0xFFu))

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
+#include "fpath.h"
 
 #define MAXFILES 512
 

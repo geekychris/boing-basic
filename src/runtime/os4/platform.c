@@ -154,7 +154,29 @@ static int err_of(int e, int notfound)
     }
 }
 
-int bb_plat_remove(const char *path) { return remove(path) == 0 ? 0 : err_of(errno, 53); }
+/* "DH1:/name" -> "DH1:name": in AmigaDOS a "/" right after the volume means its parent (there is
+   none), but VB code builds paths as App.Path & "/" & name, and App.Path is "DH1:" for a
+   program at a volume root. Every path the runtime hands to the OS goes through this. */
+const char *bb_os4_path(const char *p, char *buf, size_t n)
+{
+    const char *c = p ? strchr(p, ':') : NULL;
+    size_t k;
+    if (!c || c[1] != '/') return p;
+    k = (size_t)(c - p) + 1;
+    if (k + strlen(c + 2) + 1 > n) return p;
+    memcpy(buf, p, k);
+    strcpy(buf + k, c + 2);
+    return buf;
+}
+
+FILE *bb_plat_fopen(const char *path, const char *mode)
+{
+    char nb[1024];
+#undef fopen
+    return fopen(bb_os4_path(path, nb, sizeof nb), mode);
+}
+
+int bb_plat_remove(const char *path) { char nb[1024]; return remove(bb_os4_path(path, nb, sizeof nb)) == 0 ? 0 : err_of(errno, 53); }
 int bb_plat_rename(const char *a, const char *b) { int e = bb_sys_rename(a, b); return e; }
 int bb_plat_mkdir(const char *path) { return bb_sys_mkdir(path); }
 int bb_plat_rmdir(const char *path) { return bb_sys_rmdir(path); }
@@ -172,6 +194,8 @@ int bb_plat_getcwd(char *buf, size_t n)
 int bb_plat_file_size(const char *path, long *size)
 {
     struct stat st;
+    char nb[1024];
+    path = bb_os4_path(path, nb, sizeof nb);
     if (stat(path, &st) != 0) return 53;
     *size = (long)st.st_size;
     return 0;
@@ -180,6 +204,8 @@ int bb_plat_file_size(const char *path, long *size)
 int bb_plat_is_dir(const char *path)
 {
     struct stat st;
+    char nb[1024];
+    path = bb_os4_path(path, nb, sizeof nb);
     return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
 }
 
@@ -188,6 +214,8 @@ typedef struct pdir { DIR *d; char path[1024]; } pdir;
 void *bb_plat_dir_open(const char *dir)
 {
     pdir *h;
+    char nb[1024];
+    dir = bb_os4_path(dir, nb, sizeof nb);
     DIR *d = opendir(dir && *dir && strcmp(dir, ".") ? dir : "");
     if (!d) return NULL;
     h = (pdir *)malloc(sizeof *h);

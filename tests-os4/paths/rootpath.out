@@ -1,0 +1,7 @@
+app path RAM Disk:
+read beside the program
+len 19 
+dir rp_test.txt
+moved rp_moved.txt
+mkdir rp_dir
+gone True

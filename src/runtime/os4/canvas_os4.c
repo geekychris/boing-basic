@@ -15,6 +15,7 @@
 #include <proto/intuition.h>
 #include <proto/graphics.h>
 #include <proto/datatypes.h>
+const char *bb_os4_path(const char *p, char *buf, size_t n);   /* "DH1:/x" -> "DH1:x" (platform.c) */
 
 int canvas_blit_mode;
 static const char *blit_info = "none yet";
@@ -163,7 +164,8 @@ uint32_t *canvas_plat_load_picture(const char *path, int32_t *w, int32_t *h)
     struct BitMapHeader *bmh = NULL;
     if (!dtbase) return NULL;
     idt = (struct DataTypesIFace *)IExec->GetInterface(dtbase, "main", 1, NULL);
-    if (idt) o = idt->NewDTObject((STRPTR)path, DTA_GroupID, GID_PICTURE, PDTA_DestMode, PMODE_V43,
+    char nb_[1024];
+    if (idt) o = idt->NewDTObject((STRPTR)bb_os4_path(path, nb_, sizeof nb_), DTA_GroupID, GID_PICTURE, PDTA_DestMode, PMODE_V43,
                                   PDTA_Remap, FALSE, TAG_DONE);
     if (o && idt->GetDTAttrs(o, PDTA_BitMapHeader, (uint32)&bmh, TAG_DONE) && bmh && bmh->bmh_Width > 0) {
         int32_t ww = bmh->bmh_Width, hh = bmh->bmh_Height;

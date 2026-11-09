@@ -224,8 +224,11 @@ colours, key codes. `vbNewLine` is a single LF (AmigaOS and Unix convention).
   RmDir ChDir CurDir FileCopy`.
 - `App.Path` is the program's directory: under `boing run prog.bbp|prog.bas|prog.bbc` the
   directory of that file (an absolute path, e.g. `DH1:Games/Tank`), in a native build the
-  executable's. Load files that sit beside the program with `App.Path & "/name"` (on AmigaOS,
-  leave out the `/` when App.Path ends in `:`). The current directory stays where the program
+  executable's. Load files that sit beside the program with `App.Path & "/name"`. On AmigaOS a
+  program at a volume root has App.Path "DH1:", and "DH1:/name" would mean the volume's parent:
+  the runtime's file functions (Open, Dir, FileLen, Kill, FileCopy, Name, MkDir, RmDir, ChDir,
+  LoadPicture, module and sample files, icons) treat "vol:/name" as "vol:name", so the VB idiom
+  works everywhere (tests-os4/paths/rootpath.bas, run from RAM:). The current directory stays where the program
   was started from (the shell's, or AmiForge's project directory), so relative paths in
   arguments keep working; relative file names in `Open` are relative to it, not to App.Path.
 - `MsgBox` and `InputBox` prompt on the console on the host (`(y/n)` for vbYesNo). On AmigaOS

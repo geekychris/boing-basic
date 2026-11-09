@@ -2,6 +2,7 @@
  * find/replace and files; the ListBrowser's columns, sorting, multiple selection and row data.
  * Tabs, TreeView and Grid are in ui_tabs.c, ui_tree.c and ui_grid.c. */
 #include "forms_int.h"
+#include "../fpath.h"
 
 /* --- TextEditor ---------------------------------------------------------------------------- */
 

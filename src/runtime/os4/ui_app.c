@@ -27,6 +27,7 @@
 #include <proto/iffparse.h>
 #include <libraries/iffparse.h>
 #include <devices/clipboard.h>
+const char *bb_os4_path(const char *p, char *buf, size_t n);   /* "DH1:/x" -> "DH1:x" (platform.c) */
 
 static int app_debug = -1;
 #define DBG(...) do { if (app_debug < 0) app_debug = getenv("BB_DEBUG_APP") != NULL; \
@@ -261,7 +262,8 @@ static int show_appicon(const char *name, const char *file)
     appicon_obj = NULL;
     if (file && *file) {
         char f[1024];
-        snprintf(f, sizeof f, "%s", file);
+        char nb_[1024];
+        snprintf(f, sizeof f, "%s", bb_os4_path(file, nb_, sizeof nb_));
         size_t n = strlen(f);
         if (n > 5 && !strcasecmp(f + n - 5, ".info")) f[n - 5] = 0;
         appicon_obj = IIc->GetDiskObject(f);
@@ -305,7 +307,8 @@ static int save_icon(const char *path, const char *tool, const char *templ)
 {
     if (!icon()) return 5;
     struct DiskObject *d = NULL;
-    if (templ && *templ) d = IIc->GetDiskObject(templ);
+    char nbt_[1024];
+    if (templ && *templ) d = IIc->GetDiskObject(bb_os4_path(templ, nbt_, sizeof nbt_));
     if (!d) d = IIc->GetDefDiskObject(WBPROJECT);
     if (!d) return 7;
     char deftool[1024];

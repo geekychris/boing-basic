@@ -227,8 +227,12 @@ static int vb_err(LONG ioerr)
     }
 }
 
+const char *bb_os4_path(const char *p, char *buf, size_t n);
+
 int bb_sys_kill(const char *pattern)
 {
+    char nb_pattern[1024];
+    pattern = bb_os4_path(pattern, nb_pattern, sizeof nb_pattern);
     int found = 0;
     char *pat = amiga_pattern(pattern);
     struct AnchorPath *ap = IDOS->AllocDosObjectTags(DOS_ANCHORPATH, ADO_Strlen, 1024, TAG_DONE);
@@ -253,6 +257,8 @@ int bb_sys_kill(const char *pattern)
 
 int bb_sys_mkdir(const char *path)
 {
+    char nb_path[1024];
+    path = bb_os4_path(path, nb_path, sizeof nb_path);
     BPTR l = IDOS->CreateDir(path);
     if (!l) return vb_err(IDOS->IoErr());
     IDOS->UnLock(l);
@@ -261,12 +267,16 @@ int bb_sys_mkdir(const char *path)
 
 int bb_sys_rmdir(const char *path)
 {
+    char nb_path[1024];
+    path = bb_os4_path(path, nb_path, sizeof nb_path);
     if (bb_sys_getattr(path) != 16) return 76;
     return IDOS->Delete(path) ? 0 : vb_err(IDOS->IoErr());
 }
 
 int bb_sys_chdir(const char *path)
 {
+    char nb_path[1024];
+    path = bb_os4_path(path, nb_path, sizeof nb_path);
     BPTR l = IDOS->Lock(path, SHARED_LOCK);
     if (!l) return 76;
     BPTR old = IDOS->SetCurrentDir(l);
@@ -282,11 +292,19 @@ char *bb_sys_curdir(void)
 
 int bb_sys_rename(const char *from, const char *to)
 {
+    char nb_from[1024];
+    char nb_to[1024];
+    from = bb_os4_path(from, nb_from, sizeof nb_from);
+    to = bb_os4_path(to, nb_to, sizeof nb_to);
     return IDOS->Rename(from, to) ? 0 : vb_err(IDOS->IoErr());
 }
 
 int bb_sys_filecopy(const char *from, const char *to)
 {
+    char nb_from[1024];
+    char nb_to[1024];
+    from = bb_os4_path(from, nb_from, sizeof nb_from);
+    to = bb_os4_path(to, nb_to, sizeof nb_to);
     BPTR in = IDOS->Open(from, MODE_OLDFILE);
     if (!in) return 53;
     BPTR out = IDOS->Open(to, MODE_NEWFILE);
@@ -313,6 +331,8 @@ static struct ExamineData *examine(const char *path)
 
 long bb_sys_filelen(const char *path)
 {
+    char nb_path[1024];
+    path = bb_os4_path(path, nb_path, sizeof nb_path);
     struct ExamineData *d = examine(path);
     if (!d) return -1;
     long n = EXD_IS_FILE(d) ? (long)d->FileSize : 0;
@@ -322,6 +342,8 @@ long bb_sys_filelen(const char *path)
 
 int bb_sys_getattr(const char *path)
 {
+    char nb_path[1024];
+    path = bb_os4_path(path, nb_path, sizeof nb_path);
     struct ExamineData *d = examine(path);
     if (!d) return -1;
     int a = 0;
@@ -364,6 +386,8 @@ static void quiet_end(APTR old) { ((struct Process *)IExec->FindTask(NULL))->pr_
 
 int bb_sys_probe(const char *path)
 {
+    char nb_path[1024];
+    path = bb_os4_path(path, nb_path, sizeof nb_path);
     APTR old;
     BPTR l;
     if (!volume_known(path)) return 0;
@@ -376,6 +400,8 @@ int bb_sys_probe(const char *path)
 
 char *bb_sys_real_path(const char *path)
 {
+    char nb_path[1024];
+    path = bb_os4_path(path, nb_path, sizeof nb_path);
     APTR old;
     BPTR l;
     char *n;

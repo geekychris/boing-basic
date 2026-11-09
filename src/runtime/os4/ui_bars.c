@@ -4,6 +4,7 @@
 #include <proto/speedbar.h>
 #include <gadgets/speedbar.h>
 #include <images/bitmap.h>
+const char *bb_os4_path(const char *p, char *buf, size_t n);   /* "DH1:/x" -> "DH1:x" (platform.c) */
 
 static struct SpeedBarIFace *ISB;
 
@@ -25,7 +26,10 @@ void bbf_ext_cleanup(void)
 /* a picture file (any datatype) as a bitmap.image remapped to the Workbench screen */
 Object *bbf_load_image(const char *file, const char *selfile)
 {
+    char nbf_[1024], nbs_[1024];
     if (!file || !*file) return NULL;
+    file = bb_os4_path(file, nbf_, sizeof nbf_);
+    if (selfile) selfile = bb_os4_path(selfile, nbs_, sizeof nbs_);
     /* a missing file (e.g. TBImages: names a system doesn't have) is no picture, not a crash */
     BPTR l = IDOS->Lock(file, SHARED_LOCK);
     if (!l) return NULL;

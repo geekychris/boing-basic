@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include "fpath.h"
 
 void bb_fv_from_value(const bb_value *v, bb_fval *fv, bb_str **hold);   /* forms_rt.c */
 bb_value bb_value_from_fv(const bb_fval *fv);
