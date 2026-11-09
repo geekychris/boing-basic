@@ -27,10 +27,11 @@ the bridge stops answering (BB_SILENT, 90 s of no heartbeat) or the session is t
 (BB_SESSION_TIMEOUT, 600 s). After `test`/`bas` runs it looks for Grim Reaper windows and
 reports them (BB_KILL_REAPERS=1 closes them).
 
-Guests: BB_GUEST=local (default, devbench :3010), m1 (:3020, QEMU on m1.local), m1b (:3030, the
-second QEMU guest on m1.local), spark (:3032, QEMU on spark.local): each its own lock and queue
-(/tmp/amiga-emu[-m1|-m1b|-spark].lock/.queue); for remote ones the fast-deploy HTTP server runs on
-that machine over ssh (on its loopback: port 18780, 18781 for m1b).
+Guests: BB_GUEST=local (default, devbench :3010), m1 (:3020, QEMU on m1.local), m1b (:3030) and
+m1c (:3040), the second and third QEMU guests on m1.local, spark (:3032, QEMU on spark.local): each
+its own lock and queue (/tmp/amiga-emu[-m1|-m1b|-m1c|-spark].lock/.queue); for remote ones the
+fast-deploy HTTP server runs on that machine over ssh (on its loopback: port 18780, 18781 for m1b,
+18782 for m1c).
 Overrides: OS4_MCP, OS4_LOCK, OS4_QUEUE, OS4_SSH, OS4_REMOTE_HTTP_PORT. On remote guests every
 push goes over HTTP once bbfetch is there (their devbench reads amiga_push_file/amiga_pull_file
 paths on the remote machine; bridge pushes copy the file there first).
@@ -48,7 +49,7 @@ import sys
 import tempfile
 import urllib.request
 
-# Which OS4 guest: BB_GUEST=local (default) | m1 | m1b | spark; each has its own devbench URL, emulator
+# Which OS4 guest: BB_GUEST=local (default) | m1 | m1b | m1c | spark; each has its own devbench URL, emulator
 # lock and FIFO queue on this Mac, and (remote ones) the ssh login of the machine QEMU runs on,
 # where the HTTP server for fast deploys must run (the guest only reaches its own host).
 GUESTS = {
@@ -59,12 +60,15 @@ GUESTS = {
     # the second guest on m1 (~/retro/os4b.sh there, devbench :3003; tunnel localhost:3030 -> m1:3003)
     "m1b": {"url": "http://localhost:3030/mcp", "lock": "/tmp/amiga-emu-m1b.lock",
             "queue": "/tmp/amiga-emu-m1b.queue", "ssh": "chriscollins@m1.local", "http_port": 18781},
+    # the third guest on m1 (~/retro/os4c.sh there, devbench :3004; tunnel localhost:3040 -> m1:3004)
+    "m1c": {"url": "http://localhost:3040/mcp", "lock": "/tmp/amiga-emu-m1c.lock",
+            "queue": "/tmp/amiga-emu-m1c.queue", "ssh": "chriscollins@m1.local", "http_port": 18782},
     "spark": {"url": "http://127.0.0.1:3032/mcp", "lock": "/tmp/amiga-emu-spark.lock",
               "queue": "/tmp/amiga-emu-spark.queue", "ssh": "chris@spark.local"},
 }
 GUEST = os.environ.get("BB_GUEST", "local")
 if GUEST not in GUESTS:
-    sys.exit("os4guest: unknown BB_GUEST %r (local, m1, m1b, spark)" % GUEST)
+    sys.exit("os4guest: unknown BB_GUEST %r (local, m1, m1b, m1c, spark)" % GUEST)
 _G = GUESTS[GUEST]
 URL = os.environ.get("OS4_MCP", _G["url"])
 LOCK = os.environ.get("OS4_LOCK", _G["lock"])
