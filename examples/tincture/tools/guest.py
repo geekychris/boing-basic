@@ -85,6 +85,29 @@ def wait_for(m, outf, text, limit):
     return None
 
 
+def leftovers(m):
+    """Tincture processes and Grim Reapers on the guest (process numbers)."""
+    out = dos(m, "status")
+    tinc = [l.split()[1].rstrip(":") for l in out.splitlines() if "tincture" in l.lower()]
+    reap = [l.split()[1].rstrip(":") for l in out.splitlines() if "GrimReaper" in l]
+    return tinc, reap
+
+
+def cleanup(m):
+    """End of every session: ask any Tincture still running to stop (Ctrl-C), and say loudly
+    if one is left (a crashed task can't be stopped from here: the guest needs a restart)."""
+    tinc, reap = leftovers(m)
+    for p in tinc:
+        dos(m, "break %s C" % p)
+    if tinc:
+        time.sleep(3)
+        tinc, reap = leftovers(m)
+    if tinc or reap:
+        print("LEFTOVER on the guest: Tincture processes %s, Grim Reapers %s -- report it, the guest "
+              "may need a restart" % (tinc, reap))
+    return not tinc
+
+
 def gone(m):
     st = dos(m, "status")
     return "tincture" not in st.lower()
@@ -260,8 +283,21 @@ def bench(m, n):
 
 def main():
     what = sys.argv[1] if len(sys.argv) > 1 else "smoke"
+    if g.GUEST == "m1":
+        raise SystemExit("m1 is the user's guest: use BB_GUEST=m1b, m1c or local")
     m = g.MCP(g.URL)
     with g.testing("Tincture (Boing BASIC paint): " + what):
+        tinc, reap = leftovers(m)
+        if tinc or reap:
+            raise SystemExit("the guest already has Tincture %s / Grim Reapers %s: not starting" % (tinc, reap))
+        try:
+            run_mode(m, what)
+        finally:
+            cleanup(m)
+
+
+def run_mode(m, what):
+    if True:
         if what == "push":
             push_all(m)
         elif what == "smoke":
