@@ -59,6 +59,8 @@ def push_all(m, binaries=True):
     files.append((icons + "/picture.info", DIR + "/Icons/picture.info"))
     for f in sorted(os.listdir(APP + "/demo")):
         files.append((os.path.join(APP, "demo", f), DIR + "/demo/" + f))
+    dos(m, "makedir %s/tests QUIET" % DIR)
+    files.append((APP + "/tests/arexx_client.bas", DIR + "/tests/arexx_client.bas"))
     if binaries:
         if os.path.exists(ROOT + "/build/os4/boing"):
             files.append((ROOT + "/build/os4/boing", DIR + "/boing"))
@@ -213,12 +215,15 @@ def arexx_test(m):
         print(dos(m, "type %s.err" % outf))
         return False
     time.sleep(1)
-    dos(m, "rx %s/demo/arexx-test.rexx >%s" % (DIR, rxout))
-    out = dos(m, "type %s" % rxout)
+    # the client: App.SendARexx from a BASIC program (rx needs RexxMast, which may not run)
+    launch(m, "%s/boing run %s/tests/arexx_client.bas >%s *>%s" % (DIR, DIR, rxout, rxout))
+    out = wait_for(m, rxout, "done", 60) or dos(m, "type %s" % rxout)
     print(out)
     wait_for(m, outf, "quit", 30)
     time.sleep(3)
     ok = ("pixel #FF0000" in out and "info 64 48 2 2" in out and "rc 10" in out and "done" in out and gone(m))
+    if not ok:
+        print(dos(m, "type %s" % outf))
     print("process gone:", gone(m))
     return ok
 
