@@ -11,6 +11,7 @@ Public soundOn As Boolean
 
 Private au As Object
 Private haveAudio As Boolean
+Private problem As String           ' why there is no sound or no music, for the title screen
 Private song As Long
 Private sShoot As Long, sCrack As Long, sShatter As Long, sWisp As Long
 Private sDie As Long, sWave As Long, sLife As Long, sRegrow As Long, sThrust As Long
@@ -23,6 +24,8 @@ Public Sub SoundInit(ByVal dir As String, ByVal wantSound As Boolean)
     On Error GoTo NoAudio
     Set au = CreateObject("Boing.Audio")
     au.Open
+    ' no ahi.device unit that opens: everything still works, silently
+    If au.Device = "none" Then problem = "NO AHI DEVICE: SET ONE UP IN PREFS/AHI"
     sShoot = au.SynthTone(70, 1400, 500, 26, 1)
     sCrack = au.SynthNoise(180, 44, 6, 2)
     sShatter = au.SynthTone(120, 2400, 3200, 22, 2)
@@ -34,14 +37,22 @@ Public Sub SoundInit(ByVal dir As String, ByVal wantSound As Boolean)
     sThrust = au.SynthNoise(400, 30, 12, 0)
     au.SoundLoop(sThrust) = True
     au.MusicVolume = 40
-    song = au.LoadMusic(dir & "glimmer.mod")
     haveAudio = True
+    On Error Resume Next
+    song = au.LoadMusic(dir & "glimmer.mod")
+    If Err.Number <> 0 Then
+        If problem = "" Then problem = "NO MUSIC: GLIMMER.MOD MISSING"
+        song = 0
+        Err.Clear
+    End If
+    On Error GoTo NoAudio
     au.MusicEnabled = musicOn
     au.SoundEnabled = soundOn
-    au.PlayMusic song
+    If song > 0 Then au.PlayMusic song
     Exit Sub
 NoAudio:
     haveAudio = False
+    problem = "NO SOUND (ERROR " & CStr(Err.Number) & ")"
 End Sub
 
 Public Sub SoundToggleMusic()
@@ -96,8 +107,8 @@ End Sub
 
 ' the bar along the bottom of the title screen
 Public Function SoundStatus() As String
-    If Not haveAudio Then
-        SoundStatus = "NO SOUND DEVICE"
+    If problem <> "" Then
+        SoundStatus = problem
     Else
         SoundStatus = "M MUSIC " & IIf(musicOn, "ON", "OFF") & "    S SOUND " & IIf(soundOn, "ON", "OFF")
     End If
