@@ -112,11 +112,12 @@ End Sub
 ' ---------- the board ----------
 ' a point on the board to camera space (ox, oy, oz): rolled, then pitched
 Private Sub Bpt(ByVal x As Long, ByVal y As Long, ByVal z As Long)
-    Dim x1 As Long, y1 As Long, z2 As Long, y2 As Long
-    x1 = Int((CDbl(x) * cr + CDbl(y) * sr) / 65536#)
-    y1 = Int((CDbl(y) * cr - CDbl(x) * sr) / 65536#)
-    z2 = Int((CDbl(z) * cp + CDbl(y1) * sp) / 65536#)
-    y2 = Int((CDbl(y1) * cp - CDbl(z) * sp) / 65536#)
+    Dim x1 As Long, y1 As Long, z2 As Long, y2 As Long, t As Long
+    ' (t - (t And 65535)) \ 65536 is t >> 16 rounding down, in integers
+    t = x * cr + y * sr: x1 = (t - (t And 65535)) \ 65536
+    t = y * cr - x * sr: y1 = (t - (t And 65535)) \ 65536
+    t = z * cp + y1 * sp: z2 = (t - (t And 65535)) \ 65536
+    t = y1 * cp - z * sp: y2 = (t - (t And 65535)) \ 65536
     CamXform cam, x1, y2, z2
 End Sub
 
