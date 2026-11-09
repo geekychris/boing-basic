@@ -17,6 +17,11 @@ call for call (table at the end).
 change; additions will come. Demo: `examples/engine3d_demo` (`Engine3DDemo.bbp`, and
 `Bench.bbp` off-screen with an fps figure).
 
+![Engine3D demo on AmigaOS 4](images/engine3d_demo.png)
+
+`examples/engine3d_demo` on the QEMU guest (AmigaOS 4.1 FE), natively built: a terrain flyover
+with fog, Lambert-shaded models and a point cloud, about 820 polygons a frame.
+
 ```basic
 Dim e As Object, cv As Object
 Set e = CreateObject("Boing.Engine3D")
