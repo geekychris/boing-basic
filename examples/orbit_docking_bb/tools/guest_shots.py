@@ -23,7 +23,7 @@ SHOTS = [  # name, arguments, seconds
 
 
 def hmp(cmd):
-    line = "printf '%s\\n' | nc -w 2 127.0.0.1 2348 >/dev/null" % cmd
+    line = "printf '%s\\n' | nc -w 2 127.0.0.1 %d >/dev/null" % (cmd, gg.hmp_port())
     if g.SSH:
         subprocess.run(["ssh", g.SSH, line], check=False)
     else:
