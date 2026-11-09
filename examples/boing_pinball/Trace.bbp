@@ -1,0 +1,8 @@
+# Boing BASIC project: Boing Pinball's bot-played games and state hashes (tools/trace.sh prints the C original's)
+Name=PinballTrace
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=PbCore.bas
+Module=PbTables.bas
+Module=TraceMain.bas
+Stack=262144
