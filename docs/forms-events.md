@@ -251,6 +251,8 @@ No properties beyond the common ones, no events.
 | `Value` | Long | `level` |
 | `Min` | Long | `min` |
 | `Max` | Long | `max` |
+| `Text` | String | — (a label shown instead of the percentage; "" = the percentage again) |
+| `ShowPercent` | Boolean | — |
 
 No events.
 

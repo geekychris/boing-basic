@@ -1205,6 +1205,8 @@ int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
         if (IS("LargeChange")) return ret_int(out, (int32)get_attr(c, SCROLLER_Visible));
         break;
     case AFG_FUELGAUGE:
+        if (IS("Text") || IS("Caption")) return ret_str(c, out, c->text);
+        if (IS("ShowPercent")) return ret_int(out, vb_bool(get_attr(c, FUELGAUGE_Percent)));
         if (IS("Value")) return ret_int(out, (int32)get_attr(c, FUELGAUGE_Level));
         if (IS("Min")) return ret_int(out, (int32)get_attr(c, FUELGAUGE_Min));
         if (IS("Max")) return ret_int(out, (int32)get_attr(c, FUELGAUGE_Max));
@@ -1390,6 +1392,22 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         if (IS("LargeChange")) { set_attr(c, SCROLLER_Visible, vint(v)); return 0; }
         break;
     case AFG_FUELGAUGE:
+        if (IS("Text") || IS("Caption")) {
+            /* a label instead of the percentage (GA_Text is a format string: % doubled) */
+            const char *src = vstr(v, buf);
+            char *o = malloc(strlen(src) * 2 + 1), *d = o;
+            for (; *src; src++) {
+                if (*src == '%') *d++ = '%';
+                *d++ = *src;
+            }
+            *d = 0;
+            free(c->text);
+            c->text = o;
+            set_attr(c, FUELGAUGE_Percent, *o ? FALSE : TRUE);
+            set_attr(c, GA_Text, *o ? (uint32)o : 0);
+            return 0;
+        }
+        if (IS("ShowPercent")) { set_attr(c, FUELGAUGE_Percent, vint(v) != 0); return 0; }
         if (IS("Value")) { set_attr(c, FUELGAUGE_Level, vint(v)); return 0; }
         if (IS("Min")) { set_attr(c, FUELGAUGE_Min, vint(v)); return 0; }
         if (IS("Max")) { set_attr(c, FUELGAUGE_Max, vint(v)); return 0; }

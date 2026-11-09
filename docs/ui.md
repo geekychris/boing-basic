@@ -282,8 +282,8 @@ view (`ScrollX`, `ScrollY`, `VirtualWidth`, `VirtualHeight`; event `<id>_Scroll(
 
 Status: **done** (tests/os4/ui_controls_test.c 35/35 on the local guest, ui_mouse_test 7/7):
 canvas mouse events, TextEditor, ListBrowser columns/sorting/multi-select, tabs, TreeView, Grid,
-splitter, images and picture buttons. **Not done**: canvas `scrollbars=1` (use scroller
-controls beside it for now), fuelgauge `Text`/`ShowPercent`.
+splitter, images and picture buttons. Fuelgauge `Text`/`ShowPercent` done. **Not done**:
+canvas `scrollbars=1` (use scroller controls beside it for now).
 
 ## 5. Multiple windows, modal dialogs, tool windows
 
