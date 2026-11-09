@@ -11,14 +11,19 @@
  * One object per line: its kind and key=value properties (values with spaces in "quotes", with
  * \" \\ and \n escapes), two spaces of indentation per level. The first object is the window,
  * the second the root layout. Boing BASIC adds the kind `timer` (no gadget, see
- * docs/forms-events.md). */
+ * docs/forms-events.md), and the kinds of docs/ui.md: `menu` trees at the top level after the
+ * root layout, `toolbar` (holding `tool`s), `statusbar`, `commondialog` (no gadget), `tabs`
+ * (holding one layout per page), `treeview`, `grid` and `image`. */
 #ifndef BB_AFG_H
 #define BB_AFG_H
 
 typedef enum {
     AFG_WINDOW, AFG_VLAYOUT, AFG_HLAYOUT, AFG_BUTTON, AFG_STRING, AFG_INTEGER, AFG_CHECKBOX,
     AFG_CHOOSER, AFG_RADIO, AFG_SLIDER, AFG_SCROLLER, AFG_LISTBROWSER, AFG_LABEL, AFG_SPACE,
-    AFG_FUELGAUGE, AFG_GETFILE, AFG_TEXTEDITOR, AFG_TIMER, AFG_CANVAS /* canvas */, AFG_NUM_KINDS
+    AFG_FUELGAUGE, AFG_GETFILE, AFG_TEXTEDITOR, AFG_TIMER, AFG_CANVAS /* canvas */,
+    /* docs/ui.md */
+    AFG_MENU, AFG_TOOLBAR, AFG_TOOL, AFG_STATUSBAR, AFG_COMMONDIALOG, AFG_TABS, AFG_TREEVIEW, AFG_GRID, AFG_IMAGE,
+    AFG_NUM_KINDS
 } afg_kind;
 
 typedef struct afg_prop {
@@ -39,6 +44,7 @@ const char *afg_kind_name(afg_kind k);      /* "button" */
 int afg_kind_by_name(const char *name);     /* -1 if unknown */
 int afg_is_container(afg_kind k);           /* layouts (and the window) */
 int afg_is_gadget(afg_kind k);              /* has a GA_ID and reports events */
+int afg_takes_space(afg_kind k);            /* is part of the window's layout (not timer, menu, ...) */
 
 /* Parse text; returns the window node (its one child is the root layout), or NULL with a
  * message "line N: ..." in err. */

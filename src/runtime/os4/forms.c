@@ -7,49 +7,7 @@
  * `<control>_<Event>`. Classes are opened with IIntuition->OpenClass, so no class
  * interface globals are needed except the few classes with library functions (list nodes,
  * RethinkLayout). */
-#include "../bb_forms.h"
-#include "../afg.h"
-#include "../canvas.h"     /* canvas */
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
-
-#include <exec/exec.h>
-#include <devices/timer.h>
-#include <intuition/intuition.h>
-#include <intuition/gadgetclass.h>
-#include <intuition/icclass.h>
-#include <intuition/sghooks.h>
-#include <devices/inputevent.h>
-#include <proto/exec.h>
-#include <proto/dos.h>
-#include <proto/intuition.h>
-#include <proto/keymap.h>
-#include <proto/listbrowser.h>
-#include <proto/chooser.h>
-#include <proto/layout.h>
-#include <proto/utility.h>
-#include <classes/window.h>
-#include <classes/requester.h>
-#include <gadgets/layout.h>
-#include <gadgets/button.h>
-#include <gadgets/string.h>
-#include <gadgets/integer.h>
-#include <gadgets/checkbox.h>
-#include <gadgets/chooser.h>
-#include <gadgets/radiobutton.h>
-#include <gadgets/slider.h>
-#include <gadgets/scroller.h>
-#include <gadgets/listbrowser.h>
-#include <gadgets/space.h>
-#include <gadgets/fuelgauge.h>
-#include <gadgets/getfile.h>
-#include <gadgets/texteditor.h>
-#include <images/label.h>
-#include <images/bevel.h>
+#include "forms_int.h"
 
 /* ReAction's layout code is stack hungry, and a program started from a background CLI (or
  * Workbench) may get only a few KB: every program linking the forms gets 256 KB. (A
@@ -58,14 +16,14 @@ static const char __attribute__((used)) bb_stack_cookie[] = "$STACK:262144";
 
 /* --- classes ---------------------------------------------------------------------------- */
 
-enum { C_WINDOW, C_LAYOUT, C_BUTTON, C_STRING, C_INTEGER, C_CHECKBOX, C_CHOOSER, C_RADIO, C_SLIDER, C_SCROLLER,
-       C_LISTBROWSER, C_LABEL, C_SPACE, C_FUELGAUGE, C_GETFILE, C_TEXTEDITOR, C_REQUESTER, C_NUM };
 static const char *const class_names[C_NUM] = {
     "window.class", "gadgets/layout.gadget", "gadgets/button.gadget", "gadgets/string.gadget",
     "gadgets/integer.gadget", "gadgets/checkbox.gadget", "gadgets/chooser.gadget",
     "gadgets/radiobutton.gadget", "gadgets/slider.gadget", "gadgets/scroller.gadget",
     "gadgets/listbrowser.gadget", "images/label.image", "gadgets/space.gadget", "gadgets/fuelgauge.gadget",
     "gadgets/getfile.gadget", "gadgets/texteditor.gadget", "requester.class",
+    "menuclass", "popupmenu.class", "popupmenuitem.class", "gadgets/speedbar.gadget", "images/bitmap.image",
+    "gadgets/clicktab.gadget", "arexx.class",
 };
 static struct ClassLibrary *class_lib[C_NUM];
 static Class *class_ptr[C_NUM];
@@ -75,8 +33,9 @@ static struct LayoutIFace *ILO;
 static struct KeymapIFace *IKM;
 static struct Library *KeymapLib;
 
-static Class *cls(int c)
+Class *cls(int c)
 {
+    if (c == C_MENU) return NULL;
     if (!class_ptr[c]) {
         class_lib[c] = IIntuition->OpenClass(class_names[c], 0, &class_ptr[c]);
         if (class_lib[c]) {
@@ -88,14 +47,7 @@ static Class *cls(int c)
     return class_ptr[c];
 }
 
-/* --- tag lists -------------------------------------------------------------------------- */
-
-typedef struct {
-    struct TagItem *t;
-    int n, cap;
-} tags;
-
-static void tg(tags *t, Tag tag, uint32 data)
+void tg(tags *t, Tag tag, uint32 data)
 {
     if (t->n + 2 > t->cap) {
         t->cap = t->cap ? t->cap * 2 : 32;
@@ -107,74 +59,36 @@ static void tg(tags *t, Tag tag, uint32 data)
     t->t[t->n].ti_Tag = TAG_DONE;
 }
 
-static Object *new_obj(int c, tags *t)
+Object *new_obj(int c, tags *t)
 {
     tg(t, TAG_DONE, 0);
-    Class *k = cls(c);
-    Object *o = k ? IIntuition->NewObjectA(k, NULL, t->t) : NULL;
+    Object *o;
+    if (c == C_MENU)             /* Intuition's own public class (V54.6), no class library */
+        o = IIntuition->NewObjectA(NULL, "menuclass", t->t);
+    else {
+        Class *k = cls(c);
+        o = k ? IIntuition->NewObjectA(k, NULL, t->t) : NULL;
+    }
     free(t->t);
     t->t = NULL;
     t->n = t->cap = 0;
     return o;
 }
 
-/* --- objects ---------------------------------------------------------------------------- */
-
-struct bb_ctl {
-    bb_form *form;
-    afg_node *node;          /* NULL for the form itself */
-    afg_kind kind;
-    const char *name;
-    Object *obj;
-    uint32 gid;
-    struct List labels;      /* listbrowser / chooser nodes */
-    char **items;            /* chooser / radio / list texts */
-    int nitems, capitems;
-    STRPTR *labelarray;      /* radio */
-    int32 sel;               /* ListIndex */
-    int32 lastval;           /* slider/scroller value of the last Scroll event */
-    volatile int edited;     /* string: set by the edit hook (input.device's task) */
-    char *tagstr, *hint, *text, *extra;
-    int visible;
-    /* timer */
-    struct Hook edit_hook;
-    struct TimeRequest *tio;
-    int interval, enabled, pending;
-};
-
-struct bb_form {
-    bb_form *next;
-    afg_node *afg;
-    char *file;
-    bb_form_event_fn fn;
-    bb_form_has_event_fn has;
-    void *ud;
-    Object *winobj, *root;
-    struct Window *win;
-    struct bb_ctl self;
-    struct bb_ctl **ctls;
-    int nctls;
-    char *ret;               /* the last string returned */
-    int loaded, unloading, enabled;
-    int16 lastw, lasth;
-    struct Hook idcmp_hook;  /* IDCMPUPDATE: per-keystroke Change, slider Scroll */
-    uint16 upd[32];          /* gadget ids reported by the hook, handled after it */
-    int nupd;
-};
-
-static bb_form *forms;
-static int ending, end_code;
+bb_form *forms;
+int ending;
+static int end_code;
 static struct MsgPort *timer_port;
 static struct TimeRequest *timer_master;
 
-static char *xstrdup(const char *s)
+char *xstrdup(const char *s)
 {
     char *o = malloc(strlen(s) + 1);
     if (o) strcpy(o, s);
     return o;
 }
 
-static int fire(bb_form *f, const char *ctl, const char *event, int argc, int32_t *args)
+int fire(bb_form *f, const char *ctl, const char *event, int argc, int32_t *args)
 {
     if (!f->fn || ending || !*ctl) return 0;
     if (f->has && !f->has(f->ud, f, ctl, event)) return 0;
@@ -186,10 +100,10 @@ static int fire(bb_form *f, const char *ctl, const char *event, int argc, int32_
     return r;
 }
 
-static int fire0(bb_ctl *c, const char *event) { return fire(c->form, c->name, event, 0, NULL); }
+int fire0(bb_ctl *c, const char *event) { return fire(c->form, c->name, event, 0, NULL); }
 
 /* set a gadget attribute, refreshing it when the window is open */
-static void set_attr(bb_ctl *c, Tag tag, uint32 v)
+void set_attr(bb_ctl *c, Tag tag, uint32 v)
 {
     struct TagItem t[2] = { { tag, v }, { TAG_DONE, 0 } };
     if (c->form->win && c->kind != AFG_WINDOW)
@@ -198,14 +112,14 @@ static void set_attr(bb_ctl *c, Tag tag, uint32 v)
         IIntuition->SetAttrsA(c->obj, t);
 }
 
-static uint32 get_attr(bb_ctl *c, Tag tag)
+uint32 get_attr(bb_ctl *c, Tag tag)
 {
     uint32 v = 0;
     IIntuition->GetAttr(tag, c->obj, &v);
     return v;
 }
 
-static void relayout(bb_form *f)
+void relayout(bb_form *f)
 {
     if (f->win && f->winobj) IIntuition->IDoMethod(f->winobj, WM_RETHINK);
 }
@@ -325,7 +239,7 @@ static Object *build(bb_form *f, afg_node *n)
     case AFG_HLAYOUT: {
         Object **kids = calloc(n->nchildren + 1, sizeof *kids);
         for (int i = 0; i < n->nchildren; i++) {
-            if (n->children[i]->kind == AFG_TIMER) continue;
+            if (!afg_takes_space(n->children[i]->kind)) continue;     /* timer, commondialog */
             kids[i] = build(f, n->children[i]);
             if (!kids[i]) {
                 for (int j = 0; j < i; j++)
@@ -606,6 +520,7 @@ static void form_free(bb_form *f)
         if (f->win) IIntuition->IDoMethod(f->winobj, WM_CLOSE);
         IIntuition->DisposeObject(f->winobj);    /* disposes the layout and gadgets too */
     }
+    bbf_menus_free(f);                           /* menu strips: ours to dispose */
     for (int i = 0; i < f->nctls; i++) {
         bb_ctl *c = f->ctls[i];
         free_nodes(c);
@@ -616,11 +531,13 @@ static void form_free(bb_form *f)
         free(c->hint);
         free(c->text);
         free(c->extra);
+        free(c->ctxmenu);
         free(c);
     }
     free(f->ctls);
     free(f->self.tagstr);
     free(f->self.text);
+    free(f->self.ctxmenu);
     free(f->ret);
     free(f->file);
     afg_free(f->afg);
@@ -680,7 +597,15 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     if (w > 0) tg(&t, WA_InnerWidth, w);
     if (h > 0) tg(&t, WA_InnerHeight, h);
     tg(&t, WA_IDCMP, IDCMP_GADGETUP | IDCMP_CLOSEWINDOW | IDCMP_RAWKEY | IDCMP_NEWSIZE | IDCMP_ACTIVEWINDOW |
-                         IDCMP_INACTIVEWINDOW);
+                         IDCMP_INACTIVEWINDOW | IDCMP_MENUPICK);
+    if (!bbf_menus_build(f, &t)) {
+        free(t.t);
+        IIntuition->DisposeObject(f->root);
+        f->root = NULL;
+        snprintf(err, errlen, "%s:%d: can't create the menus (needs intuition.library 54.6)", f->file, a->line);
+        form_free(f);
+        return NULL;
+    }
     tg(&t, WINDOW_Position, WPOS_CENTERSCREEN);
     tg(&t, WINDOW_GadgetHelp, TRUE);
     f->idcmp_hook.h_Entry = (HOOKFUNC)idcmp_func;
@@ -798,7 +723,7 @@ static void reap(void)
 
 #define IS(a) (!strcasecmp(prop, a))
 
-static int ret_str(bb_ctl *c, bb_fval *out, const char *s)
+int ret_str(bb_ctl *c, bb_fval *out, const char *s)
 {
     free(c->form->ret);
     c->form->ret = xstrdup(s ? s : "");
@@ -807,23 +732,23 @@ static int ret_str(bb_ctl *c, bb_fval *out, const char *s)
     return 0;
 }
 
-static int ret_int(bb_fval *out, int32 v)
+int ret_int(bb_fval *out, int32 v)
 {
     out->type = BB_FV_INT;
     out->i = v;
     return 0;
 }
 
-static int32 vint(const bb_fval *v) { return v->type == BB_FV_INT ? v->i : (v->s ? atol(v->s) : 0); }
+int32 vint(const bb_fval *v) { return v->type == BB_FV_INT ? v->i : (v->s ? atol(v->s) : 0); }
 
-static const char *vstr(const bb_fval *v, char *buf)
+const char *vstr(const bb_fval *v, char *buf)
 {
     if (v->type == BB_FV_STR) return v->s ? v->s : "";
     sprintf(buf, "%ld", (long)v->i);
     return buf;
 }
 
-static int vb_bool(int b) { return b ? -1 : 0; }
+int vb_bool(int b) { return b ? -1 : 0; }
 
 static int has_list(afg_kind k) { return k == AFG_CHOOSER || k == AFG_RADIO || k == AFG_LISTBROWSER; }
 
@@ -849,6 +774,8 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
     if (IS("Height")) return ret_int(out, w ? w->Height - w->BorderTop - w->BorderBottom : afg_get_int(f->afg, "height"));
     if (IS("Left")) return ret_int(out, w ? w->LeftEdge : 0);
     if (IS("Top")) return ret_int(out, w ? w->TopEdge : 0);
+    if (IS("ContextMenu")) return ret_str(&f->self, out, f->self.ctxmenu ? f->self.ctxmenu : afg_get(f->afg, "contextmenu"));
+    if (IS("ContextControl")) return ret_str(&f->self, out, f->ctx_control ? f->ctx_control : "");
     return 438;
 }
 
@@ -884,7 +811,12 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
         IIntuition->ChangeWindowBox(w, x, y, ww, hh);
         return 0;
     }
-    if (IS("Name") || IS("WindowState")) return 383;
+    if (IS("ContextMenu")) {
+        free(f->self.ctxmenu);
+        f->self.ctxmenu = xstrdup(vstr(v, buf));
+        return 0;
+    }
+    if (IS("Name") || IS("WindowState") || IS("ContextControl")) return 383;
     return 438;
 }
 
@@ -897,6 +829,8 @@ int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
     afg_kind k = c->kind;
     if (IS("Name")) return ret_str(c, out, c->name);
     if (IS("Tag")) return ret_str(c, out, c->tagstr);
+    if (k == AFG_MENU) return c->dead ? 364 : bbf_menu_get(c, prop, out);
+    if (IS("ContextMenu")) return ret_str(c, out, c->ctxmenu ? c->ctxmenu : afg_get(c->node, "contextmenu"));
     if (k == AFG_TIMER) {
         if (IS("Interval")) return ret_int(out, c->interval);
         if (IS("Enabled")) return ret_int(out, vb_bool(c->enabled));
@@ -1019,6 +953,12 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
     if (IS("Tag")) {
         free(c->tagstr);
         c->tagstr = xstrdup(vstr(v, buf));
+        return 0;
+    }
+    if (k == AFG_MENU) return c->dead ? 364 : bbf_menu_set(c, prop, v);
+    if (IS("ContextMenu")) {
+        free(c->ctxmenu);
+        c->ctxmenu = xstrdup(vstr(v, buf));
         return 0;
     }
     if (k == AFG_TIMER) {
@@ -1205,9 +1145,10 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
             for (int i = 0; i < argc && i < 4; i++) form_set(f, p[i], &argv[i]);
             return 0;
         }
-        return 438;
+        return bbf_form_menu_call(f, method, argc, argv, ret);
     }
     if (!f->loaded) return 364;
+    if (c->kind == AFG_MENU || c->kind == AFG_TIMER) return 438;
     if (IS("Refresh")) {
         if (f->win) IIntuition->RefreshGList((struct Gadget *)c->obj, f->win, NULL, 1);
         return 0;
@@ -1256,7 +1197,7 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
 
 /* --- events ----------------------------------------------------------------------------- */
 
-static bb_ctl *ctl_by_gid(bb_form *f, uint32 gid)
+bb_ctl *bbf_ctl_by_gid(bb_form *f, uint32 gid)
 {
     if (gid >= 1 && gid <= (uint32)f->nctls) return f->ctls[gid - 1];
     return NULL;
@@ -1383,7 +1324,7 @@ static void updates(bb_form *f)
     while (f->nupd && f->loaded && !ending) {
         uint16 gid = f->upd[0];
         memmove(f->upd, f->upd + 1, --f->nupd * sizeof *f->upd);
-        bb_ctl *c = ctl_by_gid(f, gid);
+        bb_ctl *c = bbf_ctl_by_gid(f, gid);
         if (!c) continue;
         if (c->kind == AFG_STRING) {
             const char *now = (const char *)get_attr(c, STRINGA_TextVal);
@@ -1415,12 +1356,15 @@ static void handle_form(bb_form *f)
             unload(f, 0);
             break;
         case WMHI_GADGETUP: {
-            bb_ctl *c = ctl_by_gid(f, result & WMHI_GADGETMASK);
+            bb_ctl *c = bbf_ctl_by_gid(f, result & WMHI_GADGETMASK);
             if (c) gadget_up(f, c, code);
             break;
         }
         case WMHI_RAWKEY:
             raw_key(f, result & WMHI_KEYMASK);
+            break;
+        case WMHI_MENUPICK:
+            bbf_menus_pick(f);
             break;
         case WMHI_ACTIVE:
             fire(f, "Form", "Activate", 0, NULL);
