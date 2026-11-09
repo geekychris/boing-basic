@@ -15,7 +15,7 @@
 Files go to RAM:bbg/examples/boing_pinball_bb/ (the project, its art/ and ../common modules).
 Native builds are cross-compiled here (build/boing build --target os4).
 """
-import os, re, socket, subprocess, sys, time
+import os, re, subprocess, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROJ = os.path.dirname(HERE)
 ROOT = os.path.abspath(os.path.join(PROJ, "../.."))
@@ -26,8 +26,6 @@ import guest_game as gg
 
 if g.GUEST == "m1":
     sys.exit("guest.py: m1 is the user's guest; use BB_GUEST=m1b, m1c or local")
-SHOTS_SSH = {"m1b": "chriscollins@m1.local", "m1c": "chriscollins@m1.local"}
-HMP_PORT = {"m1b": 2448, "m1c": 2548, "local": 2348}[g.GUEST]   # QEMU monitors (2348 on m1.local is the user's m1)
 
 
 def push_project(m, bbp):
@@ -78,29 +76,11 @@ def command(m, bbp, md, args, exe):
     return "%s/boing run %s%s %s" % (MYDIR, "--jit " if md == "jit" else "", gg.amiga(bbp), args)
 
 
-def hmp(cmd):
-    if g.GUEST in SHOTS_SSH:
-        py = ("import socket,time\ns=socket.create_connection(('127.0.0.1',%d),timeout=10)\ntime.sleep(0.5);s.recv(65536)\n"
-              "s.sendall(%r.encode());time.sleep(2);s.recv(65536);s.close()" % (HMP_PORT, cmd + "\n"))
-        subprocess.check_call(["ssh", SHOTS_SSH[g.GUEST], "python3", "-c", '"%s"' % py.replace('"', '\\"')])
-    else:
-        s = socket.create_connection(("127.0.0.1", HMP_PORT), timeout=10)
-        time.sleep(0.5); s.recv(65536); s.sendall((cmd + "\n").encode()); time.sleep(2); s.recv(65536); s.close()
-
-
 def screendump(out_png):
+    """os4guest.shot (the guest's own QEMU monitor, wakes the blanker, refuses m1), cropped to the canvas"""
     from PIL import Image
-    remote = "/tmp/bb_pinball_shot_%s.ppm" % g.GUEST
-    hmp("mouse_move 1 0"); hmp("mouse_move -1 0")          # wake the screen blanker
-    hmp("screendump " + remote)
-    local = out_png[:-4] + ".ppm"
-    if g.GUEST in SHOTS_SSH:
-        subprocess.check_call(["scp", "-q", SHOTS_SSH[g.GUEST] + ":" + remote, local])
-    else:
-        os.replace(remote, local)
-    im = Image.open(local).convert("RGB")
-    os.remove(local)
-    # the canvas: the 640 x 512 area whose top row is the display's dark brown (or the picture)
+    g.shot(None, out_png)
+    im = Image.open(out_png).convert("RGB")
     box = find_canvas(im)
     if not box and im.size == (1280, 720):
         box = (320, 107, 960, 619)          # where the window opens on the m1 guests' screen
@@ -109,15 +89,7 @@ def screendump(out_png):
 
 
 def screendump_full(out_png):
-    from PIL import Image
-    remote = "/tmp/bb_pinball_shot_%s.ppm" % g.GUEST
-    hmp("screendump " + remote)
-    local = out_png[:-4] + ".ppm"
-    if g.GUEST in SHOTS_SSH:
-        subprocess.check_call(["scp", "-q", SHOTS_SSH[g.GUEST] + ":" + remote, local])
-    else:
-        os.replace(remote, local)
-    Image.open(local).save(out_png); os.remove(local)
+    g.shot(None, out_png)
     print("screenshot", out_png)
 
 
