@@ -31,6 +31,10 @@ menu id=mnuEdit text="Edit"
   menu id=mnuOctDown text="Octave down" key="Shift Alt T"
   menu id=mnuInterp text="Interpolate" key=I
   menu id=mnuSetSmp text="Set sample" key=K
+  menu text=-
+  menu id=mnuDupPat text="Duplicate pattern" key=D
+  menu id=mnuNewPat text="New pattern" key=P
+  menu id=mnuClrPat text="Clear pattern" key="Amiga Del"
 menu id=mnuPlay text="Play"
   menu id=mnuPlaySong text="Play song" key="F5"
   menu id=mnuPlayPat text="Play pattern" key="F6"

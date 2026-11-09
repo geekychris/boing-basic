@@ -43,3 +43,7 @@ wheel down -> row 22
 loop after drag: 0  500  undo steps named loop
 undo: 0  1000 
 edit light click -> editOnTrue
+dup: pos 3 pat 5 len 11  same rows: True
+new: pos 4 pat 6 len 12  used:False
+clear: usedFalse
+undo: usedTrue

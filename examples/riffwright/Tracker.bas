@@ -302,6 +302,23 @@ Private Sub PatternKey(ByVal k As Integer, ByVal shift As Boolean, ByVal ctrl As
                 EdInterpolate curPat, r0, r1, c0, c1
                 RefreshRows curPat, r0, r1
                 Say "interpolated"
+            Case vbKeyD                     ' duplicate this position's pattern into a new one after it
+                n = FreePattern()
+                EdCopyPattern curPat, n
+                EdInsertOrder curPos + 1, n
+                GoPosition curPos + 1
+                AfterBigChange
+                Say "pattern " & n & " is a copy, at position " & curPos
+            Case vbKeyP                     ' a new empty pattern after this position
+                n = FreePattern()
+                EdInsertOrder curPos + 1, n
+                GoPosition curPos + 1
+                AfterBigChange
+                Say "new pattern " & n & " at position " & curPos
+            Case vbKeyDelete                ' clear the whole pattern
+                EdClearPattern curPat
+                AfterBigChange
+                Say "pattern " & curPat & " cleared"
             Case vbKeyK
                 BlockRange r0, r1, c0, c1
                 EdSwapSample curPat, r0, r1, c0, c1, 0, curSmp

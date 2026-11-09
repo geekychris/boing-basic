@@ -130,6 +130,9 @@ whole channel under the cursor.
   Amiga+T   transpose up a semitone, Amiga+Shift+T down, with Alt: an octave
   Amiga+I   interpolate effect parameters from the first row to the last (slides)
   Amiga+K   set the notes in the block to the current sample
+  Amiga+D   duplicate the pattern into a new one at the next position
+  Amiga+P   a new empty pattern at the next position
+  Amiga+Del clear the pattern
   Amiga+Z   undo (200 steps)     Amiga+Shift+Z or Amiga+Y  redo
 @endnode
 

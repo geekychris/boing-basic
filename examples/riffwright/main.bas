@@ -128,6 +128,9 @@ Private Sub mnuOctUp_Click(): PatternMenu vbKeyT, 12: End Sub
 Private Sub mnuOctDown_Click(): PatternMenu vbKeyT, 13: End Sub
 Private Sub mnuInterp_Click(): PatternMenu vbKeyI, 8: End Sub
 Private Sub mnuSetSmp_Click(): PatternMenu vbKeyK, 8: End Sub
+Private Sub mnuDupPat_Click(): PatternMenu vbKeyD, 8: End Sub
+Private Sub mnuNewPat_Click(): PatternMenu vbKeyP, 8: End Sub
+Private Sub mnuClrPat_Click(): PatternMenu vbKeyDelete, 8: End Sub
 Private Sub mnuPlaySong_Click(): MenuKey vbKeyF5, 0: End Sub
 Private Sub mnuPlayPat_Click(): MenuKey vbKeyF6, 0: End Sub
 Private Sub mnuPlayRow_Click(): MenuKey vbKeyF7, 0: End Sub

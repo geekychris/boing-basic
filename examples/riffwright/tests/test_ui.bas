@@ -116,6 +116,7 @@ Sub Main()
     If Environ$("RIFF_BENCH") <> "" Then Print "ms per frame:"; Format$(t * 1000 / n, "0.00")
     RexxTests
     MouseTests
+    PatternTests
 End Sub
 
 Sub RexxTests()
@@ -187,4 +188,22 @@ Sub MouseTests()
     editOn = False
     MouseDown 1, 0, 10, SY0 + 40
     Print "edit light click -> editOn"; editOn
+End Sub
+
+Sub PatternTests()
+    Dim n As Long
+    SetView V_PATTERN
+    LoadMod "../demos/boing_shuffle.mod"
+    SongChanged
+    GoPosition 2
+    n = curPat
+    HandleKey vbKeyD, 8
+    Print "dup: pos"; curPos; "pat"; curPat; "len"; songLen; " same rows: "; (cPer(CellIdx(curPat, 0, 0)) = cPer(CellIdx(n, 0, 0)))
+    HandleKey vbKeyP, 8
+    Print "new: pos"; curPos; "pat"; curPat; "len"; songLen; " used:"; PatternUsed(curPat)
+    GoPosition 3
+    HandleKey vbKeyDelete, 8
+    Print "clear: used"; PatternUsed(curPat)
+    HandleKey vbKeyZ, 8
+    Print "undo: used"; PatternUsed(curPat)
 End Sub
