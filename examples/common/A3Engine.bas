@@ -2,6 +2,8 @@
 ' 3D work (transforms, clipping, sorting, models, filling) done in C by the engine
 ' (docs/engine3d.md). Use it in place of A3Scene.bas in a project: the game code stays as it
 ' is. The camera maths for game logic (CamXform, CamProject...) stays in BASIC, bit-exact.
+' The engine's camera is re-sent only when the A3Cam's version changes (CamSetup, CamPlace,
+' CamFor and CamView set it), so after changing a camera's fields directly call CamSetup.
 ' Needs Gfx2D.bas (gcv, pen()). Pictures are amiga3d's raster (the C games' pixels).
 Option Explicit
 
@@ -31,6 +33,7 @@ Public Type A3Cam
     qy As Long
     qz As Long
     precise As Long
+    ver As Long          ' set by CamSetup/CamPlace/CamFor/CamView: the engine is re-sent only when it changes
 End Type
 
 ' a model is a number in the engine
@@ -48,9 +51,23 @@ Public a3QuadBias As Long
 Public e3d As Object                ' the engine (made on first use, drawing into gcv)
 
 Private last As A3Cam, haveLast As Boolean, lastMargin As Long, lastBias As Long
+Private lastVer As Long, camVer As Long
+
+Private Sub Bump(c As A3Cam)
+    camVer = camVer + 1
+    c.ver = camVer
+End Sub
 
 ' the engine, with c as its camera (one call when the camera changed since the last time)
 Private Sub UseCam(c As A3Cam)
+    ' the common case: the same camera as last time (one compare)
+    If c.ver = lastVer Then
+        If c.ver <> 0 Then
+            If a3ModelMargin <> lastMargin Then GoTo margins
+            If a3QuadBias <> lastBias Then GoTo margins
+            Exit Sub
+        End If
+    End If
     If e3d Is Nothing Then
         Set e3d = CreateObject("Boing.Engine3D")
         e3d.Attach gcv
@@ -72,6 +89,7 @@ Private Sub UseCam(c As A3Cam)
     End If
     last = c
     haveLast = True
+    lastVer = c.ver
 margins:
     If a3ModelMargin <> lastMargin Then
         If a3ModelMargin > 0 Then e3d.ModelMargin = a3ModelMargin Else e3d.ModelMargin = 800
@@ -102,6 +120,7 @@ Public Function CamNear(c As A3Cam) As Long
 End Function
 
 Public Sub CamSetup(c As A3Cam)
+    Bump c
     c.cy4 = ShrA(A3Cos(c.yaw), 4)
     c.sy4 = ShrA(A3Sin(c.yaw), 4)
     c.cp4 = ShrA(A3Cos(c.pitch), 4)
@@ -110,6 +129,7 @@ End Sub
 
 ' a camera at a 16.16 world position (sixteenths kept)
 Public Sub CamPlace(c As A3Cam, ByVal x As Long, ByVal y As Long, ByVal z As Long)
+    Bump c
     c.x = ShrA(x, 16): c.y = ShrA(y, 16): c.z = ShrA(z, 16)
     c.qx = ShrA(x, 12) And 15: c.qy = ShrA(y, 12) And 15: c.qz = ShrA(z, 12) And 15
     c.precise = 1
@@ -119,12 +139,14 @@ End Sub
 Public Sub CamFor(c As A3Cam, ByVal x As Long, ByVal y As Long, ByVal z As Long, o As A3Cam)
     o = c
     If c.precise = 0 Then Exit Sub
+    Bump o
     o.qx = o.qx - (ShrA(x, 12) And 15)
     o.qy = o.qy - (ShrA(y, 12) And 15)
     o.qz = o.qz - (ShrA(z, 12) And 15)
 End Sub
 
 Public Sub CamView(c As A3Cam, ByVal vw As Long, ByVal vh As Long, ByVal cx As Long, ByVal cy As Long, ByVal fov As Long)
+    Bump c
     c.vw = vw: c.vh = vh: c.cx = cx: c.cyc = cy: c.fov = fov
 End Sub
 
