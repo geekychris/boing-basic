@@ -1,0 +1,13 @@
+# Boing BASIC project: Tank Duel console bench (logic + drawing on an off-screen Canvas)
+Name=TankDuelBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Scene.bas
+Module=../common/Gfx2D.bas
+Module=TdCore.bas
+Module=TdDraw.bas
+Module=TdSound.bas
+Module=BenchMain.bas
+Stack=262144

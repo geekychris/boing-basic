@@ -1,0 +1,13 @@
+# Boing BASIC project: Tank Duel, a tank fight in a walled arena (a port of amiga_mcp's examples/tank_duel)
+Name=TankDuel
+Startup=Form arena
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Scene.bas
+Module=../common/Gfx2D.bas
+Module=TdCore.bas
+Module=TdDraw.bas
+Module=TdSound.bas
+Form=arena.afg
+Stack=262144
