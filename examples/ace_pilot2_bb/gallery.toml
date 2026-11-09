@@ -3,14 +3,16 @@ category = "game"
 order = 30
 summary = "A biplane war in 3D: fly a Swallow scout over the trenches and the river Sellen, in the chase view or from the cockpit."
 shows = ["Engine3D", "Canvas (instruments, text)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game"]
-perf = "On the Mac: VM 13037 fps, native 19995 fps off-screen (`Bench.bbp --frames 3000 --mission 6`); guest numbers to follow in its README."
+perf = "148.2 fps native, 63.2 fps in the VM, 62.4 fps with the JIT (`--bench 500`, m1b guest)."
 
 [[shot]]
-file = "gallery/chase.png"
-caption = "The autopilot flying a mission, chase view"
-run = { project = "AcePilot2.bbp", args = "--autoplay --nosound --data {dir}", secs = 20 }
+file = "screenshots/os4-strafing.png"
+caption = "Mission 6, Supply Lines: the autopilot banks after the dumps"
 
 [[shot]]
-file = "gallery/cockpit.png"
+file = "screenshots/os4-cockpit.png"
 caption = "The cockpit view: upper wing, struts, twin guns and ring sight"
-run = { project = "AcePilot2.bbp", args = "--autoplay --cockpit --nosound --data {dir}", secs = 20 }
+
+[[shot]]
+file = "screenshots/os4-title.png"
+caption = "The title"
