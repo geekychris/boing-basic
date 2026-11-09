@@ -648,7 +648,7 @@ static int32_t nearest(pal_cache *pc, uint32_t p)
 /* map every opaque pixel of s to the nearest palette colour, optionally with Floyd-Steinberg */
 static void remap(cv_image *s, const int32_t *vbpal, int32_t n, int dither)
 {
-    uint32_t pal[256];
+    static uint32_t pal[256];
     pal_cache *pc = (pal_cache *)malloc(sizeof(pal_cache));
     int32_t i, x, y;
     int32_t *err = NULL;
@@ -997,8 +997,9 @@ static uint32_t *load_png_mem(const uint8_t *d, size_t n, int32_t *ow, int32_t *
 {
     size_t pos = 8, idlen = 0, rowbytes, rawlen;
     uint8_t *idat = NULL, *raw = NULL;
-    uint32_t w = 0, h = 0, plte[256], y, x;
-    uint8_t trns[256];
+    uint32_t w = 0, h = 0, y, x;
+    static uint32_t plte[256];          /* static: keep the frame small (OS4 runs us on 64 KB) */
+    static uint8_t trns[256];
     int depth = 0, ctype = -1, inter = 0, ch, bpp, npal = 0, ntrns = 0, i;
     int32_t trgray = -1;
     uint32_t *px = NULL;
@@ -1114,7 +1115,7 @@ static int save_png(const char *path, const cv_image *s, const int32_t *vbpal, i
     size_t rowbytes, rawlen, zlen;
     uint8_t *raw, *z, ihdr[13], *prevrow, *cand[5];
     FILE *f;
-    uint32_t pal[256];
+    static uint32_t pal[256];
     pal_cache *pc = NULL;
     for (i = 0; i < s->w * s->h; i++) if ((s->px[i] >> 24) != 255) { alpha = 1; break; }
     if (vbpal && npal > 0) {
@@ -1197,7 +1198,8 @@ static uint32_t *load_ilbm_mem(const uint8_t *d, size_t n, int32_t *ow, int32_t 
     size_t pos = 12, bodylen = 0;
     const uint8_t *body = NULL;
     int w = 0, h = 0, planes = 0, masking = 0, comp = 0, tcol = 0, npal = 0, i, have_bmhd = 0;
-    uint32_t camg = 0, pal[256];
+    uint32_t camg = 0;
+    static uint32_t pal[256];
     uint32_t *px;
     uint8_t *rowbuf;
     int rowbytes, tplanes, y, x, p;
@@ -1335,7 +1337,7 @@ static int save_ilbm(const char *path, const cv_image *s, const int32_t *vbpal, 
 {
     bitw o, body;
     int planes, rowbytes, y, x, p, i;
-    uint32_t pal[256];
+    static uint32_t pal[256];
     pal_cache *pc = NULL;
     uint8_t *prow, *idx = NULL;
     FILE *f;
@@ -1500,7 +1502,8 @@ static void paint_invoke(bb_canvas *c, int32_t id, int argc, bb_value *argv, bb_
               pcol(argl_opt(argc, argv, 4, c->fore)));
         return;
     case MP_SAVEPNG: case MP_SAVEILBM: { /* SavePNG path [, id [, pal(), n]] */
-        int32_t pal[256], np, ok;
+        static int32_t pal[256];
+        int32_t np, ok;
         cv_image im;
         s = args_(argc, argv, 0, &hold, &len);
         im = img0(c, argl_opt(argc, argv, 1, 0));
@@ -1515,7 +1518,8 @@ static void paint_invoke(bb_canvas *c, int32_t id, int argc, bb_value *argv, bb_
         return;
     case MP_GETPALETTE: case MP_QUANTIZE: { /* GetPalette(id, max) / Quantize(id, n) -> Long array */
         cv_image im = img0(c, argl(argc, argv, 0));
-        int32_t mx = argl(argc, argv, 1), pal[256], n;
+        static int32_t pal[256];
+        int32_t mx = argl(argc, argv, 1), n;
         if (mx < 1 || mx > 256) bb_raise(5, NULL);
         n = id == MP_GETPALETTE ? get_palette(&im, pal, mx) : quantize(&im, pal, mx);
         *ret = long_array(pal, n);
@@ -1523,7 +1527,8 @@ static void paint_invoke(bb_canvas *c, int32_t id, int argc, bb_value *argv, bb_
     }
     case MP_REMAPIMAGE: { /* RemapImage id, pal(), n [, dither] */
         cv_image im = img0(c, argl(argc, argv, 0));
-        int32_t pal[256], n = arg_palette(argc, argv, 1, pal);
+        static int32_t pal[256];
+        int32_t n = arg_palette(argc, argv, 1, pal);
         remap(&im, pal, n, argl_opt(argc, argv, 3, 0) != 0);
         return;
     }

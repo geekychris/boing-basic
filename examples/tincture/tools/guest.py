@@ -64,6 +64,17 @@ def push_all(m, binaries=True):
         print(g.push(m, local, remote))
 
 
+def launch(m, cmdline):
+    """Start a command in the background with a 1 MB stack: processes started through the
+    bridge get 64 KB, and the $STACK cookie isn't honoured there (the VM overflowed it)."""
+    tmp = tempfile.NamedTemporaryFile("w", suffix=".run", delete=False)
+    tmp.write("stack 1048576\n%s\n" % cmdline)
+    tmp.close()
+    g.push(m, tmp.name, "RAM:tincture.run")
+    os.unlink(tmp.name)
+    dos(m, "run >NIL: execute RAM:tincture.run")
+
+
 def wait_for(m, outf, text, limit):
     t = time.time()
     while time.time() - t < limit:
@@ -88,7 +99,7 @@ def smoke(m, shots, native=False):
     outf = "RAM:tincture.log"
     dos(m, "delete %s RAM:tincture-smoke.ppm QUIET" % outf)
     cmd = ("%s/Tincture" % DIR) if native else vm_cmd()
-    dos(m, "run >NIL: %s --smoke --hold 6 --log >%s *>%s.err" % (cmd, outf, outf))
+    launch(m, "%s --smoke --hold 6 --log >%s *>%s.err" % (cmd, outf, outf))
     out = wait_for(m, outf, "SMOKE redo-all", 120)
     print(out or dos(m, "type %s.err" % outf))
     if out:
@@ -109,9 +120,8 @@ def demo(m, shots):
         name = os.path.splitext(f)[0]
         outf = "RAM:tincture_%s.log" % name
         dos(m, "delete %s QUIET" % outf)
-        dos(m, "run >NIL: %s/Tincture --script %s/demo/%s --hold 8 --log >%s *>%s.err"
-            % (DIR, DIR, f, outf, outf) if os.path.exists(ROOT + "/build/Tincture") else
-            "run >NIL: %s --script %s/demo/%s --hold 8 --log >%s *>%s.err" % (vm_cmd(), DIR, f, outf, outf))
+        prog = ("%s/Tincture" % DIR) if os.path.exists(ROOT + "/build/Tincture") else vm_cmd()
+        launch(m, "%s --script %s/demo/%s --hold 8 --log >%s *>%s.err" % (prog, DIR, f, outf, outf))
         ok = wait_for(m, outf, "active", 120)
         time.sleep(3)
         hmp_shot(os.path.join(shots, name))
@@ -128,7 +138,7 @@ def bench(m, n):
             continue
         outf = "RAM:tincture_%s.out" % name
         dos(m, "delete %s QUIET" % outf)
-        dos(m, "run >NIL: %s --bench %d >%s *>%s.err" % (cmd, n, outf, outf))
+        launch(m, "%s --bench %d >%s *>%s.err" % (cmd, n, outf, outf))
         out = wait_for(m, outf, "BENCH full view", 600)
         print("==", name, "\n" + (out or dos(m, "type %s.err" % outf)))
         wait_for(m, outf, "BENCH undo", 60)
@@ -159,7 +169,8 @@ def main():
         elif what == "run":
             outf = "RAM:tincture_run.out"
             dos(m, "delete %s QUIET" % outf)
-            print(dos(m, "%s %s >%s *>%s" % (vm_cmd(), sys.argv[2], outf, outf)))
+            launch(m, "%s %s >%s *>%s" % (vm_cmd(), sys.argv[2], outf, outf))
+            time.sleep(20)
             print(dos(m, "type %s" % outf))
         elif what == "shot":
             hmp_shot(sys.argv[2])
