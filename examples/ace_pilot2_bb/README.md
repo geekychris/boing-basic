@@ -118,7 +118,8 @@ shown. On **m1b** (QEMU sam460ex on an unloaded Mac), ms per frame:
 | native (`boing build --target os4`) | 0.24 | 3.22 | 3.16 | 6.75 | **148.2** |
 
 All three end in the same state hash (6A528BD1); about 146 polygons a frame. Played in real time
-(`--smoke 400`, the form's timer, effects through AHI) the VM shows 29.3 fps on m1b. The JIT
+(`--smoke 400`, the form's 20 ms timer, effects through AHI) the VM shows 46.6 fps on m1b (logic 0.7, draw 9.0, blit 9.0 ms; the current OS4 build, -Os since 8fc9e2f, triples the blit against the -O2 numbers above; the
+timer keeps a fixed timeline since c791c7a; before, it waited 20 ms after each frame: 29.3). The JIT
 doesn't help under QEMU (see docs/performance.md); the plain VM is the one to use.
 
 On the Mac (Apple M-series), `Bench.bbp --frames 3000 --mission 6`: VM `logic 0.013 draw 0.063

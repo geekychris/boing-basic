@@ -115,7 +115,8 @@ Canvas) and shown. On **m1b** (QEMU sam460ex on an unloaded Mac), ms per frame:
 | native (`boing build --target os4`) | 0.15 | 1.94 | 3.18 | 5.38 | **186.0** |
 
 All three end in the same state hash (FC0F23A8). Played in real time (`--smoke 400`, the
-form's 20 ms timer, effects through AHI) the VM shows 31.6 fps on m1b, the timer's pace.
+form's 20 ms timer, effects through AHI) the VM shows 45.6 fps on m1b (logic 0.3, draw 5.5, blit 9.3 ms; the current OS4 build, -Os since 8fc9e2f, triples the blit against the -O2 numbers above; the timer keeps a fixed
+timeline since c791c7a; before, it waited 20 ms after each frame and the game showed 31.6).
 
 The scene is about 30 polygons a frame: the station is one model (one `DrawModel` call), the
 markers and debris a few calls; most of the draw time is the instruments' 2D (text, circles,

@@ -120,14 +120,17 @@ Canvas) and shown. On **m1c** (QEMU sam460ex on an unloaded Mac), ms per frame:
 | native (`boing build --target os4`) | 0.74 | 6.88 | 3.21 | 11.03 | **90.7** |
 
 All three end in the same state hash (1B758A86). Played in real time (`--smoke 400`: the form's
-timer, the music, the effects and the voice through AHI) the VM shows **30.2 fps** on m1c.
+timer, the music, the effects and the voice through AHI) the VM shows **20.5 fps** on m1b with
+the current OS4 build (logic 6.6, draw 29.8, blit 9.3 ms a frame; built with -Os since 8fc9e2f,
+which made the blit about three times slower than the 3.3 ms in the table above, measured with
+-O2). With the -O2 build it showed 30.2 fps on m1c.
 
 Getting there: the first port drew each segment in its own engine pass and worked out every
 strip, tree and lane dot each frame: 16.3 fps in the VM. Now each segment's strips and scenery
 are made once and kept (one engine pass a frame), the AI view's dots are one `PSetMany`, and the
 object loops test for an empty slot first; the picture and the hashes are unchanged. The form's
-timer starts its 20 ms again only when the frame is done, so the game takes the frame's own time
-off the next wait (that took the real-time run from 16.9 to 30.2 fps). The JIT doesn't help
+timer used to start its 20 ms again only when the frame was done (16.9 fps in real time); it
+keeps a fixed timeline since c791c7a. The JIT doesn't help
 under QEMU (see docs/performance.md); the plain VM is the one to use.
 
 On the Mac (Apple M-series), `Bench.bbp --frames 3000 --route 1`: VM `logic 0.019 draw 0.102
