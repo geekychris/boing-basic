@@ -73,6 +73,7 @@ Public buildLoadMs As Double, buildPaintMs As Double, buildRampMs As Double, bui
 
 Public dbgLog As String                         ' a file: DbgMark writes each step to it (for finding a crash)
 Private picImg As Long
+Private scratch As Long                         ' a picture-sized image for blending, while a table is built
 Private titleImg(0 To 2) As Long
 Private fieldPainted As Boolean
 Private oyR As Long                             ' picture row -> drawing row, game rows
@@ -149,16 +150,14 @@ Private Sub MakeDmdBits()
     Next c
 End Sub
 
-' a picture beside the program: .ppm (the Mac, tests) or .png (AmigaOS 4's datatypes); 0 if neither
+' a picture beside the program (art/NAME.png: the Canvas reads PNG itself everywhere); 0 if missing
 Public Function LoadArt(ByVal nm As String) As Long
-    Dim base As String, p As String
+    Dim base As String
     base = App.Path
     If Len(base) > 0 And Right$(base, 1) <> "/" And Right$(base, 1) <> ":" Then base = base & "/"
     On Error Resume Next
-    p = base & "art/" & nm & ".ppm"
-    If Len(Dir$(p)) = 0 Then p = base & "art/" & nm & ".png"
     LoadArt = 0
-    LoadArt = CV.LoadImage(p)
+    LoadArt = CV.LoadImage(base & "art/" & nm & ".png")
     If Err.Number <> 0 Then LoadArt = 0
     On Error GoTo 0
 End Function
@@ -282,13 +281,40 @@ End Sub
 
 Private Sub BlendEllipse(ByVal src As Long, ByVal cx As Long, ByVal cy As Long, ByVal rx As Long, ByVal ry As Long, _
                          ByVal pen As Long, ByVal alpha As Long)
-    Dim dy As Long, w As Long
+    Dim dst As Long, ox As Long, oy As Long
     If rx < 1 Then rx = 1
     If ry < 1 Then ry = 1
-    For dy = -ry To ry
-        w = (rx * ISq((ry * ry - dy * dy) * 256) + ry * 8) \ (ry * 16)
-        If cy + dy >= 0 And cy + dy < PIC_H Then BlendSpan src, cy + dy, cx - w, cx + w, pen, alpha
-    Next dy
+    If scratch = 0 Then                             ' (no scratch image: pixel by pixel)
+        Dim dy As Long, w As Long
+        For dy = -ry To ry
+            w = (rx * ISq((ry * ry - dy * dy) * 256) + ry * 8) \ (ry * 16)
+            If cy + dy >= 0 And cy + dy < PIC_H Then BlendSpan src, cy + dy, cx - w, cx + w, pen, alpha
+        Next dy
+        Exit Sub
+    End If
+    dst = CV.Target: ox = orgX: oy = orgY
+    CV.SetTarget scratch: orgX = 0: orgY = 0
+    Ellipse cx, cy, rx, ry, pen
+    orgX = ox: orgY = oy
+    ScratchBlend dst, cx - rx, cy - ry, cx + rx, cy + ry, alpha
+End Sub
+
+' what was drawn into the scratch image between x0..x1, y0..y1 (picture pixels), blended onto
+' target dst at alpha/256, then cleared from the scratch
+Private Sub ScratchBlend(ByVal dst As Long, ByVal x0 As Long, ByVal y0 As Long, ByVal x1 As Long, ByVal y1 As Long, ByVal alpha As Long)
+    If x0 < 0 Then x0 = 0
+    If y0 < 0 Then y0 = 0
+    If x1 > SCR_W - 1 Then x1 = SCR_W - 1
+    If y1 > PIC_H - 1 Then y1 = PIC_H - 1
+    If x0 > x1 Or y0 > y1 Then
+        CV.SetTarget dst
+        Exit Sub
+    End If
+    CV.SetTarget dst
+    CV.DrawImageBlend scratch, x0 - orgX, y0 - orgY, (alpha * 255) \ 256, x0, y0, x1 - x0 + 1, y1 - y0 + 1
+    CV.SetTarget scratch
+    CV.ClearRect x0, y0, x1 - x0 + 1, y1 - y0 + 1
+    CV.SetTarget dst
 End Sub
 
 ' a line w of the game's pixels thick (squares stamped along it)
@@ -368,37 +394,22 @@ Private Sub Quad(ByVal pen As Long)
     CV.Polygon px, py, 4, penC(pen), True
 End Sub
 
-' a convex polygon of xsA/ysA, see-through over src
+' a convex polygon of xsA/ysA (picture pixels), see-through
 Private Sub BlendPoly(ByVal src As Long, ByVal n As Long, ByVal pen As Long, ByVal alpha As Long)
-    Dim y As Long, y0 As Long, y1 As Long, i As Long, j As Long, xl As Long, xr As Long, x As Long
-    Dim ax As Long, ay As Long, bx As Long, by As Long
-    y0 = ysA(0): y1 = ysA(0)
-    For i = 1 To n - 1
+    Dim i As Long, x0 As Long, y0 As Long, x1 As Long, y1 As Long, dst As Long, ox As Long, oy As Long
+    Dim px(0 To 7) As Long, py(0 To 7) As Long
+    x0 = xsA(0): x1 = xsA(0): y0 = ysA(0): y1 = ysA(0)
+    For i = 0 To n - 1
+        If xsA(i) < x0 Then x0 = xsA(i)
+        If xsA(i) > x1 Then x1 = xsA(i)
         If ysA(i) < y0 Then y0 = ysA(i)
         If ysA(i) > y1 Then y1 = ysA(i)
+        px(i) = xsA(i): py(i) = ysA(i)
     Next i
-    If y0 < 0 Then y0 = 0
-    If y1 > PIC_H - 1 Then y1 = PIC_H - 1
-    For y = y0 To y1
-        xl = 99999: xr = -99999
-        For i = 0 To n - 1
-            j = (i + 1) Mod n
-            ax = xsA(i): ay = ysA(i): bx = xsA(j): by = ysA(j)
-            If (ay <= y And by >= y) Or (by <= y And ay >= y) Then
-                If ay = by Then
-                    If ax < xl Then xl = ax
-                    If bx < xl Then xl = bx
-                    If ax > xr Then xr = ax
-                    If bx > xr Then xr = bx
-                Else
-                    x = ax + ((bx - ax) * (y - ay)) \ (by - ay)
-                    If x < xl Then xl = x
-                    If x > xr Then xr = x
-                End If
-            End If
-        Next i
-        If xl <= xr Then BlendSpan src, y, xl, xr, pen, alpha
-    Next y
+    dst = CV.Target: ox = orgX: oy = orgY
+    CV.SetTarget scratch
+    CV.Polygon px, py, n, penC(pen), True
+    ScratchBlend dst, x0, y0, x1, y1, alpha
 End Sub
 
 ' a capsule wall from a to b, radius r, h mm high: its sides, then its top
@@ -577,14 +588,12 @@ Private Sub MakeBall()
         Next j
         patchImg(PT_BALL + f) = img
     Next f
-    ' its shadow: black at about half, dithered (the C blends 120/256)
+    ' its shadow: black, blended at 120/256 when drawn (DrawImageBlend)
     img = CV.CreateImage(2 * BR + 1, 2 * BR - 3)
     CV.SetTarget img
     For dy = -(BR - 2) To BR - 2
         w = (BR * ISq(((BR - 2) * (BR - 2) - dy * dy) * 256) + (BR - 2) * 8) \ ((BR - 2) * 16)
-        For i = -w To w
-            If ((i + dy) And 1) = 0 Then CV.PSet i + BR, dy + BR - 2, penC(P_BLACK)
-        Next i
+        CV.Line BR - w, dy + BR - 2, BR + w, dy + BR - 2, penC(P_BLACK)
     Next dy
     patchImg(PT_SHADOW) = img
     CV.SetTarget 0
@@ -859,6 +868,27 @@ Private Sub NewPatch(ByVal k As Long, ByVal x0 As Long, ByVal y0 As Long, ByVal 
     CV.SetTarget patchImg(k)
 End Sub
 
+' the picture under patch k, a glow (an ellipse at alpha/256) blended over it, and nothing
+' (transparent) outside the ellipse: the patch can be drawn over other things that move
+Private Sub GlowPatch(ByVal k As Long, ByVal cx As Long, ByVal cy As Long, ByVal rx As Long, ByVal ry As Long, _
+                      ByVal pen As Long, ByVal alpha As Long)
+    Dim w As Long, h As Long, dy As Long, ww As Long, yy As Long
+    w = CV.ImageWidth(patchImg(k)): h = CV.ImageHeight(patchImg(k))
+    CV.DrawImagePart picImg, patchX(k), patchY(k), w, h, 0, 0, True
+    BlendEllipse picImg, cx, cy, rx, ry, pen, alpha
+    CV.SetTarget patchImg(k)
+    For yy = 0 To h - 1
+        dy = yy + patchY(k) - cy
+        If dy < -ry Or dy > ry Then
+            CV.ClearRect 0, yy, w, 1
+        Else
+            ww = (rx * ISq((ry * ry - dy * dy) * 256) + ry * 8) \ (ry * 16)
+            CV.ClearRect 0, yy, cx - ww - patchX(k), 1
+            CV.ClearRect cx + ww + 1 - patchX(k), yy, w, 1
+        End If
+    Next yy
+End Sub
+
 Private Sub FreePatch(ByVal k As Long)
     If patchImg(k) <> 0 Then CV.FreeImage patchImg(k)
     patchImg(k) = 0
@@ -897,7 +927,7 @@ Private Sub BuildPatches()
         If lampR(i) <> 0 Then
             x = PXI(lampX(i)): y = PYI(lampY(i), 0): rx = RXf(lampR(i) * 65536): ry = RYf(lampR(i) * 65536)
             NewPatch PT_LAMP + i, x - 2 * rx - 1, y - 2 * ry - 1, x + 2 * rx + 1, y + 2 * ry + 1
-            BlendEllipse picImg, x, y, rx * 2, ry * 2, LampPen(lampCol(i)), 70
+            GlowPatch PT_LAMP + i, x, y, rx * 2, ry * 2, LampPen(lampCol(i)), 70
             Ellipse x, y, rx, ry, LampPen(lampCol(i))
             Ellipse x - 2, y - 2, rx \ 2, ry \ 2, P_TEXT
         End If
@@ -911,7 +941,7 @@ Private Sub BuildPatches()
         If cc(i).bumper Then
             x = PXf(cc(i).cx): y = PYf(cc(i).cy, cc(i).h * 65536): rx = RXf(cc(i).r) * 2: ry = RYf(cc(i).r) * 2
             NewPatch PT_BUMPER + i, x - rx - 1, y - ry - 1, x + rx + 1, y + ry + 1
-            BlendEllipse picImg, x, y, rx, ry, P_FLASH, 80
+            GlowPatch PT_BUMPER + i, x, y, rx, ry, P_FLASH, 80
             Ellipse x, PYf(cc(i).cy + 65536, cc(i).h * 65536), RXf(FMr(cc(i).r, 58982)), RYf(FMr(cc(i).r, 58982)), P_FLASH
         End If
     Next i
@@ -974,10 +1004,13 @@ Public Sub DrawBuild(ByVal which As Long)
     lineCount = 0
     Erase glyphImg
     Dim t As Double
+    scratch = CV.CreateImage(SCR_W, PIC_H)
     BuildPicture
     t = TimerMs()
     BuildPatches
     buildPatchMs = TimerMs() - t
+    CV.FreeImage scratch
+    scratch = 0
     dTable = which
     dmdKey = ""
 End Sub
@@ -1170,7 +1203,7 @@ Private Sub DrawMoving()
     Next i
     For i = 0 To n - 1
         k = order(i)
-        CV.DrawImage patchImg(PT_SHADOW), PXf(bl(k).x) + 4 - BR, PYf(bl(k).y, 0) + 2 - (BR - 2)
+        CV.DrawImageBlend patchImg(PT_SHADOW), PXf(bl(k).x) + 4 - BR, PYf(bl(k).y, 0) + 2 - (BR - 2), 120
     Next i
     For i = n - 1 To 0 Step -1
         k = order(i)

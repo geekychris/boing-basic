@@ -1,6 +1,6 @@
 table 0: state: score 12820 ball 1 steps 3600 hash F9AFA545
-table 0: picture hash 1841647402
+table 0: picture hash 2032836992
 table 1: state: score 19590 ball 2 steps 3600 hash 3A150C08
-table 1: picture hash 1857243432
+table 1: picture hash 1378169835
 table 2: state: score 21420 ball 1 steps 3600 hash AA9B6B34
-table 2: picture hash 772645573
+table 2: picture hash 30521864

@@ -6,10 +6,9 @@ examples/boing_pinball, `make art` there):
   art/title_<table>.png       the title's backglass with the logo, 640 x 512
   art/boing_pinball.mod       the music
 
-and, with --ppm, the same pictures as binary PPM (art/*.ppm, not in git) for the
-Mac, where the Canvas's LoadImage reads PPM only.
+(the Canvas's LoadImage reads PNG itself on every platform).
 
-  python3 tools/make_art.py [--from AMIGA_MCP/examples/boing_pinball] [--ppm]
+  python3 tools/make_art.py [--from AMIGA_MCP/examples/boing_pinball]
 """
 import argparse, os, shutil, struct
 from PIL import Image
@@ -18,7 +17,6 @@ here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.dirname(here)
 ap = argparse.ArgumentParser()
 ap.add_argument("--from", dest="src", default=os.path.join(root, "..", "..", "..", "amiga_mcp", "examples", "boing_pinball"))
-ap.add_argument("--ppm", action="store_true")
 a = ap.parse_args()
 art = os.path.join(root, "art")
 os.makedirs(art, exist_ok=True)
@@ -36,8 +34,6 @@ for t in ("comet", "deep", "foundry"):
         png = os.path.join(art, "%s_%s.png" % (kind, t))
         if os.path.exists(src):
             read_img(src).save(png, optimize=True)
-        if a.ppm and os.path.exists(png):
-            Image.open(png).convert("RGB").save(os.path.join(art, "%s_%s.ppm" % (kind, t)))
 mod = os.path.join(a.src, "boing_pinball.mod")
 if os.path.exists(mod):
     shutil.copy(mod, os.path.join(art, "boing_pinball.mod"))

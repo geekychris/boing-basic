@@ -5,12 +5,10 @@
 #  2. the form program and the benches compile;
 #  3. the console bench, the bot playing each table with every frame drawn, gives the
 #     expected state and picture hashes (tests/expected.txt; `tests/run.sh --update` rewrites it).
-# Needs the pictures as PPM: python3 tools/make_art.py --ppm
 D=$(cd "$(dirname "$0")/.." && pwd)
 BOING=${BOING:-$D/../../build/boing}
 cd "$D" || exit 1
 fail=0
-[ -f art/playfield_comet.ppm ] || python3 tools/make_art.py --ppm > /dev/null
 tools/check_trace.sh || fail=1
 for p in Pinball.bbp Bench.bbp Trace.bbp; do
     "$BOING" check $p || { echo "check $p: FAIL"; fail=1; }
