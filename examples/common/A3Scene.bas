@@ -310,6 +310,52 @@ Public Sub A3QuadW(c As A3Cam, ByVal depthMode As Long, ByVal col As Long, _
     A3Quad c, depthMode, col, ax, ay, az, bx, by, bz, dx, dy, dz, ox, oy, oz
 End Sub
 
+' a line between two world points, drawn straight away: cut at the near plane
+' and at the picture's edges (the Canvas would step through the whole line)
+Public Sub A3LineW(cv As Object, c As A3Cam, ByVal x0 As Long, ByVal y0 As Long, ByVal z0 As Long, _
+                   ByVal x1 As Long, ByVal y1 As Long, ByVal z1 As Long, ByVal col As Long)
+    Dim ax As Long, ay As Long, az As Long, nz As Long, t As Double
+    Dim sx0 As Double, sy0 As Double, sx1 As Double, sy1 As Double, dx As Double, dy As Double
+    Dim t0 As Double, t1 As Double, p As Double, q As Double, r As Double, k As Long
+    CamXform c, x0, y0, z0: ax = ox: ay = oy: az = oz
+    CamXform c, x1, y1, z1
+    nz = CamNear(c)
+    If az < nz And oz < nz Then Exit Sub
+    If az < nz Then
+        t = CDbl(nz - oz) / (az - oz)
+        ax = ox + Fix((ax - ox) * t): ay = oy + Fix((ay - oy) * t): az = nz
+    ElseIf oz < nz Then
+        t = CDbl(nz - az) / (oz - az)
+        ox = ax + Fix((ox - ax) * t): oy = ay + Fix((oy - ay) * t): oz = nz
+    End If
+    sx0 = c.cx + (ax * c.fov) \ az: sy0 = c.cyc - (ay * c.fov) \ az
+    sx1 = c.cx + (ox * c.fov) \ oz: sy1 = c.cyc - (oy * c.fov) \ oz
+    ' Liang-Barsky against 0..vw-1, 0..vh-1
+    dx = sx1 - sx0: dy = sy1 - sy0
+    t0 = 0#: t1 = 1#
+    For k = 0 To 3
+        Select Case k
+            Case 0: p = -dx: q = sx0
+            Case 1: p = dx: q = c.vw - 1 - sx0
+            Case 2: p = -dy: q = sy0
+            Case Else: p = dy: q = c.vh - 1 - sy0
+        End Select
+        If p = 0# Then
+            If q < 0# Then Exit Sub
+        Else
+            r = q / p
+            If p < 0# Then
+                If r > t1 Then Exit Sub
+                If r > t0 Then t0 = r
+            Else
+                If r < t0 Then Exit Sub
+                If r < t1 Then t1 = r
+            End If
+        End If
+    Next k
+    cv.Line CLng(sx0 + t0 * dx), CLng(sy0 + t0 * dy), CLng(sx0 + t1 * dx), CLng(sy0 + t1 * dy), col
+End Sub
+
 ' draw the list, far to near
 Public Sub A3Flush(cv As Object)
     Dim b As Long, k As Long, i As Long, base As Long, n As Long
@@ -467,24 +513,44 @@ Public Sub A3ModelDraw(c As A3Cam, m As A3Model, ByVal wx As Long, ByVal wy As L
                        ByVal flash As Long, ByVal depthBias As Long)
     Dim i As Long, k As Long, nvis As Long, x As Long, y As Long, z As Long, mg As Long
     Dim cxz As Long, a As Long, b As Long, d As Long, col As Long, n As Long, rx As Long, ry As Long, rzz As Long
+    Dim bx As Long, by As Long, bz As Long, cu As Long, qx0 As Long, qy0 As Long, qz0 As Long
+    Dim cy4 As Long, sy4 As Long, cp4 As Long, sp4 As Long
     Dim ux As Long, uy As Long, uz As Long, vx As Long, vy As Long, vz As Long
     Dim nx As Double, ny As Double, nzz As Double, depth As Double, dep As Long
     CamXform c, wx, wy, wz
     cxz = oz
     mg = 800 * CamU(c)
     If oz < -mg Or ox > oz + mg Or ox < -oz - mg Then Exit Sub
+    ' the vertices to camera space (CamXform written out: calls cost in the VM)
+    bx = wx - c.x: by = wy - c.y: bz = wz - c.z
+    If c.precise Then
+        cu = 16
+        qx0 = c.qx: qy0 = c.qy: qz0 = c.qz
+    Else
+        cu = 1
+    End If
+    cy4 = c.cy4: sy4 = c.sy4: cp4 = c.cp4: sp4 = c.sp4
     For i = 0 To m.nv - 1
         x = m.vx(i): y = m.vy(i): z = m.vz(i)
         If useRot Then
             rx = x * rm(0) + y * rm(1) + z * rm(2)
             ry = x * rm(3) + y * rm(4) + z * rm(5)
             rzz = x * rm(6) + y * rm(7) + z * rm(8)
-            CamXform c, wx + (rx - (rx And 65535)) \ 65536, wy + (ry - (ry And 65535)) \ 65536, _
-                        wz + (rzz - (rzz And 65535)) \ 65536
-        Else
-            CamXform c, wx + x, wy + y, wz + z
+            x = (rx - (rx And 65535)) \ 65536
+            y = (ry - (ry And 65535)) \ 65536
+            z = (rzz - (rzz And 65535)) \ 65536
         End If
-        mvx(i) = ox: mvy(i) = oy: mvz(i) = oz
+        x = (bx + x) * cu - qx0
+        y = (by + y) * cu - qy0
+        z = (bz + z) * cu - qz0
+        rx = x * cy4 - z * sy4
+        mvx(i) = (rx - (rx And 4095)) \ 4096
+        rx = x * sy4 + z * cy4
+        rzz = (rx - (rx And 4095)) \ 4096
+        rx = y * cp4 + rzz * sp4
+        mvy(i) = (rx - (rx And 4095)) \ 4096
+        rx = rzz * cp4 - y * sp4
+        mvz(i) = (rx - (rx And 4095)) \ 4096
     Next i
     ' the faces that face the camera, farthest first
     For k = 0 To m.nf - 1

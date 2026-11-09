@@ -219,14 +219,14 @@ Private Sub RingAt(ByVal x As Long, ByVal z As Long, ByVal r As Long, ByVal col 
     Next k
 End Sub
 
+' the floor's grid: lines every 200 units (the original draws them as thin quads)
 Private Sub FloorGrid(cv As Object)
-    Dim k As Long
-    A3Begin 3000
+    Dim k As Long, c As Long
+    c = pen(PEN_GRID)
     For k = -TD_ARENA To TD_ARENA Step 200
-        A3QuadW cam, 32000, PEN_GRID, k - 3, 0, -TD_ARENA, k + 3, 0, -TD_ARENA, k + 3, 0, TD_ARENA, k - 3, 0, TD_ARENA
-        A3QuadW cam, 32000, PEN_GRID, -TD_ARENA, 0, k - 3, TD_ARENA, 0, k - 3, TD_ARENA, 0, k + 3, -TD_ARENA, 0, k + 3
+        A3LineW cv, cam, k, 0, -TD_ARENA, k, 0, TD_ARENA, c
+        A3LineW cv, cam, -TD_ARENA, 0, k, TD_ARENA, 0, k, c
     Next k
-    A3Flush cv
 End Sub
 
 Private Sub Walls()
@@ -321,7 +321,6 @@ Private Sub Scene(cv As Object)
     SkyBands cv, hz
     cv.Box 0, hz, G_W, G_H - hz, pen(PEN_FLOOR)
     FloorGrid cv
-    polyTotal = polyTotal + a3NPolys
     A3Begin 3000
     Walls
     Obstacles
