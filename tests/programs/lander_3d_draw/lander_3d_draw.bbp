@@ -1,0 +1,11 @@
+# Lander 3D's pictures (examples/lander_3d_bb, Engine3D on an off-screen canvas): the autopilot flies the tour, picture hashes
+Name=LdDrawTest
+Startup=Sub Main
+Module=ldpics.bas
+Module=../../../examples/lander_3d_bb/LdFix.bas
+Module=../../../examples/common/HiScore.bas
+Module=../../../examples/common/Perf.bas
+Module=../../../examples/lander_3d_bb/LdCore.bas
+Module=../../../examples/lander_3d_bb/LdGame.bas
+Module=../../../examples/lander_3d_bb/LdSound.bas
+Module=../../../examples/lander_3d_bb/LdDraw.bas

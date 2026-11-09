@@ -1,0 +1,12 @@
+# Boing BASIC project: Lander 3D, the lunar lander in three dimensions (a port of amiga_mcp's examples/lander_3d)
+Name=Lander3D
+Startup=Form lander
+Module=LdFix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=LdCore.bas
+Module=LdGame.bas
+Module=LdSound.bas
+Module=LdDraw.bas
+Form=lander.afg
+Stack=262144

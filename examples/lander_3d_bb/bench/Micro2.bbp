@@ -1,0 +1,3 @@
+Name=LdMicro2
+Startup=Sub Main
+Module=Micro2Main.bas

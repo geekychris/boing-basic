@@ -1,0 +1,12 @@
+# Boing BASIC project: Lander 3D console bench (the game and its drawing on an off-screen Canvas)
+Name=Lander3DBench
+Startup=Sub Main
+Module=BenchMain.bas
+Module=LdFix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=LdCore.bas
+Module=LdGame.bas
+Module=LdSound.bas
+Module=LdDraw.bas
+Stack=262144

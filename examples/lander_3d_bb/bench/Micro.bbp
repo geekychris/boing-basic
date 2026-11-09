@@ -1,0 +1,6 @@
+# Lander 3D micro benchmarks (the simulation's pieces)
+Name=LdMicro
+Startup=Sub Main
+Module=MicroMain.bas
+Module=../LdFix.bas
+Module=../LdCore.bas
