@@ -103,6 +103,43 @@ image works as a sprite.
 | `FreeImage id` | |
 | `SaveImage path [, id]` | write the back buffer (or an image) as a binary PPM (screenshots, tests) |
 
+### Paint helpers
+
+Members for paint programs (`examples/tincture`), in portable C (`src/runtime/canvas_paint_impl.h`),
+so they behave the same off-screen on the host. In these members a colour of **-1 means
+transparent** (an eraser on an image). Arrays come back as results (a Long array, or Empty).
+
+| Member | |
+|---|---|
+| `FloodFill(x, y [, colour [, tolerance]])` | scanline fill (4-connected) of the area of the colour at (x, y) in the target; tolerance = per-channel difference allowed; returns the pixels filled |
+| `FillBounds()` | x, y, w, h of what the last `FloodFill` changed |
+| `Ellipse cx, cy, rx, ry [, colour [, filled]]` | |
+| `BrushLine x1, y1, x2, y2, size [, colour [, shape]]` | a line drawn with a round (0) or square (1) brush of `size` pixels |
+| `StampLine id, x1, y1, x2, y2 [, tint [, spacing]]` | image id (a custom brush) stamped along a line, centred; tint -2 = its own colours, -1 = erase where it is opaque, else one colour |
+| `Spray x, y, radius, count [, colour [, seed]]` | airbrush: count random dots in the circle |
+| `DrawImageScaled id, sx, sy, sw, sh, dx, dy, dw, dh [, opaque]` | nearest-neighbour scaled copy (zoomed views); id 0 = the back buffer |
+| `DrawImageBlend id, x, y, alpha [, sx, sy, w, h]` | alpha-blended copy (image alpha x alpha / 255): layer opacity |
+| `CopyImage(id [, x, y, w, h])` | a new image from a part of an image (id 0 = the back buffer) |
+| `FlipImage id [, vertical]`, `RotateImage(id [, quarters])`, `ScaleImage(id, w, h [, smooth])` | rotate and scale return new images |
+| `ReplaceColor from, to [, x, y, w, h]` | in the target; returns the count |
+| `ClearRect x, y, w, h` | make transparent |
+| `Gradient x, y, w, h, topleft, topright [, bottomleft, bottomright]` | bilinear colour gradient |
+| `LinearGradient x, y, w, h, x1, y1, x2, y2, colour1, colour2 [, dither]` | linear gradient along (x1, y1)-(x2, y2), ordered dither by default |
+| `Checker x, y, w, h, size, colour1, colour2` | transparency backdrop |
+| `DashRect x, y, w, h, colour1, colour2 [, phase]` | marching ants |
+| `DrawTextScaled x, y, text, colour, scale` | the built-in font scaled up |
+| `ImagePoint(id, x, y)`, `ImageHash(id)`, `ImageBounds(id)` | a pixel (-1 transparent/outside), a checksum including alpha, x/y/w/h of the opaque pixels |
+| `GetPalette(id, max)` | the distinct colours (Long array), Empty if more than max |
+| `Quantize(id, n)` | a palette of up to n colours (median cut) |
+| `RemapImage id, pal(), n [, dither]` | every pixel to the nearest palette colour (Floyd-Steinberg if dither) |
+| `SavePNG path [, id [, pal(), n]]` | PNG: RGB, RGBA if any pixel isn't opaque, or indexed with the palette |
+| `SaveILBM path [, id [, pal(), n]]` | IFF ILBM: 24 planes, or 1-8 planes with CMAP; ByteRun1 |
+| `LastPalette()` | the palette of the last indexed PNG / ILBM loaded (Long array), Empty if none |
+
+`LoadImage` reads PNG (8/16-bit, grey, palette, alpha; not interlaced) and IFF ILBM (1-8
+planes, EHB, HAM6/HAM8, 24/32-bit, masks) itself on every platform, before trying the
+platform's loader (datatypes on AmigaOS 4).
+
 ## Example: a sprite
 
 ```basic

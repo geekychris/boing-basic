@@ -188,9 +188,8 @@ Private Sub view_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As 
         Exit Sub
     End If
     ViewToDoc X, Y, dx, dy
-    If InMagnifier(X) Then
-        ' the magnifier is a second view: painting in it works the same
-    End If
+    ' Alt+click paints with the background colour (the right button opens the menus)
+    If (Shift And 4) <> 0 And (Button And 1) <> 0 Then Button = 2
     ToolDown dx, dy, Button, Shift
     AfterToolEvent
 End Sub
