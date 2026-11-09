@@ -36,6 +36,11 @@ Private scriptActive As Boolean
 
 Private Sub Form_Load()
     Dim args As String, p As Long, f As String, scr As String
+    If InStr(Command$, "--trace ") > 0 Then
+        traceFile = Mid$(Command$, InStr(Command$, "--trace ") + 8)
+        If InStr(traceFile, " ") > 0 Then traceFile = Left$(traceFile, InStr(traceFile, " ") - 1)
+        Trace "start: form loaded"
+    End If
     LoadPrefs "Gridwise.prefs"
     Trace "load 1: LoadPrefs Gridwise.prefs"
     NewSheet 1000, 26
@@ -226,7 +231,6 @@ Private Sub UpdateBars()
         s = CellText(curR, curC)
         If IsFormula(curR, curC) Then s = "= " & s
         If s = "" Then s = "Ready"
-        s = s & "      " & NumFormatName(GetFormat(curR, curC) And 255)
     End If
     If editing Then s = "Editing " & CellName(curR, curC) & " - Return enters, Tab enters and moves right"
     If s <> lastStatus Then sb.Text = s: lastStatus = s

@@ -31,6 +31,11 @@ Private Const AUTOSAVE_SECS As Long = 120
 
 Private Sub Form_Load()
     Dim args As String, p As Long, f As String, scr As String
+    If InStr(Command$, "--trace ") > 0 Then
+        traceFile = Mid$(Command$, InStr(Command$, "--trace ") + 8)
+        If InStr(traceFile, " ") > 0 Then traceFile = Left$(traceFile, InStr(traceFile, " ") - 1)
+        Trace "start: form loaded"
+    End If
     LoadPrefs "Penwright.prefs"
     Trace "load 1: LoadPrefs Penwright.prefs"
     DefaultSize = PrefSize

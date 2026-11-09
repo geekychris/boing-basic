@@ -117,7 +117,8 @@ def main():
         for f in rexx.values():
             print(g.push(m, f, "DH1:office/" + os.path.basename(f)))
         dos("delete DH1:office/smoke.log DH1:office/state QUIET")
-        dos("run >NIL: DH1:office/%s %s --script DH1:office/%s --log DH1:office/smoke.log --state DH1:office/state"
+        dos("delete DH1:office/app.out QUIET")
+        dos("run >DH1:office/app.out DH1:office/%s %s --script DH1:office/%s --log DH1:office/smoke.log --state DH1:office/state"
             % (name, extra, os.path.basename(script)))
         seen, t0, log, ok_keys, rexx_out = set(), time.time(), "", True, []
         while time.time() - t0 < float(os.environ.get("BB_TEST_TIMEOUT", "240")):
@@ -145,6 +146,7 @@ def main():
             elif last == "ok":
                 break
         print(log)
+        print("app output:", dos("type DH1:office/app.out"))
         everything = log + "\n".join(rexx_out)
         ok = ok_keys and log.rstrip().endswith("ok") and "[rc 10]" not in log and all(e in everything for e in expects)
         missing = [e for e in expects if e not in everything]
