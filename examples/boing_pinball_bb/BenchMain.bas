@@ -59,9 +59,10 @@ Sub Main()
     Next i
     tTot = TimerMs() - t0
     Print "Boing Pinball bench: " & n & " frames on " & tName & ", the bot from seed 99"
-    Print "state: score " & gScore & " ball " & gBallNo & " steps " & stepsRun & " hash " & Hex8(StateHash()) & " picture " & cv.Hash
+    Print "state: score " & gScore & " ball " & gBallNo & " steps " & stepsRun & " hash " & Hex8(StateHash())
     Print "time: logic " & Format$(tl / n, "0.000") & " draw " & Format$(td / n, "0.000") & " ms/frame, " & _
           Format$(n * 1000# / tTot, "0.0") & " fps"
+    Print "picture hash " & cv.Hash
     If Len(shots) > 0 Then
         ToScores2
         ShellDraw

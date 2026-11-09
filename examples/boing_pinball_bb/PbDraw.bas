@@ -126,16 +126,22 @@ Public Sub DrawPalette(ByVal theme As Long)
     penC(P_SHADOW) = Rgb12(t(7)): penC(P_WOOD) = Rgb12(t(8))
 End Sub
 
-' the 8 x 8 dot-matrix characters: the 16 x 16 font halved (a dot where any of its 4 pixels is set)
+' the 8 x 8 dot-matrix characters: the 16 x 16 font halved (a dot where 2 or more of its 4 pixels are set)
 Private Sub MakeDmdBits()
-    Dim c As Long, r As Long, b As Long, v As Long, a As Long, w As Long
+    Dim c As Long, r As Long, b As Long, v As Long, a0 As Long, a1 As Long, n As Long, w As Long
     For c = 0 To 94
         For r = 0 To 7
-            a = fontRow(c * 16 + r * 2) Or fontRow(c * 16 + r * 2 + 1)
+            a0 = fontRow(c * 16 + r * 2) And &HFFFF&
+            a1 = fontRow(c * 16 + r * 2 + 1) And &HFFFF&
             v = 0
             For b = 0 To 7
                 w = 2 ^ (14 - b * 2)
-                If (a And (w * 3)) <> 0 Then v = v Or (2 ^ (7 - b))
+                n = 0
+                If a0 And w Then n = n + 1
+                If a0 And (w * 2) Then n = n + 1
+                If a1 And w Then n = n + 1
+                If a1 And (w * 2) Then n = n + 1
+                If n >= 2 Then v = v Or (2 ^ (7 - b))
             Next b
             dmdBits(c * 8 + r) = v
         Next r

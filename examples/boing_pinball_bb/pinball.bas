@@ -9,6 +9,8 @@
 '   BoingPinball --perf            timing overlay (also F1) and a log line a second
 '   BoingPinball --log             print each change of screen (tests)
 '   BoingPinball --blit M          the Canvas's BlitMode
+'   BoingPinball --screen S        start on a screen (for screenshots): demo (the title's
+'                                  demo), help1, help2, scores, play (the bot plays a game)
 '
 ' Keys: Z / left mouse button the left flippers, / (slash) / right button the right
 ' ones, Space / Down / Return the plunger (hold, let go), cursor keys nudge (and
@@ -19,7 +21,7 @@ Option Explicit
 Private Const KEY_HELP As Long = 47
 Private Const KEY_SLASH As Long = 314               ' 256 + raw key 0x3A
 
-Private benchN As Long, benchDone As Long, attractOnly As Boolean, tableArg As Long
+Private benchN As Long, benchDone As Long, attractOnly As Boolean, tableArg As Long, screenArg As String
 Private lastMs As Double
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
 
@@ -40,6 +42,8 @@ Private Sub ParseArgs()
                 If i < UBound(args) Then tableArg = CLng(args(i + 1)) Mod TB_COUNT
             Case "--blit"
                 If i < UBound(args) Then view.BlitMode = CLng(args(i + 1))
+            Case "--screen"
+                If i < UBound(args) Then screenArg = LCase$(args(i + 1))
         End Select
     Next i
 End Sub
@@ -55,6 +59,13 @@ Private Sub Form_Load()
         botPlay = True
         BotReset 99
     End If
+    Select Case screenArg
+        Case "demo": titleFrames = 250
+        Case "help1": pHelp = 1
+        Case "help2": pHelp = 2
+        Case "scores": pState = PS_SCORES: entryRank = -1: stateTimer = 30000
+        Case "play": StartGame dTable: botPlay = True: BotReset 99
+    End Select
     lastMs = TimerMs()
 End Sub
 
