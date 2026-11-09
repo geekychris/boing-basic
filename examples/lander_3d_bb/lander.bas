@@ -30,6 +30,7 @@ Private lastMs As Double, accMs As Double
 Private entryName As String
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
 Private shipsArg As Long, lastState As Long, placeArg As Boolean, frameNo As Long, startArg As Long
+Private lastFps As Double
 
 Private Sub ParseArgs()
     Dim args() As String, i As Long, a As String
@@ -224,6 +225,10 @@ Private Sub Frame(ByVal steps As Long)
     PerfAdd PH_BLIT
     benchBlit = benchBlit + (TimerMs() - t)
     PerfEnd
+    If gLog And perfFps <> lastFps Then          ' a timing line a second (tests)
+        Print PerfText()
+        lastFps = perfFps
+    End If
 End Sub
 
 Private Sub BenchReport(ByVal totalMs As Double)
