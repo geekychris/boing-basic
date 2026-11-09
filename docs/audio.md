@@ -205,6 +205,15 @@ by the clock, so positions advance); `Open "manual"` makes it deterministic for 
 
 ## Cost of calls
 
+Under QEMU a late-bound call costs 20-50 us (docs/performance.md), so read the play state once
+per frame with the batched calls, and keep the Audio object in a module-level variable:
+
+| Member | |
+|---|---|
+| `State()` | a Long array (0 To 55): 0 Playing, 1 Paused (True = -1), 2 Position, 3 Row, 4 Pattern, 5 Tick, 6 Speed, 7 Tempo, 8 SongEnded, 9 CurrentSong, 10 Channels, 11 CpuLoad, 12-15 reserved; channel c at 16 + c * 5: VU, note, sample, volume, ChannelPos |
+| `Scopes(n [, channels])` | one Long array with every channel's `Scope(c, n)`: channel c at c * n (channels = the song's, default) |
+
+
 Reading the play state (`Position`, `Row`, `Pattern`, `Tick`, `Speed`, `Tempo`, `Playing`,
 `Paused`, `SongEnded`, `Mute`, `Channel*`, `Scope`, `VoicePlaying`, `CpuLoad`) takes no lock:
 the values are words the mixer task writes, at most one chunk (40 ms) old. Every other call
