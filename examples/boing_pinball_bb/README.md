@@ -1,5 +1,7 @@
 # Boing Pinball
 
+(The window's title is "Boing Pinball (Boing BASIC)", to tell it from the C original.)
+
 Pinball with three tables, in Boing BASIC: a port of the amiga3d game in amiga_mcp's
 `examples/boing_pinball` (C, for the classic Amiga and AmigaOS 4), itself a port of the browser
 game [Boing pinball](https://geekychris.github.io/tools/boing-pinball/). The ball is the Boing
@@ -23,8 +25,8 @@ On the AmigaOS 4 guest (QEMU sam460ex), in the interpreter:
 
 | Keys | Mouse | |
 |---|---|---|
-| Z | left button | left flippers |
-| / | right button | right flippers |
+| Left Shift / Z (left Alt, left Amiga) | left button | left flippers |
+| Right Shift / `/` (right Alt, right Amiga) | right button | right flippers |
 | Space / Down / Return | | the plunger: hold to pull back, let go to launch |
 | Left, Right, Up | | nudge the table (on the title: choose the table) |
 | P | | pause |
@@ -149,8 +151,7 @@ a frame whatever happens on the table.
 
 ## Changes from the C
 
-- Left/Right Shift (and Alt, Amiga) aren't the flipper keys: the forms runtime doesn't pass
-  qualifier keys on their own to a program yet (asked for). Z and /, and the mouse buttons, are.
+- The mouse buttons work the flippers too.
 - F1 is the timing overlay (the C's F1 starts a game; Space does that here too).
 - High scores: the top eight of each table with names (the C keeps one best score per table).
 - The dot-matrix characters are amiga3d's 16 x 16 font halved (the C uses the system's topaz 8,

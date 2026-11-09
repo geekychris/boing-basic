@@ -16,8 +16,8 @@
 '   BoingPinball --screen S        start on a screen (for screenshots): title, demo (the
 '                                  title's backglass or demo, held), help1, help2, scores, play (the bot plays a game)
 '
-' Keys: Z / left mouse button the left flippers, / (slash) / right button the right
-' ones, Space / Down / Return the plunger (hold, let go), cursor keys nudge (and
+' Keys: left Shift / Alt / Amiga, Z or the left mouse button the left flippers, the right
+' ones, / (slash) or the right button the right flippers, Space / Down / Return the plunger (hold, let go), cursor keys nudge (and
 ' choose the table on the title), P pause, Help / H the rules, S the high scores (on
 ' the title), M music on/off, Esc the title (or quit from it), F1 the timing overlay.
 Option Explicit
@@ -168,9 +168,9 @@ Private Sub RunScript()
         Case 370: Print "pulled: " & (gPull > 50000)
                   Key vbKeySpace, False                 ' and let go
         Case 372: Print "launched: " & (bl(0).st = BS_PLAY And bl(0).vy > 0)
-        Case 400: Key vbKeyZ, True: Key KEY_SLASH, True
+        Case 400: Key vbKeyLShift, True: Key vbKeyRShift, True
         Case 410: Print "flippers up: " & (fl(0).ang = fl(0).up And fl(1).ang = fl(1).up)
-                  Key vbKeyZ, False: Key KEY_SLASH, False
+                  Key vbKeyLShift, False: Key vbKeyRShift, False
         Case 412: Key vbKeyUp, True
         Case 413: Key vbKeyUp, False
         Case 416: Print "nudged: tilt meter " & (gTiltMeter > 0)
@@ -193,8 +193,8 @@ End Sub
 
 Private Function KeyBits(ByVal k As Long) As Long
     Select Case k
-        Case vbKeyZ: KeyBits = IN_LFLIP
-        Case KEY_SLASH: KeyBits = IN_RFLIP
+        Case vbKeyZ, vbKeyLShift, vbKeyLMenu, vbKeyLWin: KeyBits = IN_LFLIP       ' Z, left Shift / Alt / Amiga
+        Case KEY_SLASH, vbKeyRShift, vbKeyRMenu, vbKeyRWin: KeyBits = IN_RFLIP    ' /, right Shift / Alt / Amiga
         Case vbKeySpace, vbKeyDown, vbKeyReturn: KeyBits = IN_PLUNGE
         Case vbKeyLeft: KeyBits = IN_NL
         Case vbKeyRight: KeyBits = IN_NR

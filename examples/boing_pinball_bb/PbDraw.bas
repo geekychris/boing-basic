@@ -1305,9 +1305,9 @@ Public Sub DrawHelp(ByVal page As Long)
                   "  - BUMPERS, TARGET BANKS, SPINS,", "  RAMPS OR LANE SETS IN 40 SECONDS", "ALL FIVE MISSIONS: SUPERNOVA,", _
                   "  EVERYTHING SCORES 3X", "BALL SAVE: THE FIRST 10 SECONDS", "", "HELP: CLOSE")
     Else
-        p = Array("HOW TO PLAY", "", "Z  LEFT MOUSE      LEFT FLIPPERS", "/  RIGHT MOUSE     RIGHT FLIPPERS", _
+        p = Array("HOW TO PLAY", "", "LEFT SHIFT  Z      LEFT FLIPPERS", "RIGHT SHIFT /      RIGHT FLIPPERS", _
                   "SPACE  DOWN       PLUNGER: HOLD TO", "                  PULL, LET GO", "LEFT RIGHT UP     NUDGE THE TABLE", _
-                  "P  PAUSE          ESC  THE TITLE", "", "S  THE HIGH SCORES (ON THE TITLE)", _
+                  "P  PAUSE          ESC  THE TITLE", "MOUSE BUTTONS: THE FLIPPERS", "S  THE HIGH SCORES (ON THE TITLE)", _
                   "M  MUSIC ON AND OFF", "", "NUDGE TOO OFTEN: TWO WARNINGS,", "THEN TILT - THE FLIPPERS GO DEAD", _
                   "AND THE BALL SCORES NO BONUS.", "", "HELP: THE RULES")
     End If
