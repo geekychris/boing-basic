@@ -28,6 +28,7 @@ static const char *const class_names[C_NUM] = {
 static struct ClassLibrary *class_lib[C_NUM];
 static Class *class_ptr[C_NUM];
 static struct ListBrowserIFace *ILB;
+struct ListBrowserIFace *bbf_ILB;
 static struct ChooserIFace *ICH;
 static struct LayoutIFace *ILO;
 static struct KeymapIFace *IKM;
@@ -41,7 +42,7 @@ Class *cls(int c)
     if (!class_ptr[c]) {
         class_lib[c] = IIntuition->OpenClass(class_names[c], 0, &class_ptr[c]);
         if (class_lib[c]) {
-            if (c == C_LISTBROWSER) ILB = (void *)IExec->GetInterface((struct Library *)class_lib[c], "main", 1, NULL);
+            if (c == C_LISTBROWSER) bbf_ILB = ILB = (void *)IExec->GetInterface((struct Library *)class_lib[c], "main", 1, NULL);
             if (c == C_CHOOSER) ICH = (void *)IExec->GetInterface((struct Library *)class_lib[c], "main", 1, NULL);
             if (c == C_LAYOUT) ILO = (void *)IExec->GetInterface((struct Library *)class_lib[c], "main", 1, NULL);
         }
@@ -121,9 +122,14 @@ uint32 get_attr(bb_ctl *c, Tag tag)
     return v;
 }
 
+static void canvas_refresh_all(bb_form *f);
+
 void relayout(bb_form *f)
 {
-    if (f->win && f->winobj) IIntuition->IDoMethod(f->winobj, WM_RETHINK);
+    if (f->win && f->winobj) {
+        IIntuition->IDoMethod(f->winobj, WM_RETHINK);
+        canvas_refresh_all(f);       /* the layout repainted the boxes of canvases and grids */
+    }
 }
 
 /* --- item lists ------------------------------------------------------------------------- */
@@ -133,10 +139,16 @@ void bbf_items_insert(bb_ctl *c, int at, const char *s)
     if (c->nitems + 1 > c->capitems) {
         c->capitems = c->capitems ? c->capitems * 2 : 8;
         c->items = realloc(c->items, c->capitems * sizeof *c->items);
+        c->msel = realloc(c->msel, c->capitems * sizeof *c->msel);
+        c->idata = realloc(c->idata, c->capitems * sizeof *c->idata);
     }
     if (at < 0 || at > c->nitems) at = c->nitems;
     memmove(c->items + at + 1, c->items + at, (c->nitems - at) * sizeof *c->items);
+    memmove(c->msel + at + 1, c->msel + at, (c->nitems - at) * sizeof *c->msel);
+    memmove(c->idata + at + 1, c->idata + at, (c->nitems - at) * sizeof *c->idata);
     c->items[at] = xstrdup(s);
+    c->msel[at] = 0;
+    c->idata[at] = 0;
     c->nitems++;
 }
 
@@ -144,6 +156,8 @@ static void items_remove(bb_ctl *c, int at)
 {
     free(c->items[at]);
     memmove(c->items + at, c->items + at + 1, (c->nitems - at - 1) * sizeof *c->items);
+    memmove(c->msel + at, c->msel + at + 1, (c->nitems - at - 1) * sizeof *c->msel);
+    memmove(c->idata + at, c->idata + at + 1, (c->nitems - at - 1) * sizeof *c->idata);
     c->nitems--;
 }
 
@@ -163,7 +177,7 @@ static void build_nodes(bb_ctl *c)
     for (int i = 0; i < c->nitems; i++) {
         struct Node *n = NULL;
         if (c->kind == AFG_LISTBROWSER && ILB)
-            n = ILB->AllocListBrowserNode(1, LBNCA_CopyText, TRUE, LBNCA_Text, c->items[i], TAG_DONE);
+            n = bbf_list_node(c, i);
         else if (c->kind == AFG_CHOOSER && ICH)
             n = ICH->AllocChooserNode(CNA_CopyText, TRUE, CNA_Text, c->items[i], TAG_DONE);
         if (n) IExec->AddTail(&c->labels, n);
@@ -173,12 +187,14 @@ static void build_nodes(bb_ctl *c)
 static void list_changed(bb_ctl *c)
 {
     Tag lt = c->kind == AFG_LISTBROWSER ? LISTBROWSER_Labels : CHOOSER_Labels;
+    if (c->kind == AFG_LISTBROWSER) bbf_list_sync_sel(c);
     set_attr(c, lt, ~0u);
     build_nodes(c);
     if (c->sel >= c->nitems) c->sel = c->nitems - 1;
     if (c->kind == AFG_CHOOSER && c->sel < 0 && c->nitems) c->sel = 0;
+    /* (not LISTBROWSER_Selected on a multi-select list: it would clear every selection) */
     struct TagItem t[3] = { { lt, (uint32)&c->labels },
-                            { c->kind == AFG_LISTBROWSER ? LISTBROWSER_Selected : CHOOSER_Selected, (uint32)c->sel },
+                            { c->kind == AFG_LISTBROWSER ? (c->multi ? TAG_IGNORE : LISTBROWSER_Selected) : CHOOSER_Selected, (uint32)c->sel },
                             { TAG_DONE, 0 } };
     if (c->form->win) IIntuition->SetGadgetAttrsA((struct Gadget *)c->obj, c->form->win, NULL, t);
     else IIntuition->SetAttrsA(c->obj, t);
@@ -222,7 +238,10 @@ static bb_ctl *ctl_for(bb_form *f, afg_node *n)
     return NULL;
 }
 
-static Object *build(bb_form *f, afg_node *n)
+Object *bbf_build(bb_form *f, afg_node *n);
+#define build bbf_build
+
+Object *bbf_build(bb_form *f, afg_node *n)
 {
     tags t = { 0 };
     bb_ctl *c = ctl_for(f, n);
@@ -259,6 +278,7 @@ static Object *build(bb_form *f, afg_node *n)
         else if (!strcmp(frame, "field")) tg(&t, LAYOUT_BevelStyle, BVS_FIELD);
         if (afg_has(n, "title")) tg(&t, LAYOUT_Label, (uint32)afg_get(n, "title"));
         if (afg_get_bool(n, "even")) tg(&t, LAYOUT_EvenSize, TRUE);
+        if (afg_get_bool(n, "splitter")) tg(&t, LAYOUT_WeightBar, TRUE);     /* draggable bars between children */
         for (int i = 0; i < n->nchildren; i++) {
             afg_node *ch = n->children[i];
             if (!kids[i]) continue;
@@ -280,7 +300,18 @@ static Object *build(bb_form *f, afg_node *n)
     }
     case AFG_BUTTON:
         bbf_gadget_tags(c, &t);
-        tg(&t, GA_Text, (uint32)afg_get(n, "text"));
+        if (afg_has(n, "image") && (c->img = bbf_load_image(afg_get(n, "image"), afg_get(n, "selimage")))) {
+            /* a picture button; with a text, the picture and the text side by side (label.image) */
+            if (*afg_get(n, "text")) {
+                tags lt = { 0 };
+                tg(&lt, LABEL_Image, (uint32)c->img);
+                tg(&lt, LABEL_Text, (uint32)afg_get(n, "text"));
+                c->selimg = new_obj(C_LABEL, &lt);
+                tg(&t, BUTTON_RenderImage, (uint32)(c->selimg ? c->selimg : c->img));
+            } else
+                tg(&t, BUTTON_RenderImage, (uint32)c->img);
+        } else
+            tg(&t, GA_Text, (uint32)afg_get(n, "text"));
         o = new_obj(C_BUTTON, &t);
         break;
     case AFG_STRING:
@@ -357,6 +388,7 @@ static Object *build(bb_form *f, afg_node *n)
         cls(C_LISTBROWSER);
         bbf_gadget_tags(c, &t);
         c->sel = -1;
+        bbf_list_setup(c, &t);
         build_nodes(c);
         tg(&t, LISTBROWSER_Labels, (uint32)&c->labels);
         tg(&t, LISTBROWSER_ShowSelected, TRUE);
@@ -402,6 +434,8 @@ static Object *build(bb_form *f, afg_node *n)
         break;
     case AFG_TEXTEDITOR:
         bbf_gadget_tags(c, &t);
+        tg(&t, ICA_TARGET, ICTARGET_IDCMP);    /* CursorMove / Change while typing */
+        if (afg_get_bool(n, "fixedfont")) tg(&t, GA_TEXTEDITOR_FixedFont, TRUE);
         if (afg_has(n, "text")) tg(&t, GA_TEXTEDITOR_Contents, (uint32)afg_get(n, "text"));
         o = new_obj(C_TEXTEDITOR, &t);
         break;
@@ -531,6 +565,13 @@ static void form_free(bb_form *f)
         free_nodes(c);
         for (int k = 0; k < c->nitems; k++) free(c->items[k]);
         free(c->items);
+        free(c->msel);
+        free(c->idata);
+        if (c->colinfo && ILB) ILB->FreeLBColumnInfo(c->colinfo);
+        if (c->coltitles) {
+            for (int k = 0; k < c->ncols; k++) free(c->coltitles[k]);
+            free(c->coltitles);
+        }
         free(c->labelarray);
         free(c->tagstr);
         free(c->hint);
@@ -597,7 +638,7 @@ static bb_ctl *mouse_target(bb_form *f, int x, int y)
 {
     for (int i = 0; i < f->nctls; i++) {
         bb_ctl *c = f->ctls[i];
-        if (c->kind != AFG_CANVAS || !c->obj || !c->visible || !c->name[0]) continue;
+        if ((c->kind != AFG_CANVAS && c->kind != AFG_GRID) || !c->obj || !c->visible || !c->name[0]) continue;
         struct Gadget *g = (struct Gadget *)c->obj;
         if (x >= g->LeftEdge && y >= g->TopEdge && x < g->LeftEdge + g->Width && y < g->TopEdge + g->Height) return c;
     }
@@ -616,7 +657,8 @@ static void canvas_xy(bb_ctl *c, int wx, int wy, int32_t *x, int32_t *y)
     *y = dy >= 0 ? dy / s : -((-dy + s - 1) / s);
 }
 
-static int vb_shift(uint32 q);
+int bbf_vb_shift(uint32 q);
+#define vb_shift bbf_vb_shift
 
 static void mouse_events_handle(bb_form *f)
 {
@@ -630,6 +672,19 @@ static void mouse_events_handle(bb_form *f)
             if (!bit) continue;
         }
         bb_ctl *c = f->capture && f->buttons ? f->capture : mouse_target(f, e.x, e.y);
+        if (e.mcls == IDCMP_MOUSEBUTTONS && !up)
+            for (int i = 0; i < f->nctls; i++)       /* a click elsewhere takes the focus from grids */
+                if (f->ctls[i]->kind == AFG_GRID && f->ctls[i] != c) bbf_grid_blur(f->ctls[i]);
+        if (c && c->kind == AFG_GRID) {
+            /* the grid handles its own mouse (cells, selection, editing) */
+            if (e.mcls == IDCMP_MOUSEBUTTONS && bit == 1) {
+                if (!up) { f->buttons |= 1; f->capture = c; }
+                else { f->buttons &= ~1; if (!f->buttons) f->capture = NULL; }
+                bbf_grid_mouse(c, !up, up, 0, e.x, e.y, e.qual, e.secs, e.micros);
+            } else if (e.mcls == IDCMP_MOUSEMOVE)
+                bbf_grid_mouse(c, 0, 0, 1, e.x, e.y, e.qual, e.secs, e.micros);
+            continue;
+        }
         const char *name = c ? c->name : "Form";
         int32_t a[4] = { 0, vb_shift(e.qual), 0, 0 };
         if (c) canvas_xy(c, e.x, e.y, &a[2], &a[3]);
@@ -722,8 +777,10 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     tg(&t, WA_SizeGadget, afg_get_bool(a, "resizable"));
     if (w > 0) tg(&t, WA_InnerWidth, w);
     if (h > 0) tg(&t, WA_InnerHeight, h);
-    for (int i = 0; i < f->nctls; i++)
+    for (int i = 0; i < f->nctls; i++) {
         if (f->ctls[i]->kind == AFG_CANVAS && f->ctls[i]->name[0] && wants_mouse(f, f->ctls[i])) f->mouse_wanted = 1;
+        if (f->ctls[i]->kind == AFG_GRID) f->mouse_wanted = 1;
+    }
     if (wants_mouse(f, &f->self)) f->mouse_wanted = 1;
     if (f->mouse_wanted) tg(&t, WA_ReportMouse, TRUE);
     tg(&t, WA_IDCMP, IDCMP_GADGETUP | IDCMP_CLOSEWINDOW | IDCMP_RAWKEY | IDCMP_NEWSIZE | IDCMP_ACTIVEWINDOW |
@@ -787,8 +844,10 @@ const char *bb_ctl_kind(bb_ctl *c) { return afg_kind_name(c->kind); }
 /* canvas: show every canvas control's last picture again (window opened or resized) */
 static void canvas_refresh_all(bb_form *f)
 {
-    for (int i = 0; i < f->nctls; i++)
+    for (int i = 0; i < f->nctls; i++) {
         if (f->ctls[i]->kind == AFG_CANVAS) bb_canvas_ctl_refresh(f->ctls[i]);
+        if (f->ctls[i]->kind == AFG_GRID) bbf_grid_refresh(f->ctls[i]);
+    }
 }
 
 int bb_form_show(bb_form *f)
@@ -890,8 +949,10 @@ static int has_list(afg_kind k) { return k == AFG_CHOOSER || k == AFG_RADIO || k
 
 static char *editor_text(bb_ctl *c)
 {
-    STRPTR s = (STRPTR)IIntuition->DoGadgetMethod((struct Gadget *)c->obj, c->form->win, NULL,
-                                                   (Msg)&(struct GP_TEXTEDITOR_ExportText){ GM_TEXTEDITOR_ExportText, NULL });
+    /* DoGadgetMethodA: the message by pointer (DoGadgetMethod takes the method id and its
+       arguments inline) */
+    STRPTR s = (STRPTR)IIntuition->DoGadgetMethodA((struct Gadget *)c->obj, c->form->win, NULL,
+                                                    (Msg)&(struct GP_TEXTEDITOR_ExportText){ GM_TEXTEDITOR_ExportText, NULL });
     char *o = xstrdup(s ? (char *)s : "");
     if (s) IExec->FreeVec(s);
     return o;
@@ -1010,6 +1071,10 @@ int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
             return ret_str(c, out, c->sel >= 0 && c->sel < c->nitems ? c->items[c->sel] : "");
         }
         if (k == AFG_LISTBROWSER && IS("TopIndex")) return ret_int(out, (int32)get_attr(c, LISTBROWSER_Top));
+        if (k == AFG_LISTBROWSER) {
+            int e = bbf_list_get(c, prop, index, out);
+            if (e != 438) return e;
+        }
     }
     switch (k) {
     case AFG_BUTTON:
@@ -1072,7 +1137,7 @@ int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
             free(s);
             return ret_int(out, n);
         }
-        break;
+        return bbf_editor_get(c, prop, out);
     default:
         return bbf_ext_get(c, prop, index, out);
     }
@@ -1165,6 +1230,10 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         if (k == AFG_LISTBROWSER && IS("TopIndex")) {
             set_attr(c, LISTBROWSER_Top, (uint32)vint(v));
             return 0;
+        }
+        if (k == AFG_LISTBROWSER) {
+            int e = bbf_list_set(c, prop, index, v);
+            if (e != 438) return e;
         }
         if (IS("Text")) return 383;
     }
@@ -1261,11 +1330,24 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         }
         if (IS("Locked")) { set_attr(c, GA_TEXTEDITOR_ReadOnly, vint(v) != 0); return 0; }
         if (IS("LineCount")) return 383;
-        break;
+        return bbf_editor_set(c, prop, v);
     default:
         return bbf_ext_set(c, prop, index, v);
     }
     return 438;
+}
+
+int bb_ctl_get2(bb_ctl *c, const char *prop, int i, int j, bb_fval *out)
+{
+    out->type = BB_FV_NONE;
+    if (!c->form || !c->form->loaded) return 364;
+    return bbf_get2(c, prop, i, j, out);
+}
+
+int bb_ctl_set2(bb_ctl *c, const char *prop, int i, int j, const bb_fval *v)
+{
+    if (!c->form || !c->form->loaded) return 364;
+    return bbf_set2(c, prop, i, j, v);
 }
 
 #undef IS
@@ -1307,7 +1389,16 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
             IIntuition->IDoMethod(f->winobj, WM_ACTIVATEGADGET, c->obj);
         return 0;
     }
+    if (c->kind == AFG_TEXTEDITOR) {
+        int e = bbf_editor_call(c, method, argc, argv, ret);
+        if (e != 438) return e;
+    }
+    if (c->kind == AFG_LISTBROWSER) {
+        int e = bbf_list_call(c, method, argc, argv, ret);
+        if (e != 438) return e;
+    }
     if (has_list(c->kind) && c->kind != AFG_RADIO) {
+        if (c->kind == AFG_LISTBROWSER) bbf_list_sync_sel(c);   /* before the rows move */
         if (IS("AddItem")) {
             if (argc < 1) return 5;
             int at = argc > 1 ? vint(&argv[1]) : -1;
@@ -1346,13 +1437,18 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
 
 /* --- events ----------------------------------------------------------------------------- */
 
+int bbf_last_part;
+
 bb_ctl *bbf_ctl_by_gid(bb_form *f, uint32 gid)
 {
+    gid &= BBF_GID_MASK;      /* the parts of a control (grid scrollers) carry its id */
     if (gid >= 1 && gid <= (uint32)f->nctls) return f->ctls[gid - 1];
     return NULL;
 }
 
-static int vb_key(int raw)
+int bbf_vb_key(int raw);
+#define vb_key bbf_vb_key
+int bbf_vb_key(int raw)
 {
     static const char row1[] = "1234567890", rowq[] = "QWERTYUIOP", rowa[] = "ASDFGHJKL", rowz[] = "ZXCVBNM";
     if (raw >= 0x01 && raw <= 0x0A) return row1[raw - 1];
@@ -1377,7 +1473,7 @@ static int vb_key(int raw)
     return 0x100 + raw;      /* other keys: 256 + the raw key code */
 }
 
-static int vb_shift(uint32 q)
+int bbf_vb_shift(uint32 q)
 {
     int s = 0;
     if (q & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) s |= 1;
@@ -1387,6 +1483,22 @@ static int vb_shift(uint32 q)
     return s;
 }
 
+int bbf_map_key(int raw, uint32 qual)
+{
+    if (!IKM) {
+        KeymapLib = IExec->OpenLibrary("keymap.library", 50);
+        if (KeymapLib) IKM = (void *)IExec->GetInterface(KeymapLib, "main", 1, NULL);
+    }
+    if (!IKM) return 0;
+    struct InputEvent ie;
+    memset(&ie, 0, sizeof ie);
+    ie.ie_Class = IECLASS_RAWKEY;
+    ie.ie_Code = raw;
+    ie.ie_Qualifier = qual;
+    char ch[8];
+    return IKM->MapRawKey(&ie, ch, sizeof ch, NULL) == 1 ? (unsigned char)ch[0] : 0;
+}
+
 static void raw_key(bb_form *f, int code)
 {
     uint32 q = 0;
@@ -1394,6 +1506,9 @@ static void raw_key(bb_form *f, int code)
     int up = code & IECODE_UP_PREFIX, raw = code & 0x7F;
     if (raw >= 0x60 && raw <= 0x67) return;            /* qualifier keys alone */
     if (raw == 0x5F && !up && bbf_app_help_key(f)) return;     /* Help with App.HelpFile set */
+    if (!up)
+        for (int i = 0; i < f->nctls; i++)       /* a grid with the focus takes the keys */
+            if (f->ctls[i]->kind == AFG_GRID && bbf_grid_focused(f->ctls[i]) && bbf_grid_key(f->ctls[i], raw, q)) return;
     int32_t a[2] = { vb_key(raw), vb_shift(q) };
     bb_canvas_key_event(a[0], !up);      /* canvas: Canvas.KeyDown(k) */
     fire(f, "Form", up ? "KeyUp" : "KeyDown", 2, a);
@@ -1456,6 +1571,11 @@ static void gadget_up(bb_form *f, bb_ctl *c, uint16 code)
         break;
     case AFG_LISTBROWSER: {
         uint32 rel = get_attr(c, LISTBROWSER_RelEvent);
+        if (rel & LBRE_TITLECLICK) {
+            int32_t col = bbf_list_title_click(c);
+            fire(f, c->name, "ColumnClick", 1, &col);
+            break;
+        }
         c->sel = (int32)get_attr(c, LISTBROWSER_Selected);
         fire0(c, "Click");
         if (!ending && (rel & LBRE_DOUBLECLICK)) fire0(c, "DblClick");
@@ -1477,6 +1597,10 @@ static void updates(bb_form *f)
         memmove(f->upd, f->upd + 1, --f->nupd * sizeof *f->upd);
         bb_ctl *c = bbf_ctl_by_gid(f, gid);
         if (!c) continue;
+        if (c->kind == AFG_GRID) {
+            bbf_grid_update(f, c, gid >> BBF_PART_SHIFT);
+            continue;
+        }
         if (c->kind == AFG_STRING) {
             const char *now = (const char *)get_attr(c, STRINGA_TextVal);
             if (!now) now = "";
@@ -1485,6 +1609,8 @@ static void updates(bb_form *f)
                 c->text = xstrdup(now);
                 fire0(c, "Change");
             }
+        } else if (c->kind == AFG_TEXTEDITOR) {
+            bbf_editor_update(c);
         } else if (c->kind == AFG_SLIDER || c->kind == AFG_SCROLLER) {
             int32 v = (int32)get_attr(c, c->kind == AFG_SLIDER ? SLIDER_Level : SCROLLER_Top);
             if (v != c->lastval) {
@@ -1507,7 +1633,11 @@ void bbf_handle_form(bb_form *f)
             unload(f, 0);
             break;
         case WMHI_GADGETUP: {
+            bbf_last_part = (result & WMHI_GADGETMASK) >> BBF_PART_SHIFT;
             bb_ctl *c = bbf_ctl_by_gid(f, result & WMHI_GADGETMASK);
+            if (c && c->kind != AFG_GRID)
+                for (int i = 0; i < f->nctls; i++)
+                    if (f->ctls[i]->kind == AFG_GRID) bbf_grid_blur(f->ctls[i]);
             if (c) gadget_up(f, c, code);
             break;
         }
@@ -1631,7 +1761,7 @@ void bb_forms_cleanup(void)
     if (ILB) IExec->DropInterface((struct Interface *)ILB);
     if (ICH) IExec->DropInterface((struct Interface *)ICH);
     if (ILO) IExec->DropInterface((struct Interface *)ILO);
-    ILB = NULL;
+    ILB = bbf_ILB = NULL;
     ICH = NULL;
     ILO = NULL;
     for (int i = 0; i < C_NUM; i++)

@@ -72,3 +72,5 @@ int bb_ui_request(const char *prompt, const char *buttons, const char *title, in
 
 bb_ctl *bb_dialog_new(void) { return NULL; }
 void bb_dialog_free(bb_ctl *c) { (void)c; }
+int bb_ctl_get2(bb_ctl *c, const char *p, int i, int j, bb_fval *o) { (void)c; (void)p; (void)i; (void)j; o->type = BB_FV_NONE; return 364; }
+int bb_ctl_set2(bb_ctl *c, const char *p, int i, int j, const bb_fval *v) { (void)c; (void)p; (void)i; (void)j; (void)v; return 364; }

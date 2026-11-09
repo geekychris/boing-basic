@@ -210,20 +210,41 @@ static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
         return;
     }
     if (kind & (BB_INV_LET | BB_INV_SET)) {
-        if (argc < 1 || argc > 2) bb_raise(450, NULL);
+        if (argc < 1 || argc > 3) bb_raise(450, NULL);
         fv_from_value(&argv[argc - 1], &fv, &hold);
-        err = bb_ctl_set(c, name, argc == 2 ? bb_v_to_long(&argv[0]) : -1, &fv);
+        if (argc == 3)      /* grid.TextMatrix(r, c) = x */
+            err = bb_ctl_set2(c, name, bb_v_to_long(&argv[0]), bb_v_to_long(&argv[1]), &fv);
+        else
+            err = bb_ctl_set(c, name, argc == 2 ? bb_v_to_long(&argv[0]) : -1, &fv);
         bb_str_release(hold);
         if (err) bb_raise(err, NULL);
         return;
     }
     err = 438;
+    if ((kind & BB_INV_GET) && argc == 2) {
+        memset(&out, 0, sizeof out);
+        err = bb_ctl_get2(c, name, bb_v_to_long(&argv[0]), bb_v_to_long(&argv[1]), &out);
+        if (!err) { *ret = value_from_fv(&out); return; }
+        if (err != 438 || !(kind & BB_INV_METHOD)) bb_raise(err, NULL);
+    }
+    /* tv.NodeText("key"): a string argument isn't a property index, it's a method's */
+    if ((kind & BB_INV_GET) && argc == 1 && (kind & BB_INV_METHOD)) {
+        bb_value tv;
+        const bb_value *a0 = bb_v_deref(&argv[0], &tv);
+        if (a0->type == BB_STRING) {
+            char *e;
+            const char *sp = bb_str_ptr(a0->u.s);
+            strtod(sp, &e);
+            if (!*sp || *e) goto method;
+        }
+    }
     if ((kind & BB_INV_GET) && argc <= 1) {
         memset(&out, 0, sizeof out);
         err = bb_ctl_get(c, name, argc == 1 ? bb_v_to_long(&argv[0]) : -1, &out);
         if (!err) { *ret = value_from_fv(&out); return; }
         if (err != 438 || !(kind & BB_INV_METHOD)) bb_raise(err, NULL);
     }
+method:
     if (kind & BB_INV_METHOD) {
         bb_fval args[8];
         bb_str *holds[8];

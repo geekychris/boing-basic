@@ -54,6 +54,9 @@ const char *bb_ctl_kind(bb_ctl *c);          /* "button", "window"... */
 /* Properties. index is the array index for List(i), else -1. */
 int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out);
 int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v);
+/* Two-index properties: Cell(row, col), TextMatrix(row, col) (docs/ui.md). */
+int bb_ctl_get2(bb_ctl *c, const char *prop, int i, int j, bb_fval *out);
+int bb_ctl_set2(bb_ctl *c, const char *prop, int i, int j, const bb_fval *v);
 /* Methods: AddItem, RemoveItem, Clear, SetFocus, Refresh, ShowOpen, Show, Hide, Move. */
 int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
 

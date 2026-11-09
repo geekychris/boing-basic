@@ -90,6 +90,12 @@ struct bb_ctl {
     int npanels;
     void *ext;               /* the ui_*.c kinds' own state */
     char *ret_buf;           /* the last string returned by a control without a form */
+    /* listbrowser: columns, multiple selection, row data (parallel to items) */
+    int ncols, multi, sortable, sortcol, sortorder;
+    struct ColumnInfo *colinfo;
+    char **coltitles;
+    uint8 *msel;
+    int32 *idata;
 };
 
 struct bb_form {
@@ -183,6 +189,55 @@ void bbf_tools_follow_menu(bb_form *f, const char *menu, int enabled);
 void bbf_ext_cleanup(void);
 struct Library *bbf_class_lib(int c);
 void bbf_items_insert(bb_ctl *c, int at, const char *s);
+
+/* ui_controls.c: texteditor additions, listbrowser columns/sorting/multi-select, tabs,
+   treeview, grid */
+int bbf_editor_get(bb_ctl *c, const char *prop, bb_fval *out);
+int bbf_editor_set(bb_ctl *c, const char *prop, const bb_fval *v);
+int bbf_editor_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
+void bbf_editor_update(bb_ctl *c);           /* IDCMPUPDATE: CursorMove / Change */
+int bbf_list_get(bb_ctl *c, const char *prop, int index, bb_fval *out);
+int bbf_list_set(bb_ctl *c, const char *prop, int index, const bb_fval *v);
+int bbf_list_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
+void bbf_list_sync_sel(bb_ctl *c);           /* read the multi-select states back from the nodes */
+int bbf_list_title_click(bb_ctl *c);         /* GADGETUP with LBRE_TITLECLICK: sort; the column */
+void bbf_list_setup(bb_ctl *c, tags *t);     /* columns= / multiselect= / sortable= at build */
+struct Node *bbf_list_node(bb_ctl *c, int i); /* a row's node (with columns) */
+int bbf_get2(bb_ctl *c, const char *prop, int i, int j, bb_fval *out);
+int bbf_set2(bb_ctl *c, const char *prop, int i, int j, const bb_fval *v);
+extern struct ListBrowserIFace *bbf_ILB;
+Object *bbf_build(bb_form *f, afg_node *n);    /* forms.c: the BOOPSI object of a .afg node */
+
+/* ui_tabs_tree.c */
+Object *bbf_tabs_build(bb_form *f, afg_node *n, bb_ctl *c, tags *t);
+Object *bbf_tree_build(bb_form *f, afg_node *n, bb_ctl *c, tags *t);
+void bbf_tree_free(bb_ctl *c);
+int bbf_tt_get(bb_ctl *c, const char *prop, int index, bb_fval *out);
+int bbf_tt_set(bb_ctl *c, const char *prop, int index, const bb_fval *v);
+int bbf_tt_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
+void bbf_tt_gadget_up(bb_form *f, bb_ctl *c, uint16 code);
+
+/* ui_grid.c */
+Object *bbf_grid_build(bb_form *f, afg_node *n, bb_ctl *c, tags *t);
+void bbf_grid_free(bb_ctl *c);
+int bbf_grid_get(bb_ctl *c, const char *prop, int index, bb_fval *out);
+int bbf_grid_set(bb_ctl *c, const char *prop, int index, const bb_fval *v);
+int bbf_grid_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
+int bbf_grid_get2(bb_ctl *c, const char *prop, int i, int j, bb_fval *out);
+int bbf_grid_set2(bb_ctl *c, const char *prop, int i, int j, const bb_fval *v);
+void bbf_grid_gadget_up(bb_form *f, bb_ctl *c, uint16 code);
+void bbf_grid_update(bb_form *f, bb_ctl *c, uint16 part);   /* IDCMPUPDATE from its scrollers */
+void bbf_grid_refresh(bb_ctl *c);                            /* window opened / resized */
+int bbf_grid_mouse(bb_ctl *c, int down, int up, int move, int x, int y, uint32 qual, uint32 secs, uint32 micros);
+int bbf_grid_key(bb_ctl *c, int raw, uint32 qual);          /* 1 = the grid took the key */
+#define BBF_PART_SHIFT 12                                    /* gadget ids of a control's parts */
+#define BBF_GID_MASK ((1 << BBF_PART_SHIFT) - 1)
+void bbf_grid_blur(bb_ctl *c);
+int bbf_grid_focused(bb_ctl *c);
+extern int bbf_last_part;                                    /* the part of the last GADGETUP */
+int bbf_vb_key(int raw);
+int bbf_vb_shift(uint32 q);
+int bbf_map_key(int raw, uint32 qual);                       /* Latin-1 character, 0 = none */
 
 /* ui_dialog.c: commondialog (also used by CreateObject("Boing.CommonDialog")) */
 int bbf_dialog_get(bb_ctl *c, const char *prop, int index, bb_fval *out);
