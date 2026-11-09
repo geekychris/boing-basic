@@ -1151,40 +1151,8 @@ static void vm_exec(VM *vm, int entry)
                 LBIN(R_XOR_LRR, RSL(2).u.l, RSL(3).u.l, r = x ^ y)
                 LBIN(R_XOR_LRI, RSL(2).u.l, pc[3], r = x ^ y)
                 RCASE(R_NEG_L) { int32_t x = RSL(2).u.l; if (BB_UNLIKELY(x == INT32_MIN)) RERR(bb_overflow()); SETL(pc[1], -x); pc += 3; RNEXT(); }
-#define IBIN(NAME, A, B, EXPR) RCASE(NAME) { int32_t x = (A), y = (B), r; EXPR; SETI(pc[1], r); pc += 4; RNEXT(); }
-                IBIN(R_ADD_IRR, RSL(2).u.i, RSL(3).u.i, r = x + y; IFIT(r))
-                IBIN(R_ADD_IRI, RSL(2).u.i, pc[3], r = x + y; IFIT(r))
-                IBIN(R_SUB_IRR, RSL(2).u.i, RSL(3).u.i, r = x - y; IFIT(r))
-                IBIN(R_SUB_IRI, RSL(2).u.i, pc[3], r = x - y; IFIT(r))
-                IBIN(R_SUB_IIR, pc[2], RSL(3).u.i, r = x - y; IFIT(r))
-                IBIN(R_MUL_IRR, RSL(2).u.i, RSL(3).u.i, r = x * y; IFIT(r))
-                IBIN(R_MUL_IRI, RSL(2).u.i, pc[3], r = x * y; IFIT(r))
-                IBIN(R_IDIV_IRR, RSL(2).u.i, RSL(3).u.i, if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x / y; IFIT(r))
-                IBIN(R_IDIV_IRI, RSL(2).u.i, pc[3], if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x / y; IFIT(r))
-                IBIN(R_MOD_IRR, RSL(2).u.i, RSL(3).u.i, if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x % y)
-                IBIN(R_MOD_IRI, RSL(2).u.i, pc[3], if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x % y)
-                IBIN(R_AND_IRR, RSL(2).u.i, RSL(3).u.i, r = x & y)
-                IBIN(R_AND_IRI, RSL(2).u.i, pc[3], r = x & y)
-                IBIN(R_OR_IRR, RSL(2).u.i, RSL(3).u.i, r = x | y)
-                IBIN(R_OR_IRI, RSL(2).u.i, pc[3], r = x | y)
-                IBIN(R_XOR_IRR, RSL(2).u.i, RSL(3).u.i, r = x ^ y)
-                IBIN(R_XOR_IRI, RSL(2).u.i, pc[3], r = x ^ y)
-                RCASE(R_NEG_I) { int32_t x = RSL(2).u.i; if (BB_UNLIKELY(x == -32768)) RERR(bb_overflow()); SETI(pc[1], -x); pc += 3; RNEXT(); }
-#define DBIN(NAME, A, B, EXPR) RCASE(NAME) { double x = (A), y = (B), r; EXPR; SETD(pc[1], r); pc += 4; RNEXT(); }
-                DBIN(R_ADD_DRR, RSL(2).u.d, RSL(3).u.d, r = x + y; DCHK(r))
-                DBIN(R_ADD_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x + y; DCHK(r))
-                DBIN(R_SUB_DRR, RSL(2).u.d, RSL(3).u.d, r = x - y; DCHK(r))
-                DBIN(R_SUB_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x - y; DCHK(r))
-                DBIN(R_SUB_DKR, img->consts[pc[2]].u.d, RSL(3).u.d, r = x - y; DCHK(r))
-                DBIN(R_MUL_DRR, RSL(2).u.d, RSL(3).u.d, r = x * y; DCHK(r))
-                DBIN(R_MUL_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x * y; DCHK(r))
-                DBIN(R_DIV_DRR, RSL(2).u.d, RSL(3).u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
-                DBIN(R_DIV_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
-                DBIN(R_DIV_DKR, img->consts[pc[2]].u.d, RSL(3).u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
-                RCASE(R_NEG_D) SETD(pc[1], -RSL(2).u.d); pc += 3; RNEXT();
-                RCASE(R_CVT_LD) SETD(pc[1], (double)RSL(2).u.l); pc += 3; RNEXT();
-                RCASE(R_CVT_ID) SETD(pc[1], (double)RSL(2).u.i); pc += 3; RNEXT();
-                RCASE(R_CVT_IL) SETL(pc[1], (int32_t)RSL(2).u.i); pc += 3; RNEXT();
+                /* the commonest register ops come first (Long arithmetic above; branches, loops, arrays,
+                   calls, fields here), Integer / Double / Single after: fewer code pages per loop */
 #define JCMP(NAME, T, A, B) RCASE(NAME) { T x = (A), y = (B); int c_; \
                     switch (pc[1]) { case BB_CMP_EQ: c_ = x == y; break; case BB_CMP_NE: c_ = x != y; break; \
                     case BB_CMP_LT: c_ = x < y; break; case BB_CMP_GT: c_ = x > y; break; \
@@ -1289,6 +1257,40 @@ static void vm_exec(VM *vm, int entry)
                     RSLOW(I_RET);
                 }
 #define SETF(D_, V_) (L[D_].u.f = (V_))
+#define IBIN(NAME, A, B, EXPR) RCASE(NAME) { int32_t x = (A), y = (B), r; EXPR; SETI(pc[1], r); pc += 4; RNEXT(); }
+                IBIN(R_ADD_IRR, RSL(2).u.i, RSL(3).u.i, r = x + y; IFIT(r))
+                IBIN(R_ADD_IRI, RSL(2).u.i, pc[3], r = x + y; IFIT(r))
+                IBIN(R_SUB_IRR, RSL(2).u.i, RSL(3).u.i, r = x - y; IFIT(r))
+                IBIN(R_SUB_IRI, RSL(2).u.i, pc[3], r = x - y; IFIT(r))
+                IBIN(R_SUB_IIR, pc[2], RSL(3).u.i, r = x - y; IFIT(r))
+                IBIN(R_MUL_IRR, RSL(2).u.i, RSL(3).u.i, r = x * y; IFIT(r))
+                IBIN(R_MUL_IRI, RSL(2).u.i, pc[3], r = x * y; IFIT(r))
+                IBIN(R_IDIV_IRR, RSL(2).u.i, RSL(3).u.i, if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x / y; IFIT(r))
+                IBIN(R_IDIV_IRI, RSL(2).u.i, pc[3], if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x / y; IFIT(r))
+                IBIN(R_MOD_IRR, RSL(2).u.i, RSL(3).u.i, if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x % y)
+                IBIN(R_MOD_IRI, RSL(2).u.i, pc[3], if (BB_UNLIKELY(y == 0)) RERR(bb_raise(11, NULL)); r = x % y)
+                IBIN(R_AND_IRR, RSL(2).u.i, RSL(3).u.i, r = x & y)
+                IBIN(R_AND_IRI, RSL(2).u.i, pc[3], r = x & y)
+                IBIN(R_OR_IRR, RSL(2).u.i, RSL(3).u.i, r = x | y)
+                IBIN(R_OR_IRI, RSL(2).u.i, pc[3], r = x | y)
+                IBIN(R_XOR_IRR, RSL(2).u.i, RSL(3).u.i, r = x ^ y)
+                IBIN(R_XOR_IRI, RSL(2).u.i, pc[3], r = x ^ y)
+                RCASE(R_NEG_I) { int32_t x = RSL(2).u.i; if (BB_UNLIKELY(x == -32768)) RERR(bb_overflow()); SETI(pc[1], -x); pc += 3; RNEXT(); }
+#define DBIN(NAME, A, B, EXPR) RCASE(NAME) { double x = (A), y = (B), r; EXPR; SETD(pc[1], r); pc += 4; RNEXT(); }
+                DBIN(R_ADD_DRR, RSL(2).u.d, RSL(3).u.d, r = x + y; DCHK(r))
+                DBIN(R_ADD_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x + y; DCHK(r))
+                DBIN(R_SUB_DRR, RSL(2).u.d, RSL(3).u.d, r = x - y; DCHK(r))
+                DBIN(R_SUB_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x - y; DCHK(r))
+                DBIN(R_SUB_DKR, img->consts[pc[2]].u.d, RSL(3).u.d, r = x - y; DCHK(r))
+                DBIN(R_MUL_DRR, RSL(2).u.d, RSL(3).u.d, r = x * y; DCHK(r))
+                DBIN(R_MUL_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, r = x * y; DCHK(r))
+                DBIN(R_DIV_DRR, RSL(2).u.d, RSL(3).u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
+                DBIN(R_DIV_DRK, RSL(2).u.d, img->consts[pc[3]].u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
+                DBIN(R_DIV_DKR, img->consts[pc[2]].u.d, RSL(3).u.d, if (BB_UNLIKELY(y == 0)) RERR(r = bb_fdiv(x, y)); else { r = x / y; DCHK(r); })
+                RCASE(R_NEG_D) SETD(pc[1], -RSL(2).u.d); pc += 3; RNEXT();
+                RCASE(R_CVT_LD) SETD(pc[1], (double)RSL(2).u.l); pc += 3; RNEXT();
+                RCASE(R_CVT_ID) SETD(pc[1], (double)RSL(2).u.i); pc += 3; RNEXT();
+                RCASE(R_CVT_IL) SETL(pc[1], (int32_t)RSL(2).u.i); pc += 3; RNEXT();
                 RCASE(R_ADD_FRR) { double r_ = (double)RSL(2).u.f + RSL(3).u.f; if (BB_UNLIKELY(r_ > 3.402823466e38 || r_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)r_); pc += 4; RNEXT(); }
                 RCASE(R_SUB_FRR) { double r_ = (double)RSL(2).u.f - RSL(3).u.f; if (BB_UNLIKELY(r_ > 3.402823466e38 || r_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)r_); pc += 4; RNEXT(); }
                 RCASE(R_MUL_FRR) { double r_ = (double)RSL(2).u.f * RSL(3).u.f; if (BB_UNLIKELY(r_ > 3.402823466e38 || r_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)r_); pc += 4; RNEXT(); }
@@ -2253,7 +2255,6 @@ static void prepare(VM *vm)
         c->ifaces = vc->rt_ifaces;
         c->nifaces = vc->nifaces;
     }
-    vm->globals = (bb_value *)xcalloc((size_t)img->nglobals + 1, sizeof(bb_value));
     for (i = 0; i < img->nprocs; i++) {
         VMProc *p = &img->procs[i];
         int32_t k, plain = 1;
@@ -2333,7 +2334,10 @@ int vm_run(VMImage *img, int argc, char **argv)
     {
         size_t n = (size_t)(img->stack > 65536 ? img->stack / 16 : 16384);
         if (n < 16384) n = 16384;
-        vm.stack = (bb_value *)xcalloc(n, sizeof(bb_value));
+        /* globals right below the stack, in one block: a loop's globals and the locals of the
+           procedures it runs share pages (fewer TLB entries per iteration on the QEMU guest) */
+        vm.globals = (bb_value *)xcalloc(n + (size_t)img->nglobals + 1, sizeof(bb_value));
+        vm.stack = vm.globals + img->nglobals + 1;
         vm.stack_end = vm.stack + n;
         vm.sp = vm.stack;
         vm.maxframes = 4096;
