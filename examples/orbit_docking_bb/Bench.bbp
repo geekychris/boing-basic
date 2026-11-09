@@ -1,0 +1,13 @@
+# Boing BASIC project: Orbit Docking console bench (logic + drawing on an off-screen Canvas)
+Name=OrbitDockingBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/Gfx2D.bas
+Module=OdCore.bas
+Module=OdDraw.bas
+Module=OdSound.bas
+Module=OdShell.bas
+Module=BenchMain.bas
+Stack=262144

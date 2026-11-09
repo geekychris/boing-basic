@@ -1,0 +1,13 @@
+# Boing BASIC project: Orbit Docking, a docking simulator (a port of amiga_mcp's examples/orbit_docking)
+Name=OrbitDocking
+Startup=Form dock
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/Gfx2D.bas
+Module=OdCore.bas
+Module=OdDraw.bas
+Module=OdSound.bas
+Module=OdShell.bas
+Form=dock.afg
+Stack=262144
