@@ -26,27 +26,10 @@ DIR = "DH1:riffwright"
 SONG = DIR + "/demos/harbour_lights.mod"
 
 
-# QEMU's HMP monitor port of each guest, on the machine its QEMU runs on. Each guest has its
-# own: a wrong port would screenshot (or move the mouse of) someone else's guest, the user's
-# m1 guest among them. Unknown guests get no screenshots unless OS4_HMP_PORT says which port.
-HMP_PORTS = {"local": 2348, "m1": 2348, "m1b": 2448, "m1c": 2548, "spark": 2348}
-HMP_PORT = int(os.environ["OS4_HMP_PORT"]) if os.environ.get("OS4_HMP_PORT") else HMP_PORTS.get(g.GUEST)
-
-
 def hmp_shot(path_local):
-    """QEMU screendump of the whole guest screen (HMP on the QEMU machine's 127.0.0.1:2348, m1b 2448)."""
-    if not HMP_PORT:
-        print("no screenshot: HMP port of guest %r unknown (set OS4_HMP_PORT)" % g.GUEST)
-        return
-    remote = "/tmp/riffwright_shot_%s.ppm" % g.GUEST
-    cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 %d >/dev/null; sleep 1" % (remote, HMP_PORT)
-    if g.SSH:
-        subprocess.run(["ssh", g.SSH, cmd], check=True, timeout=30)
-        subprocess.run(["scp", "-q", "%s:%s" % (g.SSH, remote), path_local + ".ppm"], check=True, timeout=60)
-    else:
-        subprocess.run(["sh", "-c", cmd.replace(remote, path_local + ".ppm")], check=True, timeout=30)
-    subprocess.run(["magick", path_local + ".ppm", path_local + ".png"], check=True)
-    os.unlink(path_local + ".ppm")
+    """A screenshot of the selected guest's screen as path_local.png, through os4guest.shot
+    (each guest's own QEMU monitor; it refuses the user's m1 guest)."""
+    g.shot(None, path_local + ".png")
     print("screenshot", path_local + ".png")
 
 
