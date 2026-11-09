@@ -5,6 +5,9 @@ summary = "A gantry crane loading a ship that rolls in the swell: swing containe
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
 
 [[shot]]
-file = "gallery/play.png"
-caption = "The autopilot playing on the AmigaOS 4 guest (VM)"
-run = { project = "HarbourCrane.bbp", args = "--demo --nosound", secs = 20 }
+file = "docs/play.png"
+caption = "Playing on the AmigaOS 4 guest"
+
+[[shot]]
+file = "docs/title.png"
+caption = "The title"
