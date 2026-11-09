@@ -43,6 +43,10 @@ Private Sub tick_Timer()
 End Sub
 ```
 
+Declare the variable `As Engine3D` (or `As Boing.Engine3D`) rather than `As Object`: `boing check`
+then reports misspelt members at compile time, and native code calls the members directly by
+number. `As Object` works too, late bound.
+
 ## Conventions
 
 - **Angles**: 0..65535 is a full turn (any Long, wrapped). Yaw 0 looks along +z, increasing
