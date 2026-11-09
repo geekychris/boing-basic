@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Glimmerfield's screens on the AmigaOS 4 guest: title -> play -> game over -> name entry ->
-high scores -> title -> quit, with screenshots (QEMU HMP screendump) of each.
+high scores -> title -> quit, with screenshots (os4guest.shot: QEMU's screendump of the guest's own monitor) of each.
 
     examples/glimmerfield/tools/guest_flow.py [SHOT_PREFIX]
 
@@ -14,27 +14,17 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 sys.path.insert(0, ROOT + "/tools")
 import os4guest as g
 SHOTS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(tempfile.gettempdir(), "glimmerfield_flow")
-# the guest's QEMU monitor: on this Mac (local) or, for a guest on m1, on m1.local over ssh
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))
 if g.GUEST == "m1":
     raise SystemExit("m1 is the user's own guest: run this on BB_GUEST=m1b, m1c or local")
+_m = None
 
 def shot(name):
-    import subprocess
-    path = "%s_%s.ppm" % (SHOTS, name)
-    remote = "/tmp/glimflow_%d_%s.ppm" % (os.getpid(), name) if g.SSH else path
-    py = ("import socket,time;s=socket.create_connection(('127.0.0.1',%d),10);time.sleep(0.5);s.recv(65536);"
-          "s.sendall(b'screendump %s\\n');time.sleep(2);s.recv(65536);s.close()" % (HMP_PORT, remote))
-    if g.SSH:
-        g._ssh("python3 -c \"%s\"" % py)
-        subprocess.run(["scp", "-q", "%s:%s" % (g.SSH, remote), path])
-        g._ssh("rm -f " + remote)
-    else:
-        subprocess.run(["python3", "-c", py])
-    print("screenshot", path)
+    """os4guest.shot: wakes the blanker, then the guest's own QEMU screendump"""
+    print("screenshot", g.shot(_m, "%s_%s.png" % (SHOTS, name)))
 
 def main():
-    m = g.MCP(g.URL)
+    global _m
+    m = _m = g.MCP(g.URL)
     dos = lambda c: str(m.tool("amiga_dos_command", command=c))
     def key(code):
         out = dos("type DH1:glim/flow.txt")
