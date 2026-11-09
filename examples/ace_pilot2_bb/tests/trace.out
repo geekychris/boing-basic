@@ -1,0 +1,30 @@
+  t 1000 mission 1 phase 0 score 100 hash A4230B7A
+  t 2000 mission 1 phase 1 score 500 hash 1EE2A7B9
+  t 3000 mission 2 phase 0 score 2000 hash 8EEE5927
+  t 4000 mission 2 phase 1 score 2900 hash C39E8B55
+  t 5000 mission 3 phase 0 score 4340 hash B10CBF18
+  t 6000 mission 3 phase 0 score 4440 hash 257B6070
+  t 7000 mission 3 phase 0 score 4440 hash 4D29FAF7
+  t 8000 mission 3 phase 0 score 4840 hash 6BB52B6F
+  t 9000 mission 3 phase 0 score 4940 hash 61C6AF49
+  t 10000 mission 3 phase 0 score 4940 hash 60D3CE40
+  t 11000 mission 3 phase 1 score 5240 hash 86DD3459
+  t 12000 mission 4 phase 0 score 6640 hash 9385E8D2
+  t 13000 mission 4 phase 0 score 6790 hash B5728998
+  t 14000 mission 4 phase 0 score 7140 hash 8711D78C
+  t 15000 mission 4 phase 1 score 7500 hash 6B664BD1
+  t 16000 mission 5 phase 0 score 9000 hash 88DCB56A
+  t 17000 mission 5 phase 0 score 9150 hash 19E7FD78
+  t 18000 mission 5 phase 1 score 10250 hash 4EBD0B87
+  t 19000 mission 5 phase 2 score 11510 hash 6C1A7755
+  t 20000 mission 6 phase 0 score 11510 hash 2B867448
+seed 1234 from mission 1, 20000 ticks: mission 6 phase 0 score 11510 kills 13 ground 6 shots 520 hits 241 lives 2 over 0 won 0 events 791/7BAD64F9 hash 2B867448
+  vectors.h: 2B867448
+seed 36 from mission 1, 4000 ticks: mission 2 phase 0 score 2410 kills 3 ground 1 shots 84 hits 38 lives 3 over 0 won 0 events 124/7EB6916F hash D4F91AE0
+seed 67 from mission 2, 4000 ticks: mission 3 phase 0 score 2840 kills 5 ground 2 shots 136 hits 49 lives 3 over 0 won 0 events 202/CD5B6702 hash C9A8F746
+seed 98 from mission 3, 4000 ticks: mission 4 phase 0 score 1780 kills 2 ground 0 shots 94 hits 21 lives 3 over 0 won 0 events 141/EF86C363 hash 41BD77A6
+seed 129 from mission 4, 4000 ticks: mission 4 phase 1 score 860 kills 2 ground 4 shots 134 hits 58 lives 3 over 0 won 0 events 158/C1C80127 hash CE9818FB
+seed 160 from mission 5, 4000 ticks: mission 6 phase 0 score 2670 kills 5 ground 0 shots 176 hits 102 lives 3 over 0 won 0 events 217/C9A590B9 hash 357038F5
+seed 191 from mission 6, 4000 ticks: mission 6 phase 0 score 600 kills 2 ground 4 shots 154 hits 52 lives 3 over 0 won 0 events 192/02FBDA48 hash C9B880A7
+seed 222 from mission 7, 4000 ticks: mission 7 phase 0 score 990 kills 3 ground 5 shots 222 hits 92 lives 3 over 0 won 0 events 255/332D9391 hash D621D834
+seed 253 from mission 8, 3590 ticks: mission 8 phase 2 score 2350 kills 2 ground 0 shots 68 hits 51 lives 3 over 0 won 1 events 107/449E37BB hash B496F94A

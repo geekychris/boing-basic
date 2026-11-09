@@ -1,0 +1,7 @@
+# Boing BASIC project: Ace Pilot 2's simulation against the C original (tools/trace.sh prints the same)
+Name=AceTrace
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=ApCore.bas
+Module=TraceMain.bas
+Stack=262144

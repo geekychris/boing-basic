@@ -38,6 +38,7 @@ test: all
 	@sh examples/riffwright/tests/run.sh $(CURDIR)/build/boing
 	@sh examples/stack_tower_bb/tools/test.sh
 	@sh examples/orbit_docking_bb/tools/test.sh
+	@sh examples/ace_pilot2_bb/tools/test.sh
 	@for t in examples/*/tests/host-test.sh; do sh $$t || exit 1; done
 
 clean:
