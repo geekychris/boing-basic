@@ -84,8 +84,15 @@ Private skyline(0 To 3, 0 To 63) As Long, skylinesMade As Boolean
 Private panorama As Long, titleImg As Long, artTried As Boolean
 Public dataDir As String
 
-' a segment's quads for QuadsW
-Private co(0 To 1199) As Long, cp(0 To 99) As Long, nq As Long
+' the segments' strips for QuadsW, cached: slot (segment And 63) holds up to 40 quads, built
+' when the segment first shows (again every 8 frames where water moves): the strips and road
+' (n1), the lines (n2), the rails (n3)
+Private Const CAPQ As Long = 40
+Private co(0 To 30719) As Long, cp(0 To 2559) As Long, nq As Long, qBase As Long
+Private slotSeg(0 To 63) As Long, slotKey(0 To 63) As Long, slotN1(0 To 63) As Long, slotN2(0 To 63) As Long, slotN3(0 To 63) As Long
+Private slotRoute As Long
+Private cy4 As Long, sy4 As Long, cp4 As Long, sp4 As Long
+Private aiBg As Long, aiBgRoute As Long, curD As Long
 Private off(0 To 7) As Long, dyv(0 To 7) As Long
 Private ax(0 To 7) As Long, ay(0 To 7) As Long, az(0 To 7) As Long, bx(0 To 7) As Long, by(0 To 7) As Long, bz(0 To 7) As Long
 ' objects drawn with each segment: per-segment lists, far to near
@@ -381,11 +388,11 @@ End Sub
 Private Sub AddQuad(ByVal x0 As Long, ByVal y0 As Long, ByVal z0 As Long, ByVal x1 As Long, ByVal y1 As Long, ByVal z1 As Long, _
                     ByVal x2 As Long, ByVal y2 As Long, ByVal z2 As Long, ByVal x3 As Long, ByVal y3 As Long, ByVal z3 As Long, ByVal p As Long)
     Dim i As Long
-    If nq >= 100 Then Exit Sub
-    i = nq * 12
+    If nq >= CAPQ Then Exit Sub
+    i = (qBase + nq) * 12
     co(i) = x0: co(i + 1) = y0: co(i + 2) = z0: co(i + 3) = x1: co(i + 4) = y1: co(i + 5) = z1
     co(i + 6) = x2: co(i + 7) = y2: co(i + 8) = z2: co(i + 9) = x3: co(i + 10) = y3: co(i + 11) = z3
-    cp(nq) = p
+    cp(qBase + nq) = p
     nq = nq + 1
 End Sub
 
@@ -445,15 +452,28 @@ Private Sub SideStrips(ByVal i As Long, ByVal side As Long)
     Strip ki, ki + 1, inner
 End Sub
 
-Private Sub AddModel(ByVal m As Long, ByVal x As Long, ByVal y As Long, ByVal z As Long, ByVal yaw As Long, ByVal body As Long, ByVal flash As Boolean)
-    Dim fl As Long
+' every model on a segment sorts just in front of the segment's strips (curD) and behind the
+' nearer segments: render.c's painter order (objects go with the segment their near end is in)
+Private Sub AddModel(ByVal m As Long, ByVal x As Long, ByVal y As Long, ByVal z As Long, ByVal yaw As Long, ByVal body As Long, _
+                     ByVal flash As Boolean, Optional ByVal unused As Long = 0)
+    Dim fl As Long, bias As Long
     If flash Then fl = PEN_RED Else fl = PEN_BLUE
+    bias = CamDepth(x, y, z) - (curD - 3)
     If body >= 0 Then
-        e3.DrawModel mdl(m), x, y, z, yaw And &HFFFF&, 0, 0, bodyLit(body), bodyShade(body), fl
+        e3.DrawModel mdl(m), x, y, z, yaw And &HFFFF&, 0, 0, bodyLit(body), bodyShade(body), fl, bias
     Else
-        e3.DrawModel mdl(m), x, y, z, yaw And &HFFFF&, 0, 0, PEN_GREY, PEN_GREY, fl
+        e3.DrawModel mdl(m), x, y, z, yaw And &HFFFF&, 0, 0, PEN_GREY, PEN_GREY, fl, bias
     End If
 End Sub
+
+' a point's camera space z (as the engine's transform, to 1 unit)
+Private Function CamDepth(ByVal x As Long, ByVal y As Long, ByVal z As Long) As Long
+    Dim t As Long, rz As Long
+    t = (x - camX) * sy4 + (z - camZ) * cy4
+    rz = (t - (t And 4095)) \ 4096
+    t = rz * cp4 - (y - camY) * sp4
+    CamDepth = (t - (t And 4095)) \ 4096
+End Function
 
 ' scenery beside segment i, the same every time (hashed from i)
 Private Sub Scenery(ByVal i As Long)
@@ -554,7 +574,7 @@ Private Sub DrawObject(ByVal idx As Long)
             y = y - (50 - carTimer) * 6
         End If
         yaw = RoadDir(z) + CarYawOff()
-        AddModel MDL_CAR, x, y, ShrA(z, FBITS), yaw, 4, False
+        AddModel MDL_CAR, x, y, ShrA(z, FBITS), yaw, 4, False, objLen(OBJ_CAR)
         Exit Sub
     End If
     z = obZ(idx)
@@ -571,13 +591,16 @@ Private Sub DrawObject(ByVal idx As Long)
     m = mdlOf(obType(idx))
     If obType(idx) = OBJ_DEBRIS And wRoute = 2 Then m = MDL_ROCK
     If (obFlags(idx) And OF_KNOCKED) <> 0 Then y = y - 4
-    AddModel m, x, y, ShrA(z, FBITS), yaw, obColour(idx) And 3, ((wFrame \ 4) And 1) <> 0
+    AddModel m, x, y, ShrA(z, FBITS), yaw, obColour(idx) And 3, ((wFrame \ 4) And 1) <> 0, objLen(obType(idx))
 End Sub
 
-Private Sub DrawSegment(ByVal i As Long, ByVal k As Long)
-    Dim rl As Long, rr As Long, flood As Boolean, n As Long, cur As Long, roadPen As Long, shPen As Long, lane As Long, cd As Long
-    Dim j As Long, za As Long, zb As Long, x As Long, ghost As Boolean, realPen As Long, g0 As Long, g1 As Long, p As Long
-    Dim a As Long, b As Long, z As Long, hit As Boolean
+' segment i's strips into its slot
+Private Sub BuildSlot(ByVal i As Long, ByVal key As Long)
+    Dim rl As Long, rr As Long, flood As Boolean, n As Long, roadPen As Long, shPen As Long, slot As Long
+    Dim j As Long, za As Long, zb As Long, x As Long, ghost As Boolean, realPen As Long, g0 As Long, g1 As Long
+    slot = i And 63
+    qBase = slot * CAPQ
+    nq = 0
     rl = RoadLeft(): rr = RoadRight()
     flood = (sgFlags(i) And SF_FLOOD) <> 0
     Profile i
@@ -586,7 +609,6 @@ Private Sub DrawSegment(ByVal i As Long, ByVal k As Long)
         ax(j) = sgCx(i) + off(j): ay(j) = sgY(i) + dyv(j): az(j) = za
         bx(j) = sgCx(i + 1) + off(j): by(j) = sgY(i + 1) + dyv(j): bz(j) = zb
     Next j
-    nq = 0
     SideStrips i, 0
     SideStrips i, 1
     If flood Then
@@ -607,7 +629,8 @@ Private Sub DrawSegment(ByVal i As Long, ByVal k As Long)
             Band i, x, x + 8, x, x + 8, 0, IIf((((x \ 16) + i) And 1) <> 0, PEN_WHITE, PEN_BLACK)
         Next x
     End If
-    If k < LINE_SEGS And Not flood Then
+    slotN1(slot) = nq
+    If Not flood Then
         ghost = (sgFlags(i) And SF_GHOST) <> 0
         If ghost Then realPen = PEN_ROAD + 1 Else realPen = PEN_WHITE      ' worn away where the old ones are
         If riNo(wRoute) <> 0 Then
@@ -633,6 +656,7 @@ Private Sub DrawSegment(ByVal i As Long, ByVal k As Long)
             End If
         End If
     End If
+    slotN2(slot) = nq - slotN1(slot)
     If (sgFlags(i) And SF_RAIL_L) <> 0 Then
         Wall i, off(2), 6, 12, PEN_GREY
         Wall i, off(2), 0, 6, PEN_PANEL
@@ -642,16 +666,47 @@ Private Sub DrawSegment(ByVal i As Long, ByVal k As Long)
         Wall i, off(5), 0, 6, PEN_PANEL
     End If
     If sgSideL(i) = SIDE_MEDIAN Then Wall i, off(2) - 8, 0, 14, PEN_GREY
+    slotN3(slot) = nq - slotN1(slot) - slotN2(slot)
+    slotSeg(slot) = i
+    slotKey(slot) = key
+End Sub
+
+' where segment i's far edge lies from the camera (camera space z): its strips sort there
+Private Function SegDepth(ByVal i As Long) As Long
+    Dim t As Long
+    t = CamDepth(sgCx(i + 1) + (RoadLeft() + RoadRight()) \ 2, sgY(i + 1), (i + 1) * SEG_LEN)
+    If t < 4 Then t = 4
+    If t > FAR_Z + 300 Then t = FAR_Z + 300
+    SegDepth = t
+End Function
+
+Private Sub DrawSegment(ByVal i As Long, ByVal k As Long)
+    Dim rl As Long, rr As Long, cur As Long, lane As Long, cd As Long, slot As Long, key As Long, d As Long, f As Long
+    Dim p As Long, a As Long, b As Long, z As Long, hit As Boolean, za As Long, zb As Long
+    rl = RoadLeft(): rr = RoadRight()
+    slot = i And 63
+    If sgSideL(i) = SIDE_LEVEE Or sgSideL(i) = SIDE_CANAL Or sgSideR(i) = SIDE_LEVEE Or sgSideR(i) = SIDE_CANAL Or _
+       (sgFlags(i) And SF_FLOOD) <> 0 Then key = wFrame \ 8 Else key = -1
+    If slotSeg(slot) <> i Or slotKey(slot) <> key Then BuildSlot i, key
+    d = SegDepth(i)
+    curD = d
+    f = slot * CAPQ
+    If k < LINE_SEGS Then
+        e3.QuadsW slotN1(slot) + slotN2(slot) + slotN3(slot), d, cp, co, f
+    Else
+        e3.QuadsW slotN1(slot), d, cp, co, f
+        If slotN3(slot) > 0 Then e3.QuadsW slotN3(slot), d, cp, co, f + slotN1(slot) + slotN2(slot)
+    End If
     ' the autopilot's planned path
     If aiOn <> 0 And wState <> GS_GAMEOVER Then
         p = i - aiPlanFrom
         If p >= 0 And p < 12 And (aiBlinded = 0 Or (wFrame And 2) <> 0) Then
             a = ShrA(aiPlan(p), FBITS): b = ShrA(aiPlan(p + 1), FBITS)
-            Band i, a - 3, a + 3, b - 3, b + 3, 1, IIf(aiBlinded <> 0, PEN_WHITE, PEN_AI)
+            za = i * SEG_LEN: zb = za + SEG_LEN
+            e3.QuadW d, IIf(aiBlinded <> 0, PEN_WHITE, PEN_AI), sgCx(i) + a - 3, sgY(i) + 1, za, sgCx(i) + a + 3, sgY(i) + 1, za, _
+                     sgCx(i + 1) + b + 3, sgY(i + 1) + 1, zb, sgCx(i + 1) + b - 3, sgY(i + 1) + 1, zb
         End If
     End If
-    e3.Begin FAR_Z + 400
-    If nq > 0 Then e3.QuadsW nq, FAR_Z + 300, cp, co          ' all at one depth: drawn in this order
     ' cones: in the closed lane, and along its line
     If (sgFlags(i) And SF_CONES) <> 0 Then
         z = i * SEG_LEN
@@ -670,20 +725,18 @@ Private Sub DrawSegment(ByVal i As Long, ByVal k As Long)
     If i > 0 Then
         If (sgFlags(i) And SF_OVERPASS) <> 0 And (sgFlags(i - 1) And SF_OVERPASS) = 0 Then
             z = (i + 1) * SEG_LEN
-            AddModel MDL_OVERPASS, RoadCx(z * 16) + (rl + rr) \ 2, RoadY(z * 16), z, RoadDir(z * 16), -1, False
+            AddModel MDL_OVERPASS, RoadCx(z * 16) + (rl + rr) \ 2, RoadY(z * 16), z, RoadDir(z * 16), -1, False, 4
         End If
     End If
     If i = wFinish Then
         z = i * SEG_LEN
-        AddModel MDL_GANTRY, sgCx(i) + (rl + rr) \ 2, sgY(i), z, RoadDir(z * 16), -1, False
+        AddModel MDL_GANTRY, sgCx(i) + (rl + rr) \ 2, sgY(i), z, RoadDir(z * 16), -1, False, -8
     End If
     cur = segFirst(k)
     Do While cur >= 0
         DrawObject cur
         cur = objNext(cur)
     Loop
-    e3.Flush
-    polyTotal = polyTotal + e3.NPolys
 End Sub
 
 ' ---------- the sky ----------
@@ -838,10 +891,18 @@ Public Sub DrawScene(cv As Object)
     cv.Box vanishX + 1, hz, VIEW_W - vanishX - 1, VIEW_H - hz, pen(groundR)
     If panorama = 0 Then DrawSkyline cv
     DrawSun cv
+    If wRoute <> slotRoute Then
+        For i = 0 To 63: slotSeg(i) = -1: Next i
+        slotRoute = wRoute
+    End If
+    cy4 = A3Cos(camYaw) \ 16: sy4 = A3Sin(camYaw) \ 16: cp4 = A3Cos(camPitch) \ 16: sp4 = A3Sin(camPitch) \ 16
     SortObjects s0, s1
+    e3.Begin FAR_Z + 400
     For i = s1 To s0 Step -1
         DrawSegment i, i - s0
     Next i
+    e3.Flush
+    polyTotal = polyTotal + e3.NPolys
 End Sub
 
 ' ---------- overlays ----------
