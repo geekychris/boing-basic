@@ -26,6 +26,15 @@ void bbf_ext_cleanup(void)
 Object *bbf_load_image(const char *file, const char *selfile)
 {
     if (!file || !*file) return NULL;
+    /* a missing file (e.g. TBImages: names a system doesn't have) is no picture, not a crash */
+    BPTR l = IDOS->Lock(file, SHARED_LOCK);
+    if (!l) return NULL;
+    IDOS->UnLock(l);
+    if (selfile && *selfile) {
+        BPTR sl = IDOS->Lock(selfile, SHARED_LOCK);
+        if (sl) IDOS->UnLock(sl);
+        else selfile = NULL;
+    }
     struct Screen *scr = IIntuition->LockPubScreen(NULL);
     tags t = { 0 };
     tg(&t, BITMAP_SourceFile, (uint32)file);
@@ -35,6 +44,15 @@ Object *bbf_load_image(const char *file, const char *selfile)
     tg(&t, BITMAP_Precision, PRECISION_IMAGE);
     Object *o = new_obj(C_BITMAP, &t);
     if (scr) IIntuition->UnlockPubScreen(NULL, scr);
+    if (o) {      /* a file datatypes couldn't read gives an empty image: none then */
+        uint32 w = 0, h = 0;
+        IIntuition->GetAttr(BITMAP_Width, o, &w);
+        IIntuition->GetAttr(BITMAP_Height, o, &h);
+        if (!w || !h) {
+            IIntuition->DisposeObject(o);
+            o = NULL;
+        }
+    }
     return o;
 }
 
@@ -51,7 +69,7 @@ static Object *build_toolbar(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
 {
     struct SpeedBarIFace *sb = sb_iface();
     if (!sb) return NULL;
-    int any_image = 0;
+    int any_image = 0, all_images = 1;
     for (int i = 0; i < n->nchildren; i++) {
         afg_node *k = n->children[i];
         bb_ctl *tc = ctl_of_node(f, k);
@@ -63,6 +81,7 @@ static Object *build_toolbar(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
         } else {
             tc->img = bbf_load_image(afg_get(k, "image"), afg_get(k, "selimage"));
             if (tc->img) any_image = 1;
+            else all_images = 0;
             tc->text = bbf_strip_underscore(afg_get(k, "text"));
             if (afg_has(k, "hint")) tc->hint = xstrdup(afg_get(k, "hint"));
             tc->sbnode = sb->AllocSpeedButtonNode(tc->gid,
@@ -82,9 +101,10 @@ static Object *build_toolbar(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
     bbf_gadget_tags(c, t);
     tg(t, SPEEDBAR_Buttons, (uint32)&c->labels);
     tg(t, SPEEDBAR_Orientation, afg_get_bool(n, "vertical") ? SBORIENT_VERT : SBORIENT_HORIZ);
-    int type = any_image ? SBTYPE_BOTH : SBTYPE_TEXT;
+    /* pictures only when every tool has one: a missing picture makes the bar text-only */
+    int type = any_image && all_images ? SBTYPE_BOTH : SBTYPE_TEXT;
     if (afg_get_bool(n, "textonly")) type = SBTYPE_TEXT;
-    if (afg_get_bool(n, "imagesonly") && any_image) type = SBTYPE_IMAGE;
+    if (afg_get_bool(n, "imagesonly") && any_image && all_images) type = SBTYPE_IMAGE;
     tg(t, SPEEDBAR_ButtonType, type);
     tg(t, SPEEDBAR_EvenSize, TRUE);
     tg(t, SPEEDBAR_BevelStyle, BVS_NONE);
@@ -208,7 +228,6 @@ static Object *build_statusbar(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
             tg(t, CHILD_WeightedWidth, 0);
         }
     }
-    tg(t, CHILD_WeightedHeight, 0);
     afg_free_items(texts, np);
     afg_free_items(widths, nw);
     (void)f;
@@ -280,6 +299,13 @@ int bbf_ext_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
             return ret_int(out, k);
         }
         return 438;
+    case AFG_CANVAS:
+        if (IS("RightButton")) return ret_int(out, vb_bool(c->rmb));
+        if (IS("Fill")) return ret_int(out, vb_bool(c->fill));
+        if (IS("MouseX")) return ret_int(out, c->mx);
+        if (IS("MouseY")) return ret_int(out, c->my);
+        if (IS("MouseButtons")) return ret_int(out, c->form->capture == c ? c->form->buttons : 0);
+        return 438;
     case AFG_COMMONDIALOG: return bbf_dialog_get(c, prop, index, out);
     case AFG_GRID: return bbf_grid_get(c, prop, index, out);
     default: return bbf_tt_get(c, prop, index, out);
@@ -308,6 +334,15 @@ int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
             relayout(c->form);
             return 0;
         }
+        return 438;
+    case AFG_CANVAS:
+        if (IS("RightButton")) {
+            c->rmb = vint(v) != 0;
+            if (c->rmb && !c->form->mouse_wanted) return 5;    /* the window doesn't report the mouse: use rmb=1 in the .afg */
+            return 0;
+        }
+        if (IS("Fill")) { c->fill = vint(v) != 0; relayout(c->form); return 0; }
+        if (IS("MouseX") || IS("MouseY") || IS("MouseButtons")) return 383;
         return 438;
     case AFG_COMMONDIALOG: return bbf_dialog_set(c, prop, index, v);
     case AFG_GRID: return bbf_grid_set(c, prop, index, v);

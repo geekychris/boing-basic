@@ -96,6 +96,9 @@ struct bb_ctl {
     char **coltitles;
     uint8 *msel;
     int32 *idata;
+    int rmb;                 /* canvas: RightButton (rmb=1): the right button goes to it */
+    int fill;                /* canvas: fill=1, the picture follows the control size */
+    int32 mx, my;            /* canvas: the last mouse position over it (MouseX/MouseY) */
 };
 
 struct bb_form {

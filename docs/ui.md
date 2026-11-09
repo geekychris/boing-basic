@@ -309,7 +309,10 @@ Status: **done** (tests/os4/ui_forms2_test.c 9/9 on the local guest). **Not done
 | `App.ShowAppIcon name [, iconfile]` / `App.HideAppIcon` | an AppIcon on the Workbench: `AppIcon_DblClick()`, `AppIcon_DragDrop(Count As Integer)` |
 | `App.AddAppMenuItem(text)` | a Workbench Tools menu item; returns its index; `AppMenu_Click(Index As Integer, Count As Integer)` (files selected in Workbench: `App.DropFile(i)`) |
 | `Clipboard.GetText` / `SetText` | (exists) |
-| `Clipboard.SetPicture canvas` / `Clipboard.GetPicture canvas` | IFF ILBM on the clipboard (24-bit, or 8-bit with a palette); `Clipboard.HasPicture` |
+| `Clipboard.SetPicture canvas [, imageId]` | the canvas's picture (or one of its images) on the clipboard as a 24-bit IFF ILBM |
+| `Clipboard.GetPicture(canvas)` | the clipboard's picture into the canvas's back buffer (resized); True if there was one |
+| `Clipboard.GetImage(canvas)` | the clipboard's picture as a new image of the canvas: its id, 0 if none |
+| `Clipboard.HasPicture` | |
 | `App.SaveIcon path [, defaultTool [, template]]` | writes `path.info`: a project icon (the template's image, else the default project icon) whose default tool is this program (or `defaultTool`) |
 
 Workbench event subs (`AppIcon_*`, `AppMenu_*`, `ARexx_*`) can be in any module; the startup

@@ -30,6 +30,12 @@ void bb_canvas_key_event(int key, int down);
 /* For the forms layer: the picture size and scale of a control's canvas (mouse events map
  * window pixels to canvas pixels). 0 if the control has no canvas. */
 int bb_canvas_ctl_geometry(bb_ctl *ctl, int *w, int *h, int *scale);
+/* fill=1: resize a control's canvas to w x h, keeping the picture; 1 if it changed */
+int bb_canvas_ctl_fit(bb_ctl *ctl, int w, int h);
+/* Clipboard images: image id's pixels (0 = back buffer; NULL if none), and a new image made
+ * from a malloc'd 0xAARRGGBB picture that the canvas takes over (returns its id). */
+uint32_t *bb_canvas_image_pixels(bb_obj *o, int32_t id, int32_t *w, int32_t *h);
+int32_t bb_canvas_new_image(bb_obj *o, int32_t w, int32_t h, uint32_t *px);
 /* For Clipboard.GetPicture: a picture copied into the back buffer (resized to w x h first);
  * 0 if o is not a canvas. */
 int bb_canvas_put_picture(bb_obj *o, const uint32_t *px, int32_t w, int32_t h);

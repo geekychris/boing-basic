@@ -294,6 +294,10 @@ Object *bbf_build(bb_form *f, afg_node *n)
             }
             if (afg_has(ch, "weight"))
                 tg(&t, n->kind == AFG_HLAYOUT ? CHILD_WeightedWidth : CHILD_WeightedHeight, afg_get_int(ch, "weight"));
+            else if (ch->kind == AFG_STATUSBAR || ch->kind == AFG_TOOLBAR)
+                /* bars keep their own height (width for a bar in a row): the rest of the
+                   window goes to the other controls */
+                tg(&t, n->kind == AFG_HLAYOUT ? CHILD_WeightedWidth : CHILD_WeightedHeight, 0);
             if (afg_has(ch, "minwidth")) tg(&t, CHILD_MinWidth, afg_get_int(ch, "minwidth"));
             if (afg_has(ch, "minheight")) tg(&t, CHILD_MinHeight, afg_get_int(ch, "minheight"));
         }
@@ -664,6 +668,21 @@ static void canvas_xy(bb_ctl *c, int wx, int wy, int32_t *x, int32_t *y)
 int bbf_vb_shift(uint32 q);
 #define vb_shift bbf_vb_shift
 
+/* RightButton canvases: the right button goes to the canvas (not the menus) while the pointer
+   is over it, the classic paint program behaviour (WFLG_RMBTRAP set only there) */
+static void rmb_trap(bb_form *f, int x, int y)
+{
+    if (!f->win) return;
+    bb_ctl *c = f->buttons ? f->capture : mouse_target(f, x, y);
+    int want = c && c->kind == AFG_CANVAS && c->rmb;
+    if (want != ((f->win->Flags & WFLG_RMBTRAP) != 0)) {
+        IExec->Forbid();
+        if (want) f->win->Flags |= WFLG_RMBTRAP;
+        else f->win->Flags &= ~WFLG_RMBTRAP;
+        IExec->Permit();
+    }
+}
+
 static void mouse_events_handle(bb_form *f)
 {
     for (int k = 0; k < f->nmq && f->loaded && !ending; k++) {
@@ -676,6 +695,7 @@ static void mouse_events_handle(bb_form *f)
             if (!bit) continue;
         }
         bb_ctl *c = f->capture && f->buttons ? f->capture : mouse_target(f, e.x, e.y);
+        if (e.mcls == IDCMP_MOUSEMOVE) rmb_trap(f, e.x, e.y);
         if (e.mcls == IDCMP_MOUSEBUTTONS && !up)
             for (int i = 0; i < f->nctls; i++)       /* a click elsewhere takes the focus from grids */
                 if (f->ctls[i]->kind == AFG_GRID && f->ctls[i] != c) bbf_grid_blur(f->ctls[i]);
@@ -691,7 +711,11 @@ static void mouse_events_handle(bb_form *f)
         }
         const char *name = c ? c->name : "Form";
         int32_t a[4] = { 0, vb_shift(e.qual), 0, 0 };
-        if (c) canvas_xy(c, e.x, e.y, &a[2], &a[3]);
+        if (c) {
+            canvas_xy(c, e.x, e.y, &a[2], &a[3]);
+            c->mx = a[2];
+            c->my = a[3];
+        }
         else {
             a[2] = e.x - (f->win ? f->win->BorderLeft : 0);
             a[3] = e.y - (f->win ? f->win->BorderTop : 0);
@@ -854,6 +878,11 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     for (int i = 0; i < f->nctls; i++) {
         if (f->ctls[i]->kind == AFG_CANVAS && f->ctls[i]->name[0] && wants_mouse(f, f->ctls[i])) f->mouse_wanted = 1;
         if (f->ctls[i]->kind == AFG_GRID) f->mouse_wanted = 1;
+        if (f->ctls[i]->kind == AFG_CANVAS) {
+            f->ctls[i]->rmb = afg_get_bool(f->ctls[i]->node, "rmb");
+            f->ctls[i]->fill = afg_get_bool(f->ctls[i]->node, "fill");
+            if (f->ctls[i]->rmb) f->mouse_wanted = 1;
+        }
     }
     if (wants_mouse(f, &f->self)) f->mouse_wanted = 1;
     if (f->mouse_wanted) tg(&t, WA_ReportMouse, TRUE);
@@ -919,7 +948,16 @@ const char *bb_ctl_kind(bb_ctl *c) { return afg_kind_name(c->kind); }
 static void canvas_refresh_all(bb_form *f)
 {
     for (int i = 0; i < f->nctls; i++) {
-        if (f->ctls[i]->kind == AFG_CANVAS) bb_canvas_ctl_refresh(f->ctls[i]);
+        bb_ctl *c = f->ctls[i];
+        if (c->kind == AFG_CANVAS && c->fill && c->obj && f->win) {
+            /* fill=1: the picture takes the control's whole box; <id>_Resize redraws it */
+            struct Gadget *g = (struct Gadget *)c->obj;
+            int w = 0, h = 0, sc = 1;
+            bb_canvas_ctl_geometry(c, &w, &h, &sc);
+            if (sc < 1) sc = 1;
+            if (bb_canvas_ctl_fit(c, g->Width / sc, g->Height / sc)) fire0(c, "Resize");
+        }
+        if (c->kind == AFG_CANVAS) bb_canvas_ctl_refresh(c);
         if (f->ctls[i]->kind == AFG_GRID) bbf_grid_refresh(f->ctls[i]);
     }
 }
@@ -1616,7 +1654,26 @@ static void raw_key(bb_form *f, int code)
     uint32 q = 0;
     IIntuition->GetAttr(WINDOW_Qualifier, f->winobj, &q);
     int up = code & IECODE_UP_PREFIX, raw = code & 0x7F;
-    if (raw >= 0x60 && raw <= 0x67) return;            /* qualifier keys alone */
+    if (raw >= 0x60 && raw <= 0x67) {
+        /* qualifier keys: KeyDown/KeyUp with the side-specific code (vbKeyLShift 160,
+           vbKeyRShift 161, vbKeyControl 17, vbKeyLMenu 164 / vbKeyRMenu 165 for the Alt keys,
+           vbKeyLWin 91 / vbKeyRWin 92 for the Amiga keys, vbKeyCapital 20); the canvas key
+           state also gets the generic code (vbKeyShift 16, vbKeyMenu 18, 91 for either Amiga) */
+        static const int16 side[8] = { 160, 161, 20, 17, 164, 165, 91, 92 };
+        static const int16 generic[8] = { 16, 16, 20, 17, 18, 18, 91, 91 };
+        int k = raw - 0x60;
+        bb_canvas_key_event(side[k], !up);
+        if (k != 2) {
+            /* the generic code stays down while the other side's key is still held */
+            int other = (k == 0 || k == 4 || k == 6) ? k + 1 : (k == 1 || k == 5 || k == 7) ? k - 1 : -1;
+            uint32 oq = other == 0 ? IEQUALIFIER_LSHIFT : other == 1 ? IEQUALIFIER_RSHIFT : other == 4 ? IEQUALIFIER_LALT
+                      : other == 5 ? IEQUALIFIER_RALT : other == 6 ? IEQUALIFIER_LCOMMAND : other == 7 ? IEQUALIFIER_RCOMMAND : 0;
+            if (!up || !(q & oq)) bb_canvas_key_event(generic[k], !up);
+        }
+        int32_t a[2] = { side[k], vb_shift(q) };
+        fire(f, "Form", up ? "KeyUp" : "KeyDown", 2, a);
+        return;
+    }
     if (raw == 0x5F && !up && bbf_app_help_key(f)) return;     /* Help with App.HelpFile set */
     if (!up)
         for (int i = 0; i < f->nctls; i++)       /* a grid with the focus takes the keys */

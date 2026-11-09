@@ -581,11 +581,14 @@ int bbf_app_help_key(bb_form *f)
 
 /* Clipboard.SetPicture: a 24-bit IFF ILBM written with iffparse to clipboard unit 0 (what
    every OS4 picture program and the picture datatype read) */
-static int clip_set_picture(bb_obj *canvas)
+static int clip_set_picture(bb_obj *canvas, int32 image)
 {
     const uint32_t *px;
     int32_t w, h;
-    if (!canvas || !(px = bb_canvas_pixels(canvas, &w, &h))) return 13;
+    if (!canvas) return 13;
+    if (image > 0) px = bb_canvas_image_pixels(canvas, image, &w, &h);
+    else px = bb_canvas_pixels(canvas, &w, &h);       /* the drawing target */
+    if (!px) return image > 0 ? 5 : 13;
     struct Library *lib = IExec->OpenLibrary("iffparse.library", 39);
     struct IFFParseIFace *iff = lib ? (void *)IExec->GetInterface(lib, "main", 1, NULL) : NULL;
     if (!iff) {
@@ -636,6 +639,50 @@ static int clip_set_picture(bb_obj *canvas)
     IExec->DropInterface((struct Interface *)iff);
     IExec->CloseLibrary(lib);
     return err;
+}
+
+/* the clipboard's picture as pixels (malloc'd), 0 if there is none */
+static uint32_t *clip_read(int32 *pw, int32 *ph)
+{
+    if (!dt()) return NULL;
+    Object *o = IDT->NewDTObject((APTR)0, DTA_SourceType, DTST_CLIPBOARD, DTA_GroupID, GID_PICTURE, PDTA_DestMode,
+                                 PMODE_V43, PDTA_Remap, FALSE, TAG_DONE);
+    if (!o) return NULL;
+    struct BitMapHeader *bmh = NULL;
+    uint32_t *px = NULL;
+    if (IDT->GetDTAttrs(o, PDTA_BitMapHeader, (uint32)&bmh, TAG_DONE) && bmh && bmh->bmh_Width > 0) {
+        int32 w = bmh->bmh_Width, h = bmh->bmh_Height;
+        px = malloc((size_t)w * h * 4);
+        if (px) {
+            struct pdtBlitPixelArray bpa;
+            memset(&bpa, 0, sizeof bpa);
+            bpa.MethodID = PDTM_READPIXELARRAY;
+            bpa.pbpa_PixelData = px;
+            bpa.pbpa_PixelFormat = PBPAFMT_ARGB;
+            bpa.pbpa_PixelArrayMod = w * 4;
+            bpa.pbpa_Width = w;
+            bpa.pbpa_Height = h;
+            if (IIntuition->IDoMethodA(o, (Msg)&bpa)) {
+                *pw = w;
+                *ph = h;
+                for (int32 i = 0; i < w * h; i++) px[i] |= 0xFF000000u;
+            } else {
+                free(px);
+                px = NULL;
+            }
+        }
+    }
+    IDT->DisposeDTObject(o);
+    return px;
+}
+
+/* Clipboard.GetImage(canvas): the picture as a new image of the canvas, its id (0 = none) */
+static int clip_get_image(bb_obj *canvas, bb_fval *ret)
+{
+    int32 w, h;
+    if (!canvas || !bb_is_canvas(canvas)) return 13;
+    uint32_t *px = clip_read(&w, &h);
+    return ri(ret, px ? bb_canvas_new_image(canvas, w, h, px) : 0);
 }
 
 static int clip_get_picture(bb_obj *canvas, bb_fval *ret)
@@ -786,9 +833,13 @@ int bb_app_plat_call(const char *method, int argc, const bb_fval *argv, bb_fval 
 
 int bb_clip_plat_call(const char *method, int argc, const bb_fval *argv, bb_fval *ret)
 {
-    if (IS("SetPicture")) {
+    if (IS("SetPicture")) {      /* SetPicture canvas [, imageId]: 0 / none = what it draws on */
         if (argc < 1 || argv[0].type != BB_FV_OBJ) return 13;
-        return clip_set_picture(argv[0].o);
+        return clip_set_picture(argv[0].o, argc > 1 && argv[1].type != BB_FV_NONE ? vint(&argv[1]) : 0);
+    }
+    if (IS("GetImage")) {
+        if (argc < 1 || argv[0].type != BB_FV_OBJ) return 13;
+        return clip_get_image(argv[0].o, ret);
     }
     if (IS("GetPicture")) {
         if (argc < 1 || argv[0].type != BB_FV_OBJ) return 13;

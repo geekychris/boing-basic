@@ -20,6 +20,8 @@ char *bbf_strip_underscore(const char *s)
 
 static int is_sep(afg_node *n) { return !strcmp(afg_get(n, "text"), "-") || afg_get_bool(n, "separator"); }
 
+static int menu_level(afg_node *n);
+
 static bb_ctl *menu_ctl(bb_form *f, afg_node *n)
 {
     for (int i = 0; i < f->nctls; i++)
@@ -244,9 +246,19 @@ static void mset(bb_ctl *c, Tag t, uint32 v)
     if (c->obj) IIntuition->SetAttrs(c->obj, t, v, TAG_DONE);
 }
 
+static int is_title(bb_ctl *c) { return c->node && menu_level(c->node) == 0; }
+
 int bbf_menu_get(bb_ctl *c, const char *prop, bb_fval *out)
 {
-    if (IS("Caption") || IS("Text")) return ret_str(c, out, c->text);
+    if (IS("Caption") || IS("Text")) return ret_str(c, out, c->text ? c->text : is_sep(c->node) ? "-" : "");
+    if (!c->obj || is_sep(c->node)) {          /* a separator (or a menu that failed): the stored state */
+        if (IS("Checked")) return ret_int(out, vb_bool(c->sel > 0));
+        if (IS("Enabled")) return ret_int(out, -1);
+        if (IS("Visible")) return ret_int(out, vb_bool(c->visible));
+        if (IS("Shortcut")) return ret_str(c, out, "");
+        if (IS("Checkable")) return ret_int(out, 0);
+        return 438;
+    }
     if (IS("Checked")) return ret_int(out, vb_bool(mget(c, MA_Selected)));
     if (IS("Enabled")) return ret_int(out, vb_bool(!mget(c, MA_Disabled)));
     if (IS("Visible")) return ret_int(out, vb_bool(!mget(c, MA_Hidden)));
@@ -258,6 +270,18 @@ int bbf_menu_get(bb_ctl *c, const char *prop, bb_fval *out)
 int bbf_menu_set(bb_ctl *c, const char *prop, const bb_fval *v)
 {
     char buf[16];
+    /* separators, titles and menus without an object only keep what they can show: setting
+       never touches a menuclass attribute that doesn't apply (separators take MA_Hidden only) */
+    if (!c->obj || is_sep(c->node)) {
+        if (IS("Visible")) {
+            c->visible = vint(v) != 0;
+            if (c->obj) mset(c, MA_Hidden, !c->visible);
+            return 0;
+        }
+        if (IS("Checked")) { c->sel = vint(v) != 0; return 0; }
+        if (IS("Caption") || IS("Text") || IS("Enabled") || IS("Shortcut") || IS("Checkable")) return 0;
+        return 438;
+    }
     if (IS("Caption") || IS("Text")) {
         char *old = c->text;
         c->text = bbf_strip_underscore(vstr(v, buf));
@@ -266,11 +290,16 @@ int bbf_menu_set(bb_ctl *c, const char *prop, const bb_fval *v)
         return 0;
     }
     if (IS("Checked")) {
+        c->sel = vint(v) != 0;
+        if (is_title(c)) return 0;                 /* titles have no checkmark */
         if (!mget(c, MA_Toggle) && !mget(c, MA_MX)) mset(c, MA_Toggle, TRUE);
-        mset(c, MA_Selected, vint(v) != 0);
+        mset(c, MA_Selected, c->sel);
         return 0;
     }
-    if (IS("Checkable")) { mset(c, MA_Toggle, vint(v) != 0); return 0; }
+    if (IS("Checkable")) {
+        if (!is_title(c)) mset(c, MA_Toggle, vint(v) != 0);
+        return 0;
+    }
     if (IS("Enabled")) {
         mset(c, MA_Disabled, vint(v) == 0);
         bbf_tools_follow_menu(c->form, c->name, vint(v) != 0);    /* tools with menu=<this> */
@@ -282,6 +311,7 @@ int bbf_menu_set(bb_ctl *c, const char *prop, const bb_fval *v)
         return 0;
     }
     if (IS("Shortcut")) {
+        if (is_title(c)) return 0;
         char *old = c->extra;
         c->extra = xstrdup(vstr(v, buf));
         mset(c, MA_Key, *c->extra ? (uint32)c->extra : 0);

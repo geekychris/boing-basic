@@ -918,6 +918,51 @@ void bb_canvas_ctl_gone(bb_ctl *ctl)
         if (c->ctl == ctl) c->ctl = NULL;
 }
 
+/* Clipboard images (docs/ui.md): the pixels of image id (0 = the back buffer), NULL if none;
+   and a new image from a malloc'd picture (the canvas takes it), its id */
+uint32_t *bb_canvas_image_pixels(bb_obj *o, int32_t id, int32_t *w, int32_t *h)
+{
+    bb_canvas *c = (bb_canvas *)o;
+    if (!bb_is_canvas(o)) return NULL;
+    if (id == 0) { *w = c->w; *h = c->h; return c->back; }
+    if (id < 1 || id > c->nimgs || !c->imgs[id - 1].px) return NULL;
+    *w = c->imgs[id - 1].w;
+    *h = c->imgs[id - 1].h;
+    return c->imgs[id - 1].px;
+}
+
+int32_t bb_canvas_new_image(bb_obj *o, int32_t w, int32_t h, uint32_t *px)
+{
+    if (!bb_is_canvas(o)) return 0;
+    return add_image((bb_canvas *)o, w, h, px);
+}
+
+/* fill=1 canvases: the back buffer follows the control's size (the old picture is kept at the
+   top left, the new area cleared to BackColor); 1 if the size changed */
+int bb_canvas_ctl_fit(bb_ctl *ctl, int w, int h)
+{
+    bb_canvas *c;
+    for (c = ctl_canvases; c; c = c->next)
+        if (c->ctl == ctl) {
+            int32_t x, y, ow = c->w, oh = c->h;
+            uint32_t *nb, bc = ARGB(c->backc);
+            if (w < 1 || h < 1 || w > 4096 || h > 4096 || (w == ow && h == oh)) return 0;
+            nb = (uint32_t *)malloc((size_t)w * (size_t)h * 4);
+            if (!nb) return 0;
+            for (y = 0; y < h; y++)
+                for (x = 0; x < w; x++) nb[y * w + x] = x < ow && y < oh ? c->back[y * ow + x] : bc;
+            free(c->back);
+            c->back = nb;
+            c->w = w;
+            c->h = h;
+            free(c->sbuf);
+            c->sbuf = NULL;
+            set_target(c, 0);
+            return 1;
+        }
+    return 0;
+}
+
 /* the picture size and scale of a control's canvas, for the forms layer's mouse coordinates */
 int bb_canvas_ctl_geometry(bb_ctl *ctl, int *w, int *h, int *scale)
 {
