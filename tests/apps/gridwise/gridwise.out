@@ -1,0 +1,130 @@
+B1=20 B2=40 B3=60.5
+after A1=100: B1=200 B2=220 B3=150.5 recalc= 3 
+=1+2*3 -> 7
+=(1+2)*3 -> 9
+=2^3^2 -> 64
+=-2^2 -> 4
+=10/4 -> 2.5
+=1/0 -> #DIV/0!
+=50% -> 0.5
+="a"&"b"&1 -> ab1
+=1<2 -> TRUE
+="abc"="ABC" -> TRUE
+=A4+1 -> #VALUE!
+=A5+1 -> 2
+=SUM(A1:A5) -> 150.5
+=AVERAGE(A1:A3) -> 50.16666667
+=MIN(A1:A3) -> 20
+=MAX(A1:A3, 500) -> 500
+=COUNT(A1:A5) -> 3
+=COUNTA(A1:A10) -> 5
+=COUNTBLANK(A1:A10) -> 8
+=IF(A1>50, "big", "small") -> big
+=IF(A1<50, 1/0, 7) -> 7
+=IF(0, 1) -> FALSE
+=ROUND(2.5, 0) -> 3
+=ROUND(-2.5, 0) -> -3
+=ROUND(3.14159, 2) -> 3.14
+=ROUNDUP(3.141, 1) -> 3.2
+=ROUNDDOWN(-3.19, 1) -> -3.1
+=ABS(-4) -> 4
+=SQRT(16) -> 4
+=SQRT(-1) -> #NUM!
+=INT(-3.5) -> -4
+=MOD(-7, 3) -> 2
+=POWER(2, 10) -> 1024
+=PI() -> 3.141592654
+=LEN("hello") -> 5
+=LEFT("hello", 2)&RIGHT("hello") -> heo
+=MID("spreadsheet", 7, 5) -> sheet
+=UPPER("abc")&LOWER("DEF") -> ABCdef
+=TRIM("  a   b  ") -> a b
+=CONCATENATE("x", A1, "y") -> x100y
+=CONCAT(A1:A3) -> 1002030.5
+=TEXT(1234.5, "#,##0.00") -> 1,234.50
+=VALUE("12.5")+1 -> 13.5
+=AND(1, TRUE, A1>5) -> TRUE
+=OR(0, FALSE) -> FALSE
+=NOT(A1=100) -> FALSE
+=PRODUCT(2, 3, 4) -> 24
+=SUMIF(A1:A3, ">15") -> 150.5
+=COUNTIF(A1:A5, "text") -> 1
+=AVERAGEIF(A1:A3, "<>20") -> 65.25
+=IFERROR(1/0, "oops") -> oops
+=ISNUMBER(A1)&ISTEXT(A4)&ISBLANK(A9) -> TRUETRUETRUE
+=MEDIAN(5, 1, 3, 2) -> 2.5
+=STDEV(2, 4, 4, 4, 5, 5, 7, 9) -> 2.138089935
+=SIGN(-3)+EXP(0)+LN(1)+LOG10(1000) -> 3
+=FIND("ea", "spreadsheet") -> 4
+=SUBSTITUTE("a-b-c", "-", "+") -> a+b+c
+=REPT("ab", 3) -> ababab
+=EXACT("a", "A") -> FALSE
+=ROWS(A1:B7)*10+COLUMNS(A1:C1) -> 73
+=CHOOSE(2, "one", "two", "three") -> two
+=TRUNC(-8.9) -> -8
+=YEAR(DATE(2026,11,8))*10000+MONTH(DATE(2026,11,8))*100+DAY(DATE(2026,11,8)) -> 20261108
+=1+ -> #ERROR!  [the formula ends too early]
+=FOO(1) -> #ERROR!  [unknown function FOO]
+=SUM(1,2 -> #ERROR!  [missing ')' after SUM]
+=#REF!+1 -> #REF!
+=A1:A3 -> #VALUE!
+=A1 -> 100
+=VLOOKUP("banana", D1:E3, 2, FALSE) -> 0.25
+=VLOOKUP("kiwi", D1:E3, 2, FALSE) -> #N/A
+=VLOOKUP(25, F1:G3, 2) -> b
+circular: H1=#CIRC! H2=#CIRC!
+fixed: H1=6 H2=5
+self: H3=#CIRC!
+chain J200=200
+chain J200=1199 recalc= 199 
+running L50=1275
+running L50=1375 recalc= 50 
+General: 1234.5678
+Integer (0): 1235
+Fixed (0.00): 1234.57
+Thousands (#,##0): 1,235
+Thousands (#,##0.00): 1,234.57
+Percent (0%): 123457%
+Percent (0.00%): 123456.78%
+Currency: $1,234.57
+Scientific (0.00E+00): 1.23E+03
+Date (yyyy-mm-dd): 1903-05-18
+Time (hh:nn:ss): 13:37:38
+15% -> 15% fmt  5 
+1,234 -> 1234
+$5 -> $5.00
+small -> -1.2345E-05
+1/3 -> 0.3333333333
+big -> 123456789012
+'123 -> 123 kind  2 
+=B3+$B$2+D$3+$D6+SUM(B3:C4)&"A1"
+=#REF!+1
+=A1+A8+SUM(A2:A12)
+=A1+A3+#REF!
+=A1+D1+$E$1
+paste: B2=20 src =A2*10
+fill-paste: B3..B5 src =A3*10 =A4*10 =A5*10
+filldown B6 src =A6*10
+undo: C1=5
+undo: C1=
+redo: C1=5
+insert row: B2 src =A2*10 A2=1
+undo insert: B1 src =A1*10 A1=1
+redo insert: B2 src =A2*10
+sort by B:  apple fig pear
+sort by A desc: pear fig apple []
+W	C	120
+C	A1	0	pear
+C	B1	0	3
+C	C1	1026	=SUM(B1:B4)
+C	M1	10	
+C	A2	0	fig
+C	B2	0	2
+C	C2	0	tab\tx\\y
+C	M2	5	
+C	A3	0	apple
+C	B3	0	1
+C	B4	0	0
+C	M4	7	
+loaded C1=6.00 fmt  1026  C2 ok True W= 120  rest X	extra
+done

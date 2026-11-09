@@ -1,0 +1,6 @@
+# Gridwise's sheet engine (examples/gridwise): formulas, recalculation, formats, undo, files
+Name=GridwiseTest
+Startup=Sub Main
+Module=../../../examples/gridwise/Formula.bas
+Module=../../../examples/gridwise/Sheet.bas
+Module=gtest.bas

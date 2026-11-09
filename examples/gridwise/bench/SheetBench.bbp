@@ -1,0 +1,7 @@
+# Gridwise: console benchmark of the sheet engine (1000 x 26 cells)
+Name=SheetBench
+Startup=Sub Main
+Module=../Formula.bas
+Module=../Sheet.bas
+Module=SheetBench.bas
+Stack=262144
