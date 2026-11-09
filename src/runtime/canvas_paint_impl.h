@@ -13,7 +13,7 @@ enum {
     MP_FLOODFILL = 1000, MP_ELLIPSE, MP_BRUSHLINE, MP_STAMPLINE, MP_DRAWIMAGESCALED, MP_DRAWIMAGEBLEND,
     MP_COPYIMAGE, MP_FLIPIMAGE, MP_ROTATEIMAGE, MP_SCALEIMAGE, MP_REPLACECOLOR, MP_SPRAY,
     MP_SAVEPNG, MP_SAVEILBM, MP_LASTPALETTE, MP_GETPALETTE, MP_QUANTIZE, MP_REMAPIMAGE, MP_DASHRECT,
-    MP_IMAGEHASH, MP_DRAWTEXTSCALED, MP_IMAGEPOINT, MP_CLEARRECT, MP_IMAGEBOUNDS, MP_CHECKER, MP_FILLBOUNDS
+    MP_IMAGEHASH, MP_DRAWTEXTSCALED, MP_IMAGEPOINT, MP_CLEARRECT, MP_IMAGEBOUNDS, MP_CHECKER, MP_FILLBOUNDS, MP_GRADIENT
 };
 
 static const struct { const char *name; int32_t id; } paint_members[] = {
@@ -25,7 +25,7 @@ static const struct { const char *name; int32_t id; } paint_members[] = {
     {"LastPalette", MP_LASTPALETTE}, {"GetPalette", MP_GETPALETTE}, {"Quantize", MP_QUANTIZE},
     {"RemapImage", MP_REMAPIMAGE}, {"DashRect", MP_DASHRECT}, {"ImageHash", MP_IMAGEHASH},
     {"DrawTextScaled", MP_DRAWTEXTSCALED}, {"ImagePoint", MP_IMAGEPOINT}, {"ClearRect", MP_CLEARRECT},
-    {"ImageBounds", MP_IMAGEBOUNDS}, {"Checker", MP_CHECKER}, {"FillBounds", MP_FILLBOUNDS},
+    {"ImageBounds", MP_IMAGEBOUNDS}, {"Checker", MP_CHECKER}, {"FillBounds", MP_FILLBOUNDS}, {"Gradient", MP_GRADIENT},
 };
 
 static int32_t paint_find(const char *name)
@@ -1596,6 +1596,35 @@ static void paint_invoke(bb_canvas *c, int32_t id, int argc, bb_value *argv, bb_
                 }
         r[0] = x0; r[1] = y0; r[2] = x1 - x0 + 1; r[3] = y1 - y0 + 1;
         *ret = long_array(r, x1 < 0 ? 0 : 4);
+        return;
+    }
+    case MP_GRADIENT: { /* Gradient x, y, w, h, topleft, topright [, bottomleft, bottomright]: bilinear */
+        int32_t x = argl(argc, argv, 0), y = argl(argc, argv, 1), w = argl(argc, argv, 2), h = argl(argc, argv, 3), i, j;
+        uint32_t cc[4];
+        int32_t k;
+        cc[0] = ARGB(argl(argc, argv, 4));
+        cc[1] = ARGB(argl(argc, argv, 5));
+        cc[2] = missing(argc, argv, 6) ? cc[0] : ARGB(argl(argc, argv, 6));
+        cc[3] = missing(argc, argv, 7) ? cc[1] : ARGB(argl(argc, argv, 7));
+        if (w <= 0 || h <= 0) return;
+        for (j = 0; j < h; j++) {
+            int32_t yy = y + j, fy = h > 1 ? (j * 256) / (h - 1) : 0;
+            uint32_t *d;
+            int32_t l[3], r[3];
+            if ((uint32_t)yy >= (uint32_t)c->th) continue;
+            d = c->tp + yy * c->tw;
+            for (k = 0; k < 3; k++) {
+                int32_t sh = 16 - 8 * k;
+                l[k] = (int32_t)((cc[0] >> sh) & 255) * (256 - fy) + (int32_t)((cc[2] >> sh) & 255) * fy;
+                r[k] = (int32_t)((cc[1] >> sh) & 255) * (256 - fy) + (int32_t)((cc[3] >> sh) & 255) * fy;
+            }
+            for (i = 0; i < w; i++) {
+                int32_t xx = x + i, fx = w > 1 ? (i * 256) / (w - 1) : 0, v[3];
+                if ((uint32_t)xx >= (uint32_t)c->tw) continue;
+                for (k = 0; k < 3; k++) v[k] = (l[k] * (256 - fx) + r[k] * fx + 32768) >> 16;
+                d[xx] = 0xFF000000u | ((uint32_t)v[0] << 16) | ((uint32_t)v[1] << 8) | (uint32_t)v[2];
+            }
+        }
         return;
     }
     case MP_FILLBOUNDS: /* FillBounds() -> x, y, w, h of what the last FloodFill changed */

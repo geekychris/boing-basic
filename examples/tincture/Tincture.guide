@@ -1,0 +1,275 @@
+@database Tincture.guide
+@author "Tincture authors"
+@$VER: Tincture.guide 1.0 (08.11.2026)
+@wordwrap
+@node main "Tincture"
+
+                        @{b}Tincture 1.0@{ub}
+              A paint program for AmigaOS 4.1
+
+Tincture paints in true colour or with a palette of up to 256 colours,
+in layers, with unlimited undo (as far as memory goes), and speaks
+ARexx. It is written in Boing BASIC.
+
+    @{" The window      " link window}   tool box, picture, colours, layers
+    @{" Tools           " link tools}   what each tool does, and its key
+    @{" Colours         " link colours}   pens, the picker, indexed pictures
+    @{" Layers          " link layers}   transparency, opacity, merging
+    @{" Selections      " link selection}   cut, copy, paste, move, brushes
+    @{" Files           " link files}   IFF ILBM, PNG, .tinc, drag and drop
+    @{" Menus           " link menus}   every menu item and its Amiga key
+    @{" Keys            " link keys}   all the keyboard shortcuts
+    @{" ARexx           " link arexx}   scripting Tincture
+    @{" Settings        " link settings}   preferences and autosave
+    @{" Starting        " link starting}   command line and tooltypes
+
+@endnode
+
+@node window "The window"
+@{b}The window@{ub}
+
+@{u}Tool box@{uu} (left): the twelve tools, then Undo and Redo. The tool in use
+has an amber frame.
+
+@{u}Picture@{uu} (middle): paint with the left mouse button in the foreground
+colour, with the right button in the background colour. Drag with the
+middle button, or hold Space and drag, to move the picture around.
+The mouse wheel scrolls; with Ctrl, or when zoomed in, it zooms around
+the pointer. The outline under the pointer shows the brush.
+
+With the @{" magnifier " link menus} on, the right part of the picture area
+shows the place under the pointer magnified, with a pixel grid. You
+can paint in both parts.
+
+@{u}Colour panel@{uu} (top right): the foreground pen over the background pen
+(click to swap them), the palette, and a colour picker: a square of
+saturation and brightness for the hue chosen in the bar below it.
+
+@{u}Brush and layers@{uu} (right): brush size (1 to 64) and shape, then the
+layer list with the top layer first, buttons for new, delete, up and
+down, and the current layer's visibility and opacity.
+
+@{u}Status line@{uu} (bottom): pointer position, picture size, zoom, tool,
+selection size, layer, colour mode and the last message.
+@endnode
+
+@node tools "Tools"
+@{b}Tools@{ub}
+
+  Freehand          d   paints with the brush; with a custom brush,
+                        stamps it along the stroke
+  Line              v   Shift: 0, 45 or 90 degrees
+  Rectangle         r   outline in the brush size; Shift: square
+  Filled rectangle  R
+  Ellipse           o   inside the dragged box; Shift: circle
+  Filled ellipse    O
+  Flood fill        f   fills the area of one colour in the layer
+  Airbrush          a   sprays while the button is held
+  Text              t   asks for the text, then click to place it;
+                        it floats until you click outside it
+  Select            s   drag a rectangle; drag inside it to move its
+                        contents, Ctrl+drag to move a copy
+  Pick colour       i   takes the colour under the pointer (right
+                        button: for the background pen)
+  Eraser            e   paints transparency on upper layers and the
+                        background colour on the bottom layer
+
+Every stroke, fill or shape is one step of @{" undo " link menus}.
+@endnode
+
+@node colours "Colours"
+@{b}Colours@{ub}
+
+Click a palette pen for the foreground colour, right-click for the
+background colour. The picker sets the foreground colour directly.
+
+To change a pen, Shift-click it (or double-click the palette): the
+picker then edits that pen, shown with an amber frame. Esc stops
+editing.
+
+@{b}True colour@{ub} pictures (the default) use any colour; the palette is
+just a set of handy pens and is kept in the settings.
+
+@{b}Indexed@{ub} pictures (Picture > Indexed Colours...) have at most 256
+colours, the palette's. Converting reduces the picture's colours with
+a median cut, with dithering if Picture > Dither when Reducing is on.
+In an indexed picture, changing a pen changes every pixel painted with
+it, and the picker always gives the nearest pen. IFF ILBM and PNG
+files are saved with the palette (1 to 8 bitplanes).
+@endnode
+
+@node layers "Layers"
+@{b}Layers@{ub}
+
+A picture has up to 16 layers. The bottom one is opaque; the others
+are transparent where nothing was painted, so you can paint over a
+picture without touching it. Each layer can be hidden and has an
+opacity (0 to 255).
+
+New, Delete, Up and Down are under the layer list and in the Layer
+menu, with Merge Down (the current layer into the one below) and
+Flatten (all into one). Double-click a layer to rename it.
+
+Only the @{" .tinc " link files} format keeps the layers. Saving as IFF or
+PNG saves the flattened picture.
+@endnode
+
+@node selection "Selections and brushes"
+@{b}Selections and brushes@{ub}
+
+Drag a rectangle with the Select tool (or Edit > Select All). The
+selection shows as marching ants.
+
+  Cut, Copy      put the selection of the current layer on the
+                 clipboard
+  Paste          the clipboard floats over the picture at the
+                 pointer: drag it, then click outside to put it
+                 down (Esc throws it away)
+  Clear (Del)    empties the selection
+  Crop           the picture becomes the selection
+
+@{b}Custom brushes@{ub}: Edit > Brush from Selection makes the selection the
+brush; its background-colour pixels are transparent. The Freehand
+tool then stamps it. Brush in One Colour paints its shape in the
+foreground colour. Flip (h), Rotate (z), Double and Half Size change
+it; Built-in Brush goes back to the round brush.
+@endnode
+
+@node files "Files"
+@{b}Files@{ub}
+
+  IFF ILBM (.iff)   24-bit, or 1 to 8 bitplanes with the palette for
+                    indexed pictures; reads HAM6/HAM8, EHB, masks
+  PNG (.png)        truecolour, with alpha, or with a palette
+  Tincture (.tinc)  all layers with names, visibility, opacity, the
+                    palette and the colour mode
+
+Tincture reads IFF and PNG itself (the same everywhere), and other
+formats (JPEG, GIF, BMP, ...) through the datatypes.
+
+Drop picture icons on the window to open them. If the picture has
+changes or layers, the dropped picture is pasted as a floating
+selection instead.
+
+Files are written to a new file first and then renamed, so a crash
+never leaves half a picture. With Settings > Create Icons, saved
+pictures get an icon.
+@endnode
+
+@node menus "Menus"
+@{b}Menus@{ub}
+
+@{u}Project@{uu}  New... (A-N), Open... (A-O), Open as Layer..., Revert,
+         Save (A-S), Save As... (A-A), Help..., About, Quit (A-Q)
+
+@{u}Edit@{uu}     Undo (A-Z), Redo (A-Y), Cut (A-X), Copy (A-C), Paste (A-V),
+         Clear (Del), Select All (A-L), Select None, Crop to
+         Selection, Brush from Selection (A-B), Brush in One Colour,
+         Flip Brush, Rotate Brush, Brush Double Size, Brush Half
+         Size, Built-in Brush
+
+@{u}Picture@{uu}  Canvas Size..., Scale..., Flip Horizontally, Flip
+         Vertically, Rotate Right, Rotate Left, Indexed Colours...,
+         Dither when Reducing, True Colour, Default Palette
+
+@{u}Layer@{uu}    New Layer, Delete Layer, Move Up, Move Down, Merge Down,
+         Flatten
+
+@{u}View@{uu}     Zoom In (+), Zoom Out (-), Actual Size (1), Fit in
+         Window (0), Magnifier (A-M), Pixel Grid (A-G)
+
+@{u}Settings@{uu} Autosave, Create Icons, Save Settings
+@endnode
+
+@node keys "Keys"
+@{b}Keys@{ub}
+
+  d v r R o O f a t s i e   tools (see @{" Tools " link tools})
+  x                         swap foreground and background pens
+  [  ]                      brush smaller / bigger
+  +  -  1  0                zoom in, out, 100%, fit
+  m  g                      magnifier, pixel grid
+  u  U                      undo, redo
+  h  z                      flip / rotate the custom brush
+  Cursor keys               scroll
+  Space + drag              scroll with the mouse
+  Esc                       cancel the stroke, the floating selection
+                            or the pen editing
+  Del                       clear the selection
+  Help, F1                  this help
+@endnode
+
+@node arexx "ARexx"
+@{b}ARexx@{ub}
+
+Tincture's ARexx port is TINCTURE (TINCTURE.1 if a second Tincture
+runs). Commands return their result in RESULT (use OPTIONS RESULTS);
+errors set RC to 10 and RESULT to the message. Coordinates are
+picture pixels; colours are "R G B" or "#RRGGBB". The same commands
+work in a script file: Tincture --script file.
+
+  NEW w h                   a new picture
+  OPEN file / SAVE [file [PNG|ILBM|TINC]]
+  INFO                      "w h layers current mode colours changed"
+  COLOR r g b | #rrggbb     foreground pen (no argument: read it)
+  BGCOLOR ...               background pen
+  PALETTE i [colour]        read or set a pen
+  PEN i                     foreground = pen i
+  TOOL name                 FREEHAND LINE RECT RECTF ELLIPSE ELLIPSEF
+                            FILL AIRBRUSH TEXT SELECT PICK ERASER
+  BRUSH size [SQUARE]
+  PLOT x y / DRAW x1 y1 x2 y2 ... / LINE x1 y1 x2 y2
+  RECT x y w h [FILL] / BOX x y w h
+  ELLIPSE cx cy rx ry [FILL] / CIRCLE cx cy r [FILL]
+  FILL x y [tolerance] / SPRAY x y [radius [density]]
+  ERASE x1 y1 x2 y2 ... / TEXT x y "text" [scale]
+     (add BG to any of these to paint in the background colour)
+  GETPIXEL x y              "#rrggbb" of the picture
+  SELECT x y w h | ALL | NONE
+  COPY / CUT / CLEAR / PASTE x y [FLOAT] / MOVE dx dy / DROP
+  MAKEBRUSH / RESETBRUSH / BRUSHMODE OWN|COLOUR
+  UNDO [n] / REDO [n] / UNDOCOUNT
+  LAYER ADD [name] | DELETE | SELECT n | UP | DOWN | MERGE |
+        FLATTEN | HIDE [n] | SHOW [n] | OPACITY n | NAME s
+  FLIP H|V / ROTATE 90|180|270 / SCALE w h / CANVASSIZE w h
+  CROP [x y w h]
+  INDEXED n [DITHER] / TRUECOLOUR
+  ZOOM [percent] / HASH / VERSION / QUIT
+
+Example:
+
+  /* sunset.rexx */
+  OPTIONS RESULTS
+  ADDRESS TINCTURE
+  NEW 320 256
+  COLOR 255 140 0
+  CIRCLE 160 180 60 FILL
+  COLOR 20 20 60
+  BOX 0 180 320 76
+  SAVE "RAM:sunset.iff"
+@endnode
+
+@node settings "Settings and autosave"
+@{b}Settings@{ub}
+
+Settings > Save Settings keeps the brush, the palette and pens, the
+grid and magnifier, dithering, icons and the last drawer in
+Tincture.prefs next to the program.
+
+@{b}Autosave@{ub}: while Settings > Autosave is on, Tincture saves the
+picture with all its layers every 30 seconds when it changed, into
+Tincture.autosave.tinc next to the program. When Tincture ends
+normally the file is deleted. If Tincture (or the machine) crashed,
+the next start offers to bring the picture back.
+@endnode
+
+@node starting "Starting Tincture"
+@{b}Starting Tincture@{ub}
+
+From the Shell:
+
+  Tincture [picture] [--size WxH] [--script file]
+
+From Workbench: double-click the icon, or a picture's icon whose
+default tool is Tincture, or drop pictures on the window.
+@endnode
