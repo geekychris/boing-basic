@@ -100,8 +100,8 @@ def vm_cmd():
 
 def smoke(m, shots, native=False):
     os.makedirs(shots, exist_ok=True)
-    outf = "RAM:tincture.log"
-    dos(m, "delete %s RAM:tincture-smoke.ppm RAM:tincture.trace QUIET" % outf)
+    outf = "RAM:tincture-%d.log" % int(time.time())      # own names: a crashed run may hold old ones open
+    dos(m, "delete RAM:tincture-smoke.ppm RAM:tincture.trace QUIET")
     cmd = ("%s/Tincture" % DIR) if native else vm_cmd()
     launch(m, "%s --smoke --hold 6 --log --trace >%s *>%s.err" % (cmd, outf, outf))
     out = wait_for(m, outf, "SMOKE redo-all", 120)
@@ -125,7 +125,7 @@ def demo(m, shots):
         if not f.endswith(".tsc"):
             continue
         name = os.path.splitext(f)[0]
-        outf = "RAM:tincture_%s.log" % name
+        outf = "RAM:tincture_%s_%d.log" % (name, int(time.time()))
         dos(m, "delete %s QUIET" % outf)
         prog = ("%s/Tincture" % DIR) if os.path.exists(ROOT + "/build/Tincture") else vm_cmd()
         launch(m, "%s --script %s/demo/%s --hold 8 --log >%s *>%s.err" % (prog, DIR, f, outf, outf))
@@ -153,7 +153,7 @@ def input_test(m, shots, native=True):
     """Real mouse input into Tincture's own (active) window: steer the pointer into the view
     using the positions Tincture reports, paint a stroke, check it in the log."""
     os.makedirs(shots, exist_ok=True)
-    outf = "RAM:tincture_in.log"
+    outf = "RAM:tincture_in_%d.log" % int(time.time())
     dos(m, "delete %s QUIET" % outf)
     prog = ("%s/Tincture" % DIR) if native and os.path.exists(ROOT + "/build/Tincture") else vm_cmd()
     launch(m, "%s --size 320x200 --hold 45 --log >%s *>%s.err" % (prog, outf, outf))
@@ -208,7 +208,7 @@ def bench(m, n):
     for name, cmd in runs:
         if name == "native" and not os.path.exists(ROOT + "/build/Tincture"):
             continue
-        outf = "RAM:tincture_%s.out" % name
+        outf = "RAM:tincture_%s_%d.out" % (name, int(time.time()))
         dos(m, "delete %s QUIET" % outf)
         launch(m, "%s --bench %d >%s *>%s.err" % (cmd, n, outf, outf))
         out = wait_for(m, outf, "BENCH full view", 600)
@@ -244,7 +244,7 @@ def main():
             push_all(m)
             bench(m, int(sys.argv[2]) if len(sys.argv) > 2 else 20)
         elif what == "run":
-            outf = "RAM:tincture_run.out"
+            outf = "RAM:tincture_run_%d.out" % int(time.time())
             dos(m, "delete %s QUIET" % outf)
             launch(m, "%s %s >%s *>%s" % (vm_cmd(), sys.argv[2], outf, outf))
             time.sleep(20)
