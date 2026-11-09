@@ -515,9 +515,7 @@ Public Sub DrawTitle()
     TxtCentre 150, PEN_AMBER, MenuName()
     TxtCentre 170, IIf((gFrame And 16) <> 0, PEN_GREEN, 1), "PRESS FIRE TO START"
     TxtCentre 184, PEN_HUD, "HELP: HOW TO FLY   F2: HIGH SCORES"
-    e.FillRect 0, VIEW_H, 319, 255, 2
-    Txt 8, VIEW_H + 16, PEN_AMBER, "BEST " & gBest
-    Txt 8, VIEW_H + 32, PEN_HUD, "THE AUTOPILOT IS FLYING THE DEMO"
+    DemoPanel
 End Sub
 
 Public Sub DrawHelp(ByVal page As Long)
@@ -533,10 +531,18 @@ Public Sub DrawHelp(ByVal page As Long)
     Txt 148, 244, PEN_GREEN, "HELP: NEXT  FIRE: FLY"
 End Sub
 
+' the strip under the demo (title, name entry, high scores)
+Private Sub DemoPanel()
+    e.FillRect 0, VIEW_H, 319, 255, 2
+    Txt 8, VIEW_H + 16, PEN_AMBER, "BEST " & gBest
+    Txt 8, VIEW_H + 32, PEN_HUD, "THE AUTOPILOT IS FLYING THE DEMO"
+End Sub
+
 ' (new) a name for the high scores, over the demo
 Public Sub DrawEntry(ByVal nm As String)
     Scene
     e.View 320, 256, 160, 116, 200
+    DemoPanel
     Box2 40, 70, 280, 180, 2, PEN_AMBER
     TxtCentre 92, PEN_AMBER, "A NEW HIGH SCORE"
     TxtCentre 112, 1, CStr(gScore)
@@ -549,6 +555,7 @@ Public Sub DrawScores()
     Dim i As Long, p As Long
     Scene
     e.View 320, 256, 160, 116, 200
+    DemoPanel
     Box2 50, 36, 270, 200, 2, 3
     e.Text 64, 46, "HIGH SCORES", PEN_AMBER, 2
     For i = 0 To HS_COUNT - 1
