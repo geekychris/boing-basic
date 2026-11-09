@@ -6,7 +6,8 @@ the order list and song settings, channel scopes and VU meters, 200 steps of und
 
 ![Riffwright on the AmigaOS 4 guest](docs/guest_pattern.png)
 
-The editor is BASIC (about 2500 lines); the player is the runtime's MOD player in C. The
+The editor is BASIC (about 3000 lines); the player is the runtime's `Boing.Audio` object (a
+ProTracker player and mixer in C, playing through AHI in a task of its own). The
 whole song model lives in BASIC and is mirrored into the player cell by cell, so every edit is
 heard at once while the song plays.
 
@@ -53,8 +54,25 @@ The full manual is the AmigaGuide [Riffwright.guide](Riffwright.guide) (Help key
 - **Files**: 31-sample ProTracker modules with 4 channels (M.K., M!K!, FLT4, 4CHN), 6 and 8
   channels (6CHN, 8CHN, FLT8, OCTA). A loaded file saves back byte for byte, including data
   after the last sample. Patterns not in the order list are kept when saving.
-- **Application**: undo/redo for every edit (200 steps), preferences in `ENV:Riffwright.prefs`
-  (octave, follow mode, edit step), AmigaGuide help, icons.
+- **Playing**: song, pattern loop, from the cursor row; edits are heard at once; jam notes on
+  the piano keys (also while the song plays), Return steps through rows; mute/solo; scopes
+  and VU meters for every channel; a play cursor in the waveform.
+- **Application**: undo/redo for every edit (200 steps), menus with shortcuts, asl requesters,
+  Save/Discard/Cancel on unsaved changes, an ARexx port, drag and drop (a module opens, a sample
+  file goes into the current sample), preferences in `ENV:Riffwright.prefs` (octave, follow
+  mode, edit step, last drawer), AmigaGuide help (Help key), icons, and a project icon on
+  newly saved songs that opens them in Riffwright.
+
+ARexx (port `RIFFWRIGHT`): `PLAY [position]`, `STOP`, `LOAD file`, `SAVE [file]`,
+`POSITION [n]` (returns the position playing), `TITLE`, `VERSION`.
+
+```rexx
+/* play a module from position 2 */
+options results
+address RIFFWRIGHT
+'LOAD Work:music/song.mod'
+'PLAY 2'
+```
 
 ## How it is built
 
@@ -63,7 +81,7 @@ The full manual is the AmigaGuide [Riffwright.guide](Riffwright.guide) (Help key
 | `Song.bas` | the song model and the .mod reader/writer |
 | `Edit.bas` | every edit, with undo/redo (swap-based steps for cells, samples, song settings) and the clipboard |
 | `Samples.bas` | 8SVX/WAV/raw load and save, sample operations, synthesised starter samples |
-| `Player.bas` | the link to the MOD player: mirrors edits, transport, scopes, VU |
+| `Player.bas` | the link to `Boing.Audio`: the song mirrored after a load (a temporary .mod through `LoadMusic`), each edit sent as it happens (`SetCell`, `CellPeriod` for odd periods, `SetSampleBytes`), transport, jam notes, scopes, VU |
 | `View.bas` | all drawing |
 | `Tracker.bas` | the editor: cursor, keys, views, what a frame shows |
 | `Prefs.bas` | preferences |
@@ -94,7 +112,7 @@ frame drew only the regions that changed, the numbers were 136 / 95 / 94 fps.
 
 ## Tests
 
-`make test` runs `tests/run.sh`: each test through the VM, the VM with the JIT, and a native
+`make test` runs `tests/run.sh` (15 runs): each test through the VM, the VM with the JIT, and a native
 build, compared with its `.out` file.
 
 | Test | |
@@ -102,6 +120,7 @@ build, compared with its `.out` file.
 | `test_io` | .mod round trips byte-exact against reference files (`tests/ref`, written by an independent Python writer, `tools/mkref.py`: odd periods, sample numbers > 15, raw finetune bytes, data after the samples, 6 and 8 channels), the demo songs, bad files |
 | `test_edit` | every editing operation, undo/redo, clipboard, the order list, song settings, samples, saving patterns not in the order list, the undo limit |
 | `test_samples` | WAV (16-bit stereo 44.1 kHz, 8-bit mono), 8SVX (plain, Fibonacci-delta), raw: load, save, load back; reverse, normalise, crop |
+| `test_player` | the song mirrored into `Boing.Audio` (every cell compared), edits while it plays (cells, odd periods, new patterns, undo, samples, order list), the pattern loop, jam notes, the sample play cursor, start speed/tempo, a PCM hash of a second of music (the "manual" device: the same on every platform) |
 | `test_ui` | the editor driven by keys on an off-screen Canvas: jam and edit mode, hex entry, octave/sample keys, undo/redo, select/copy/paste/transpose, mute, the three views, frame drawing |
 
 On the guest: `BB_GUEST=m1 tools/guest.py smoke` plays a demo, switches views and enters notes

@@ -97,7 +97,7 @@ def smoke(m, shots):
     os.makedirs(shots, exist_ok=True)
     outf = "RAM:riffwright.log"
     dos(m, "delete %s QUIET" % outf)
-    dos(m, "run >NIL: %s/Riffwright %s --play --log --quit-after 40 >%s" % (DIR, SONG, outf))
+    dos(m, "run >NIL: %s/Riffwright %s --play --log --quit-after 75 >%s" % (DIR, SONG, outf))
     ok = wait_for(m, outf, "active", 30) is not None
     print("window active:", ok)
     if not ok:
@@ -135,7 +135,7 @@ def smoke(m, shots):
     ok_rx &= "riffwright_rx.mod" in size
     dos(m, "delete RAM:riffwright_rx.mod RAM:riffwright_rx.mod.info QUIET")
     print("arexx ok:", ok_rx)
-    out = wait_for(m, outf, "quit", 60)
+    out = wait_for(m, outf, "quit", 90)
     print("log:\n" + (out or dos(m, "type %s" % outf)))
     time.sleep(2)
     st = dos(m, "status")
