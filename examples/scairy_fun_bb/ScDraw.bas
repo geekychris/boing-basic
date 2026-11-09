@@ -92,7 +92,11 @@ Private co(0 To 30719) As Long, cp(0 To 2559) As Long, nq As Long, qBase As Long
 Private slotSeg(0 To 63) As Long, slotKey(0 To 63) As Long, slotN1(0 To 63) As Long, slotN2(0 To 63) As Long, slotN3(0 To 63) As Long
 Private slotRoute As Long
 Private cy4 As Long, sy4 As Long, cp4 As Long, sp4 As Long
-Private aiBg As Long, aiBgRoute As Long, curD As Long
+Private curD As Long
+' each slot's scenery (side 0, 1): model (-1 none), position, yaw
+Private scM(0 To 127) As Long, scX(0 To 127) As Long, scY(0 To 127) As Long, scZ(0 To 127) As Long, scYaw(0 To 127) As Long
+' the AI view's dotted lines, made again when the route or the palette changes
+Private aiXs(0 To 799) As Long, aiYs(0 To 799) As Long, aiCs(0 To 799) As Long, aiN As Long, aiKey As Long
 Private off(0 To 7) As Long, dyv(0 To 7) As Long
 Private ax(0 To 7) As Long, ay(0 To 7) As Long, az(0 To 7) As Long, bx(0 To 7) As Long, by(0 To 7) As Long, bz(0 To 7) As Long
 ' objects drawn with each segment: per-segment lists, far to near
@@ -107,7 +111,7 @@ Public Sub DrawInit(cv As Object)
     e3.Attach cv
     e3.View VIEW_W, VIEW_H, VIEW_CX, VIEW_CY, FOV
     renderDrawDist = 32
-    palRoute = -1: palGlare = -1: sunRoute = -1: chaseView = -1
+    palRoute = -1: palGlare = -1: sunRoute = -1: chaseView = -1: aiKey = -1
     routePal(0) = Array(&H0, &HFFF, &H333, &H999, &H8BF, &H9AB, &H357, &H469, &H444, &H555, &H998, &H4A3, &H5B4, &H763, &H874, &H776, _
                         &HE22, &H811, &HFE2, &HF72, &H2EF, &H3F5, &H36D, &H128, &HEEE, &HAAB, &H774, &H263, &H124, &H642, &HB85, &H111)
     routePal(1) = Array(&H0, &HFFF, &H333, &H999, &HABC, &HAAA, &H467, &H578, &H555, &H666, &H999, &H6A4, &H7B5, &H875, &H986, &H887, _
@@ -477,7 +481,15 @@ End Function
 
 ' scenery beside segment i, the same every time (hashed from i)
 Private Sub Scenery(ByVal i As Long)
-    Dim side As Long, h As Long, t As Long, sgn As Long, m As Long, edgeX As Long, outv As Long, y As Long, z As Long, yaw As Long, zf As Long
+    Dim j As Long
+    For j = (i And 63) * 2 To (i And 63) * 2 + 1
+        If scM(j) >= 0 Then AddModel scM(j), scX(j), scY(j), scZ(j), scYaw(j), -1, False
+    Next j
+End Sub
+
+' segment i's trees, poles, houses (render.c's add_scenery) into its slot
+Private Sub BuildScenery(ByVal i As Long)
+    Dim side As Long, j As Long, h As Long, t As Long, sgn As Long, m As Long, edgeX As Long, outv As Long, y As Long, z As Long, yaw As Long, zf As Long
     For side = 0 To 1
         h = A3Hash(i * 2 + side + wRoute * 977)
         If side <> 0 Then
@@ -523,9 +535,11 @@ Private Sub Scenery(ByVal i As Long)
                     outv = 120: y = 3: yaw = 0: z = i * SEG_LEN
                 End If
         End Select
+        j = (i And 63) * 2 + side
+        scM(j) = m
         If m >= 0 Then
             zf = z * 16
-            AddModel m, RoadCx(zf) + edgeX + sgn * outv, RoadY(zf) + y, z, RoadDir(zf) + yaw, -1, False
+            scX(j) = RoadCx(zf) + edgeX + sgn * outv: scY(j) = RoadY(zf) + y: scZ(j) = z: scYaw(j) = RoadDir(zf) + yaw
         End If
     Next side
 End Sub
@@ -667,6 +681,7 @@ Private Sub BuildSlot(ByVal i As Long, ByVal key As Long)
     End If
     If sgSideL(i) = SIDE_MEDIAN Then Wall i, off(2) - 8, 0, 14, PEN_GREY
     slotN3(slot) = nq - slotN1(slot) - slotN2(slot)
+    BuildScenery i
     slotSeg(slot) = i
     slotKey(slot) = key
 End Sub
@@ -1153,6 +1168,12 @@ Private Function AYp(ByVal dz As Long) As Long
     AYp = 253 - 6 - (dz * (253 - (VIEW_H + 3) - 10)) \ (12 * SEG_LEN)
 End Function
 
+Private Sub AiDot(ByVal x As Long, ByVal y As Long, ByVal p As Long)
+    If aiN > 799 Then Exit Sub
+    aiXs(aiN) = x: aiYs(aiN) = y: aiCs(aiN) = pen(p)
+    aiN = aiN + 1
+End Sub
+
 ' what the autopilot thinks is around it, from above
 Private Sub AiDisplay(cv As Object)
     Dim x0 As Long, y0 As Long, x1 As Long, y1 As Long, l As Long, r As Long, span As Long, cz As Long, i As Long, n As Long
@@ -1171,16 +1192,21 @@ Private Sub AiDisplay(cv As Object)
         GText cv, x0 + 15, y0 + 22, PEN_RED, "BLIND"
         Exit Sub
     End If
-    For i = y0 + 1 To y1 - 1 Step 3
-        GRect cv, AXp(RoadLeft(), l, span), i, AXp(RoadLeft(), l, span), i, PEN_GREY
-        GRect cv, AXp(RoadRight(), l, span), i, AXp(RoadRight(), l, span), i, PEN_GREY
-        If riNo(wRoute) <> 0 Then GRect cv, AXp(0, l, span), i, AXp(0, l, span), i, PEN_YELLOW
-        If i Mod 6 = 0 Then
-            For n = 1 To riNl(wRoute) - 1
-                GRect cv, AXp(n * LANE_W, l, span), i, AXp(n * LANE_W, l, span), i, PEN_PANEL
-            Next n
-        End If
-    Next i
+    If aiKey <> wRoute * 4096 + palGlare Then
+        aiKey = wRoute * 4096 + palGlare
+        aiN = 0
+        For i = y0 + 1 To y1 - 1 Step 3
+            AiDot AXp(RoadLeft(), l, span), i, PEN_GREY
+            AiDot AXp(RoadRight(), l, span), i, PEN_GREY
+            If riNo(wRoute) <> 0 Then AiDot AXp(0, l, span), i, PEN_YELLOW
+            If i Mod 6 = 0 Then
+                For n = 1 To riNl(wRoute) - 1
+                    AiDot AXp(n * LANE_W, l, span), i, PEN_PANEL
+                Next n
+            End If
+        Next i
+    End If
+    If aiN > 0 Then cv.PSetMany aiXs, aiYs, aiCs, aiN
     If aiOn <> 0 Then
         For i = 0 To 11
             dz = (aiPlanFrom + i) * SEG_LEN - cz
