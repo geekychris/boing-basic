@@ -16,6 +16,7 @@ Sub Main()
     Dim co(0 To 23) As Long, pens(0 To 1) As Long, lc(0 To 11) As Long
     Dim px(0 To 99) As Long, py(0 To 99) As Long, pz(0 To 99) As Long, pc(0 To 99) As Long
     Dim vx(0 To 3) As Long, vy(0 To 3) As Long, vz(0 To 3) As Long, fn(0 To 1) As Long, fi(0 To 7) As Long, fc(0 To 1) As Long
+    Const COLBODY As Long = 200
     Dim hx(0 To 15) As Long, ids(0 To 2) As Long, yw(0 To 2) As Long
 
     Set cv = CreateObject("Boing.Canvas")
@@ -182,8 +183,29 @@ Sub Main()
     e.DrawLine3D -300, 0, -500, 300, 0, 900, 1
     e.DrawLine3D -30000, 10, 100, 30000, 10, 100, 2
     Shot "bias"
+    e.QuadW -5, 4, -50, 0, 600, 50, 0, 600, 50, 60, 700, -50, 60, 700
+    e.Flush
+    Shot "bias5"
     e.QuadBias = 0
     e.ModelMargin = 800
+    ' per-instance pens and bias in DrawModels; MdlPrism without a top; FillGradient
+    k = e.ModelNew()
+    e.MdlBox k, COLBODY, COLBODY + 1, -20, 20, 0, 40, -20, 20
+    i = e.ModelNew()
+    e.MdlPrism i, 13, 10, 8, 26, 0, 130, True
+    Print "notop"; e.ModelFaces(i); e.ModelVerts(i)
+    ids(0) = k: ids(1) = k: ids(2) = i
+    For g = 0 To 2
+        px(g) = (g - 1) * 80: py(g) = 0: pz(g) = 100: yw(g) = g * 5000: pc(g) = 2 + g
+    Next g
+    lc(0) = 0: lc(1) = 50: lc(2) = 0
+    cv.Cls 0
+    e.FillGradient 0, 127, RGB(0, 0, 80), RGB(200, 220, 255)
+    e.Begin 3000
+    e.DrawModels 3, ids, px, py, pz, yw, False, pc, 1, lc
+    e.Flush
+    Shot "instances"
+    g = 0
 
     ' ---- terrain
     g = e.GridNew(33, 33, 40, -640, 0)

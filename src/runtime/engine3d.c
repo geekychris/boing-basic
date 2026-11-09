@@ -404,6 +404,7 @@ static int32_t pick_depth(const bb_e3d *e, int32_t mode, const V3 *q, int n)
     case -2: d = 0; for (i = 0; i < n; i++) d += q[i].z; return d / n;
     case -3: d = q[0].z; for (i = 1; i < n; i++) if (q[i].z < d) d = q[i].z; return d;
     case -4: d = q[0].z; for (i = 1; i < n; i++) if (q[i].z > d) d = q[i].z; return d;
+    case -5: d = 0; for (i = 0; i < n; i++) d += q[i].z; return d / n + e->quad_bias;
     default: return (q[0].z + q[n > 2 ? 2 : n - 1].z) / 2 + e->quad_bias;
     }
 }
@@ -697,7 +698,7 @@ static void mdl_pyramid3(E3Model *m, int32_t lit, int32_t shade, int x0, int x1,
     mdl_face3(m, lit, shade, 3, b + 3, b + 0, t, 0, cx, cy, cz);
 }
 
-static void mdl_prism3(E3Model *m, int32_t lit, int32_t shade, int sides, int r, int y0, int y1)
+static void mdl_prism3(E3Model *m, int32_t lit, int32_t shade, int sides, int r, int y0, int y1, int top)
 {
     int b = m->nv, k, cy = (y0 + y1) / 2, c;
     if (sides < 3 || sides > 64 || m->nv + 2 * sides + 1 > E3_MAXV) bb_raise(5, NULL);
@@ -711,6 +712,7 @@ static void mdl_prism3(E3Model *m, int32_t lit, int32_t shade, int sides, int r,
         int j = (k + 1) % sides;
         mdl_face3(m, lit, shade, 4, b + 2 * k, b + 2 * k + 1, b + 2 * j + 1, b + 2 * j, 0, cy, 0);
     }
+    if (!top) return;
     c = mdl_vtx3(m, 0, y1, 0);
     for (k = 0; k < sides; k++) {
         int j = (k + 1) % sides;
@@ -879,7 +881,7 @@ static int32_t model_load(bb_e3d *e, const char *path)
         else if (!strcasecmp(w[0], "f") && (n == 5 || n == 6)) mdl_face_raw(m, a[1], n - 2, &a[2]);
         else if (!strcasecmp(w[0], "box") && n >= 9) mdl_box3(m, a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
         else if (!strcasecmp(w[0], "pyramid") && n >= 9) mdl_pyramid3(m, a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8]);
-        else if (!strcasecmp(w[0], "prism") && n >= 7) mdl_prism3(m, a[1], a[2], a[3], a[4], a[5], a[6]);
+        else if (!strcasecmp(w[0], "prism") && n >= 7) mdl_prism3(m, a[1], a[2], a[3], a[4], a[5], a[6], n >= 8 ? !a[7] : 1);
         else if (!strcasecmp(w[0], "shadow") && n >= 6) mdl_shadow3(m, a[1], a[2], a[3], a[4], a[5]);
         else if (!strcasecmp(w[0], "face") && n >= 11) mdl_face3(m, a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10]);
         else { fclose(f); m->used = 0; bb_raise(5, NULL); }
@@ -1132,7 +1134,7 @@ enum {
     P_SHADING, M_LIGHT, M_FOG,
     M_TEXT, M_TEXTSHADOW, M_TEXTCENTRE, M_TEXTWIDTH, M_SPAN, M_FILLRECT, M_POLYFILL, M_BLEND,
     M_SIN, M_COS, M_ATAN2, M_ISQRT, M_HYPOT, M_HASH, M_RAND, M_FMUL, M_FDIV, M_FSQRT, M_ROTYPR, M_ROTYAW, M_MATMUL,
-    M_MATAPPLY, M_SINTABLE, M_COSTABLE, M_CAMSET, P_MODELMARGIN, P_QUADBIAS, M_DRAWLINE3D
+    M_MATAPPLY, M_SINTABLE, M_COSTABLE, M_CAMSET, P_MODELMARGIN, P_QUADBIAS, M_DRAWLINE3D, M_FILLGRADIENT
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -1164,7 +1166,7 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"Rand", M_RAND}, {"FMul", M_FMUL}, {"FDiv", M_FDIV}, {"FSqrt", M_FSQRT}, {"RotYPR", M_ROTYPR},
     {"RotYaw", M_ROTYAW}, {"MatMul", M_MATMUL}, {"MatApply", M_MATAPPLY}, {"SinTable", M_SINTABLE},
     {"CosTable", M_COSTABLE}, {"CamSet", M_CAMSET}, {"ModelMargin", P_MODELMARGIN}, {"QuadBias", P_QUADBIAS},
-    {"DrawLine3D", M_DRAWLINE3D},
+    {"DrawLine3D", M_DRAWLINE3D}, {"FillGradient", M_FILLGRADIENT},
 };
 
 static int32_t e3_find(const bb_class *cls, const char *name)
@@ -1542,7 +1544,7 @@ static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
     case M_MDLPRISM: {
         E3Model *m = get_model(e, argl(argc, argv, 0));
         mdl_prism3(m, argl(argc, argv, 1), argl(argc, argv, 2), argl(argc, argv, 3), argl(argc, argv, 4),
-                   argl(argc, argv, 5), argl(argc, argv, 6));
+                   argl(argc, argv, 5), argl(argc, argv, 6), argl_opt(argc, argv, 7, 0) == 0);
         return;
     }
     case M_MDLSHADOW: {
@@ -1604,11 +1606,16 @@ static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
     case M_DRAWMODELS: {
         int32_t n = argl(argc, argv, 0), i, f16 = argl_opt(argc, argv, 6, 0) != 0;
         many ids = arg_many(argc, argv, 1, 1), yaws = arg_many(argc, argv, 5, 0);
+        many lits = arg_many(argc, argv, 7, 3), shades = arg_many(argc, argv, 8, -1), biases = arg_many(argc, argv, 9, 0);
+        int has_body = !missing(argc, argv, 7);
         bb_array *ax = arg_array(argc, argv, 2), *ay = arg_array(argc, argv, 3), *az = arg_array(argc, argv, 4);
         if (n < 0 || n > ax->count || n > ay->count || n > az->count) bb_raise(9, NULL);
         for (i = 0; i < n; i++)
+        {
+            int32_t lit = many_at(&lits, i), sh = shades.a || !missing(argc, argv, 8) ? many_at(&shades, i) : lit;
             draw_model(e, many_at(&ids, i), elem_l(ax, i), elem_l(ay, i), elem_l(az, i), f16, many_at(&yaws, i), 0, 0, NULL,
-                       3, 3, 0, 1, 0);
+                       lit, sh, has_body, 1, many_at(&biases, i));
+        }
         return;
     }
 
@@ -1719,6 +1726,16 @@ static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         int32_t sc = argl_opt(argc, argv, 1, 1);
         *ret = bb_v_long((int32_t)strlen(s) * 8 * (sc < 1 ? 1 : sc));
         bb_str_release(hold);
+        return;
+    }
+    case M_FILLGRADIENT: {
+        /* rows y0..y1 of the 3D area (its coordinates) across its width, top colour to bottom */
+        int32_t y0 = argl(argc, argv, 0), y1 = argl(argc, argv, 1), S = e->sub, y, n;
+        uint32_t top = ARGB(argl(argc, argv, 2)), bot = ARGB(argl(argc, argv, 3));
+        if (y1 < y0 || !need_target(e)) return;
+        n = (y1 - y0 + 1) * S;
+        for (y = 0; y < n; y++)
+            tspan(e, y0 * S + y, 0, c->vw * S - 1, mix_col(top, bot, n > 1 ? (y * 256) / (n - 1) : 0));
         return;
     }
     case M_SPAN: {

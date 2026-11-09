@@ -117,7 +117,7 @@ counted in `Dropped`.
 | `QuadW depth, pen, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3` | a quad of world points (A3Scene's `A3QuadW`) |
 | `QuadsW n, depth, pens, coords()` | n world quads: `coords` holds 12 values a quad; `pens` an array or one pen |
 | `Spot x, y, z, r, pen [, bias]` | a square of half size r facing the camera at a world point (shells, particles) |
-| `Star x, y, z, r, pen, points, turn [, bias]` | a ragged star facing the camera (explosions): `points` tips, alternate ones r/2 |
+| `Star x, y, z, r, pen, points, turn [, bias]` | a ragged star facing the camera (explosions): `points` is the number of tips (2..5; the polygon has 2 x points vertices, the inner ones at r/2) |
 | `Line3D x1, y1, z1, x2, y2, z2, pen [, bias]` | a world line, z-sorted with the polygons |
 | `Lines3D n, coords(), pens` | n lines, 6 values each |
 | `Points n, xs(), ys(), zs(), pens [, size [, bias]]` | a point cloud (stars, rain, sparks): world points as size x size squares (size shrinks with distance when negative) |
@@ -128,7 +128,8 @@ counted in `Dropped`.
 
 `depth` is a camera-space z (CamU units, as in amiga3d). For the `...W` calls, `depth` < 0
 picks it: -1 = the middle of the first and third corners plus `QuadBias`, -2 = the average of
-the corners, -3 = the nearest corner, -4 = the farthest; >= 0 is used as is (A3Scene's modes).
+the corners, -3 = the nearest corner, -4 = the farthest, -5 = the average plus `QuadBias`; >= 0 is
+used as is (A3Scene's modes).
 
 ## Models
 
@@ -142,7 +143,7 @@ Models live in the engine and are numbered from 1. Up to 256 vertices and 192 fa
 | `MdlFace m, lit, shade, n, a, b, c, d, ix, iy, iz` | add a face, flipped to face away from the interior point, pen lit or shade by amiga3d's fixed sun |
 | `MdlBox m, lit, shade, x0, x1, y0, y1, z0, z1` | `mdl_box` |
 | `MdlPyramid m, lit, shade, x0, x1, y0, z0, z1, apex` | `mdl_pyramid` |
-| `MdlPrism m, lit, shade, sides, r, y0, y1` | `mdl_prism` (about the y axis) |
+| `MdlPrism m, lit, shade, sides, r, y0, y1 [, noTop]` | `mdl_prism` (about the y axis); noTop True leaves out the top fan |
 | `MdlShadow m, pen, x0, x1, z0, z1` | `mdl_shadow` (flat at y = 1, drawn first) |
 | `ModelFromArrays(vx(), vy(), vz(), nv, fn(), fi(), fcol(), nf)` | build from arrays: `fn(k)` 3 or 4, `fi` 4 indices a face, `fcol` pens; faces wound clockwise seen from outside |
 | `ModelLoad(path)` | a text model file (below) |
@@ -157,7 +158,7 @@ Models live in the engine and are numbered from 1. Up to 256 vertices and 192 fa
 | `DrawModel m, x, y, z [, yaw [, pitch [, roll [, bodyLit [, bodyShade [, flash [, bias]]]]]]]` | at a whole-unit world position; rotation roll, pitch, yaw (`a3_rot_ypr`); with all angles 0 the model is unrotated (`rot` NULL) |
 | `DrawModelF m, x16, y16, z16 [, same as above]` | at a 16.16 position: does amiga3d's `cam_for` (a model drawn where it is, not on whole units) |
 | `DrawModelM m, x, y, z, rot() [, bodyLit, bodyShade, flash, bias]` | with your own 3x3 16.16 matrix (row-major, world = M * model) |
-| `DrawModels n, ids, xs(), ys(), zs(), yaws [, f16]` | n models in one call; `ids` and `yaws` arrays or one value; f16 True: positions are 16.16 |
+| `DrawModels n, ids, xs(), ys(), zs(), yaws [, f16 [, bodyLit [, bodyShade [, bias]]]]` | n models in one call; `ids`, `yaws`, `bodyLit`, `bodyShade` and `bias` each an array (one a model) or one value; f16 True: positions are 16.16; bodyShade defaults to bodyLit |
 
 The model's faces that face the camera are sorted far to near and go into the list at the
 depth of the model's centre minus `bias` (amiga3d's `a3_model`). A model whose centre is more
@@ -218,6 +219,7 @@ These draw straight onto the canvas (not into the draw list), in 3D-area coordin
 | `TextWidth(s [, scale])` | in 3D-area pixels |
 | `FillRect x0, y0, x1, y1, pen`, `PolyFill xs(), ys(), n, pen` | 2D in pens, in 3D-area coordinates (amiga3d's `g_rect`, `g_poly`) |
 | `Span y, xl, xr, pen` | a span in the drawing's own pixels (x Sub, amiga3d's `g_span_sub`) |
+| `FillGradient y0, y1, topColour, bottomColour` | rows y0..y1 of the 3D area, its full width, shaded from one VB colour to the other (amiga3d's `g_fill_grad`), at the drawing's resolution |
 | `Blend y, xl, xr, pen, alpha` | a see-through span (alpha 0..256), the drawing's pixels |
 
 ## Maths helpers
