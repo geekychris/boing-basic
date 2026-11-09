@@ -50,7 +50,7 @@ Public Sub SoundInit(ByVal withMusic As Boolean)
     au.SfxTone SFX_WIN, 3600, 1200, 1046, 1046, 110, 1000
     If withMusic Then
         On Error Resume Next
-        song = au.LoadMusic(HsPath("stack_tower.mod"))
+        song = au.LoadMusic(DataFile("stack_tower.mod"))
         If Err.Number <> 0 Then song = 0
         On Error GoTo 0
         If song <> 0 Then au.PlayMusic song

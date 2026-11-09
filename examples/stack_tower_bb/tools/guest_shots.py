@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""guest_shots.py - Stack Tower screenshots on an AmigaOS 4 guest (BB_GUEST=m1|local), for the
+README: the game is started with each set of arguments, left to run, the screen blanker woken
+(a 1-pixel mouse move through QEMU's monitor), the screen dumped, and the game stopped.
+
+    guest_shots.py OUTDIR [vm|native]
+Writes OUTDIR/<name>.png (the whole guest screen). Uses examples/common/tools/guest_game.py's
+helpers (FIFO ticket, emulator lock, banner, RAM:bbg/).
+"""
+import os, subprocess, sys, time
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, "../../common/tools"))
+import guest_game as gg
+g = gg.g
+
+SHOTS = [  # name, arguments, seconds
+    ("playing", "--autoplay --nomusic --seed 3", 40),
+    ("title", "--nomusic", 14),
+    ("demo", "--nomusic", 22),
+    ("help", "--nomusic --help 1", 12),
+    ("scores", "--nomusic --scores", 12),
+]
+
+
+def hmp(cmd):
+    line = "printf '%s\\n' | nc -w 2 127.0.0.1 2348 >/dev/null" % cmd
+    if g.SSH:
+        subprocess.run(["ssh", g.SSH, line], check=False)
+    else:
+        subprocess.run(line, shell=True, check=False)
+
+
+def main():
+    out, mode = os.path.abspath(sys.argv[1]), (sys.argv[2] if len(sys.argv) > 2 else "vm")
+    os.makedirs(out, exist_ok=True)
+    src = os.path.abspath(os.path.join(HERE, "../StackTower.bbp"))
+    exe = None
+    if mode == "native":
+        exe = os.path.join(gg.ROOT, "build/os4/StackTower.exe")
+        subprocess.check_call([os.path.join(gg.ROOT, "build/boing"), "build", src, "--target", "os4", "-o", exe])
+    m = g.MCP(g.URL)
+    with g.testing("Boing BASIC: Stack Tower screenshots"):
+        fl = gg.files_of(src)
+        dirs = sorted({os.path.dirname(gg.amiga(p)) for p in fl})
+        m.tool("amiga_dos_command", command="makedir RAM:bbg " + " ".join(
+            sorted({"/".join(x.split("/")[:i]) for x in dirs for i in range(2, x.count("/") + 2)})) + " QUIET")
+        for f in fl:
+            g.push(m, f, gg.amiga(f))
+        d = os.path.dirname(gg.amiga(src))
+        if exe:
+            g.push(m, exe, d + "/StackTower")
+        else:
+            g.push(m, os.path.join(gg.ROOT, "build/os4/boing"), "RAM:bbg/boing")
+        m.tool("amiga_dos_command", command="cd " + d)
+        for name, args, secs in SHOTS:
+            cmd = ("%s/StackTower %s" % (d, args)) if exe else ("RAM:bbg/boing run %s %s" % (gg.amiga(src), args))
+            m.tool("amiga_dos_command", command="run >NIL: %s >RAM:bbg/shot.out *>RAM:bbg/shot.err" % cmd)
+            time.sleep(secs)
+            hmp("mouse_move 1 0")
+            time.sleep(1)
+            hmp("mouse_move -1 0")
+            time.sleep(1)
+            gg.screendump(os.path.join(out, name + ".png"))
+            gg.stop_ours(m)
+            time.sleep(4)
+            print(name, str(m.tool("amiga_dos_command", command="type RAM:bbg/shot.err")).strip()[:300])
+        n = g.reapers(m)
+        print("Grim Reapers:", n)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

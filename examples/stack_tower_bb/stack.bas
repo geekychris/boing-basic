@@ -76,7 +76,7 @@ Private Sub ParseArgs()
 End Sub
 
 Private Function ScoreFile(ByVal m As Long) As String
-    ScoreFile = HsPath("stack_tower_" & stModeName(m) & ".scores")
+    ScoreFile = DataFile("stack_tower_" & stModeName(m) & ".scores")
 End Function
 
 Private Sub LoadBests()

@@ -168,7 +168,17 @@ End Sub
 
 ' where the pictures are: beside the program (App.Path) or in the current directory
 Private Function ArtDir() As String
-    ArtDir = HsPath("")
+    ArtDir = DataFile("")
+End Function
+
+' a data file of the game: beside the program (a native build: App.Path) or else in the
+' current directory (boing run: App.Path is the interpreter's)
+Public Function DataFile(ByVal name As String) As String
+    Dim p As String
+    p = HsPath("st_title.ppm")
+    On Error Resume Next
+    If Len(Dir$(p)) > 0 Then DataFile = HsPath(name) Else DataFile = name
+    If Err.Number <> 0 Then DataFile = name
 End Function
 
 Private Sub Sky(cv As Object)
