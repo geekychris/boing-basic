@@ -1,0 +1,13 @@
+# Boing BASIC project: Ace Pilot 2, a biplane war in 3D (a port of amiga_mcp's examples/ace_pilot2)
+Name=AcePilot2
+Startup=Form ace
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/Gfx2D.bas
+Module=ApCore.bas
+Module=ApDraw.bas
+Module=ApSound.bas
+Module=ApShell.bas
+Form=ace.afg
+Stack=262144

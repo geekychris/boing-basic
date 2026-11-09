@@ -1,0 +1,13 @@
+# Boing BASIC project: Ace Pilot 2 console bench (logic + drawing on an off-screen Canvas)
+Name=AcePilot2Bench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/Gfx2D.bas
+Module=ApCore.bas
+Module=ApDraw.bas
+Module=ApSound.bas
+Module=ApShell.bas
+Module=BenchMain.bas
+Stack=262144
