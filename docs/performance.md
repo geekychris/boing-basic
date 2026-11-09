@@ -150,6 +150,18 @@ On m1's unloaded guest (bb-game, ms/frame): bench logic native 0.152, VM 0.879, 
 (whole loops only, now the default); canvas draw native 1.47, VM 7.95, VM+JIT 8.73; form game
 native 354-365 fps, VM 88.4, VM+JIT 78.7. Real PowerPC hardware: untested.
 
+Late-bound calls into BASIC classes and returned arrays (bb-sound; m1b guest, VM, per call):
+`x = o.Count()` (o As Object) 41 -> 1.6 us, `a = o.State()` (an 8-Long array) 72 -> 2.3 us,
+`a = k.State()` early-bound 44 -> 2.0 us, a module Function returning an array 44 -> 2.0 us.
+Three changes: INVOKE on a BASIC class object pushes the Function / Property Get frame in the
+running vm_exec, like an early-bound call (before, every late call went through vm_call_proc
+and a nested vm_exec, whose code is far from the hot loop: ~40 us of TLB refills); array
+descriptors and data blocks up to 2 KB come from free lists instead of malloc/free; small array
+copies and fills are inline loops instead of newlib.library's memcpy/memset. Still slow on the
+guest (TLB again, layout-dependent): `f = o.Scope(96)` with a ReDim inside (38 us),
+`UBound(o.State())` (33 us), and with --jit a loop whose body makes a call on every iteration
+(each iteration leaves and re-enters compiled code, ~35 us on the guest).
+
 Typed `Int`/`Fix` and Double to Long (bb-g-lander2): `x = Int(CDbl(i) * 54321# * 1.52587890625E-05)`
 went through a Variant builtin call and compiled to stack ops: 25.8 us per iteration on the m1
 guest, now 0.33 us (VM) and 0.26 us (JIT); `x = Int(d)` 24.3 -> 0.24 us. For fixed point use

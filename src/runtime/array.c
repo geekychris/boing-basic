@@ -88,6 +88,36 @@ void bb_elem_store(int etype, void *p, const bb_value *v)
     bb_v_store_ref(&ref, v);
 }
 
+/* small copies and fills inline: on the OS4 guest memcpy/memset live in newlib.library, and the
+   extra code pages a call touches cost TLB refills under QEMU (us each) */
+#if defined(__GNUC__) && !defined(__clang__)
+#define BB_NO_LIBCALL __attribute__((optimize("no-tree-loop-distribute-patterns")))
+#else
+#define BB_NO_LIBCALL
+#endif
+static BB_NO_LIBCALL void arr_copy_bytes(void *d, const void *s, size_t n)
+{
+    if (n <= 512 && !(((uintptr_t)d | (uintptr_t)s | n) & 3)) {
+        uint32_t *dw = (uint32_t *)d;
+        const uint32_t *sw = (const uint32_t *)s;
+        size_t i;
+        for (i = 0; i < n / 4; i++) dw[i] = sw[i];
+        return;
+    }
+    memcpy(d, s, n);
+}
+
+static BB_NO_LIBCALL void arr_zero_bytes(void *d, size_t n)
+{
+    if (n <= 512 && !(((uintptr_t)d | n) & 3)) {
+        uint32_t *dw = (uint32_t *)d;
+        size_t i;
+        for (i = 0; i < n / 4; i++) dw[i] = 0;
+        return;
+    }
+    memset(d, 0, n);
+}
+
 /* ---- small-block pools: descriptors and data blocks up to 2 KB are kept on free lists and
    reused. Arrays returned by functions (`a = obj.State()` every frame) are copied, and the old
    one freed, each time: under QEMU on the OS4 guest newlib's malloc/free cost several us each.
@@ -163,7 +193,7 @@ static void *arr_data_realloc(void *p, size_t n)
     }
     q = arr_data_alloc(n);
     if (!q) return NULL;
-    memcpy(q, p, have < n ? have : n);
+    arr_copy_bytes(q, p, have < n ? have : n);
     arr_data_free(p);
     return q;
 }
@@ -174,7 +204,7 @@ static bb_array *arr_desc_alloc(void)
     if (!a) return (bb_array *)bb_alloc(sizeof(bb_array));
     ad_list = *(bb_array **)a;
     ad_count--;
-    memset(a, 0, sizeof *a);
+    arr_zero_bytes(a, sizeof *a);
     return a;
 }
 
@@ -190,7 +220,7 @@ static void init_range(bb_array *a, int32_t from, int32_t to)
     if (a->etype == BB_UDT) {
         for (i = from; i < to; i++) bb_udt_init(a->udt, (char *)a->data + (size_t)i * a->esize);
     } else {
-        memset((char *)a->data + (size_t)from * a->esize, 0, (size_t)(to - from) * a->esize);
+        arr_zero_bytes((char *)a->data + (size_t)from * a->esize, (size_t)(to - from) * a->esize);
     }
 }
 
@@ -251,13 +281,13 @@ bb_array *bb_arr_copy(const bb_array *src)
     int32_t i;
     if (!src) return NULL;
     a = arr_desc_alloc();
-    *a = *src;
+    arr_copy_bytes(a, src, sizeof *a);
     a->fixed = 0;
     a->locked = 0;
     a->data = arr_data_alloc((size_t)src->count * (size_t)src->esize);
     if (src->count && src->esize && !a->data) { arr_desc_free(a); bb_raise(7, NULL); }
     if (!needs_release(src->etype)) {
-        if (src->count) memcpy(a->data, src->data, (size_t)src->count * (size_t)src->esize);
+        if (src->count) arr_copy_bytes(a->data, src->data, (size_t)src->count * (size_t)src->esize);
         return a;
     }
     init_range(a, 0, a->count);

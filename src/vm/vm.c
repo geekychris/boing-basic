@@ -294,6 +294,80 @@ static void vmobj_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value 
     vm_call_proc(g_vm, p, self, argc, argv, ret);
 }
 
+/* INVOKE fast path: recv (a VMObj) and its argc Variant arguments on the stack become the frame
+   of the Function / Property Get the call reaches, the arguments converted in place to the
+   parameter types (as vm_call_proc does). Returns the proc, with vm->sp = recv + nparams, or -1
+   (nothing changed) when the generic path must do it: a field, a Sub, a ByRef parameter given
+   a reference of another type (copied back after the call), too many arguments. */
+static bb_value default_for(VM *vm, VMProc *p, int i);
+static int32_t inline_invoke(VM *vm, bb_value *recv, bb_site *site, const char *name, int kind, int argc)
+{
+    VMObj *o = (VMObj *)recv->u.o;
+    VMClass *vc = o->vc;
+    VMMember *m;
+    VMProc *p;
+    bb_value *args = recv + 1;
+    int32_t pidx = -1;
+    int i, k;
+    bb_obj_check(&o->hdr);
+    if (site->cls != o->hdr.cls) {
+        site->id = bb_member_id(&o->hdr, name);
+        site->cls = o->hdr.cls;
+    }
+    if (site->id < 0 || site->id >= vc->nmembers) return -1;
+    m = &vc->members[site->id];
+    if (m->field >= 0 || (kind & (BB_INV_LET | BB_INV_SET))) return -1;
+    if (kind & BB_INV_METHOD) pidx = m->method >= 0 ? m->method : m->pget;
+    else if (kind & BB_INV_GET) pidx = m->pget >= 0 ? m->pget : m->method;
+    if (pidx < 0) return -1;
+    p = &vm->img->procs[pidx];
+    if (p->code < 0 || p->ret_slot < 0 || p->cls < 0 || argc > p->nparams - 1) return -1;
+    if (recv + p->nlocals + 64 >= vm->stack_end) return -1;
+    for (i = 0; i < argc; i++) {
+        k = i + 1;
+        if (p->param_byref[k] && (args[i].type & BB_REF) && !(args[i].type == (BB_REF | p->slots[k].vt) ||
+            (p->slots[k].vt == BB_VARIANT && BB_BASETYPE(args[i].type) == BB_VARIANT))) return -1;
+    }
+    /* committed: convert in place (an error leaves every slot valid for the unwinding) */
+    for (i = 0; i < p->nparams - 1; i++) {
+        int vt;
+        bb_value *a, tmp, n;
+        k = i + 1;
+        vt = p->slots[k].vt;
+        a = &args[i];
+        if (i >= argc) {
+            vm->sp = recv + k;
+            *a = default_for(vm, p, k);
+            continue;
+        }
+        if (a->type == BB_ERROR && (a->flags & BB_VF_MISSING) && vt != BB_VARIANT) {
+            vm->sp = recv + argc + 1;
+            n = default_for(vm, p, k);
+            release_slot(a);
+            *a = n;
+            continue;
+        }
+        if (p->param_byref[k] && (a->type & BB_REF)) continue;    /* the reference itself */
+        if (vt == BB_VARIANT) {
+            if (!(a->type & BB_REF)) continue;                       /* already an owned Variant */
+            n = bb_v_dup(bb_v_deref(a, &tmp));
+        } else if (vt & BB_ARRAY) {
+            const bb_value *d = bb_v_deref(a, &tmp);
+            if (!(d->type & BB_ARRAY)) bb_raise(13, NULL);
+            if (d == a) continue;                                     /* owned array value */
+            n = bb_v_dup(d);
+        } else {
+            if (a->type == vt) continue;
+            vm->sp = recv + (argc > k ? argc : k) + 1;
+            n = bb_v_convert(a, vt);
+        }
+        release_slot(a);
+        *a = n;
+    }
+    vm->sp = recv + p->nparams;
+    return pidx;
+}
+
 static void wev_disconnect(bb_value *hidden)
 {
     WevConn *c = (WevConn *)hidden->u.p;
@@ -1776,6 +1850,23 @@ static void vm_exec(VM *vm, int entry)
                 bb_value *args = sp - argc, *recv = args - 1, r;
                 bb_str *name = img->consts[pc[1]].u.s;
                 if (!img->sites) img->sites = (bb_site *)bb_alloc(sizeof(bb_site) * (size_t)(img->nconsts + 1));
+                /* a Function / Property Get of a BASIC class: a frame in this vm_exec, like an
+                   early-bound call (no nested vm_exec: under QEMU that costs ~40 us a call) */
+                if (recv->type == BB_OBJECT && is_vmobj(vm, recv->u.o)) {
+                    SYNC();
+                    int32_t pidx = inline_invoke(vm, recv, &img->sites[pc[1]], bb_str_ptr(name), pc[2], argc);
+                    if (pidx >= 0) {
+                        VMProc *p = &img->procs[pidx];
+                        int32_t *ret = pc + 4;
+                        if (BB_LIKELY(p->rt_plain)) fr = push_plain(vm, p, pidx, recv);
+                        else { prep_hidden(vm, p, recv); fr = push_frame(vm, pidx, recv); }
+                        fr->ret = ret;
+                        pc = fr->pc;
+                        sp = vm->sp;
+                        L = fr->base;
+                        break;
+                    }
+                }
                 r = bb_v_invoke_site(recv, &img->sites[pc[1]], bb_str_ptr(name), pc[2], argc, args);
                 for (i = 0; i < argc; i++) release_slot(&args[i]);
                 release_slot(recv);

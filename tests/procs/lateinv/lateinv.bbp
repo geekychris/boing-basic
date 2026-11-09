@@ -1,0 +1,4 @@
+Name=lateinv
+Startup=Sub Main
+Module=main.bas
+Class=P.cls
