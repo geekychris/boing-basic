@@ -1116,6 +1116,18 @@ static void dispatch(int32_t id, int kind, int argc, bb_value *argv, bb_value *r
     bb_raise(438, NULL);
 }
 
+static int is_snapshot(int32_t id)
+{
+    switch (id) {
+    case P_PLAYING: case P_PAUSED: case P_CURRENTSONG: case P_SONGENDED: case P_POSITION:
+    case P_ROW: case P_PATTERN: case P_TICK: case P_SPEED: case P_TEMPO: case P_MUTE:
+    case P_CHANNELVOLUME: case P_CHANNELVU: case P_CHANNELNOTE: case P_CHANNELSAMPLE:
+    case P_CHANNELPOS: case P_VOICEPLAYING: case P_CPULOAD: case P_RATE: case P_PCMHASH:
+        return 1;
+    }
+    return 0;
+}
+
 static void au_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
 {
     bb_cleanup cl;
@@ -1135,6 +1147,15 @@ static void au_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         int32_t maxs = argl_opt(argc, argv, 2, 600);
         range(maxs, 1, 3600, 5);
         render_to_wav(s, path, maxs);
+        return;
+    }
+    /* reads the mixer only writes (positions, levels, scopes): no lock. They are single
+     * aligned words (a racy read is at worst one chunk old), and MutexObtain/Release cost
+     * two exec calls per Audio call, which is slow under QEMU. Songs and sounds are only
+     * freed by this task, so the pointers stay valid. */
+    if (id == M_SCOPE || (kind == BB_INV_GET && argc <= 1 && is_snapshot(id))) {
+        pump_null();
+        dispatch(id, kind, argc, argv, ret);
         return;
     }
     cl.prev = bb_cleanups;

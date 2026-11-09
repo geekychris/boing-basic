@@ -142,7 +142,7 @@ is replaced is cut on channels playing it).
 | `SampleData(song, s, index)` | Long -128..127, read/write: one byte of the sample |
 | `SetSampleBytes song, s, bytes() [, n]` | the sample's data from an array in one call: Byte (signed 8-bit as stored, 128..255 = -128..-1), or Integer/Long (-128..127); the length becomes n (default: the whole array) |
 | `GetSampleBytes(song, s)` | the sample's data as a Byte array `(0 To len-1)` (Empty for an empty sample) |
-| `LoadSample song, s, path` | an 8SVX/WAV/raw file into sample s (converted to 8-bit mono, rate kept as is: set the note to taste) |
+| `LoadSample song, s, path` | an 8SVX or WAV file (raw isn't accepted here: load it with `LoadSound(path, rate, format)` and use `SetSampleFromSound`) into sample s (converted to 8-bit mono, rate kept as is: set the note to taste) |
 | `SetSampleFromSound song, s, sound` | a sound (below) as sample s |
 | `NoteName(note)`, `NoteFromName(name)`, `NotePeriod(note [, finetune])` | helpers |
 
@@ -202,6 +202,14 @@ A precomputed sample at a Paula period: `au.PlaySound snd, vol, 0, 3546895 \ per
 
 On the Mac every call works the same with no sound device (the "null" device mixes silently
 by the clock, so positions advance); `Open "manual"` makes it deterministic for tests.
+
+## Cost of calls
+
+Reading the play state (`Position`, `Row`, `Pattern`, `Tick`, `Speed`, `Tempo`, `Playing`,
+`Paused`, `SongEnded`, `Mute`, `Channel*`, `Scope`, `VoicePlaying`, `CpuLoad`) takes no lock:
+the values are words the mixer task writes, at most one chunk (40 ms) old. Every other call
+takes the mixer's mutex for its duration; the mixer holds it while it mixes a chunk (about
+0.4 ms on the m1 guest for 4 channels), so a call waits at most that long.
 
 ## Mixing
 
