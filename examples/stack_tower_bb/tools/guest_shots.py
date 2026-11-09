@@ -3,8 +3,8 @@
 README: the game is started with each set of arguments, left to run, the screen blanker woken
 (a 1-pixel mouse move through QEMU's monitor), the screen dumped, and the game stopped.
 
-    guest_shots.py OUTDIR [vm|native]
-Writes OUTDIR/<name>.png (the whole guest screen). Uses examples/common/tools/guest_game.py's
+    guest_shots.py OUTDIR [vm|native] [name ...]
+One lock ticket per screenshot (the 5-minute rule). Writes OUTDIR/<name>.png (the whole guest screen). Uses examples/common/tools/guest_game.py's
 helpers (FIFO ticket, emulator lock, banner, RAM:bbg/).
 """
 import os, subprocess, sys, time
@@ -32,6 +32,14 @@ def hmp(cmd):
 
 def main():
     out, mode = os.path.abspath(sys.argv[1]), (sys.argv[2] if len(sys.argv) > 2 else "vm")
+    want = sys.argv[3:]
+    for name, args, secs in SHOTS:
+        if not want or name in want:
+            one(out, mode, name, args, secs)
+    return 0
+
+
+def one(out, mode, name, args, secs):
     os.makedirs(out, exist_ok=True)
     src = os.path.abspath(os.path.join(HERE, "../StackTower.bbp"))
     exe = None
@@ -39,7 +47,7 @@ def main():
         exe = os.path.join(gg.ROOT, "build/os4/StackTower.exe")
         subprocess.check_call([os.path.join(gg.ROOT, "build/boing"), "build", src, "--target", "os4", "-o", exe])
     m = g.MCP(g.URL)
-    with g.testing("Boing BASIC: Stack Tower screenshots"):
+    with g.testing("Boing BASIC: Stack Tower screenshot " + name):
         fl = gg.files_of(src)
         dirs = sorted({os.path.dirname(gg.amiga(p)) for p in fl})
         m.tool("amiga_dos_command", command="makedir RAM:bbg " + " ".join(
@@ -52,7 +60,7 @@ def main():
         else:
             g.push(m, os.path.join(gg.ROOT, "build/os4/boing"), "RAM:bbg/boing")
         m.tool("amiga_dos_command", command="cd " + d)
-        for name, args, secs in SHOTS:
+        if True:
             cmd = ("%s/StackTower %s" % (d, args)) if exe else ("RAM:bbg/boing run %s %s" % (gg.amiga(src), args))
             m.tool("amiga_dos_command", command="run >NIL: %s >RAM:bbg/shot.out *>RAM:bbg/shot.err" % cmd)
             time.sleep(secs)
@@ -66,7 +74,6 @@ def main():
             print(name, str(m.tool("amiga_dos_command", command="type RAM:bbg/shot.err")).strip()[:300])
         n = g.reapers(m)
         print("Grim Reapers:", n)
-    return 0
 
 
 if __name__ == "__main__":
