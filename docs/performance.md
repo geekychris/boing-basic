@@ -150,6 +150,16 @@ On m1's unloaded guest (bb-game, ms/frame): bench logic native 0.152, VM 0.879, 
 (whole loops only, now the default); canvas draw native 1.47, VM 7.95, VM+JIT 8.73; form game
 native 354-365 fps, VM 88.4, VM+JIT 78.7. Real PowerPC hardware: untested.
 
+The OS4 runtime and VM are built with -Os (mk/os4.mk). On the QEMU guest, how fast a VM loop
+runs depends mostly on how many distinct code and data pages it touches per iteration, because
+the guest's small software-refilled TLB is very slow to refill under QEMU. The same code with
+a different layout can swing from 2 to 40 us a call (the late-bound call benchmark, after
+unrelated commits), and native games by 5-10% (Tank Duel 384 -> 342 fps with no change in the
+code it runs). Smaller code is the one lever that helps across the board. m1b, -O2 -> -Os:
+VM Tank Duel 37.4 -> 43.3 fps, late-bound calls 34 -> 2.3 us, `a = o.State()` 42 -> 2.3 us,
+string scan 572 -> 357 ms, Chr$ building 730 -> 35 ms; numeric loops and native Tank Duel the
+same (340 fps both). Expect numbers measured on the guest to move by layout alone.
+
 Strings (bb-app-office; m1b guest, a 16,000-character scan): strings and array data share a
 small-block pool (rt.c, free lists per size class up to 2 KB) instead of newlib malloc/free;
 one-character results of Chr$, Mid$, Left$, Right$ are shared immortal strings (no allocation);

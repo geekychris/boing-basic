@@ -14,7 +14,10 @@ ifeq ($(origin AR),default)
 AR = ppc-amigaos-ar
 endif
 OUT     ?= build/os4
-CFLAGS  ?= -O2
+# -Os, not -O2: under QEMU on the sam460ex guest, speed is dominated by TLB refills (a small,
+# software-refilled TLB), so code size wins. m1b, VM: Tank Duel 37.4 -> 43.3 fps, late-bound
+# calls 34 -> 2.3 us, Chr$ string building 730 -> 35 ms; native games unchanged (docs/performance.md)
+CFLAGS  ?= -Os
 # no -D__USE_INLINE__: the runtime calls IFace->Function() explicitly
 CFLAGS  += -mcrt=newlib -mcpu=powerpc -Wall -std=gnu99 -D__USE_OLD_TIMEVAL__ \
            -DBB_PLATFORM_OS4 -Isrc -Isrc/runtime -Isrc/vm -Isrc/compiler
