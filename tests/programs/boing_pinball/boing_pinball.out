@@ -1,0 +1,27 @@
+table 0 COMET TOUR: nseg 76 ncirc 8 nsens 10 hash 9A35D7EB
+  t0 g0 step 1000 score 1000 ball 1 hash 9F713EDA
+  t0 g0 step 2000 score 12560 ball 1 hash 63E2A866
+  t0 g0 step 3000 score 13260 ball 2 hash 5DF0632E
+  t0 g0 end step 3000 score 13260 ball 2 state 1 hash 5DF0632E
+table 1 DEEP DIVE: nseg 77 ncirc 9 nsens 10 hash EFC08586
+  t1 g0 step 1000 score 0 ball 1 hash D320421F
+  t1 g0 step 2000 score 2330 ball 1 hash C22544EA
+  t1 g0 step 3000 score 4630 ball 1 hash 74D2D699
+  t1 g0 end step 3000 score 4630 ball 1 state 1 hash 74D2D699
+table 2 ROBOT FOUNDRY: nseg 80 ncirc 8 nsens 10 hash B5E7C21C
+  t2 g0 step 1000 score 500 ball 1 hash 45E26A60
+  t2 g0 step 2000 score 8100 ball 1 hash 82AB4EE8
+  t2 g0 step 3000 score 24680 ball 2 hash DFD5DE14
+  t2 g0 end step 3000 score 24680 ball 2 state 1 hash DFD5DE14
+  wobble t0 step 1000 score 770 ball 1 tilts 1 hash 8753F81D
+  wobble t0 step 2000 score 4630 ball 2 tilts 0 hash 9AF9178D
+  wobble t0 step 3000 score 4630 ball 2 tilts 0 hash D07B7530
+  wobble t0 end step 3000 score 4630 ball 2 hash D07B7530
+  wobble t1 step 1000 score 100 ball 1 tilts 0 hash 0E32098E
+  wobble t1 step 2000 score 14000 ball 1 tilts 1 hash AE2D562B
+  wobble t1 step 3000 score 19800 ball 1 tilts 1 hash 9AE23233
+  wobble t1 end step 3000 score 19800 ball 1 hash 9AE23233
+  wobble t2 step 1000 score 10700 ball 1 tilts 0 hash 24145F65
+  wobble t2 step 2000 score 14400 ball 1 tilts 1 hash F6F35E2F
+  wobble t2 step 3000 score 14900 ball 2 tilts 1 hash 0A682DEA
+  wobble t2 end step 3000 score 14900 ball 2 hash 0A682DEA

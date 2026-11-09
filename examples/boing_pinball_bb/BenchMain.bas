@@ -29,7 +29,8 @@ Sub Main()
         For i = 0 To TB_COUNT - 1
             t = TimerMs()
             ChooseTable i
-            Print "build " & tName & ": " & Format$(TimerMs() - t, "0") & " ms"
+            Print "build " & tName & ": " & Format$(TimerMs() - t, "0") & " ms (load the painting " & Format$(buildLoadMs, "0") & _
+                  ", paint " & Format$(buildPaintMs, "0") & ", ramps " & Format$(buildRampMs, "0") & ", patches and sprites " & Format$(buildPatchMs, "0") & ")"
         Next i
     End If
     If Len(shots) > 0 Then

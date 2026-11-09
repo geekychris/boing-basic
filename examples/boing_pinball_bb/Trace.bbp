@@ -4,5 +4,6 @@ Startup=Sub Main
 Module=../common/A3Fix.bas
 Module=PbCore.bas
 Module=PbTables.bas
+Module=PbTrace.bas
 Module=TraceMain.bas
 Stack=262144

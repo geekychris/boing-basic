@@ -69,7 +69,7 @@ Public animFrame As Long                        ' 25 a second, as the C's frame 
 Public bumperFlash(0 To 15) As Long
 Public slingFlash(0 To 1) As Long
 Public bestScore As Long                        ' the chosen table's best, for the title and game over
-Public drawCalls As Long                        ' (not counted: just for the docs)
+Public buildLoadMs As Double, buildPaintMs As Double, buildRampMs As Double, buildPatchMs As Double
 
 Private picImg As Long
 Private titleImg(0 To 2) As Long
@@ -604,7 +604,10 @@ End Sub
 Private Function PaintField(ByVal theme As Long) As Boolean
     Dim im As Long, row As Long, x0 As Long, y0 As Long, w As Long, h As Long, py As Long, ymm As Long
     Dim xl As Long, xr As Long, s0 As Long, s1 As Long
+    Dim t As Double
+    t = TimerMs()
     im = LoadArt("playfield_" & Choose(theme + 1, "comet", "deep", "foundry"))
+    buildLoadMs = TimerMs() - t
     If im = 0 Then Exit Function
     x0 = PXI(0): y0 = PYI(1040, 0)
     w = CV.ImageWidth(im): h = CV.ImageHeight(im)
@@ -621,6 +624,7 @@ Private Function PaintField(ByVal theme As Long) As Boolean
         End If
     Next row
     CV.FreeImage im
+    buildPaintMs = TimerMs() - t - buildLoadMs
     PaintField = True
 End Function
 
@@ -817,9 +821,12 @@ Private Sub BuildPicture()
     ThickLine PXI(20), PYI(22, 20), PXI(474), PYI(22, 20), P_CAB_L, 2
     GText PXI(PB_MID) \ 2 - 52, PYI(-10, 20) \ 2, P_ART3, "BOING PINBALL", True
     ' the ramps, over everything
+    Dim tr As Double
+    tr = TimerMs()
     For i = 0 To tNramp - 1
         DrawRamp i
     Next i
+    buildRampMs = TimerMs() - tr
     CV.SetTarget 0
 End Sub
 
@@ -943,8 +950,11 @@ Public Sub DrawBuild(ByVal which As Long)
     Set lineCache = New Collection       ' the pens changed: drop the cached text (its images stay)
     lineCount = 0
     Erase glyphImg
+    Dim t As Double
     BuildPicture
+    t = TimerMs()
     BuildPatches
+    buildPatchMs = TimerMs() - t
     dTable = which
     dmdKey = ""
 End Sub

@@ -1,0 +1,8 @@
+# Boing Pinball's rules (examples/boing_pinball_bb): bot and random-input games on the three tables, hashes equal to the C original's
+Name=PbTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/boing_pinball_bb/PbCore.bas
+Module=../../../examples/boing_pinball_bb/PbTables.bas
+Module=../../../examples/boing_pinball_bb/PbTrace.bas
+Module=pbtest.bas
