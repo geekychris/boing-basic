@@ -87,6 +87,7 @@ view, a radar, a mirror).
 | `CamPos x, y, z` | whole units (amiga3d `cam.x = ...`, precise off) |
 | `CamPlace x, y, z` | 16.16 position (amiga3d `cam_place`: precise, CamU 16) |
 | `CamAngles yaw, pitch [, roll]` | set the angles and the cached trig (`cam_setup`) |
+| `CamSet x, y, z, yaw, pitch [, qx, qy, qz [, roll]]` | the whole amiga3d camera in one call: whole units, with sixteenths qx, qy, qz (precise) when given |
 | `CamLookAt x, y, z` | turn the camera to look at a world point |
 | `CamX`, `CamY`, `CamZ`, `CamYaw`, `CamPitch`, `CamRoll` | properties (read/write; writing an angle redoes the trig) |
 | `CamU`, `CamNear` | 1/16 and 12/192 (above) |
@@ -120,12 +121,14 @@ counted in `Dropped`.
 | `Line3D x1, y1, z1, x2, y2, z2, pen [, bias]` | a world line, z-sorted with the polygons |
 | `Lines3D n, coords(), pens` | n lines, 6 values each |
 | `Points n, xs(), ys(), zs(), pens [, size [, bias]]` | a point cloud (stars, rain, sparks): world points as size x size squares (size shrinks with distance when negative) |
+| `DrawLine3D x1, y1, z1, x2, y2, z2, pen` | a world line drawn now, not sorted (cut at the near plane, clipped to the 3D area) |
+| `QuadBias` | added to the depth of `...W` quads in mode -1 (default 0) |
 | `Flush` | draw the list into the canvas (`a3_flush`) |
 | `NPolys`, `Dropped` | counts since `Begin` (read only) |
 
 `depth` is a camera-space z (CamU units, as in amiga3d). For the `...W` calls, `depth` < 0
-picks it: -1 = the middle of the first and third corners, -2 = the nearest corner, -3 = the
-farthest corner, -4 = the average; >= 0 is used as is.
+picks it: -1 = the middle of the first and third corners plus `QuadBias`, -2 = the average of
+the corners, -3 = the nearest corner, -4 = the farthest; >= 0 is used as is (A3Scene's modes).
 
 ## Models
 
@@ -157,7 +160,9 @@ Models live in the engine and are numbered from 1. Up to 256 vertices and 192 fa
 | `DrawModels n, ids, xs(), ys(), zs(), yaws [, f16]` | n models in one call; `ids` and `yaws` arrays or one value; f16 True: positions are 16.16 |
 
 The model's faces that face the camera are sorted far to near and go into the list at the
-depth of the model's centre minus `bias` (amiga3d's `a3_model`).
+depth of the model's centre minus `bias` (amiga3d's `a3_model`). A model whose centre is more
+than `ModelMargin` units (default 800, amiga3d's) behind the camera or outside the view is
+skipped; a game with small models can narrow it.
 
 ### Model files
 
@@ -241,6 +246,11 @@ batch of quads, one call a model, one a point cloud. A call costs about the same
 in [performance.md](performance.md#engine3d).
 
 ## Porting from A3Scene.bas
+
+The quickest way: put `examples/common/A3Engine.bas` in the project instead of `A3Scene.bas`.
+It has A3Scene's subs, types and globals and does the work in the engine, so the game code
+stays as it is (Tank Duel ran unchanged with the same game-state hash). Or call the engine
+directly:
 
 | A3Scene | Engine3D |
 |---|---|

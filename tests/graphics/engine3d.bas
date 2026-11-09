@@ -94,7 +94,18 @@ Sub Main()
     fn(0) = 3: fi(0) = 0: fi(1) = 1: fi(2) = 2: fc(0) = 4
     fn(1) = 3: fi(4) = 2: fi(5) = 1: fi(6) = 3: fc(1) = Not RGB(255, 128, 0)
     k = e.ModelFromArrays(vx, vy, vz, 4, fn, fi, fc, 2)
+    ' a model file (written here, so the test needs no other files)
+    Open "e3crate.mdl" For Output As #1
+    Print #1, "# a crate with a lid, for engine3d.bas"
+    Print #1, "box body shade -20 20 0 30 -20 20"
+    Print #1, "v -10 30 -10      # 8"
+    Print #1, "v  10 30 -10"
+    Print #1, "v  10 40 -10"
+    Print #1, "v -10 40 -10"
+    Print #1, "f 5 8 11 10 9     # a fin, as given"
+    Close #1
     i = e.ModelLoad("e3crate.mdl")
+    Kill "e3crate.mdl"
     Print "arrays"; k; e.ModelFaces(k); " file"; i; e.ModelVerts(i); e.ModelFaces(i)
     cv.Cls 0
     e.Begin 3000
@@ -148,6 +159,31 @@ Sub Main()
     e.Flush
     Shot "scene"
     Print "horizon"; e.Horizon; " pen4 "; Hex$(e.Pen(4)); " "; Hex$(e.PenColor(-1 - RGB(1, 2, 3)))
+
+    ' ---- CamSet, QuadBias, ModelMargin, DrawLine3D
+    e.CamSet 0, 60, -300, 0, 2000
+    Print "camset"; e.CamX; e.CamU; e.CamPitch;
+    e.CamSet 10, 60, -300, 0, 2000, 9, 0, 3
+    Print e.CamU; e.CamNear
+    e.Xform 100, 0, 0, ox, oy, oz
+    Print "xform"; ox; oy; oz
+    e.CamSet 0, 60, -300, 0, 2000
+    e.QuadBias = 100
+    e.ModelMargin = 50
+    Print "bias"; e.QuadBias; e.ModelMargin
+    cv.Cls 0
+    e.Begin 3000
+    e.QuadW -1, 7, -200, 0, 400, 200, 0, 400, 200, 70, 400, -200, 70, 400
+    e.QuadW -2, 5, -50, 0, 300, 50, 0, 300, 50, 60, 500, -50, 60, 500
+    e.QuadW -3, 6, -50, 0, 200, 50, 0, 200, 50, 60, 200, -50, 60, 200
+    e.DrawModel m, 900, 0, 0
+    e.DrawModel m, 0, 0, 100
+    e.Flush
+    e.DrawLine3D -300, 0, -500, 300, 0, 900, 1
+    e.DrawLine3D -30000, 10, 100, 30000, 10, 100, 2
+    Shot "bias"
+    e.QuadBias = 0
+    e.ModelMargin = 800
 
     ' ---- terrain
     g = e.GridNew(33, 33, 40, -640, 0)

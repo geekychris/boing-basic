@@ -86,6 +86,31 @@ static void *raw(bb_value *slot, int vt)
 
 static bb_obj *new_object(VM *vm, int cls);
 
+#ifdef BB_OPTIME
+/* build with -DBB_OPTIME -DBB_NO_THREADED: time spent per opcode on stderr at exit */
+#if defined(__PPC__) || defined(__powerpc__)
+static inline uint32_t bb_optime_now(void) { uint32_t t; __asm__ volatile("mftb %0" : "=r"(t)); return t; }
+#else
+#include <time.h>
+static inline uint32_t bb_optime_now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return (uint32_t)(ts.tv_sec * 1000000000ull + ts.tv_nsec); }
+#endif
+static unsigned long long vm_optime[I__COUNT], vm_optime_cnt[I__COUNT];
+static int vm_optime_prev;
+static uint32_t vm_optime_t;
+static void vm_optime_dump(void)
+{
+    int i, j, idx[I__COUNT];
+    unsigned long long tot = 0;
+    for (i = 0; i < I__COUNT; i++) { idx[i] = i; tot += vm_optime[i]; }
+    for (i = 0; i < I__COUNT; i++)
+        for (j = i + 1; j < I__COUNT; j++)
+            if (vm_optime[idx[j]] > vm_optime[idx[i]]) { int t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+    for (i = 0; i < 25 && vm_optime[idx[i]]; i++)
+        fprintf(stderr, "time %-12s %12llu ticks %5.1f%%  n=%llu  %.1f/op\n", bb_opnames[idx[i]], vm_optime[idx[i]],
+                100.0 * (double)vm_optime[idx[i]] / (double)tot, vm_optime_cnt[idx[i]], (double)vm_optime[idx[i]] / (double)(vm_optime_cnt[idx[i]] ? vm_optime_cnt[idx[i]] : 1));
+}
+#endif
+
 #ifdef BB_OPSTATS
 /* build with -DBB_OPSTATS -DBB_NO_THREADED: dynamic opcode counts on stderr at exit */
 static unsigned long long vm_opstats[I__COUNT];
@@ -867,11 +892,21 @@ static void vm_exec(VM *vm, int entry)
         bb_value *G = vm->globals;
         int jit_on = jit_enabled() && img->jitno && img->jitcode && img->jitend;
         bb_jitctx jc;
-        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; } jc.fmax = 3.402823466e38;
+        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; } jc.fmax = 3.402823466e38; jc.two52 = 4503599627370496.0; jc.two53 = 9007199254740992.0; jc.one = 1.0; jc.l_lo = -2147483648.0; jc.l_hi = 2147483647.0; jc.i_lo = -32768.0; jc.i_hi = 32767.0; jc.q_lo = -2147483649.0; jc.q_hi = 2147483648.0;
 #define SYNC() (vm->sp = sp)
 #define RELOAD() (fr = &vm->frames[vm->nframes - 1], pc = fr->pc, sp = vm->sp, L = fr->base)
         for (;;) {
             int32_t op = *pc;
+#ifdef BB_OPTIME
+            {
+                /* time per op (PPC timebase / host clock), charged to the previous op */
+                uint32_t now_ = bb_optime_now();
+                vm_optime[vm_optime_prev] += now_ - vm_optime_t;
+                vm_optime_cnt[op]++;
+                vm_optime_prev = op;
+                vm_optime_t = now_;
+            }
+#endif
 #ifdef BB_OPSTATS
             vm_opstats[op]++;
             if (vm_pcstats) vm_pcstats[pc - code]++;
@@ -986,7 +1021,13 @@ static void vm_exec(VM *vm, int entry)
         [I_R_CVT_LF] = &&L_R_CVT_LF,
         [I_R_CVT_DF] = &&L_R_CVT_DF,
         [I_R_CVT_FD] = &&L_R_CVT_FD,
-        [I_R_JCMP_FRR] = &&L_R_JCMP_FRR
+        [I_R_JCMP_FRR] = &&L_R_JCMP_FRR,
+        [I_R_INT_D] = &&L_R_INT_D,
+        [I_R_FIX_D] = &&L_R_FIX_D,
+        [I_R_CVT_DL] = &&L_R_CVT_DL,
+        [I_R_CVT_DI] = &&L_R_CVT_DI,
+        [I_R_MULSHR_LRRI] = &&L_R_MULSHR_LRRI,
+        [I_R_MULDIV_LRRR] = &&L_R_MULDIV_LRRR
                 };
                 goto *rtab[op];
 #else
@@ -1182,6 +1223,22 @@ static void vm_exec(VM *vm, int entry)
                 RCASE(R_CVT_DF) { double x_ = RSL(2).u.d; if (BB_UNLIKELY(x_ > 3.402823466e38 || x_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)x_); pc += 3; RNEXT(); }
                 RCASE(R_CVT_FD) SETD(pc[1], (double)RSL(2).u.f); pc += 3; RNEXT();
                 JCMP(R_JCMP_FRR, double, RSL(2).u.f, RSL(3).u.f)
+                RCASE(R_INT_D) SETD(pc[1], bb_int_d(RSL(2).u.d)); pc += 3; RNEXT();
+                RCASE(R_FIX_D) SETD(pc[1], bb_fix_d(RSL(2).u.d)); pc += 3; RNEXT();
+                RCASE(R_CVT_DL) { double x_ = RSL(2).u.d, r_ = bb_round_even(x_);
+                    if (BB_UNLIKELY(!(r_ >= -2147483648.0 && r_ <= 2147483647.0))) RERR(bb_overflow());
+                    SETL(pc[1], (int32_t)r_); pc += 3; RNEXT(); }
+                RCASE(R_CVT_DI) { double x_ = RSL(2).u.d, r_ = bb_round_even(x_);
+                    if (BB_UNLIKELY(!(r_ >= -32768.0 && r_ <= 32767.0))) RERR(bb_overflow());
+                    SETI(pc[1], (int32_t)r_); pc += 3; RNEXT(); }
+                RCASE(R_MULSHR_LRRI) { int64_t p_ = ((int64_t)RSL(2).u.l * RSL(3).u.l) >> pc[4];
+                    if (BB_UNLIKELY(p_ != (int32_t)p_)) RERR(bb_overflow());
+                    SETL(pc[1], (int32_t)p_); pc += 5; RNEXT(); }
+                RCASE(R_MULDIV_LRRR) { int32_t c_ = RSL(4).u.l; int64_t q_;
+                    if (BB_UNLIKELY(c_ == 0)) RERR(bb_muldiv_zero());
+                    q_ = ((int64_t)RSL(2).u.l * RSL(3).u.l) / c_;
+                    if (BB_UNLIKELY(q_ != (int32_t)q_)) RERR(bb_overflow());
+                    SETL(pc[1], (int32_t)q_); pc += 5; RNEXT(); }
                 RCASE(R_LDMF) L[pc[2]] = ((VMObj *)L[0].u.o)->f[pc[3]]; pc += 4; RNEXT();
                 RCASE(R_STMF) ((VMObj *)L[0].u.o)->f[pc[2]].u = L[pc[3]].u; pc += 4; RNEXT();
                 RCASE(R_LDG) L[pc[2]] = G[pc[3]]; pc += 4; RNEXT();
@@ -2140,6 +2197,9 @@ int vm_run(VMImage *img, int argc, char **argv)
     memset(&vm, 0, sizeof vm);
     vm.img = img;
     g_vm = &vm;
+#ifdef BB_OPTIME
+    atexit(vm_optime_dump);
+#endif
 #ifdef BB_OPSTATS
     atexit(vm_opstats_dump);
     vm_pcstats = (unsigned long long *)xcalloc((size_t)img->ncode + 1, sizeof(unsigned long long));

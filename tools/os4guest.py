@@ -6,7 +6,7 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
     tools/os4guest.py push LOCAL AMIGA_PATH [LOCAL AMIGA_PATH ...]
     tools/os4guest.py dos 'AmigaDOS command'
     tools/os4guest.py test LOCAL_TEST_BINARY [args]   push to RAM:bbtest/ and run it, exit 1 on FAIL
-    tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|native|both]
+    tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|jit|native|both|all]
                                                       run a BASIC test with build/os4/boing (VM)
                                                       and/or natively built; exit 1 unless PASS
     tools/os4guest.py tool NAME '{json args}'          any devbench MCP tool
@@ -423,12 +423,17 @@ def bas(m, src, mode):
     for f in files:
         push(m, f, amiga(f))
     rdir = os.path.dirname(amiga(src))
-    if mode in ("vm", "both"):
+    if mode in ("vm", "both", "jit", "all"):
         push(m, os.path.join(ROOT, "build/os4/boing"), "RAM:bbt/boing")
+    if mode in ("vm", "both", "all"):
         out = run_bg(m, "RAM:bbt/boing run %s" % amiga(src), "RAM:bbt/vm.out")
         print("== vm\n" + out)
         ok &= bool(re.search(r"^PASS", out, re.M))
-    if mode in ("native", "both"):
+    if mode in ("jit", "all"):
+        out = run_bg(m, "RAM:bbt/boing run --jit %s" % amiga(src), "RAM:bbt/jit.out")
+        print("== jit\n" + out)
+        ok &= bool(re.search(r"^PASS", out, re.M))
+    if mode in ("native", "both", "all"):
         exe = os.path.join(ROOT, "build/os4", os.path.splitext(os.path.basename(src))[0] + ".exe")
         subprocess.check_call([os.path.join(ROOT, "build/boing"), "build", src, "--target", "os4", "-o", exe])
         push(m, exe, rdir + "/native")

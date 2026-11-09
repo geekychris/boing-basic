@@ -36,8 +36,20 @@ static char *dir_of(const char *p)
     return xstrdup(buf);
 }
 
+static int sys_argc;
+static char **sys_argv;
+static void *sys_wbmsg;
+
+void *bb_sys_wbstartup(void) { return sys_wbmsg; }
+int bb_sys_argc(void) { return sys_argc > 1 ? sys_argc - 1 : 0; }
+const char *bb_sys_argv(int i) { return i >= 0 && i + 1 < sys_argc ? sys_argv[i + 1] : ""; }
+
 void bb_sys_init(int argc, char **argv, const char *app_dir)
 {
+    /* started from Workbench: argc is 0 and argv the WBStartup message */
+    sys_wbmsg = argc == 0 ? (void *)argv : NULL;
+    sys_argc = argc;
+    sys_argv = argv;
     size_t len = 1;
     for (int i = 1; i < argc; i++) len += strlen(argv[i]) + 3;
     free(command);

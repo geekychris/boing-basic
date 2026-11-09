@@ -694,6 +694,7 @@ static int reg_arith(Node *n, int k)
         if (k == 2 && (fk == 0 || fk == 1 || fk == 3)) return 1;
         if (k == 3 && (fk == 0 || fk == 1 || fk == 2)) return 1;
         if (k == 1 && fk == 0) return 1;
+        if ((k == 0 || k == 1) && fk == 2 && n->ty->kind != T_BOOLEAN) return 1;   /* VB rounding, overflow check */
     }
     return 0;
 }
@@ -1042,6 +1043,24 @@ static int reg_sqrt(Node *n)
     return n->kind == E_BUILTIN && name_eq(builtins[n->bi].name, "Sqr") && n->list.n == 1 && n->list.v[0]->ty->kind == T_DOUBLE;
 }
 
+/* typed builtins with a register form: Int / Fix of a Double, MulShr (constant count), MulDiv */
+static int reg_bi(Node *n, int k)
+{
+    const char *nm;
+    if (n->kind != E_BUILTIN) return -1;
+    nm = builtins[n->bi].name;
+    if (k == 2 && n->list.n == 1 && n->list.v[0]->ty->kind == T_DOUBLE) {
+        if (name_eq(nm, "__intd")) return I_R_INT_D;
+        if (name_eq(nm, "__fixd")) return I_R_FIX_D;
+    }
+    if (k == 1 && n->list.n == 3) {
+        if (name_eq(nm, "MulDiv")) return I_R_MULDIV_LRRR;
+        if (name_eq(nm, "MulShr") && n->list.v[2]->kind == E_CONST && n->list.v[2]->cv.i >= 0 && n->list.v[2]->cv.i <= 31)
+            return I_R_MULSHR_LRRI;
+    }
+    return -1;
+}
+
 static int rx(E *e, Node *n, int dst)
 {
     int k = rkind(n->ty), s, d;
@@ -1118,6 +1137,25 @@ static int rx(E *e, Node *n, int dst)
         set_target(e, j2, here(e));
         return d;
     }
+    if (reg_bi(n, k) >= 0) {
+        int op = reg_bi(n, k), sa = rx(e, n->list.v[0], -1), sb = -1, sc = -1;
+        if (op == I_R_INT_D || op == I_R_FIX_D) {
+            d = dst >= 0 ? dst : rtemp(e, k);
+            op2(e, op, d, sa);
+            return d;
+        }
+        /* a later argument with a call must not see an earlier one change */
+        if ((impure(n->list.v[1]) || (op == I_R_MULDIV_LRRR && impure(n->list.v[2]))) && n->list.v[0]->kind == E_VAR) { int t = rtemp(e, 1); op2(e, I_R_MOV, t, sa); sa = t; }
+        sb = rx(e, n->list.v[1], -1);
+        if (op == I_R_MULDIV_LRRR) {
+            if (impure(n->list.v[2]) && n->list.v[1]->kind == E_VAR) { int t = rtemp(e, 1); op2(e, I_R_MOV, t, sb); sb = t; }
+            sc = rx(e, n->list.v[2], -1);
+        }
+        d = dst >= 0 ? dst : rtemp(e, k);
+        emit_w(e, op); emit_w(e, d); emit_w(e, sa); emit_w(e, sb);
+        emit_w(e, op == I_R_MULDIV_LRRR ? sc : (int32_t)n->list.v[2]->cv.i);
+        return d;
+    }
     if (k == 2 && reg_sqrt(n)) {
         int a0 = rx(e, n->list.v[0], -1);
         d = dst >= 0 ? dst : rtemp(e, k);
@@ -1138,6 +1176,7 @@ static int rx(E *e, Node *n, int dst)
             int cop;
             if (k == 2) cop = fk == 3 ? I_R_CVT_FD : fk == 1 ? I_R_CVT_LD : I_R_CVT_ID;
             else if (k == 3) cop = fk == 2 ? I_R_CVT_DF : fk == 1 ? I_R_CVT_LF : I_R_CVT_IF;
+            else if (fk == 2) cop = k == 1 ? I_R_CVT_DL : I_R_CVT_DI;
             else cop = I_R_CVT_IL;
             op2(e, cop, d, a);
             return d;
@@ -1212,7 +1251,7 @@ static int glob_var(Node *n, int k)
 
 static int reg_value_ok(E *e, Node *v, int k)
 {
-    return reg_arith(v, k) || reg_var(e, v, k) >= 0 || reg_mem(e, v) || v->kind == E_CONST || reg_sqrt(v) || reg_call_ok(v) ||
+    return reg_arith(v, k) || reg_var(e, v, k) >= 0 || reg_mem(e, v) || v->kind == E_CONST || reg_sqrt(v) || reg_bi(v, k) >= 0 || reg_call_ok(v) ||
            (v->kind == E_VAR && is_ref_slot(v->sym)) || me_field(e, v, k) || glob_var(v, k);
 }
 

@@ -152,6 +152,14 @@ Split Join StrComp StrReverse Chr ChrW Asc AscW Val Str Hex Oct Format` (with `$
 
 Maths: `Abs Sgn Int Fix Sqr Sin Cos Tan Atn Log Exp Rnd Randomize Round`. `Rnd` and
 `Randomize` use VB's own generator, so `Rnd` sequences match VB6.
+`Int`/`Fix` of a Double or Single give a Double/Single without going through a Variant (of
+a Byte, Integer or Long, the value itself), so in typed code they are register ops.
+
+Fixed point (not VB built-ins): `MulShr(a, b, k)` = `(a * b) >> k` and `MulDiv(a, b, c)` =
+`a * b \ c`, both with a 64-bit product of the Longs `a` and `b`. The shift is arithmetic
+(rounds toward minus infinity, like `ShrA`), `k` is 0..31 (else error 5); `MulDiv` truncates
+toward zero, `c = 0` is error 11. A result outside Long is error 6. For 16.16 fixed point:
+`FMul(a, b) = MulShr(a, b, 16)`, `FDiv(a, b) = MulDiv(a, 65536, b)`. Bit shifts: `Shl ShrA ShrL`.
 
 Conversion: `CInt CLng CSng CDbl CCur CStr CBool CByte CDate CVar CDec`. `CDec` gives a
 Variant of subtype Decimal (VarType 14, as in VB: there are no Decimal variables): a 96-bit

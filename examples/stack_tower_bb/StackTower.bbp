@@ -1,0 +1,15 @@
+# Boing BASIC project: Stack Tower, the falling-block puzzle round a tower (a port of amiga_mcp's examples/stack_tower)
+Name=StackTower
+Startup=Form stack
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/Gfx2D.bas
+Module=StCore.bas
+Module=StBot.bas
+Module=StTower.bas
+Module=StDraw.bas
+Module=StSound.bas
+Module=StShell.bas
+Form=stack.afg
+Stack=262144

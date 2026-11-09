@@ -16,4 +16,5 @@ Sub Main()
     dt = Timer - t0
     If dt <= 0 Then dt = 0.001
     Print "frames"; n; " seconds "; Format$(dt, "0.00"); " fps "; Format$(n / dt, "0.0"); " polys"; e.NPolys; " hash "; Hex$(cv.Hash)
+    Print "PASS"
 End Sub

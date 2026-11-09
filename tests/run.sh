@@ -9,7 +9,8 @@
 # Usage: sh tests/run.sh [grep-pattern]   env: JOBS (default 4), NATIVE=0 skips native builds
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 BOING=${BOING:-$ROOT/build/boing}; TMP=${TMP:-$ROOT/build/tests}; NATIVE=${NATIVE:-1}
-export BOING TMP NATIVE
+BOING_SETTINGS=${BOING_SETTINGS:-$TMP/settings}   # GetSetting/SaveSetting stay out of $HOME
+export BOING TMP NATIVE BOING_SETTINGS
 mkdir -p "$TMP"; rm -f "$TMP"/*.result "$TMP"/*.diff
 # tests: every .bbp, and every .bas that is not part of a project directory
 { find "$ROOT/tests" -name '*.bbp'

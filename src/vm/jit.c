@@ -409,6 +409,54 @@ static void for_test_d(T *t, int32_t pc, int32_t c, int32_t l, int32_t s, int32_
     be->bind(a, next);
 }
 
+#define CTXD(f) JB_CTX, (int32_t)offsetof(bb_jitctx, f)
+
+/* JF2 = JF0 rounded to an integer: mode 0 nearest (half to even, the FPU's mode), 1 floor,
+   2 toward zero; never -0. By adding and subtracting 2^52; |x| >= 2^52 is already integral. */
+static void round_d(T *t, int mode)
+{
+    const JBackend *be = t->be;
+    JA *a = t->a;
+    int as_is = ja_label(a), neg = ja_label(a), adj = ja_label(a), done = ja_label(a);
+    be->ldf(a, JF1, CTXD(two52));
+    be->fcmp_b(a, JC_GE, JF0, JF1, as_is);
+    be->fneg(a, JF2, JF1);
+    be->fcmp_b(a, JC_LE, JF0, JF2, as_is);
+    be->ldf(a, JF2, CTXD(zero));
+    be->fcmp_b(a, JC_LT, JF0, JF2, neg);
+    be->fop(a, 0, JF2, JF0, JF1);
+    be->fop(a, 1, JF2, JF2, JF1);
+    be->b(a, adj);
+    be->bind(a, neg);
+    be->fop(a, 1, JF2, JF0, JF1);
+    be->fop(a, 0, JF2, JF2, JF1);
+    be->bind(a, adj);
+    if (mode) {
+        int up = ja_label(a);
+        if (mode == 2) {
+            be->ldf(a, JF1, CTXD(zero));
+            be->fcmp_b(a, JC_LT, JF0, JF1, up);
+        }
+        /* floor: one down if rounding went up */
+        be->ldf(a, JF1, CTXD(one));
+        be->fcmp_b(a, JC_LE, JF2, JF0, done);
+        be->fop(a, 1, JF2, JF2, JF1);
+        be->b(a, done);
+        be->bind(a, up);
+        if (mode == 2) {
+            /* negative, toward zero: one up if rounding went down */
+            be->ldf(a, JF1, CTXD(one));
+            be->fcmp_b(a, JC_GE, JF2, JF0, done);
+            be->fop(a, 0, JF2, JF2, JF1);
+        }
+        be->b(a, done);
+    } else be->b(a, done);
+    be->bind(a, as_is);
+    be->ldf(a, JF1, CTXD(zero));
+    be->fop(a, 0, JF2, JF0, JF1);
+    be->bind(a, done);
+}
+
 static int translate(T *t, int32_t pc)
 {
     const JBackend *be = t->be;
@@ -662,6 +710,86 @@ static int translate(T *t, int32_t pc)
     }
     case I_R_JMP:
         branch_to(t, pc, w[1]);
+        return 1;
+    case I_R_INT_D: case I_R_FIX_D:
+        be->ldf(a, JF0, JB_L, SLOT_U(w[2]));
+        round_d(t, op == I_R_INT_D ? 1 : 2);
+        be->stf(a, JF2, JB_L, SLOT_U(w[1]));
+        return 1;
+    case I_R_CVT_DL: case I_R_CVT_DI: {
+        /* VB rounding; outside the range (or NaN): the interpreter raises error 6 */
+        int ok1 = ja_label(a), ok2 = ja_label(a), l = op == I_R_CVT_DL;
+        ex = exit_to(t, pc);
+        be->ldf(a, JF0, JB_L, SLOT_U(w[2]));
+        round_d(t, 0);
+        if (l) be->ldf(a, JF1, CTXD(l_lo)); else be->ldf(a, JF1, CTXD(i_lo));
+        be->fcmp_b(a, JC_GE, JF2, JF1, ok1);
+        be->b(a, ex);
+        be->bind(a, ok1);
+        if (l) be->ldf(a, JF1, CTXD(l_hi)); else be->ldf(a, JF1, CTXD(i_hi));
+        be->fcmp_b(a, JC_LE, JF2, JF1, ok2);
+        be->b(a, ex);
+        be->bind(a, ok2);
+        be->ftoi(a, JI0, JF2);
+        st_int(t, l ? K_L : K_I, JI0, w[1]);
+        return 1;
+    }
+    case I_R_MULSHR_LRRI: {
+        /* 64-bit product hi:lo, shifted right by k; exit (error 6) if it does not fit a Long */
+        int k = w[4];
+        if (k < 0 || k > 31) return 0;
+        ex = exit_to(t, pc);
+        ld_int(t, K_L, JI0, w[2]);
+        ld_int(t, K_L, JI1, w[3]);
+        be->mul(a, JI2, JI0, JI1);
+        be->mulhs(a, JI3, JI0, JI1);
+        if (k == 0) {
+            be->li(a, JI4, 31);
+            be->shift(a, 1, JI1, JI2, JI4);
+            be->cmp(a, JI1, JI3);
+            be->bcond(a, JC_NE, ex);
+            st_int(t, K_L, JI2, w[1]);
+            return 1;
+        }
+        be->li(a, JI4, k);
+        be->shift(a, 2, JI0, JI2, JI4);          /* lo >>> k */
+        be->li(a, JI4, 32 - k);
+        be->shift(a, 0, JI1, JI3, JI4);          /* hi << (32 - k) */
+        be->or_(a, JI0, JI0, JI1);               /* the result */
+        be->li(a, JI4, k);
+        be->shift(a, 1, JI1, JI3, JI4);          /* what is left above it */
+        be->li(a, JI4, 31);
+        be->shift(a, 1, JI2, JI0, JI4);          /* must be the result's sign */
+        be->cmp(a, JI1, JI2);
+        be->bcond(a, JC_NE, ex);
+        st_int(t, K_L, JI0, w[1]);
+        return 1;
+    }
+    case I_R_MULDIV_LRRR:
+        /* in double: exact while |a * b| < 2^53, and then the truncated quotient is exact too
+           (a non-integral quotient is at least 1/|c| from an integer, more than its rounding
+           error); a bigger product, c = 0 or a result outside Long: the interpreter */
+        ex = exit_to(t, pc);
+        ld_int(t, K_L, JI0, w[2]);
+        be->fcvt(a, JF0, JI0);
+        ld_int(t, K_L, JI1, w[3]);
+        be->fcvt(a, JF1, JI1);
+        be->fop(a, 2, JF0, JF0, JF1);
+        be->ldf(a, JF1, CTXD(two53));
+        be->fcmp_b(a, JC_GE, JF0, JF1, ex);
+        be->fneg(a, JF1, JF1);
+        be->fcmp_b(a, JC_LE, JF0, JF1, ex);
+        ld_int(t, K_L, JI2, w[4]);
+        be->cmpi(a, JI2, 0);
+        be->bcond(a, JC_EQ, ex);
+        be->fcvt(a, JF1, JI2);
+        be->fop(a, 3, JF0, JF0, JF1);
+        be->ldf(a, JF1, CTXD(q_hi));
+        be->fcmp_b(a, JC_GE, JF0, JF1, ex);
+        be->ldf(a, JF1, CTXD(q_lo));
+        be->fcmp_b(a, JC_LE, JF0, JF1, ex);
+        be->ftoi(a, JI0, JF0);
+        st_int(t, K_L, JI0, w[1]);
         return 1;
     case I_R_SQRT_D: {
         int ok = ja_label(a);

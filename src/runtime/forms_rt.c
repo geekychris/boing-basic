@@ -35,6 +35,7 @@ typedef struct ctlobj {
     bb_ctl *ctl;            /* NULL for a form object whose form is not loaded yet */
     int is_form;
     char *name;
+    int owned;              /* a CommonDialog made by CreateObject: the bb_ctl is ours */
 } ctlobj;
 
 /* ---------- member names ---------- */
@@ -70,6 +71,12 @@ static void fv_from_value(const bb_value *v0, bb_fval *fv, bb_str **hold)
         fv->s = ((ctlobj *)v->u.o)->name;
         return;
     }
+    fv->o = NULL;
+    if (v->type == BB_OBJECT && v->u.o) {       /* a Canvas for Clipboard.SetPicture ... */
+        fv->type = BB_FV_OBJ;
+        fv->o = v->u.o;
+        return;
+    }
     switch (v->type) {
     case BB_EMPTY: fv->type = BB_FV_INT; break;
     case BB_STRING: fv->type = BB_FV_STR; fv->s = bb_str_ptr(v->u.s); break;
@@ -89,14 +96,20 @@ static void fv_from_value(const bb_value *v0, bb_fval *fv, bb_str **hold)
     }
 }
 
+void bb_fv_from_value(const bb_value *v, bb_fval *fv, bb_str **hold) { fv_from_value(v, fv, hold); }
+bb_value bb_value_from_fv(const bb_fval *fv);
+
 static bb_value value_from_fv(const bb_fval *fv)
 {
     switch (fv->type) {
     case BB_FV_INT: return bb_v_long(fv->i);
     case BB_FV_STR: return bb_v_str(bb_str_from_c(fv->s ? fv->s : ""));
+    case BB_FV_OBJ: return fv->o ? bb_v_obj(bb_obj_retain((bb_obj *)fv->o)) : bb_v_empty();
     default: return bb_v_empty();
     }
 }
+
+bb_value bb_value_from_fv(const bb_fval *fv) { return value_from_fv(fv); }
 
 static formdef *find_form(const char *module)
 {
@@ -230,9 +243,44 @@ static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
     bb_raise(err, NULL);
 }
 
+/* a member of a control by name, for objects of other classes that stand for a control (a
+   canvas's ContextMenu, Visible, ToolTipText...): get / let / method as for control objects */
+void bb_ctl_invoke_named(bb_ctl *c, const char *name, int kind, int argc, bb_value *argv, bb_value *ret)
+{
+    bb_fval fv, out;
+    bb_str *hold = NULL;
+    int err = 438;
+    if (kind & (BB_INV_LET | BB_INV_SET)) {
+        if (argc < 1 || argc > 2) bb_raise(450, NULL);
+        fv_from_value(&argv[argc - 1], &fv, &hold);
+        err = bb_ctl_set(c, name, argc == 2 ? bb_v_to_long(&argv[0]) : -1, &fv);
+        bb_str_release(hold);
+        if (err) bb_raise(err, NULL);
+        return;
+    }
+    memset(&out, 0, sizeof out);
+    if ((kind & BB_INV_GET) && argc <= 1) {
+        err = bb_ctl_get(c, name, argc == 1 ? bb_v_to_long(&argv[0]) : -1, &out);
+        if (!err) { *ret = value_from_fv(&out); return; }
+    }
+    if (err == 438 && (kind & BB_INV_METHOD)) {
+        bb_fval args[8];
+        bb_str *holds[8];
+        int i;
+        if (argc > 8) bb_raise(450, NULL);
+        for (i = 0; i < argc; i++) fv_from_value(&argv[i], &args[i], &holds[i]);
+        memset(&out, 0, sizeof out);
+        err = bb_ctl_call(c, name, argc, args, &out);
+        for (i = 0; i < argc; i++) bb_str_release(holds[i]);
+        if (!err) { *ret = value_from_fv(&out); return; }
+    }
+    bb_raise(err, NULL);
+}
+
 static void ctl_terminate(bb_obj *self)
 {
     ctlobj *o = (ctlobj *)self;
+    if (o->owned) bb_dialog_free(o->ctl);
     free(o->name);
 }
 
@@ -269,6 +317,24 @@ static bb_obj *new_ctlobj_kind(formdef *fd, bb_ctl *c, int is_form, const char *
     o->is_form = is_form;
     o->name = strdup(name);
     return &o->hdr;
+}
+
+/* CreateObject("Boing.CommonDialog") (canvas.c's registry asks here for names it doesn't know):
+   NULL if progid isn't ours */
+bb_obj *bb_forms_create_object(const char *progid)
+{
+    if (!strcasecmp(progid, "Boing.CommonDialog") || !strcasecmp(progid, "MSComDlg.CommonDialog") ||
+        !strcasecmp(progid, "CommonDialog")) {
+        bb_ctl *c = bb_dialog_new();
+        ctlobj *o;
+        if (!c) bb_raise(429, NULL);
+        o = (ctlobj *)bb_obj_new(class_for(AFG_COMMONDIALOG));
+        o->ctl = c;
+        o->name = strdup("CommonDialog");
+        o->owned = 1;
+        return &o->hdr;
+    }
+    return NULL;
 }
 
 static bb_obj *new_ctlobj(formdef *fd, bb_ctl *c, int is_form, const char *name)

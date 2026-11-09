@@ -30,6 +30,9 @@ void bb_canvas_key_event(int key, int down);
 /* For the forms layer: the picture size and scale of a control's canvas (mouse events map
  * window pixels to canvas pixels). 0 if the control has no canvas. */
 int bb_canvas_ctl_geometry(bb_ctl *ctl, int *w, int *h, int *scale);
+/* For Clipboard.GetPicture: a picture copied into the back buffer (resized to w x h first);
+ * 0 if o is not a canvas. */
+int bb_canvas_put_picture(bb_obj *o, const uint32_t *px, int32_t w, int32_t h);
 
 /* The pixels of a canvas's current target (back buffer or image): w x h, rows of w pixels,
  * 0xAARRGGBB. NULL if o is not a canvas. For runtime objects that draw into a canvas. */

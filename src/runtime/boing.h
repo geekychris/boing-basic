@@ -21,6 +21,13 @@
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #define BB_SETJMP(jb) _setjmp(jb)
 #define BB_LONGJMP(jb, v) _longjmp(jb, v)
+#elif defined(__amigaos4__) && defined(__GNUC__) && !defined(__clang__)
+/* newlib's setjmp on OS4 fills a 512-byte jmp_buf with every FP register: about 1.5 us under
+   QEMU, paid on every call from C into the VM and every native On Error procedure. GCC's
+   builtins keep only frame, stack and resume address (GCC saves live registers itself), in
+   the first words of the same jmp_buf; the longjmp value is always 1. */
+#define BB_SETJMP(jb) __builtin_setjmp((void **)(void *)(jb))
+#define BB_LONGJMP(jb, v) __builtin_longjmp((void **)(void *)(jb), 1)
 #else
 #define BB_SETJMP(jb) setjmp(jb)
 #define BB_LONGJMP(jb, v) longjmp(jb, v)
@@ -176,6 +183,29 @@ void bb_shift_range_error(void) BB_NORETURN;
 BB_INLINE bb_long bb_shl(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return (bb_long)((uint32_t)x << n); }
 BB_INLINE bb_long bb_shra(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return x < 0 ? (bb_long)~(~(uint32_t)x >> n) : (bb_long)((uint32_t)x >> n); }
 BB_INLINE bb_long bb_shrl(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return (bb_long)((uint32_t)x >> n); }
+/* MulShr(a, b, k) = (a * b) >> k and MulDiv(a, b, c) = a * b \ c with a 64-bit product (fixed point
+   in one op): k 0..31 else error 5, c = 0 error 11, a result outside Long error 6 */
+void bb_overflow(void) BB_NORETURN;
+void bb_muldiv_zero(void) BB_NORETURN;
+BB_INLINE bb_long bb_mulshr(bb_long a, bb_long b, bb_long k)
+{
+    int64_t p;
+    if (BB_UNLIKELY((uint32_t)k > 31)) bb_shift_range_error();
+    p = ((int64_t)a * b) >> k;
+    if (BB_UNLIKELY(p != (int32_t)p)) bb_overflow();
+    return (bb_long)p;
+}
+BB_INLINE bb_long bb_muldiv(bb_long a, bb_long b, bb_long c)
+{
+    int64_t q;
+    if (BB_UNLIKELY(c == 0)) bb_muldiv_zero();
+    q = ((int64_t)a * b) / c;
+    if (BB_UNLIKELY(q != (int32_t)q)) bb_overflow();
+    return (bb_long)q;
+}
+/* Int / Fix of a Double (typed: no Variant); never -0 */
+BB_INLINE double bb_int_d(double x) { return __builtin_floor(x) + 0.0; }
+BB_INLINE double bb_fix_d(double x) { return __builtin_trunc(x) + 0.0; }
 BB_INLINE void bb_poll(void) { if (BB_UNLIKELY(--bb_poll_count < 0)) bb_poll_slow(); }
 /* Native procedures call bb_enter on entry: error 28 "Out of stack space" when the
    stack is nearly exhausted (bb_stack_limit is set by bb_rt_init; NULL = unknown). */
@@ -679,6 +709,10 @@ void bb_forms_main(const char *module);       /* Startup=Form x */
 void bb_form_load_obj(const bb_value *form);  /* Load x */
 void bb_form_unload_obj(const bb_value *form);/* Unload x */
 void bb_forms_shutdown_(void);
+bb_obj *bb_forms_create_object(const char *progid);
+/* a control's member by name (canvas.c: the canvas control's ContextMenu, Visible, ...) */
+struct bb_ctl;
+void bb_ctl_invoke_named(struct bb_ctl *c, const char *name, int kind, int argc, bb_value *argv, bb_value *ret);  /* CreateObject names of the forms layer, or NULL */
 
 /* ------------------------------------------------------------------ */
 /* Console and Print                                                    */
@@ -804,6 +838,14 @@ void bb_set_app_title(const char *t);
 bb_str *bb_clipboard_get(void);              /* Clipboard.GetText */
 void bb_clipboard_set(bb_str *s);            /* Clipboard.SetText */
 void bb_clipboard_clear(void);
+/* docs/ui.md: the App / Clipboard / Printer objects for late-bound members (app.c) */
+bb_value bb_app_object(void);
+bb_value bb_clipboard_object(void);
+bb_value bb_printer_object(void);
+/* VB's registry settings, in ENV:/ENVARC: (AmigaOS) or ~/.boing/ (hosts) */
+bb_str *bb_getsetting(bb_str *app, bb_str *section, bb_str *key, bb_str *def);
+void bb_savesetting(bb_str *app, bb_str *section, bb_str *key, bb_str *value);
+void bb_deletesetting(bb_str *app, bb_str *section, bb_str *key);
 
 /* ------------------------------------------------------------------ */
 /* Files                                                                */

@@ -8,7 +8,10 @@ Mac, where the whole test suite runs with it).
 
 The VM compiles statically typed code to *register ops* (opcodes `R_*`, see
 `src/vm/bytecode.h`): 3-address Integer/Long/Double arithmetic on frame slots, compare and
-branch, For loops, 1-D/2-D array elements, UDT fields, ByRef parameter access, `Sqr`. A
+branch, For loops, 1-D/2-D array elements, UDT fields, ByRef parameter access, `Sqr`,
+`Int`/`Fix` of a Double, Double to Long/Integer (banker's rounding, by adding and subtracting
+2^52), `MulShr` with a constant count (`mulhw`/`smull`), `MulDiv` (in double: exact while
+|a * b| < 2^53, else an exit to the interpreter). A
 *region* is a run of consecutive register ops. A loop whose body consists only of these ops
 (which is what typed numeric loops compile to) is one region. Arrays may be locals,
 globals or array fields of `Me` (class methods). A region ends at a call (`R_CALLS`), a

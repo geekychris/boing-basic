@@ -1,0 +1,20 @@
+manual  22050 
+song  1  'bb fx test' ch= 4  len= 2  pats= 2 
+sample 1 lead len= 32  vol= 40  loop= 32 
+sample 6 finetune  3 
+cell 0/0/0: C-2 smp  1  fx 0 47
+t= 1  pos  0  row  0  speed  6  tempo  125 
+t= 40  pos  1  row  0  speed  6  tempo  125 
+t= 63  pos  0  row  0  speed  6  tempo  160 
+ended  1  after  63  blocks, playing False
+hash DE632796
+loop: ended  2  at block  126  playing True pos  0 
+hash F1E190E9
+vu True True
+solo: mute0 True mute2 False vu0  0 
+mute1 True
+jump: pos  1  row  4  pattern  1 
+paused True row  4 
+stopped False current  0 
+missing:  53 
+not a mod:  380 

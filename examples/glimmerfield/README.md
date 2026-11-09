@@ -20,8 +20,14 @@ beside the program.
 *Frames 2470, 4010, 4480 and 5120 of the bot's game (seed 1987), rendered by the Canvas
 engine off-screen (`Bench.bbp --canvas --shot`); the picture is the same on every platform.*
 
-Keys: Left/Right turn, Up thrust, Space fire, P pause, F1 timing overlay, Esc back to the
-title (or quit).
+Keys: Left/Right turn, Up thrust, Space fire, P pause, M music on/off, S sound effects
+on/off, F1 timing overlay, Esc back to the title (or quit). `--nosound` starts silent.
+
+Sound (`Sound.bas`, [docs/audio.md](../../docs/audio.md)): the music is `glimmer.mod`,
+"Glimmer Drift", an original tune written for the game by `tools/modgen/glimmerfield.py`
+(synthesised samples only); the effects (shots, cracking crystals, wisps, the thrust hiss...)
+are synthesised at start-up with `SynthTone`/`SynthNoise`. Effects play only while a person
+plays; the bot's attract mode has the music. `--bench N` is silent unless `--sound` is given.
 
 ## Files
 
@@ -32,6 +38,7 @@ title (or quit).
 | `Game.bas` | the game logic: arrays of UDTs, integer fixed-point maths, collisions, waves, the bot. No drawing, no OS calls |
 | `Render.bas` | draws the game through a canvas object (the Canvas control, or a SoftCanvas) |
 | `Perf.bas` | fps and per-frame logic/draw/blit times, on screen (F1) and logged (`--perf`) |
+| `Sound.bas`, `glimmer.mod` | music and sound effects |
 | `HiScore.bas` | the high-score table, saved with `Write #` and read with `Input #` |
 | `SoftCanvas.cls` | the Canvas control's drawing methods on a framebuffer, in BASIC |
 | `Bench.bbp`, `Bench.bas`, `BenchMain.bas` | the console benchmark |

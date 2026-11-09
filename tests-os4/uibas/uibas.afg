@@ -1,0 +1,20 @@
+# AmiForge GUI
+window name=uibas title="Boing BASIC UI test" width=360 height=200
+vlayout id=root
+  toolbar id=tb weight=0
+    tool id=tbNew text="New" image="TBImages:new" hint="New" menu=mnuNew
+    tool separator=1
+    tool id=tbGrid text="Grid" toggle=1 checked=1
+  canvas id=view width=64 height=32 contextmenu=mnuCtx
+  label id=status text="$3:Ready"
+  commondialog id=dlg title="UI test"
+  statusbar id=sb panels="Ready|Ln 1" widths="0|60"
+  timer id=tick interval=300
+menu id=mnuFile text="Project"
+  menu id=mnuNew text="_New" key=N
+  menu text=-
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuView text="View"
+  menu id=mnuGrid text="Grid" checkable=1 checked=1
+menu id=mnuCtx text="Canvas" hidden=1
+  menu id=mnuClear text="Clear"

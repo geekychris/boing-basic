@@ -271,7 +271,11 @@ int bbf_menu_set(bb_ctl *c, const char *prop, const bb_fval *v)
         return 0;
     }
     if (IS("Checkable")) { mset(c, MA_Toggle, vint(v) != 0); return 0; }
-    if (IS("Enabled")) { mset(c, MA_Disabled, vint(v) == 0); return 0; }
+    if (IS("Enabled")) {
+        mset(c, MA_Disabled, vint(v) == 0);
+        bbf_tools_follow_menu(c->form, c->name, vint(v) != 0);    /* tools with menu=<this> */
+        return 0;
+    }
     if (IS("Visible")) {
         c->visible = vint(v) != 0;
         mset(c, MA_Hidden, !c->visible);
