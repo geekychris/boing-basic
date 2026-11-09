@@ -33,3 +33,13 @@ POSITION 99 -> 5 bad position
 SAVE -> 0 rexx.mod same
 LOAD missing -> 10 File not found
 JUMP -> 10 unknown command JUMP
+click -> row 13 ch 1 field 3 
+drag -> selTrue 16  18  1  2 
+above -> row 12 
+ch4 muted:True
+solo ch1:FalseTrueTrueTrue
+sample: 3 
+wheel down -> row 22 
+loop after drag: 0  500  undo steps named loop
+undo: 0  1000 
+edit light click -> editOnTrue

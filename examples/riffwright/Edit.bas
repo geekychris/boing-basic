@@ -563,3 +563,20 @@ Public Sub EdClearSample(ByVal i As Long)
     ClearSample i
     MirrorSample i
 End Sub
+
+' loop changes while a marker is dragged: one undo step for the whole drag
+Public Sub EdSampleParamsQuiet(ByVal i As Long, ByVal ls As Long, ByVal ll As Long)
+    If nUndo > 0 Then
+        If undoS(nUndo).kind = UK_SAMPLE And undoS(nUndo).smp = i And undoS(nUndo).what = "loop" Then
+            GoTo noStep
+        End If
+    End If
+    UndoSample "loop", i
+noStep:
+    If ls < 0 Then ls = 0
+    If ll < 2 Then ll = 2
+    If ls + ll > smpLen(i) Then ll = smpLen(i) - ls
+    smpLoopS(i) = (ls \ 2) * 2
+    smpLoopL(i) = (ll \ 2) * 2
+    MirrorSample i
+End Sub

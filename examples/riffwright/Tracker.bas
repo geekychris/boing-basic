@@ -729,3 +729,172 @@ Public Function RexxCommand(ByVal cmd As String, ByVal args As String, rc As Lon
     End Select
     frameDirty = True
 End Function
+
+' ---------------------------------------------------------------- mouse
+' (canvas pixels; button 1 left, 2 right)
+Private dragKind As Long          ' 0 none, 1 pattern selection, 2 loop start, 3 loop end
+Private dragR0 As Long, dragC0 As Long, dragF0 As Long
+
+' the pattern cell under (x, y) in the pattern view: False outside
+Public Function CellAt(ByVal x As Long, ByVal y As Long, row As Long, ch As Long, field As Long) As Boolean
+    Dim ox As Long
+    If y < PY0 Or y >= PY0 + PH Or x < PX0 Or x >= PatWidth() Then Exit Function
+    row = curRow + (y - (PY0 + CENTER * RH)) \ RH
+    If y < PY0 + CENTER * RH Then row = curRow - ((PY0 + CENTER * RH - y + RH - 1) \ RH)
+    If row < 0 Or row > ROWS - 1 Then Exit Function
+    ch = (x - PX0) \ CW
+    ox = (x - PX0) Mod CW
+    Select Case ox
+        Case Is < 24: field = 0
+        Case Is < 30: field = 1
+        Case Is < 42: field = 2
+        Case Is < 48: field = 3
+        Case Is < 54: field = 4
+        Case Else: field = 5
+    End Select
+    CellAt = True
+End Function
+
+' x of a sample offset in the sample view's waveform, and back
+Private Function WaveX(ByVal ofs As Long) As Long
+    Dim zs As Long, zl As Long
+    zs = smpZoomS: zl = smpZoomL
+    If zl <= 0 Then zs = 0: zl = smpLen(curSmp)
+    If zl <= 0 Then zl = 1
+    WaveX = 6 + ((ofs - zs) * (scrW - 12)) \ zl
+End Function
+
+Private Function WaveOfs(ByVal x As Long) As Long
+    Dim zs As Long, zl As Long
+    zs = smpZoomS: zl = smpZoomL
+    If zl <= 0 Then zs = 0: zl = smpLen(curSmp)
+    WaveOfs = zs + ((x - 6) * zl) \ (scrW - 12)
+    If WaveOfs < 0 Then WaveOfs = 0
+    If WaveOfs > smpLen(curSmp) Then WaveOfs = smpLen(curSmp)
+End Function
+
+Public Sub MouseDown(ByVal btn As Long, ByVal sh As Long, ByVal x As Long, ByVal y As Long)
+    Dim r As Long, c As Long, f As Long, i As Long, sx As Long
+    frameDirty = True
+    dragKind = 0
+    ' the lights in the info panel
+    If y >= SY0 + 36 And y < SY0 + 49 Then
+        If x >= 6 And x < 44 Then
+            editOn = Not editOn
+            If editOn Then Say "edit mode" Else Say "jam mode"
+            Exit Sub
+        End If
+        If x >= 48 And x < 96 Then HandleKey vbKeyF9, 0: Exit Sub
+    End If
+    Select Case curView
+        Case V_PATTERN
+            If CellAt(x, y, r, c, f) Then
+                If c < nch Then
+                    ' the cursor moves on the button's release, so the view keeps still while dragging
+                    selOn = False
+                    dragKind = 1: dragR0 = r: dragC0 = c: dragF0 = f
+                End If
+                Exit Sub
+            End If
+            If y >= PY0 - 12 And y < PY0 And x >= PX0 Then
+                c = (x - PX0) \ CW
+                If c < nch Then
+                    If btn = 2 Then SoloChannel c Else ToggleMute c
+                End If
+                Exit Sub
+            End If
+            If SideVisible() And y >= PY0 + 14 And y < PY0 + PH And x >= SideX() Then
+                sx = x - SideX()
+                If sx < 64 Then
+                    i = curPos - 17: If i < 0 Then i = 0
+                    i = i + (y - PY0 - 13) \ RH
+                    If i < songLen Then GoPosition i
+                Else
+                    i = 1 + (y - PY0 - 13) \ 11
+                    If i >= 1 And i <= NSMP Then SelectSample i
+                End If
+            End If
+        Case V_SAMPLES
+            If y >= PY0 + 4 And y < PY0 + 224 And smpLen(curSmp) > 0 Then
+                ' drag the nearer loop marker; a click without a loop makes one from here to the end
+                If smpLoopL(curSmp) <= 2 Then
+                    i = (WaveOfs(x) \ 2) * 2
+                    If smpLen(curSmp) - i < 4 Then Exit Sub
+                    EdSampleParams curSmp, smpVol(curSmp), smpFine(curSmp), i, smpLen(curSmp) - i
+                    dragKind = 2
+                ElseIf Abs(x - WaveX(smpLoopS(curSmp))) <= Abs(x - WaveX(smpLoopS(curSmp) + smpLoopL(curSmp))) Then
+                    dragKind = 2
+                Else
+                    dragKind = 3
+                End If
+                MouseMove btn, sh, x, y
+            ElseIf y >= PY0 + 234 And y < PY0 + 312 And x < 264 Then
+                smpField = (y - PY0 - 234) \ 13
+                If smpField > 4 Then smpField = 4
+                If smpField = 0 And btn = 1 Then reqAction = "samplename"
+            End If
+        Case V_SONG
+            If y >= PY0 + 10 And y < PY0 + 80 Then
+                songField = (y - PY0 - 10) \ 14
+                If songField = 0 Then reqAction = "title"
+            ElseIf y >= PY0 + 125 And y < PY0 + 253 Then
+                i = ((y - PY0 - 125) \ 16) * 16 + (x - 6) \ 38
+                If i >= 0 And i < 128 And (x - 6) \ 38 < 16 Then
+                    songField = 5
+                    If i < songLen Then GoPosition i Else curPos = i: curPat = orders(i)
+                End If
+            End If
+    End Select
+End Sub
+
+Public Sub MouseMove(ByVal btn As Long, ByVal sh As Long, ByVal x As Long, ByVal y As Long)
+    Dim r As Long, c As Long, f As Long, o As Long, e As Long
+    Select Case dragKind
+        Case 1
+            If y < PY0 Then y = PY0
+            If y >= PY0 + PH Then y = PY0 + PH - 1
+            If x < PX0 Then x = PX0
+            If x >= PatWidth() Then x = PatWidth() - 1
+            If CellAt(x, y, r, c, f) Then
+                If c > nch - 1 Then c = nch - 1
+                If r <> dragR0 Or c <> dragC0 Then
+                    selOn = True
+                    selR0 = dragR0: selC0 = dragC0: selR1 = r: selC1 = c
+                End If
+            End If
+            frameDirty = True
+        Case 2, 3
+            o = (WaveOfs(x) \ 2) * 2
+            e = smpLoopS(curSmp) + smpLoopL(curSmp)
+            If dragKind = 2 Then
+                If o > e - 2 Then o = e - 2
+                EdSampleParamsQuiet curSmp, o, e - o
+            Else
+                If o < smpLoopS(curSmp) + 2 Then o = smpLoopS(curSmp) + 2
+                EdSampleParamsQuiet curSmp, smpLoopS(curSmp), o - smpLoopS(curSmp)
+            End If
+            frameDirty = True
+    End Select
+End Sub
+
+Public Sub MouseUp(ByVal btn As Long, ByVal sh As Long, ByVal x As Long, ByVal y As Long)
+    If dragKind <> 0 Then MouseMove btn, sh, x, y
+    If dragKind = 1 Then
+        If selOn Then
+            curCh = selC1
+        Else
+            curRow = dragR0: curCh = dragC0: curField = dragF0
+        End If
+    End If
+    dragKind = 0
+End Sub
+
+Public Sub MouseWheel(ByVal delta As Long)
+    frameDirty = True
+    Select Case curView
+        Case V_PATTERN
+            If delta > 0 Then MoveRow -2, False Else MoveRow 2, False
+        Case V_SAMPLES
+            If delta > 0 Then ZoomIn Else ZoomOut
+    End Select
+End Sub

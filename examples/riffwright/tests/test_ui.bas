@@ -115,6 +115,7 @@ Sub Main()
     t = Timer - t
     If Environ$("RIFF_BENCH") <> "" Then Print "ms per frame:"; Format$(t * 1000 / n, "0.00")
     RexxTests
+    MouseTests
 End Sub
 
 Sub RexxTests()
@@ -138,4 +139,52 @@ Sub RexxTests()
     Print "LOAD missing ->"; rc; r
     r = RexxCommand("JUMP", "", rc)
     Print "JUMP ->"; rc; r
+End Sub
+
+Sub MouseTests()
+    Dim y As Long
+    SetView V_PATTERN
+    curRow = 10: curCh = 0: curField = 0
+    ' click 3 rows below the cursor bar, channel 2's effect column
+    y = PY0 + CENTER * RH + 3 * RH + 2
+    MouseDown 1, 0, PX0 + CW + 44, y
+    MouseUp 1, 0, PX0 + CW + 44, y
+    Print "click -> row"; curRow; "ch"; curCh; "field"; curField
+    MouseDown 1, 0, PX0 + CW + 44, y
+    ' drag to two rows further down in channel 3
+    MouseMove 1, 0, PX0 + 2 * CW + 5, y + 2 * RH
+    MouseUp 1, 0, PX0 + 2 * CW + 5, y + 2 * RH
+    Print "drag -> sel"; selOn; selR0; selR1; selC0; selC1
+    ' click above the bar
+    MouseDown 1, 0, PX0 + 5, PY0 + CENTER * RH - 1
+    MouseUp 1, 0, PX0 + 5, PY0 + CENTER * RH - 1
+    Print "above -> row"; curRow
+    ' channel heading: mute ch 4, right click solo ch 1
+    MouseDown 1, 0, PX0 + 3 * CW + 3, PY0 - 5
+    Print "ch4 muted:"; ChanMuted(3)
+    MouseDown 2, 0, PX0 + 3, PY0 - 5
+    Print "solo ch1:"; ChanMuted(0); ChanMuted(1); ChanMuted(2); ChanMuted(3)
+    MouseDown 2, 0, PX0 + 3, PY0 - 5
+    ' sample list: the third sample
+    MouseDown 1, 0, SideX() + 80, PY0 + 14 + 2 * 11 + 3
+    Print "sample:"; curSmp
+    ' wheel
+    curRow = 20
+    MouseWheel -1
+    Print "wheel down -> row"; curRow
+    ' sample view: drag the loop end marker
+    SynthSample 2, 1, 1000, "long saw"
+    SelectSample 2
+    EdSampleParams 2, 52, 0, 0, smpLen(2)
+    SetView V_SAMPLES
+    MouseDown 1, 0, scrW - 7, PY0 + 50
+    MouseMove 1, 0, 6 + (scrW - 12) \ 2, PY0 + 50
+    MouseUp 1, 0, 6 + (scrW - 12) \ 2, PY0 + 50
+    Print "loop after drag:"; smpLoopS(2); smpLoopL(2); " undo steps named "; UndoName()
+    Undo
+    Print "undo:"; smpLoopS(2); smpLoopL(2)
+    ' the EDIT light
+    editOn = False
+    MouseDown 1, 0, 10, SY0 + 40
+    Print "edit light click -> editOn"; editOn
 End Sub
