@@ -577,6 +577,8 @@ bb_value bb_v_invoke(const bb_value *v, const char *name, int kind, int argc, bb
 /* Late-bound calls with a per-call-site cache of the member id (zero-initialised). */
 typedef struct bb_site { const bb_class *cls; int32_t id; } bb_site;
 bb_value bb_invoke_site(bb_obj *o, bb_site *s, const char *name, int kind, int argc, bb_value *argv);
+bb_value bb_invoke_rt(bb_obj *o, const bb_class *cls, int32_t id, const char *name, int kind, int argc, bb_value *argv);
+const bb_class *bb_runtime_class(const char *name);    /* Boing.Engine3D/Canvas/Audio, else NULL */
 bb_value bb_v_invoke_site(const bb_value *v, bb_site *s, const char *name, int kind, int argc, bb_value *argv);
 /* Convenience for platform code */
 bb_value bb_get_prop(bb_obj *o, const char *name);

@@ -995,6 +995,19 @@ void bb_canvas_key_event(int key, int down)
 
 /* ---------------------------------------------------------------- CreateObject */
 
+/* the built-in classes CreateObject makes, by name ("Boing.X" or "X"): the compiler resolves
+   member names of variables declared As Engine3D / Canvas / Audio through their find() */
+const bb_class *bb_engine3d_class(void);
+const bb_class *bb_audio_class(void);
+const bb_class *bb_runtime_class(const char *name)
+{
+    if (!strncasecmp(name, "Boing.", 6)) name += 6;
+    if (!strcasecmp(name, "Canvas")) return &canvas_class;
+    if (!strcasecmp(name, "Engine3D")) return bb_engine3d_class();
+    if (!strcasecmp(name, "Audio")) return bb_audio_class();
+    return NULL;
+}
+
 bb_obj *bb_create_object(const bb_str *progid)
 {
     const char *p = bb_str_ptr(progid);

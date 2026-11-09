@@ -1873,6 +1873,7 @@ static void e3_terminate(bb_obj *self)
 static const bb_class e3d_class = {
     "Engine3D", sizeof(bb_e3d), e3_find, e3_invoke, e3_terminate, NULL, NULL, 0, NULL, 0, NULL, NULL
 };
+const bb_class *bb_engine3d_class(void) { return &e3d_class; }    /* compile-time member ids (canvas.c) */
 
 /* the default pens: amiga3d-style basics, then a grey ramp */
 static const uint16_t def_pal12[16] = {

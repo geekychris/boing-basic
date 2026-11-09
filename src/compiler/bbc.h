@@ -186,6 +186,7 @@ struct Node {
     Udt *udt;
     int field;              /* E_FIELD / E_MFIELD index */
     int argc_kind;          /* E_LATE invoke kind */
+    int rtid;               /* E_LATE on a built-in runtime class: member id + 1 (0 = by name) */
     int text;               /* string comparisons: Option Compare Text */
 };
 
@@ -310,6 +311,7 @@ struct ClassInfo {
     Module *mod;
     int builtin;            /* runtime class (Collection) */
     const char *rt_new;     /* builtin: C constructor */
+    const void *rtcls;      /* a built-in runtime class (Engine3D, Canvas, Audio: its bb_class): members resolved at compile time */
     Sym **fields; int nfields;
     Proc **methods; int nmethods;
     Proc **vtbl; int nvtbl;           /* public members in slot order */

@@ -127,6 +127,18 @@ stderr and exits with code 20, as before; the runtime's own cleanup (forms, Audi
 files) runs either way. `On Error Resume Next` does not swallow a break (it goes on to an
 `On Error GoTo` handler further up, or ends the program), so such loops can still be stopped.
 
+## The runtime's classes as types
+
+`CreateObject("Boing.Engine3D")`, `"Boing.Canvas"` and `"Boing.Audio"` give the runtime's own
+objects. Held `As Object`, their members are late bound (looked up by name at run time; a
+misspelt name is error 438 when the line runs). Declared with the class's name instead,
+`Dim e As Engine3D` (or `As Boing.Engine3D`; likewise `Canvas`, `Audio`), the member names are
+checked when compiling: `e.DrawMesj` is `file:line:col: error: 'DrawMesj' is not a member of
+Engine3D` in `boing check`. Native builds call the member by its id. Assigning an object of
+another class to such a variable is error 13 (as with BASIC classes); `New Engine3D` and
+`TypeOf x Is Engine3D` are not supported (use `CreateObject` and `TypeName`). A class or module
+of the program with the same name takes precedence.
+
 ## Classes (`.cls`)
 
 - Instance variables (`Private`/`Public` – public ones are properties), methods, `Property

@@ -1245,6 +1245,25 @@ static Node *resolve_member(Ctx *c, Node *e, Node *base, const char *name, NodeL
         e->ty = &ty_variant;
         return e;
     }
+    if (t->kind == T_OBJECT && t->cls && t->cls->rtcls) {
+        /* Engine3D / Canvas / Audio: the member must exist (its id comes from the class's find) */
+        const bb_class *rc = (const bb_class *)t->cls->rtcls;
+        int32_t id = rc->find(rc, name);
+        int kind = BB_INV_GET | BB_INV_METHOD;
+        Node *l;
+        if (id == BB_NOMEMBER) {
+            ERR(c, e, "'%s' is not a member of %s", name, t->cls->name);
+            e->ty = &ty_variant;
+            return e;
+        }
+        if (mode == M_STMT) kind = BB_INV_METHOD;
+        if (mode == M_LVAL) kind = BB_INV_LET;
+        if (mode == M_SETLVAL) kind = BB_INV_SET;
+        l = late(c, e, base, name, args, kind);
+        l->rtid = id + 1;
+        l->cls = t->cls;
+        return l;
+    }
     if (t->kind == T_OBJECT && t->cls && !t->cls->builtin) {
         ClassInfo *cls = t->cls;
         Sym *m = class_member(cls, name);
@@ -1660,6 +1679,7 @@ Node *check_expr(Ctx *c, Node *e, int mode)
             e->ty = &ty_object;
             return e;
         }
+        if (cls->rtcls) ERR(c, e, "use CreateObject(\"Boing.%s\") to make a %s", cls->name, cls->name);
         e->cls = cls;
         e->ty = type_object(cls);
         return e;
@@ -1670,6 +1690,7 @@ Node *check_expr(Ctx *c, Node *e, int mode)
         if (e->a->ty->kind != T_OBJECT && e->a->ty->kind != T_VARIANT) ERR(c, e, "TypeOf needs an object");
         e->a = coerce(c, e->a, &ty_object);
         if (!cls) ERR(c, e, "class '%s' is not defined", e->name);
+        else if (cls->rtcls) ERR(c, e, "TypeOf ... Is %s is not supported: compare TypeName(x) with \"%s\"", cls->name, cls->name);
         e->cls = cls;
         e->ty = &ty_boolean;
         return e;

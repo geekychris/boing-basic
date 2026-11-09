@@ -1,0 +1,3 @@
+rtmember.bas:2:24: error: use CreateObject("Boing.Canvas") to make a Canvas
+rtmember.bas:4:7: error: 'DrawMesj' is not a member of Engine3D
+rtmember.bas:5:11: error: TypeOf ... Is Audio is not supported: compare TypeName(x) with "Audio"

@@ -132,6 +132,12 @@ static int is_scalar(Type *t)
 
 static char *udt_cname(Udt *u) { return xsprintf("U%d_%s", u->index, cident(u->name)); }
 static char *cls_cname(ClassInfo *c) { return xsprintf("C%d_%s", c->index, cident(c->name)); }
+/* the bb_class of a program's class, or of a runtime class (As Engine3D / Canvas / Audio) */
+static char *cls_ref(ClassInfo *c)
+{
+    if (c->rtcls) return xsprintf("bb_runtime_class(\"%s\")", c->name);
+    return xsprintf("&%s_class", cls_cname(c));
+}
 
 static const char *ctype(Type *t)
 {
@@ -457,7 +463,7 @@ static R conv_scalar(EC *e, Node *src, Type *to)
         case T_DATE: return mkr(xsprintf("bb_v_to_date(%s)", p), 0);
         case T_STRING: return mkr(xsprintf("bb_v_to_str(%s)", p), 1);
         case T_OBJECT:
-            if (to->cls && !to->cls->builtin) return mkr(xsprintf("bb_chkcls(bb_v_to_obj(%s), &%s_class)", p, cls_cname(to->cls)), 1);
+            if (to->cls && !to->cls->builtin) return mkr(xsprintf("bb_chkcls(bb_v_to_obj(%s), %s)", p, cls_ref(to->cls)), 1);
             return mkr(xsprintf("bb_v_to_obj(%s)", p), 1);
         case T_ARRAY: return mkr(xsprintf("bb_v_to_array(%s, %s)", p, vtname(to->elem)), 1);
         default: break;
@@ -480,7 +486,7 @@ static R conv_scalar(EC *e, Node *src, Type *to)
         }
     }
     if (tk == T_OBJECT) {
-        if (to->cls && !to->cls->builtin) return mkr(xsprintf("bb_chkcls(%s, &%s_class)", val(e, src), cls_cname(to->cls)), 0);
+        if (to->cls && !to->cls->builtin) return mkr(xsprintf("bb_chkcls(%s, %s)", val(e, src), cls_ref(to->cls)), 0);
         return mkr(val(e, src), 0);
     }
     if (tk == T_ARRAY) return mkr(val(e, src), 0);
@@ -878,6 +884,14 @@ static R late(EC *e, Node *n)
     }
     if (n->name[0] == 0 && n->a->ty->kind == T_VARIANT && (n->argc_kind & (BB_INV_GET | BB_INV_METHOD)))
         return mkr(xsprintf("bb_v_index(%s, %d, %s)", recv, cnt, arr), 1);
+    if (n->rtid && n->a->ty->kind == T_OBJECT && n->cls) {
+        /* a member of a built-in runtime class, id resolved by the compiler (bb_invoke_rt) */
+        char *rc = xsprintf("bb_rtc%d", e->ntemp++);
+        buf_printf(&e->decl, "    static const bb_class *%s;\n", rc);
+        return mkr(xsprintf("bb_invoke_rt(%s, %s ? %s : (%s = bb_runtime_class(%s)), %d, %s, %d, %d, %s)", recv, rc, rc, rc,
+                            cstrlit(n->cls->name, (int)strlen(n->cls->name)), n->rtid - 1, cstrlit(n->name, (int)strlen(n->name)),
+                            n->argc_kind, cnt, arr), 1);
+    }
     site = xsprintf("bb_site%d", e->ntemp++);
     buf_printf(&e->decl, "    static bb_site %s;\n", site);
     if (n->a->ty->kind == T_VARIANT)
@@ -1062,7 +1076,7 @@ static void store_from_variant(EC *e, Node *t, const char *tv)
         return;
     case T_OBJECT:
         if (ty->cls && !ty->cls->builtin)
-            action(e, "bb_obj_set((bb_obj **)&%s, bb_chkcls(bb_v_to_obj(&%s), &%s_class)); bb_v_release(&%s);", lv, tv, cls_cname(ty->cls), tv);
+            action(e, "bb_obj_set((bb_obj **)&%s, bb_chkcls(bb_v_to_obj(&%s), %s)); bb_v_release(&%s);", lv, tv, cls_ref(ty->cls), tv);
         else action(e, "bb_obj_set((bb_obj **)&%s, bb_v_to_obj(&%s)); bb_v_release(&%s);", lv, tv, tv);
         return;
     case T_BOOLEAN: action(e, "%s = bb_v_to_bool(&%s); bb_v_release(&%s);", lv, tv, tv); return;

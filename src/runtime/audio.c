@@ -1224,6 +1224,7 @@ static void au_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
 static const bb_class audio_class = {
     "Audio", sizeof(bb_audio), au_find, au_invoke, NULL, NULL, NULL, 0, NULL, 0, NULL, NULL
 };
+const bb_class *bb_audio_class(void) { return &audio_class; }     /* compile-time member ids (canvas.c) */
 
 bb_obj *bb_audio_new(void)
 {

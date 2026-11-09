@@ -79,6 +79,20 @@ bb_value bb_invoke_site(bb_obj *o, bb_site *s, const char *name, int kind, int a
     return bb_invoke_id(o, s->id, kind, argc, argv);
 }
 
+/* a member of a variable declared As one of the built-in classes (Engine3D, Canvas, Audio), its
+   id resolved by the compiler: called directly (no site lookup, no retain or cleanup entry: these
+   classes never run BASIC code from a call); another class's object: by name, as late binding */
+bb_value bb_invoke_rt(bb_obj *o, const bb_class *cls, int32_t id, const char *name, int kind, int argc, bb_value *argv)
+{
+    bb_obj_check(o);
+    if (BB_LIKELY(o->cls == cls)) {
+        bb_value r = bb_v_empty();
+        cls->invoke(o, id, kind, argc, argv, &r);
+        return r;
+    }
+    return bb_invoke(o, name, kind, argc, argv);
+}
+
 bb_value bb_v_invoke_site(const bb_value *v, bb_site *s, const char *name, int kind, int argc, bb_value *argv)
 {
     bb_value t;
