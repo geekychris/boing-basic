@@ -24,6 +24,7 @@ Private findWhat As String
 Private findCase As Boolean
 Private findWord As Boolean
 Private dragging As Boolean
+Private windowActive As Boolean
 Private Const TICKS_PER_SEC As Long = 4
 Private Const AUTOSAVE_SECS As Long = 120
 
@@ -509,7 +510,7 @@ Private Sub tick_Timer()
         End If
     End If
     blink = blink + 1
-    If blink >= 2 Then
+    If blink >= 2 And windowActive Then
         blink = 0
         CaretOn = Not CaretOn
         DrawDoc page
@@ -783,10 +784,14 @@ End Sub
 
 ' --state: tests send keys only while our window is the active one
 Private Sub Form_Activate()
+    windowActive = True
     WriteState "active"
 End Sub
 
+' the caret stops blinking (and costs nothing) while another window is active
 Private Sub Form_Deactivate()
+    windowActive = False
+    If Not CaretOn Then CaretOn = True: DrawDoc page: page.Refresh
     WriteState "inactive"
 End Sub
 
