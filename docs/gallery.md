@@ -185,11 +185,11 @@ Breakout down a tunnel: move a paddle frame on the near opening and send the bal
 
 **Performance:** 128 fps native, 35 fps in the VM, 34 fps with the JIT (`--bench 300`, m1b guest).
 
-<img src="../examples/block_breaker_3d/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+<img src="../examples/block_breaker_3d/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
 *Playing on the AmigaOS 4 guest*
 
-<img src="../examples/block_breaker_3d/docs/title.png" width="560" alt="The title">
+<img src="../examples/block_breaker_3d/docs/title.png" width="512" alt="The title">
 
 *The title*
 
@@ -203,11 +203,11 @@ A rail shooter down a winding canyon: move the sight, shoot turrets, drones and 
 
 **Performance:** 123 fps native, 38 fps in the VM, 33 fps with the JIT (`--bench 300`, m1b guest).
 
-<img src="../examples/canyon_rail/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+<img src="../examples/canyon_rail/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
 *Playing on the AmigaOS 4 guest*
 
-<img src="../examples/canyon_rail/docs/title.png" width="560" alt="The title">
+<img src="../examples/canyon_rail/docs/title.png" width="512" alt="The title">
 
 *The title*
 
@@ -221,11 +221,11 @@ Parcel deliveries by drone across a city of towers: collect at the depot pad, la
 
 **Performance:** 141 fps native, 43 fps in the VM, 40 fps with the JIT (`--bench 300`, m1b guest).
 
-<img src="../examples/drone_courier/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+<img src="../examples/drone_courier/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
 *Playing on the AmigaOS 4 guest*
 
-<img src="../examples/drone_courier/docs/title.png" width="560" alt="The title">
+<img src="../examples/drone_courier/docs/title.png" width="512" alt="The title">
 
 *The title*
 
@@ -239,11 +239,11 @@ A gantry crane loading a ship that rolls in the swell: swing containers onto the
 
 **Performance:** 74 fps native, 32 fps in the VM, 26 fps with the JIT (`--bench 300`, m1b guest) (JIT/native blit slowed by Screen Sharing on m1).
 
-<img src="../examples/harbour_crane/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+<img src="../examples/harbour_crane/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
 *Playing on the AmigaOS 4 guest*
 
-<img src="../examples/harbour_crane/docs/title.png" width="560" alt="The title">
+<img src="../examples/harbour_crane/docs/title.png" width="512" alt="The title">
 
 *The title*
 
@@ -257,11 +257,11 @@ Tilt a floating maze board to roll a marble to the exit: holes, gates, bumpers, 
 
 **Performance:** 126 fps native, 39 fps in the VM, 36 fps with the JIT (`--bench 300`, m1b guest).
 
-<img src="../examples/marble_tilt/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+<img src="../examples/marble_tilt/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
 *Playing on the AmigaOS 4 guest*
 
-<img src="../examples/marble_tilt/docs/title.png" width="560" alt="The title">
+<img src="../examples/marble_tilt/docs/title.png" width="512" alt="The title">
 
 *The title*
 
@@ -275,11 +275,11 @@ A hover-bike race down a winding valley against three rivals, through gates that
 
 **Performance:** 117 fps native, 28 fps in the VM, 23 fps with the JIT (`--bench 300`, m1b guest).
 
-<img src="../examples/ridge_runner/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+<img src="../examples/ridge_runner/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
 *Playing on the AmigaOS 4 guest*
 
-<img src="../examples/ridge_runner/docs/title.png" width="560" alt="The title">
+<img src="../examples/ridge_runner/docs/title.png" width="512" alt="The title">
 
 *The title*
 
@@ -293,11 +293,11 @@ A shooter inside a hollow sphere: your ship rides the shell facing the centre, a
 
 **Performance:** 86 fps native, 26 fps in the VM, 15 fps with the JIT (`--bench 300`, m1b guest) (VM with adaptive grid detail; blit slowed by Screen Sharing on m1).
 
-<img src="../examples/sphere_siege/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+<img src="../examples/sphere_siege/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
 *Playing on the AmigaOS 4 guest*
 
-<img src="../examples/sphere_siege/docs/title.png" width="560" alt="The title">
+<img src="../examples/sphere_siege/docs/title.png" width="512" alt="The title">
 
 *The title*
 
@@ -311,11 +311,11 @@ A tank fight in a walled arena seen from the turret: shells bounce once off the 
 
 **Performance:** 143 fps native, 35 fps in the VM, 31 fps with the JIT (`--bench 300`, m1b guest).
 
-<img src="../examples/tank_duel/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+<img src="../examples/tank_duel/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
 *Playing on the AmigaOS 4 guest*
 
-<img src="../examples/tank_duel/docs/title.png" width="560" alt="The title">
+<img src="../examples/tank_duel/docs/title.png" width="512" alt="The title">
 
 *The title*
 

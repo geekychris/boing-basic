@@ -7,8 +7,10 @@ perf = "74 fps native, 32 fps in the VM, 26 fps with the JIT (`--bench 300`, m1b
 
 [[shot]]
 file = "docs/play.png"
+width = 512
 caption = "Playing on the AmigaOS 4 guest"
 
 [[shot]]
 file = "docs/title.png"
+width = 512
 caption = "The title"
