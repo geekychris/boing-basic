@@ -16,6 +16,7 @@ Private layerListGen As Long
 Private smokeMode As Boolean, benchStrokes As Long
 Private autosaveOn As Boolean
 Private shownStatus As String
+Private syncing As Boolean          ' the program is setting controls: their Click/Change events are ignored
 Private quitAt As Double            ' --smoke / --hold: quit at this Timer value
 Private holdSecs As Long
 Private logActive As Boolean        ' --log: print active/inactive and events for the guest tests
@@ -63,6 +64,7 @@ Private Sub Form_Load()
     Loop
     If docW = 0 Then DocNew 640, 512
     ZoomFit
+    SyncBrushControls
 
     Tr "workbench"
     SetupWorkbench
@@ -241,6 +243,7 @@ End Sub
 
 Private Sub FillLayerList()
     Dim i As Long
+    syncing = True
     layerList.Clear
     For i = nLayers To 1 Step -1
         layerList.AddItem IIf(layers(i).visible, "", "(hidden) ") & layers(i).name
@@ -251,6 +254,7 @@ Private Sub FillLayerList()
     layerDel.Enabled = nLayers > 1
     layerUp.Enabled = curLayer < nLayers
     layerDown.Enabled = curLayer > 1
+    syncing = False
 End Sub
 
 ' ---------------------------------------------------------------- the picture view: mouse
@@ -412,9 +416,18 @@ End Sub
 ' ---------------------------------------------------------------- brush and layer controls
 
 Private Sub size_Change()
+    If syncing Then Exit Sub
     ActBrushSize size.Value
     sizelabel.Caption = "Brush " & brushSize
     UpdateAll
+End Sub
+
+Private Sub SyncBrushControls()
+    syncing = True
+    size.Value = brushSize
+    square.Value = IIf(brushSquare, 1, 0)
+    syncing = False
+    sizelabel.Caption = "Brush " & brushSize
 End Sub
 
 Private Sub size_Scroll()
@@ -422,20 +435,24 @@ Private Sub size_Scroll()
 End Sub
 
 Private Sub square_Click()
+    If syncing Then Exit Sub
     brushSquare = (square.Value = 1)
     needView = True
     UpdateAll
 End Sub
 
 Private Sub layerList_Click()
+    If syncing Then Exit Sub
     Dim i As Long
     If layerList.ListIndex < 0 Then Exit Sub
     i = nLayers - layerList.ListIndex
     If i <> curLayer Then
         DropFloat
         curLayer = i
+        syncing = True
         layerVis.Value = IIf(layers(curLayer).visible, 1, 0)
         opacity.Value = layers(curLayer).opacity
+        syncing = False
         layerUp.Enabled = curLayer < nLayers
         layerDown.Enabled = curLayer > 1
         needView = True
@@ -479,12 +496,14 @@ Private Sub layerDown_Click()
 End Sub
 
 Private Sub layerVis_Click()
+    If syncing Then Exit Sub
     SetLayerVisible curLayer, layerVis.Value = 1
     needView = True: needLayers = True
     UpdateAll
 End Sub
 
 Private Sub opacity_Change()
+    If syncing Then Exit Sub
     If opacity.Value <> layers(curLayer).opacity Then
         SetLayerOpacity curLayer, opacity.Value
         needView = True
@@ -554,8 +573,8 @@ Private Sub Form_KeyPress(KeyAscii As Integer)
         Case "e": ActSetTool T_ERASER
         Case "G": ActSetTool T_GRADIENT
         Case "x": Dim c As Long: c = fgColor: fgColor = bgColor: bgColor = c: needColours = True
-        Case "[": ActBrushSize brushSize - 1: size.Value = brushSize: sizelabel.Caption = "Brush " & brushSize
-        Case "]": ActBrushSize brushSize + 1: size.Value = brushSize: sizelabel.Caption = "Brush " & brushSize
+        Case "[": ActBrushSize brushSize - 1: SyncBrushControls
+        Case "]": ActBrushSize brushSize + 1: SyncBrushControls
         Case "+", "=": ZoomIn lastMX, lastMY: needView = True
         Case "-": ZoomOut lastMX, lastMY: needView = True
         Case "1": SetViewZoom 100: needView = True

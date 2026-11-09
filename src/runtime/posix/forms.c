@@ -292,11 +292,10 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int i, const bb_fval *v)
         int32_t n = fv_int(v);
         if (c->kind == AFG_RADIO) { c->listindex = n; hl_fire(c->form, c->name, "Click", 0, NULL); return 0; }
         if (c->kind == AFG_MENU) { c->value = n != 0; return 0; }
-        if ((c->kind == AFG_SLIDER || c->kind == AFG_INTEGER || c->kind == AFG_FUELGAUGE) && (n < c->min || n > c->max) && c->max > c->min) return 380;
-        if (c->value == n) return 0;
         c->value = n;
+        /* as on AmigaOS: code setting Value fires the event even when it doesn't change */
         if (c->kind == AFG_CHECKBOX) hl_fire(c->form, c->name, "Click", 0, NULL);
-        else if (c->kind == AFG_SLIDER || c->kind == AFG_SCROLLER || c->kind == AFG_INTEGER) hl_fire(c->form, c->name, "Change", 0, NULL);
+        else if (c->kind == AFG_SLIDER || c->kind == AFG_SCROLLER) hl_fire(c->form, c->name, "Change", 0, NULL);
         return 0;
     }
     if (IS("Min")) { c->min = fv_int(v); return 0; }
@@ -306,9 +305,9 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int i, const bb_fval *v)
     if (is_list(c)) {
         if (IS("ListIndex")) {
             int32_t n = fv_int(v);
-            if (n < -1 || n >= c->nitems) return 380;
+            if (n < -1 || n >= c->nitems || (n == -1 && c->kind != AFG_LISTBROWSER)) return 380;
             c->listindex = n;
-            if (n >= 0) hl_fire(c->form, c->name, "Click", 0, NULL);
+            hl_fire(c->form, c->name, "Click", 0, NULL);
             return 0;
         }
         if (IS("List")) {
