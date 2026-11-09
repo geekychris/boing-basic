@@ -9,7 +9,6 @@ multiplied by how long it has stayed on (up to x8). The autopilot is good, but i
 spots: take the wheel just before it gets something wrong, then hand it back. Take over when it
 was right all along and it tells you "I had that."
 
-![The levee road, on the guest](screenshots/os4-levee.png)
 
 | Key | |
 |---|---|
@@ -30,10 +29,6 @@ debris), **Mountain Pass** to the ski lodge (v3.0: the low sun, fallen rocks, ol
 **Flooded Town** home (v4.0: flooded streets, a detour through the oncoming lane, an ambulance,
 a phantom shadow). Damage comes off your insurance cover; at 0 the policy is cancelled.
 
-| | |
-|---|---|
-| ![The mountain pass, into the low sun](screenshots/os4-mountain.png) | ![The flooded town, from the cockpit](screenshots/os4-town.png) |
-| ![The title](screenshots/os4-title.png) | ![Reading the AI](screenshots/os4-help.png) |
 
 ## What is the same, what changed
 
@@ -101,4 +96,8 @@ Changed:
 
 ## Performance
 
-FPS_TABLE
+On the Mac (Apple M-series), `Bench.bbp --frames 3000 --route 1` (the autopilot, every frame drawn on an off-screen
+canvas): VM `logic 0.024 draw 0.187 ms/frame, 4736.3 fps;  polys/frame 388.5`; native `logic 0.003 draw 0.077 ms/frame, 12522.6 fps;  polys/frame 388.5`. The VM and native
+builds give the same state and picture hashes.
+
+The guest numbers (m1b: VM, JIT, native) and the guest screenshots follow in the next update.

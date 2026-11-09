@@ -37,10 +37,7 @@ On the title, Up / Down choose the station to start from; Space or Return starts
 - Scoring: 1000 a dock, + 500 x the station, + 2 for each unit of fuel left, less a little
   for the time taken.
 
-| | |
-|---|---|
-| ![Close in, lined up](screenshots/os4-close.png) | ![The title, the autopilot docking behind it](screenshots/os4-title.png) |
-| ![The rules](screenshots/os4-help.png) | ![High scores](screenshots/os4-scores.png) |
+![High scores](screenshots/os4-scores.png)
 
 ## What is the same, what changed
 
@@ -98,7 +95,10 @@ Changed:
   every kind of crash, debris, fuel running out, levels, the win. After each the full state
   hash, the score and an event hash are the C's.
 - **Guest smoke run**: `BB_GUEST=m1b examples/common/tools/guest_game.py
-  examples/orbit_docking_bb/OrbitDocking.bbp vm --smoke 400 --data RAM:bbg/examples/orbit_docking_bb`.
+  examples/orbit_docking_bb/OrbitDocking.bbp vm --smoke 400 --data RAM:bbg/examples/orbit_docking_bb`
+  (passed: AHI, the thrusters' effect, no Grim Reaper).
+- **Screenshots**: `tools/guest_shots.py OUTDIR` (one lock ticket each); the ones here are
+  from the local guest.
 
 ## Performance
 
@@ -112,7 +112,8 @@ Canvas) and shown. On **m1b** (QEMU sam460ex on an unloaded Mac), ms per frame:
 | VM `--jit` | 0.45 | 5.68 | 4.08 | 10.57 | **94.6** |
 | native (`boing build --target os4`) | 0.15 | 1.94 | 3.18 | 5.38 | **186.0** |
 
-All three end in the same state hash (FC0F23A8). SMOKE_LINE
+All three end in the same state hash (FC0F23A8). Played in real time (`--smoke 400`, the
+form's 20 ms timer, effects through AHI) the VM shows 31.6 fps on m1b, the timer's pace.
 
 The scene is about 30 polygons a frame: the station is one model (one `DrawModel` call), the
 markers and debris a few calls; most of the draw time is the instruments' 2D (text, circles,

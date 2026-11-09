@@ -8,7 +8,6 @@ You fly a Swallow scout of Larkspur Squadron against the Grauland air service, o
 trenches and the river Sellen, from behind (the chase view) or from the cockpit, with its upper
 wing overhead, its struts, the twin guns on the cowling and their ring sight.
 
-![A dogfight with the Grey Falcon, on the guest](screenshots/os4-dogfight.png)
 
 | Key | |
 |---|---|
@@ -34,10 +33,6 @@ Lines** (four dumps at Orme), **Hornets' Nest** (the aerodrome at Kessin) and **
 Three aeroplanes: lose one and you fly the mission again; lose all three and the squadron
 grounds you. Rank goes by score.
 
-| | |
-|---|---|
-| ![Strafing the dumps at Orme](screenshots/os4-strafing.png) | ![The cockpit](screenshots/os4-cockpit.png) |
-| ![The title, the autopilot flying behind it](screenshots/os4-title.png) | ![The briefing](screenshots/os4-brief.png) |
 
 ## What is the same, what changed
 
@@ -105,4 +100,8 @@ Changed:
 
 ## Performance
 
-FPS_TABLE
+On the Mac (Apple M-series), `Bench.bbp --frames 3000 --mission 6` (the autopilot, every frame drawn on an off-screen
+canvas): VM `logic 0.013 draw 0.063 ms/frame, 13037.1 fps;  polys/frame 136.9`; native `logic 0.002 draw 0.048 ms/frame, 19994.5 fps;  polys/frame 136.9`. The VM and native
+builds give the same state and picture hashes.
+
+The guest numbers (m1b: VM, JIT, native) and the guest screenshots follow in the next update.
