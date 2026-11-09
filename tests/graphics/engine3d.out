@@ -22,6 +22,10 @@ arrays+file polys 5  dropped 0  hash 28F644D3
 batch polys 9  dropped 0  hash 3583E8A
 scene polys 167  dropped 0  hash 63B62FB4
 horizon 79  pen4 AA8855 30201
+camset 0  1  2000  16  192 
+xform 1431 -29  4890 
+bias 100  50 
+bias polys 5  dropped 0  hash 5EB5AC12
 grid 1  h 4  192512 -11 
 terrain polys 1281  dropped 0  hash 5CF27200
 window polys 144  dropped 0  hash 4AB76C92

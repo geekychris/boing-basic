@@ -66,6 +66,7 @@ typedef struct bb_e3d {
     int32_t sky_pen, sky_rows;
     uint32_t sky[1024];
     int32_t shading, amb;
+    int32_t margin, quad_bias;            /* ModelMargin (800), QuadBias (0) */
     int32_t lix, liy, liz;               /* the light direction, 16.16 unit vector */
     int32_t fog_on;
     uint32_t fog_col;
@@ -395,15 +396,15 @@ static void e_quad(bb_e3d *e, const Cam *c, int32_t depth, uint32_t col, int gra
     e_poly(e, c, depth, col, grad, q, 4);
 }
 
-static int32_t pick_depth(int32_t mode, const V3 *q, int n)
+static int32_t pick_depth(const bb_e3d *e, int32_t mode, const V3 *q, int n)
 {
     int32_t d, i;
     if (mode >= 0) return mode;
     switch (mode) {
-    case -2: d = q[0].z; for (i = 1; i < n; i++) if (q[i].z < d) d = q[i].z; return d;
-    case -3: d = q[0].z; for (i = 1; i < n; i++) if (q[i].z > d) d = q[i].z; return d;
-    case -4: d = 0; for (i = 0; i < n; i++) d += q[i].z; return d / n;
-    default: return (q[0].z + q[n > 2 ? 2 : n - 1].z) / 2;
+    case -2: d = 0; for (i = 0; i < n; i++) d += q[i].z; return d / n;
+    case -3: d = q[0].z; for (i = 1; i < n; i++) if (q[i].z < d) d = q[i].z; return d;
+    case -4: d = q[0].z; for (i = 1; i < n; i++) if (q[i].z > d) d = q[i].z; return d;
+    default: return (q[0].z + q[n > 2 ? 2 : n - 1].z) / 2 + e->quad_bias;
     }
 }
 
@@ -415,7 +416,7 @@ static void e_poly_world(bb_e3d *e, int32_t depth, int32_t pen, const int32_t *w
     double nx = 0, ny = 0, nz = 0;
     uint32_t col;
     for (i = 0; i < n; i++) xform(&e->cam, &e->cam.c, w[i * 3], w[i * 3 + 1], w[i * 3 + 2], &q[i]);
-    depth = pick_depth(depth, q, n);
+    depth = pick_depth(e, depth, q, n);
     if (e->shading) {
         double ux = w[3] - w[0], uy = w[4] - w[1], uz = w[5] - w[2];
         double vx = w[6] - w[0], vy = w[7] - w[1], vz = w[8] - w[2];
@@ -431,15 +432,13 @@ static void e_poly_world(bb_e3d *e, int32_t depth, int32_t pen, const int32_t *w
     else e_poly(e, &e->cam.c, depth, col, grad, q, n);
 }
 
-/* a line in the list: clipped to the near plane, projected, drawn with Bresenham clipped
- * to the 3D area */
-static void e_line(bb_e3d *e, const V3 *a0, const V3 *b0, int32_t depth, uint32_t col)
+/* a camera-space line: cut at the near plane, projected; 0 when nothing is left to draw */
+static int clip_line(bb_e3d *e, const V3 *a0, const V3 *b0, int32_t *o)
 {
     const Cam *c = &e->cam.c;
     V3 a = *a0, b = *b0;
-    int32_t nz = CAM_NEAR(c), x0, y0, x1, y1;
-    DPoly *p;
-    if (a.z < nz && b.z < nz) return;
+    int32_t nz = CAM_NEAR(c), x0, y0, x1, y1, W = c->vw * e->sub, H = c->vh * e->sub;
+    if (a.z < nz && b.z < nz) return 0;
     if (a.z < nz || b.z < nz) {
         V3 *in = a.z >= nz ? &a : &b, *out = a.z >= nz ? &b : &a;
         int32_t t = nz - in->z, dz = out->z - in->z;
@@ -449,29 +448,24 @@ static void e_line(bb_e3d *e, const V3 *a0, const V3 *b0, int32_t depth, uint32_
     }
     project(e, c, &a, &x0, &y0);
     project(e, c, &b, &x1, &y1);
-    if ((x0 < 0 && x1 < 0) || (y0 < 0 && y1 < 0)) return;
-    {
-        int32_t W = c->vw * e->sub, H = c->vh * e->sub;
-        if ((x0 >= W && x1 >= W) || (y0 >= H && y1 >= H)) return;
-        /* keep the ends within int16 */
-        if (x0 < -16000 || x0 > 16000 || y0 < -16000 || y0 > 16000 || x1 < -16000 || x1 > 16000 || y1 < -16000 || y1 > 16000) {
-            int32_t xs[2] = { x0, x1 }, ys[2] = { y0, y1 }, i;
-            for (i = 0; i < 2; i++) {
-                /* pull the far end in along the line */
-                while (xs[i] < -16000 || xs[i] > 16000 || ys[i] < -16000 || ys[i] > 16000) {
-                    xs[i] = (xs[i] + xs[1 - i]) / 2;
-                    ys[i] = (ys[i] + ys[1 - i]) / 2;
-                }
-            }
-            x0 = xs[0]; y0 = ys[0]; x1 = xs[1]; y1 = ys[1];
-        }
-    }
-    if (!(p = e_new(e))) return;
+    if ((x0 < 0 && x1 < 0) || (y0 < 0 && y1 < 0) || (x0 >= W && x1 >= W) || (y0 >= H && y1 >= H)) return 0;
+    /* keep the ends within int16 (and the stepping short): pull a far end in along the line */
+    while (x0 < -16000 || x0 > 16000 || y0 < -16000 || y0 > 16000) { x0 = (x0 + x1) / 2; y0 = (y0 + y1) / 2; }
+    while (x1 < -16000 || x1 > 16000 || y1 < -16000 || y1 > 16000) { x1 = (x0 + x1) / 2; y1 = (y0 + y1) / 2; }
+    o[0] = x0; o[1] = y0; o[2] = x1; o[3] = y1;
+    return 1;
+}
+
+static void e_line(bb_e3d *e, const V3 *a, const V3 *b, int32_t depth, uint32_t col)
+{
+    int32_t o[4];
+    DPoly *p;
+    if (!clip_line(e, a, b, o) || !(p = e_new(e))) return;
     p->n = 2;
     p->kind = K_LINE;
     p->col = col;
-    p->x[0] = (int16_t)x0; p->y[0] = (int16_t)y0; p->x[1] = (int16_t)x1; p->y[1] = (int16_t)y1;
-    e_link(e, c, depth);
+    p->x[0] = (int16_t)o[0]; p->y[0] = (int16_t)o[1]; p->x[1] = (int16_t)o[2]; p->y[1] = (int16_t)o[3];
+    e_link(e, &e->cam.c, depth);
 }
 
 static void e_point(bb_e3d *e, int32_t wx, int32_t wy, int32_t wz, int32_t pen, int32_t size, int32_t bias)
@@ -774,7 +768,7 @@ static void e_model(bb_e3d *e, const Cam *c, E3Model *m, int32_t wx, int32_t wy,
 
     xform(&e->cam, c, wx, wy, wz, &ctr);
     {
-        int32_t mg = 800 * CAM_U(c);
+        int32_t mg = e->margin * CAM_U(c);
         if (ctr.z < -mg || ctr.x > ctr.z + mg || ctr.x < -ctr.z - mg) return;
     }
     for (i = 0; i < m->nv; i++) {
@@ -1138,7 +1132,7 @@ enum {
     P_SHADING, M_LIGHT, M_FOG,
     M_TEXT, M_TEXTSHADOW, M_TEXTCENTRE, M_TEXTWIDTH, M_SPAN, M_FILLRECT, M_POLYFILL, M_BLEND,
     M_SIN, M_COS, M_ATAN2, M_ISQRT, M_HYPOT, M_HASH, M_RAND, M_FMUL, M_FDIV, M_FSQRT, M_ROTYPR, M_ROTYAW, M_MATMUL,
-    M_MATAPPLY, M_SINTABLE, M_COSTABLE
+    M_MATAPPLY, M_SINTABLE, M_COSTABLE, M_CAMSET, P_MODELMARGIN, P_QUADBIAS, M_DRAWLINE3D
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -1169,7 +1163,8 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"Sin", M_SIN}, {"Cos", M_COS}, {"Atan2", M_ATAN2}, {"ISqrt", M_ISQRT}, {"Hypot", M_HYPOT}, {"Hash", M_HASH},
     {"Rand", M_RAND}, {"FMul", M_FMUL}, {"FDiv", M_FDIV}, {"FSqrt", M_FSQRT}, {"RotYPR", M_ROTYPR},
     {"RotYaw", M_ROTYAW}, {"MatMul", M_MATMUL}, {"MatApply", M_MATAPPLY}, {"SinTable", M_SINTABLE},
-    {"CosTable", M_COSTABLE},
+    {"CosTable", M_COSTABLE}, {"CamSet", M_CAMSET}, {"ModelMargin", P_MODELMARGIN}, {"QuadBias", P_QUADBIAS},
+    {"DrawLine3D", M_DRAWLINE3D},
 };
 
 static int32_t e3_find(const bb_class *cls, const char *name)
@@ -1304,6 +1299,39 @@ static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         int32_t *p = id == P_CAMYAW ? (int32_t *)&c->yaw : id == P_CAMPITCH ? (int32_t *)&c->pitch : &k->roll;
         if (setting) { *p = argl(argc, argv, argc - 1) & 0xFFFF; cam_trig(k); }
         else *ret = bb_v_long(*p);
+        return;
+    }
+    case M_CAMSET:
+        /* the whole amiga3d camera at once: x, y, z, yaw, pitch [, qx, qy, qz (precise) [, roll]] */
+        c->x = argl(argc, argv, 0); c->y = argl(argc, argv, 1); c->z = argl(argc, argv, 2);
+        if (!missing(argc, argv, 5)) {
+            c->qx = argl(argc, argv, 5); c->qy = argl_opt(argc, argv, 6, 0); c->qz = argl_opt(argc, argv, 7, 0);
+            c->precise = 1;
+        } else { c->qx = c->qy = c->qz = 0; c->precise = 0; }
+        c->yaw = argl(argc, argv, 3) & 0xFFFF;
+        c->pitch = argl(argc, argv, 4) & 0xFFFF;
+        k->roll = argl_opt(argc, argv, 8, 0) & 0xFFFF;
+        cam_trig(k);
+        return;
+    case P_MODELMARGIN: case P_QUADBIAS: {
+        int32_t *p = id == P_MODELMARGIN ? &e->margin : &e->quad_bias;
+        if (setting) *p = argl(argc, argv, argc - 1); else *ret = bb_v_long(*p);
+        return;
+    }
+    case M_DRAWLINE3D: {
+        /* a world line drawn now (not in the list): near-plane cut, clipped to the 3D area */
+        V3 a, b;
+        int grad = 0;
+        uint32_t col;
+        int32_t i;
+        for (i = 0; i < 6; i++) w[i] = argl(argc, argv, i);
+        col = pen_argb(e, argl(argc, argv, 6), &grad);
+        xform(k, c, w[0], w[1], w[2], &a);
+        xform(k, c, w[3], w[4], w[5], &b);
+        if (need_target(e)) {
+            int32_t o[4];
+            if (clip_line(e, &a, &b, o)) raster_line(e, o[0], o[1], o[2], o[3], col);
+        }
         return;
     }
     case P_CAMU: *ret = bb_v_long(CAM_U(c)); return;
@@ -1837,6 +1865,7 @@ bb_obj *bb_engine3d_new(void)
     e->sub = 1;
     e->sky_pen = -1;
     e->amb = 64;
+    e->margin = 800;
     set_light(e, -1, 2, 1);
     cam_view(&e->cam.c, 320, 256, 160, 128, 256);
     cam_trig(&e->cam);
