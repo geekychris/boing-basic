@@ -107,6 +107,10 @@ skipped) and plain text. Project > Export writes RTF (for other word processors)
 HTML (headings, lists, quotes, colours and sizes as CSS) or plain text.
 Project > Document info sets the title and author, which go into the RTF and HTML too.
 
+Files are chosen in the asl file requester; dropping document icons on the window opens
+each in a document of its own. Project > Print prints the text (wrapped at 76 columns)
+through the printer preferences' printer.
+
 Every two minutes a changed document that has a file name is also saved as
 name.pwd.autosave.
 @ENDNODE
@@ -130,7 +134,7 @@ ENVARC:Penwright.prefs.
 @NODE Keys "Menus and keys"
 @{b}Menus and keys@{ub}
 
-Project    New A-N, Open A-O, Save A-S, Save as, Export RTF / HTML / text,
+Project    New A-N, Open A-O, Open recent, Save A-S, Save as, Export RTF / HTML / text, Print A-P,
            Document info, Help, About, Quit A-Q
 Edit       Undo A-Z, Redo A-Y, Cut A-X, Copy A-C, Paste A-V, Select all A-A,
            Find A-F, Find next A-G, Replace all A-R

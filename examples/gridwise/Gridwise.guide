@@ -179,6 +179,10 @@ lines. Fields starting with = are imported as text, not as formulas.
 Project > Export CSV writes the values (numbers without formatting, so they read back
 exactly).
 
+Files are chosen in the asl file requester. Dropping a .gws or .csv icon on the window
+opens it. Project > Print prints the used cells as a table (with the column widths of
+the sheet), then each chart as a picture, through the printer preferences' printer.
+
 Every two minutes a changed sheet that has a file name is also saved as
 name.gws.autosave, so little is lost if something goes wrong.
 @ENDNODE
@@ -186,7 +190,8 @@ name.gws.autosave, so little is lost if something goes wrong.
 @NODE Keys "Menus and keys"
 @{b}Menus and keys@{ub}
 
-Project   New A-N, Open A-O, Save A-S, Save as, Import CSV, Export CSV A-E, Help, About, Quit A-Q
+Project   New A-N, Open A-O, Open recent, Save A-S, Save as, Import CSV, Export CSV A-E,
+          Print A-P, Help, About, Quit A-Q
 Edit      Undo A-Z, Redo A-Y, Cut A-X, Copy A-C, Paste A-V, Clear A-K, Fill down A-D,
           Fill right A-R, AutoSum A-U, Select all A-A, Find A-F, Find next A-G, Go to cell A-J
 Format    Bold A-B, Italic A-I, Numbers (A-1 .. A-6), Alignment, Wider A-+, Narrower A--
@@ -194,8 +199,8 @@ Sheet     Insert/delete row, insert/delete column, Sort ascending/descending (by
           cursor's column, within the selection), Recalculate, Show formulas A-L, Grid lines
 Chart     Bar, Line, Pie chart of the selection, Delete selected chart
 
-The button bar above the formula bar has New, Open, Save, Undo, Redo, Bold, Italic,
-the number format of the cursor cell, Sum (AutoSum) and Chart.
+The toolbar has New, Open, Save, Print, Undo, Redo, Cut, Copy, Paste, Bold, Italic,
+Sum (AutoSum) and Chart; the chooser beside the cell name sets the number format.
 Sheet also has Autosave (on/off) and the Currency symbol; these settings and the recent
 files are kept in ENVARC:Gridwise.prefs.
 
