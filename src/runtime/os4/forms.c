@@ -8,6 +8,7 @@
  * interface globals are needed except the few classes with library functions (list nodes,
  * RethinkLayout). */
 #include "forms_int.h"
+#include "../boing.h"     /* bb_app_title for remembered window boxes */
 
 /* ReAction's layout code is stack hungry, and a program started from a background CLI (or
  * Workbench) may get only a few KB: every program linking the forms gets 256 KB. (A
@@ -82,6 +83,8 @@ bb_form *forms;
 int ending;
 static int end_code;
 static struct MsgPort *timer_port;
+static void box_save(bb_form *f);
+static bb_form *modal_top;                /* the form shown with vbModal (input goes only there) */
 static struct TimeRequest *timer_master;
 
 char *xstrdup(const char *s)
@@ -553,6 +556,7 @@ static void form_free(bb_form *f)
             if (c->tio) IExec->FreeSysObject(ASOT_IOREQUEST, c->tio);
         }
     }
+    box_save(f);
     bbf_app_window_close(f);
     if (f->winobj) {
         if (f->win) IIntuition->IDoMethod(f->winobj, WM_CLOSE);
@@ -738,6 +742,59 @@ static void mouse_events_handle(bb_form *f)
     f->nmq = 0;
 }
 
+/* remember=1: the window's box in ENVARC:<App.Title>/windows/<form> (and ENV:) */
+static char *box_path(bb_form *f, const char *dir)
+{
+    bb_str *t = bb_app_title();
+    char *p = malloc(strlen(dir) + strlen(bb_str_ptr(t)) + strlen(bb_form_name(f)) + 16);
+    sprintf(p, "%s%s/windows/%s", dir, bb_str_ptr(t), bb_form_name(f));
+    bb_str_release(t);
+    return p;
+}
+
+static int box_load(bb_form *f, int *b)
+{
+    for (int arch = 0; arch < 2; arch++) {
+        char *p = box_path(f, arch ? "ENVARC:" : "ENV:");
+        FILE *fp = fopen(p, "r");
+        free(p);
+        if (!fp) continue;
+        int n = fscanf(fp, "%d %d %d %d", &b[0], &b[1], &b[2], &b[3]);
+        fclose(fp);
+        if (n == 4 && b[2] > 20 && b[3] > 10) return 1;
+    }
+    return 0;
+}
+
+static void box_save(bb_form *f)
+{
+    if (!f->win || !afg_get_bool(f->afg, "remember")) return;
+    for (int arch = 0; arch < 2; arch++) {
+        char *p = box_path(f, arch ? "ENVARC:" : "ENV:");
+        /* the directories, then the file */
+        for (char *q = strchr(p, ':') + 1; *q; q++)
+            if (*q == '/') {
+                *q = 0;
+                IDOS->CreateDirTree(p);
+                *q = '/';
+                break;
+            }
+        char *last = strrchr(p, '/');
+        *last = 0;
+        BPTR l = IDOS->CreateDirTree(p);
+        if (l) IDOS->UnLock(l);
+        *last = '/';
+        FILE *fp = fopen(p, "w");
+        if (fp) {
+            fprintf(fp, "%d %d %d %d\n", f->win->LeftEdge, f->win->TopEdge, f->win->Width, f->win->Height);
+            fclose(fp);
+        }
+        free(p);
+    }
+}
+
+static struct MsgPort *iconify_port;     /* WINDOW_AppPort of forms with iconify=1 */
+
 bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn fn, bb_form_has_event_fn has,
                       void *ud, char *err, int errlen)
 {
@@ -770,13 +827,30 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     int w = afg_get_int(a, "width"), h = afg_get_int(a, "height");
     tags t = { 0 };
     tg(&t, WA_Title, (uint32)afg_get(a, "title"));
+    int box[4], remembered = afg_get_bool(a, "remember") && box_load(f, box);
+    int tool = afg_get_bool(a, "toolwindow");
     tg(&t, WA_DragBar, TRUE);
     tg(&t, WA_CloseGadget, TRUE);
-    tg(&t, WA_DepthGadget, TRUE);
+    tg(&t, WA_DepthGadget, !tool);
     tg(&t, WA_Activate, TRUE);
-    tg(&t, WA_SizeGadget, afg_get_bool(a, "resizable"));
-    if (w > 0) tg(&t, WA_InnerWidth, w);
-    if (h > 0) tg(&t, WA_InnerHeight, h);
+    tg(&t, WA_SizeGadget, afg_get_bool(a, "resizable") && !tool);
+    if (remembered) {
+        tg(&t, WA_Left, box[0]);
+        tg(&t, WA_Top, box[1]);
+        tg(&t, WA_Width, box[2]);
+        tg(&t, WA_Height, box[3]);
+    } else {
+        if (w > 0) tg(&t, WA_InnerWidth, w);
+        if (h > 0) tg(&t, WA_InnerHeight, h);
+    }
+    if (afg_get_bool(a, "iconify")) {
+        if (!iconify_port) iconify_port = IExec->AllocSysObjectTags(ASOT_PORT, TAG_DONE);
+        if (iconify_port) {
+            tg(&t, WINDOW_IconifyGadget, TRUE);
+            tg(&t, WINDOW_AppPort, (uint32)iconify_port);
+            tg(&t, WINDOW_IconTitle, (uint32)afg_get(a, "title"));
+        }
+    }
     for (int i = 0; i < f->nctls; i++) {
         if (f->ctls[i]->kind == AFG_CANVAS && f->ctls[i]->name[0] && wants_mouse(f, f->ctls[i])) f->mouse_wanted = 1;
         if (f->ctls[i]->kind == AFG_GRID) f->mouse_wanted = 1;
@@ -794,7 +868,7 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
         form_free(f);
         return NULL;
     }
-    tg(&t, WINDOW_Position, WPOS_CENTERSCREEN);
+    if (!remembered) tg(&t, WINDOW_Position, WPOS_CENTERSCREEN);
     tg(&t, WINDOW_GadgetHelp, TRUE);
     f->idcmp_hook.h_Entry = (HOOKFUNC)idcmp_func;
     f->idcmp_hook.h_Data = f;
@@ -872,9 +946,11 @@ int bb_form_show(bb_form *f)
 int bb_form_hide(bb_form *f)
 {
     if (!f->loaded) return 364;
+    box_save(f);
     bbf_app_window_close(f);
     if (f->win) IIntuition->IDoMethod(f->winobj, WM_CLOSE);
     f->win = NULL;
+    f->iconified = 0;
     f->self.visible = 0;
     return 0;
 }
@@ -966,7 +1042,7 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
     if (IS("Visible")) return ret_int(out, vb_bool(w != NULL));
     if (IS("Enabled")) return ret_int(out, vb_bool(f->enabled));
     if (IS("Tag")) return ret_str(&f->self, out, f->self.tagstr);
-    if (IS("WindowState")) return ret_int(out, 0);
+    if (IS("WindowState")) return ret_int(out, f->iconified ? 1 : 0);
     if (IS("Width")) return ret_int(out, w ? w->Width - w->BorderLeft - w->BorderRight : afg_get_int(f->afg, "width"));
     if (IS("Height")) return ret_int(out, w ? w->Height - w->BorderTop - w->BorderBottom : afg_get_int(f->afg, "height"));
     if (IS("Left")) return ret_int(out, w ? w->LeftEdge : 0);
@@ -1020,7 +1096,25 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
         else bbf_app_window_close(f);
         return 0;
     }
-    if (IS("Name") || IS("WindowState") || IS("ContextControl")) return 383;
+    if (IS("WindowState")) {
+        int want = vint(v) == 1;
+        if (want && f->win && afg_get_bool(f->afg, "iconify")) {
+            box_save(f);
+            bbf_app_window_close(f);
+            IIntuition->IDoMethod(f->winobj, WM_ICONIFY);
+            f->win = NULL;
+            f->iconified = 1;
+        } else if (!want && f->iconified) {
+            f->win = (struct Window *)IIntuition->IDoMethod(f->winobj, WM_OPEN);
+            f->iconified = 0;
+            if (f->win) {
+                bbf_app_window_open(f);
+                canvas_refresh_all(f);
+            }
+        }
+        return 0;
+    }
+    if (IS("Name") || IS("ContextControl")) return 383;
     return 438;
 }
 
@@ -1625,9 +1719,31 @@ void bbf_handle_form(bb_form *f)
 {
     uint32 result;
     uint16 code = 0;
-    while (f->loaded && f->win && !ending &&
+    while (f->loaded && (f->win || f->iconified) && !ending &&
            (result = IIntuition->IDoMethod(f->winobj, WM_HANDLEINPUT, &code)) != WMHI_LASTMSG) {
-        if (!f->enabled && (result & WMHI_CLASSMASK) != WMHI_NEWSIZE) continue;
+        uint32 cl = result & WMHI_CLASSMASK;
+        if (cl == WMHI_UNICONIFY) {
+            f->win = (struct Window *)IIntuition->IDoMethod(f->winobj, WM_OPEN);
+            f->iconified = 0;
+            if (f->win) {
+                bbf_app_window_open(f);
+                canvas_refresh_all(f);
+                fire(f, "Form", "Resize", 0, NULL);
+            }
+            continue;
+        }
+        if (cl == WMHI_ICONIFY) {
+            box_save(f);
+            bbf_app_window_close(f);
+            IIntuition->IDoMethod(f->winobj, WM_ICONIFY);
+            f->win = NULL;
+            f->iconified = 1;
+            fire(f, "Form", "Resize", 0, NULL);
+            continue;
+        }
+        /* not the form on top of a modal stack: no input (a busy pointer is shown) */
+        if (modal_top && f != modal_top && cl != WMHI_NEWSIZE) continue;
+        if (!f->enabled && cl != WMHI_NEWSIZE) continue;
         switch (result & WMHI_CLASSMASK) {
         case WMHI_CLOSEWINDOW:
             unload(f, 0);
@@ -1704,6 +1820,7 @@ static void pump(int wait)
         }
     if (timer_port) sigs |= 1u << timer_port->mp_SigBit;
     if (edit_sigbit >= 0) sigs |= 1u << edit_sigbit;
+    if (iconify_port) sigs |= 1u << iconify_port->mp_SigBit;
     sigs |= bbf_app_sigmask();          /* AppWindow/AppIcon messages, the ARexx port, help */
     uint32 got = wait ? IExec->Wait(sigs) : IExec->SetSignal(0, sigs) & sigs;
     bbf_app_signals(got);
@@ -1714,7 +1831,26 @@ static void pump(int wait)
     }
     if (timer_port && (got & (1u << timer_port->mp_SigBit))) timers_handle();
     for (bb_form *f = forms; f && !ending; f = f->next)
-        if (f->loaded && f->win) bbf_handle_form(f);
+        if (f->loaded && (f->win || f->iconified)) bbf_handle_form(f);
+}
+
+/* Show vbModal */
+int bb_form_show_modal(bb_form *f)
+{
+    bb_form *prev = modal_top;
+    int e = bb_form_show(f);
+    if (e) return e;
+    modal_top = f;
+    for (bb_form *o = forms; o; o = o->next)
+        if (o != f && o->win) IIntuition->SetAttrs(o->winobj, WA_BusyPointer, TRUE, TAG_DONE);
+    f->modal_depth++;
+    while (!ending && f->loaded && (f->win || f->iconified)) pump(1);
+    f->modal_depth--;
+    modal_top = prev;
+    for (bb_form *o = forms; o; o = o->next)
+        if (o->win && o != prev) IIntuition->SetAttrs(o->winobj, WA_BusyPointer, prev ? TRUE : !o->enabled, TAG_DONE);
+    if (prev && prev->win) IIntuition->ActivateWindow(prev->win);
+    return 0;
 }
 
 int bb_forms_run(void)
@@ -1752,6 +1888,9 @@ void bb_forms_cleanup(void)
     }
     if (edit_sigbit >= 0) IExec->FreeSignal(edit_sigbit);
     edit_sigbit = -1;
+    if (iconify_port) IExec->FreeSysObject(ASOT_PORT, iconify_port);
+    iconify_port = NULL;
+    modal_top = NULL;
     if (IKM) IExec->DropInterface((struct Interface *)IKM);
     if (KeymapLib) IExec->CloseLibrary(KeymapLib);
     IKM = NULL;

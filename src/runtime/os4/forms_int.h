@@ -130,6 +130,8 @@ struct bb_form {
     bb_ctl *last_down;
     int32_t movex, movey;    /* the last MouseMove position reported while dragging */
     int dropmode;            /* OLEDropMode: an AppWindow for dropped files */
+    int iconified;           /* iconify=1 and iconified (WindowState = 1) */
+    int modal_depth;         /* > 0 while shown with vbModal */
     struct AppWindow *appwin;
 };
 

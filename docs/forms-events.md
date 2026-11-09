@@ -58,14 +58,18 @@ but no `Enabled`, `ToolTipText` or `SetFocus`.
 | `Left`, `Top` | Long | — | window position on the screen |
 | `Visible` | Boolean | — | `Show`/`Hide` |
 | `Enabled` | Boolean | — | `False` = busy pointer and no input |
-| `WindowState` | Integer | — | 0 normal, 1 minimised (iconified) |
+| `WindowState` | Integer | — | 0 normal, 1 iconified (needs `iconify=1`) |
+| | | `remember` | the window box is saved in ENV:/ENVARC: and used next time |
+| | | `iconify` | an iconify gadget |
+| | | `toolwindow` | no size or depth gadget |
+| | | `dropfiles` | an AppWindow (see Drag and drop) |
 | `Tag` | String | — | |
 | `ContextMenu` | String | `contextmenu` | the window's context menu (over no control that has one) |
 | `ContextControl` | String, R/O | — | the control the last context menu was opened over |
 
 | Method | Notes |
 |---|---|
-| `Show` | creates (fires `Form_Load` the first time) and opens the window |
+| `Show [vbModal]` | creates (fires `Form_Load` the first time) and opens the window; with `vbModal` (1) it returns when the form is hidden or unloaded, the other forms take no input meanwhile |
 | `PopupMenu menu [, x, y]` | opens a hidden top-level menu at the pointer (or x, y in the window) |
 | `AddMenu id, caption [, parent [, key]]` | a menu added at run time (no parent = a new title) |
 | `RemoveMenu id` | |

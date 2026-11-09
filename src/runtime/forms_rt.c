@@ -151,6 +151,16 @@ static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
     /* form-level operations that also work on an unloaded form */
     if (o->is_form && (kind & BB_INV_METHOD) && !strcasecmp(name, "Show")) {
         c = ctl_of(o);
+        /* frm.Show vbModal (1): returns when the form is hidden or unloaded */
+        if (argc >= 1 && !(argv[0].type == BB_ERROR && (argv[0].flags & BB_VF_MISSING)) && bb_v_to_long(&argv[0]) == 1) {
+            formdef *fd = o->fd;
+            err = bb_form_show_modal(fd->form);
+            if (fd->form && bb_form_find(fd->name) == NULL) {     /* unloaded meanwhile */
+                fd->form = NULL;
+            }
+            if (err) bb_raise(err, NULL);
+            return;
+        }
         err = bb_form_show(o->fd->form);
         if (err) bb_raise(err, NULL);
         return;
