@@ -21,6 +21,15 @@ Conventions:
 - Setting a property from code doesn't fire the control's `Change`/`Click` event, except
   where noted (VB6 fires `Change` when code sets `Text`; we do the same for `Text`).
 
+**On the host** (macOS/Linux) there is no GUI. A form program fails with a message, unless
+`BOING_HEADLESS=1` is set: then the forms run without a display (`src/runtime/posix/forms.c`).
+Controls keep their properties, events fire as on AmigaOS (`Form_Load` while loading,
+`Activate` and `Resize` on `Show`, `Click`/`Change` when code sets `ListIndex`/`Value`/`Text`,
+`QueryUnload`/`Unload`), timers fire in real time, canvases draw as always, and the event loop
+ends when the last form is unloaded or after `BOING_HEADLESS_SECS` seconds (default 10). A
+program's own test mode can so run in `make test`, under sanitizers too (see
+`examples/tincture/tests/host-test.sh`).
+
 ## Properties every control has
 
 | Property | Type | Design-time key | Notes |

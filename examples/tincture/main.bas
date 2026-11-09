@@ -144,7 +144,11 @@ Private Sub Tr(ByVal what As String)
     Dim f As Integer
     If Not traceOn Then Exit Sub
     f = FreeFile
-    Open "RAM:tincture.trace" For Append As #f
+    If InStr(App.Path, ":") > 0 And InStr(App.Path, "/") <> 1 Then
+        Open "RAM:tincture.trace" For Append As #f
+    Else
+        Open "tincture.trace" For Append As #f          ' on the host (headless runs)
+    End If
     Print #f, what
     Close #f
 End Sub
@@ -1043,7 +1047,7 @@ Private Sub RunSmoke()
     NeedAll
     UpdateAll
     Debug.Print "SMOKE redo-all hash=" & RunCommand("HASH")
-    view.SaveImage "RAM:tincture-smoke.ppm"
+    If InStr(App.Path, ":") > 0 And InStr(App.Path, "/") <> 1 Then view.SaveImage "RAM:tincture-smoke.ppm"
     docDirty = False
     If holdSecs = 0 Then QuitNow
 End Sub
