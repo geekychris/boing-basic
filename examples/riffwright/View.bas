@@ -409,7 +409,9 @@ End Sub
 Public Sub DrawStatus(ByVal msg As String, ByVal hint As String)
     cv.Box 0, scrH - 14, scrW, 14, cPanel
     cv.DrawText 6, scrH - 11, msg, cText
-    cv.DrawText scrW - cv.TextWidth(hint) - 6, scrH - 11, hint, cLabel
+    If cv.TextWidth(msg) + cv.TextWidth(hint) + 24 <= scrW Then
+        cv.DrawText scrW - cv.TextWidth(hint) - 6, scrH - 11, hint, cLabel
+    End If
 End Sub
 
 ' ---------------------------------------------------------------- sample view

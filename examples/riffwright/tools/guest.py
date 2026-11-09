@@ -42,6 +42,18 @@ def dos(m, c):
     return str(m.tool("amiga_dos_command", command=c))
 
 
+def cleanup(m):
+    """Ctrl-C any of our own processes still running (programs loaded from DH1:riffwright/)."""
+    dos(m, "status >RAM:riffwright_status.txt")
+    st = dos(m, "type RAM:riffwright_status.txt")
+    left = re.findall(r"Process\s+(\d+): Loaded as command: (%s/\S+)" % re.escape(DIR), st)
+    for num, cmd in left:
+        print("breaking our process", num, cmd)
+        dos(m, "break %s C" % num)
+    dos(m, "delete RAM:riffwright_status.txt QUIET")
+    return len(left)
+
+
 def push_all(m):
     dos(m, "makedir %s %s/demos QUIET" % (DIR, DIR))
     files = [(ROOT + "/build/Riffwright", DIR + "/Riffwright")]
@@ -133,19 +145,36 @@ def bench(m, n):
 def main():
     what = sys.argv[1] if len(sys.argv) > 1 else "smoke"
     m = g.MCP(g.URL)
+    rc = 0
     with g.testing("Riffwright (Boing BASIC tracker): " + what):
-        if what == "push":
-            push_all(m)
-        elif what == "smoke":
-            push_all(m)
-            ok = smoke(m, sys.argv[2] if len(sys.argv) > 2 else os.path.join(tempfile.gettempdir(), "riffwright"))
-            print("SMOKE", "PASS" if ok else "FAIL")
-            sys.exit(0 if ok else 1)
-        elif what == "bench":
-            push_all(m)
-            bench(m, int(sys.argv[2]) if len(sys.argv) > 2 else 500)
-        elif what == "shot":
-            hmp_shot(sys.argv[2])
+      try:
+          if what == "push":
+              push_all(m)
+          elif what == "smoke":
+              push_all(m)
+              ok = smoke(m, sys.argv[2] if len(sys.argv) > 2 else os.path.join(tempfile.gettempdir(), "riffwright"))
+              print("SMOKE", "PASS" if ok else "FAIL")
+              rc = 0 if ok else 1
+          elif what == "bench":
+              push_all(m)
+              bench(m, int(sys.argv[2]) if len(sys.argv) > 2 else 500)
+          elif what == "start":
+              # the gentlest check: start, screenshot, let it quit by itself
+              push_all(m)
+              outf = "RAM:riffwright.log"
+              dos(m, "delete %s QUIET" % outf)
+              dos(m, "run >NIL: %s/Riffwright %s --log --quit-after 15 >%s *>%s.err" % (DIR, SONG, outf, outf))
+              time.sleep(8)
+              hmp_shot(os.path.join(tempfile.gettempdir(), "riffwright_start"))
+              print("log:", wait_for(m, outf, "quit", 40))
+              print("err:", dos(m, "type %s.err" % outf))
+          elif what == "shot":
+              hmp_shot(sys.argv[2])
+      finally:
+        time.sleep(1)
+        if cleanup(m):
+            print("(had to stop leftover processes)")
+    sys.exit(rc)
 
 
 main()

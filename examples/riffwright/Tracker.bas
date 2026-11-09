@@ -636,10 +636,8 @@ Public Function Frame(ByVal force As Boolean) As Boolean
             If ppat = curPat Then pr = pr Else pr = -1
             If followOn Then pr = -1
             DrawPattern curPat, viewY, curRow, curCh, curField, pr, editOn, selOn, selR0, selR1, selC0, selC1
-            If SideVisible() Then
-                cv.Box PatWidth(), PY0 - 12, scrW - PatWidth(), PH + 12, cBg
-                DrawSide curPos, pp, curSmp, 0
-            End If
+            cv.Box PatWidth(), PY0 - 12, scrW - PatWidth(), PH + 12, cBg
+            If SideVisible() Then DrawSide curPos, pp, curSmp, 0
             hint = "F1/F2 octave  F3/F4 sample  F5 play  F8 stop  Space edit  F10 view  Help"
         Case V_SAMPLES
             DrawSampleView curSmp, smpField, smpZoomS, smpZoomL, PlayerSamplePos(curSmp)
@@ -649,7 +647,7 @@ Public Function Frame(ByVal force As Boolean) As Boolean
             hint = "Amiga+1/2/3 pattern/samples/song  F10 next view"
     End Select
     msg = message
-    If msg = "" Then msg = "Riffwright - " & nch & " channel ProTracker editor"
+    If msg = "" Then msg = "Riffwright"
     DrawStatus msg, hint
     Frame = True
 End Function
