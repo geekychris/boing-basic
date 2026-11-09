@@ -88,6 +88,102 @@ void bb_elem_store(int etype, void *p, const bb_value *v)
     bb_v_store_ref(&ref, v);
 }
 
+/* ---- small-block pools: descriptors and data blocks up to 2 KB are kept on free lists and
+   reused. Arrays returned by functions (`a = obj.State()` every frame) are copied, and the old
+   one freed, each time: under QEMU on the OS4 guest newlib's malloc/free cost several us each.
+   Data blocks carry an 8-byte header with their size class (keeps 8-byte alignment). Single
+   task, like the rest of the runtime. */
+#define AP_NCLASS 8                 /* 16, 32, .. 2048 bytes */
+#define AP_KEEP 32                  /* blocks kept per class */
+#define AP_BIG 0xffu
+typedef struct ap_hdr { uint32_t cls, pad; } ap_hdr;
+static void *ap_list[AP_NCLASS];
+static int ap_count[AP_NCLASS];
+static bb_array *ad_list;
+static int ad_count;
+
+static int ap_class(size_t n)
+{
+    int c = 0;
+    while (c < AP_NCLASS && ((size_t)16 << c) < n) c++;
+    return c;
+}
+
+static void *arr_data_alloc(size_t n)
+{
+    ap_hdr *h;
+    int c;
+    if (n == 0) return NULL;
+    c = ap_class(n);
+    if (c < AP_NCLASS) {
+        if (ap_list[c]) {
+            void *p = ap_list[c];
+            ap_list[c] = *(void **)p;
+            ap_count[c]--;
+            return p;
+        }
+        h = (ap_hdr *)malloc(sizeof(ap_hdr) + ((size_t)16 << c));
+    } else h = (ap_hdr *)malloc(sizeof(ap_hdr) + n);
+    if (!h) return NULL;
+    h->cls = c < AP_NCLASS ? (uint32_t)c : AP_BIG;
+    return h + 1;
+}
+
+static void arr_data_free(void *p)
+{
+    ap_hdr *h;
+    if (!p) return;
+    h = (ap_hdr *)p - 1;
+    if (h->cls < AP_NCLASS && ap_count[h->cls] < AP_KEEP) {
+        *(void **)p = ap_list[h->cls];
+        ap_list[h->cls] = p;
+        ap_count[h->cls]++;
+        return;
+    }
+    free(h);
+}
+
+/* keeps the first min(old, n) bytes */
+static void *arr_data_realloc(void *p, size_t n)
+{
+    ap_hdr *h;
+    void *q;
+    size_t have;
+    if (!p) return arr_data_alloc(n);
+    h = (ap_hdr *)p - 1;
+    if (h->cls == AP_BIG) {
+        if (ap_class(n) >= AP_NCLASS) {
+            h = (ap_hdr *)realloc(h, sizeof(ap_hdr) + n);
+            return h ? (void *)(h + 1) : NULL;
+        }
+        have = n;           /* shrinking into a pooled block */
+    } else {
+        have = (size_t)16 << h->cls;
+        if (n <= have) return p;
+    }
+    q = arr_data_alloc(n);
+    if (!q) return NULL;
+    memcpy(q, p, have < n ? have : n);
+    arr_data_free(p);
+    return q;
+}
+
+static bb_array *arr_desc_alloc(void)
+{
+    bb_array *a = ad_list;
+    if (!a) return (bb_array *)bb_alloc(sizeof(bb_array));
+    ad_list = *(bb_array **)a;
+    ad_count--;
+    memset(a, 0, sizeof *a);
+    return a;
+}
+
+static void arr_desc_free(bb_array *a)
+{
+    if (ad_count < 64) { *(bb_array **)a = ad_list; ad_list = a; ad_count++; return; }
+    free(a);
+}
+
 static void init_range(bb_array *a, int32_t from, int32_t to)
 {
     int32_t i;
@@ -116,22 +212,22 @@ bb_array *bb_arr_new(int etype, const bb_udt_desc *udt, int ndims, const int32_t
     int i;
     int64_t total = 1;
     if (ndims < 1 || ndims > BB_MAXDIMS) bb_raise(9, NULL);
-    a = (bb_array *)bb_alloc(sizeof(bb_array));
+    a = arr_desc_alloc();
     a->etype = (uint16_t)etype;
     a->udt = udt;
     a->esize = esize_of(etype, udt);
     a->ndims = (uint16_t)ndims;
     for (i = 0; i < ndims; i++) {
         int64_t c = (int64_t)ub[i] - lb[i] + 1;
-        if (c < 0) { free(a); bb_raise(9, NULL); }
+        if (c < 0) { arr_desc_free(a); bb_raise(9, NULL); }
         a->dims[i].lbound = lb[i];
         a->dims[i].count = (int32_t)c;
         total *= c;
-        if (total > 0x7fffffff) { free(a); bb_raise(7, NULL); }
+        if (total > 0x7fffffff) { arr_desc_free(a); bb_raise(7, NULL); }
     }
     a->count = (int32_t)total;
-    a->data = total ? malloc((size_t)total * (size_t)a->esize) : NULL;
-    if (total && !a->data) { free(a); bb_raise(7, NULL); }
+    a->data = arr_data_alloc((size_t)total * (size_t)a->esize);
+    if (total && a->esize && !a->data) { arr_desc_free(a); bb_raise(7, NULL); }
     init_range(a, 0, a->count);
     return a;
 }
@@ -145,8 +241,8 @@ void bb_arr_free(bb_array *a)
 {
     if (!a) return;
     release_range(a, 0, a->count);
-    free(a->data);
-    free(a);
+    arr_data_free(a->data);
+    arr_desc_free(a);
 }
 
 bb_array *bb_arr_copy(const bb_array *src)
@@ -154,11 +250,12 @@ bb_array *bb_arr_copy(const bb_array *src)
     bb_array *a;
     int32_t i;
     if (!src) return NULL;
-    a = (bb_array *)bb_alloc(sizeof(bb_array));
+    a = arr_desc_alloc();
     *a = *src;
     a->fixed = 0;
     a->locked = 0;
-    a->data = src->count ? malloc((size_t)src->count * (size_t)src->esize) : NULL;
+    a->data = arr_data_alloc((size_t)src->count * (size_t)src->esize);
+    if (src->count && src->esize && !a->data) { arr_desc_free(a); bb_raise(7, NULL); }
     if (!needs_release(src->etype)) {
         if (src->count) memcpy(a->data, src->data, (size_t)src->count * (size_t)src->esize);
         return a;
@@ -207,8 +304,11 @@ void bb_arr_redim(bb_array **pa, int etype, const bb_udt_desc *udt, int ndims,
             for (i = 0; i < ndims - 1; i++) total *= old->dims[i].count;
         }
         if (total < oldcount) release_range(old, (int32_t)total, oldcount);
-        old->data = realloc(old->data, (size_t)(total ? total : 1) * (size_t)old->esize);
-        if (!old->data) bb_raise(7, NULL);
+        {
+            void *nd = arr_data_realloc(old->data, (size_t)(total ? total : 1) * (size_t)old->esize);
+            if (!nd) bb_raise(7, NULL);
+            old->data = nd;
+        }
         old->count = (int32_t)total;
         old->dims[ndims - 1].count = (int32_t)c;
         if (total > oldcount) init_range(old, oldcount, (int32_t)total);
