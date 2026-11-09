@@ -107,7 +107,7 @@ End Sub
 
 ' world point -> camera space, into ox, oy, oz
 Public Sub CamXform(c As A3Cam, ByVal wx As Long, ByVal wy As Long, ByVal wz As Long)
-    Dim dx As Long, dy As Long, dz As Long, rz As Long
+    Dim dx As Long, dy As Long, dz As Long, rz As Long, t As Long
     dx = wx - c.x
     dy = wy - c.y
     dz = wz - c.z
@@ -116,10 +116,15 @@ Public Sub CamXform(c As A3Cam, ByVal wx As Long, ByVal wy As Long, ByVal wz As 
         dy = dy * 16 - c.qy
         dz = dz * 16 - c.qz
     End If
-    ox = Int((dx * c.cy4 - dz * c.sy4) / 4096#)
-    rz = Int((dx * c.sy4 + dz * c.cy4) / 4096#)
-    oy = Int((dy * c.cp4 + rz * c.sp4) / 4096#)
-    oz = Int((rz * c.cp4 - dy * c.sp4) / 4096#)
+    ' (t - (t And 4095)) \ 4096 is t >> 12, rounding down, in integers
+    t = dx * c.cy4 - dz * c.sy4
+    ox = (t - (t And 4095)) \ 4096
+    t = dx * c.sy4 + dz * c.cy4
+    rz = (t - (t And 4095)) \ 4096
+    t = dy * c.cp4 + rz * c.sp4
+    oy = (t - (t And 4095)) \ 4096
+    t = rz * c.cp4 - dy * c.sp4
+    oz = (t - (t And 4095)) \ 4096
 End Sub
 
 Public Function CamHorizon(c As A3Cam) As Long
@@ -179,8 +184,8 @@ Public Sub A3Poly(c As A3Cam, ByVal depth As Long, ByVal col As Long, ByVal n As
     x1 = c.vw - 1
     y1 = c.vh - 1
     For i = 0 To m - 1
-        sx(i) = c.cx + Fix(CDbl(clx(i)) * c.fov / clz(i))
-        sy(i) = c.cyc - Fix(CDbl(cly(i)) * c.fov / clz(i))
+        sx(i) = c.cx + (clx(i) * c.fov) \ clz(i)
+        sy(i) = c.cyc - (cly(i) * c.fov) \ clz(i)
         If sx(i) < 0 Or sx(i) > x1 Or sy(i) < 0 Or sy(i) > y1 Then allIn = False
     Next i
     If Not allIn Then
@@ -461,7 +466,7 @@ Public Sub A3ModelDraw(c As A3Cam, m As A3Model, ByVal wx As Long, ByVal wy As L
                        ByVal useRot As Boolean, rm() As Long, ByVal bodyLit As Long, ByVal bodyShade As Long, _
                        ByVal flash As Long, ByVal depthBias As Long)
     Dim i As Long, k As Long, nvis As Long, x As Long, y As Long, z As Long, mg As Long
-    Dim cxz As Long, a As Long, b As Long, d As Long, col As Long, n As Long
+    Dim cxz As Long, a As Long, b As Long, d As Long, col As Long, n As Long, rx As Long, ry As Long, rzz As Long
     Dim ux As Long, uy As Long, uz As Long, vx As Long, vy As Long, vz As Long
     Dim nx As Double, ny As Double, nzz As Double, depth As Double, dep As Long
     CamXform c, wx, wy, wz
@@ -471,9 +476,11 @@ Public Sub A3ModelDraw(c As A3Cam, m As A3Model, ByVal wx As Long, ByVal wy As L
     For i = 0 To m.nv - 1
         x = m.vx(i): y = m.vy(i): z = m.vz(i)
         If useRot Then
-            CamXform c, wx + Int((x * rm(0) + y * rm(1) + z * rm(2)) / 65536#), _
-                        wy + Int((x * rm(3) + y * rm(4) + z * rm(5)) / 65536#), _
-                        wz + Int((x * rm(6) + y * rm(7) + z * rm(8)) / 65536#)
+            rx = x * rm(0) + y * rm(1) + z * rm(2)
+            ry = x * rm(3) + y * rm(4) + z * rm(5)
+            rzz = x * rm(6) + y * rm(7) + z * rm(8)
+            CamXform c, wx + (rx - (rx And 65535)) \ 65536, wy + (ry - (ry And 65535)) \ 65536, _
+                        wz + (rzz - (rzz And 65535)) \ 65536
         Else
             CamXform c, wx + x, wy + y, wz + z
         End If
