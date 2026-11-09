@@ -111,6 +111,7 @@ Public Function CheckWord(ByVal w As String) As Boolean
     n = Len(l)
     If n <= 1 Then CheckWord = True: Exit Function
     If l Like "*#*" Then CheckWord = True: Exit Function
+    If w = UCase$(w) And n <= 6 Then CheckWord = True: Exit Function     ' acronyms: RTF, HTML
     If Known(l) Then CheckWord = True: Exit Function
     If Right$(l, 2) = "'s" Then If Known(Left$(l, n - 2)) Then CheckWord = True: Exit Function
     If Right$(l, 1) = "s" Then If Known(Left$(l, n - 1)) Then CheckWord = True: Exit Function

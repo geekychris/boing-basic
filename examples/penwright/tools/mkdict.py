@@ -8,8 +8,8 @@ src = sys.argv[1] if len(sys.argv) > 1 else "/usr/share/dict/web2"
 words = set()
 for w in open(src, encoding="latin-1"):
     w = w.strip()
-    if re.fullmatch(r"[a-z]{1,15}", w):
-        words.add(w)
+    if re.fullmatch(r"[A-Za-z][a-z]{0,14}", w):     # also capitalised words (Italic, Paris)
+        words.add(w.lower())
 modern = """a i am an as at be by do go he if in is it me my no of oh ok on or so to up us we
 email emails online offline internet website websites web software hardware download downloads
 uploaded upload login logout username password passwords computer computers laptop desktop
@@ -21,7 +21,10 @@ theyve theyll theyd thats whats whos wheres theres lets
 don't doesn't isn't aren't wasn't weren't hasn't haven't hadn't won't wouldn't couldn't
 shouldn't mustn't i'm i've i'd you're you've you'll you'd he's she's it's we're we've
 we'll we'd they're they've they'll they'd that's what's who's where's there's let's
-color colors colour colours favorite favourite center centre organize organise realize
+color colors colour colours colourful coloured colouring honour honours labour
+neighbour neighbours behaviour flavour humour rumour harbour programme programmes
+catalogue dialogue travelled travelling cancelled modelling jewellery licence defence
+offence favorite favourite center centre organize organise realize
 realise analyze analyse theater theatre gray grey toward towards percent per cent
 """.split()
 words.update(modern)

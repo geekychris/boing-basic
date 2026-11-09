@@ -1,0 +1,35 @@
+WORDCOUNT -> 81
+ 0 Heading 1 1  [Penwright] 9:1:24
+ 1 Body 1  [A word processor for AmigaOS 4, written in Boing BASIC.] 55:2:12
+ 2 Heading 2 0  [What it does] 12:1:18
+ 3 Body 0  [Penwright keeps your text in paragraphs with styles: headings, quotes, lists and code. Inside a paragraph every letter can be bold, italic, underlined, struck through or coloured, and the spelling checker marks words it does not know, like thsi one.] 45:0:12,6:1:12,75:0:12,4:1:12,2:0:12,6:2:12,2:0:12,10:4:12,2:0:12,14:8:12,4:0:12,8:16:12,10:0:12,16:96:12,45:0:12
+ 4 Bullet 0  [Bold and colourful words] 4:1:12,5:0:12,15:64:12
+ 5 Bullet 0  [Find and replace, with case and whole words] 43:0:12
+ 6 Bullet 0  [Export to RTF, HTML and plain text] 34:0:12
+ 7 Quote 0  [Good software, like good writing, is mostly rewriting.] 54:0:12
+page hash 50CEC38C height  281 
+down:  3  87 
+end:  3  169 
+home:  3  87 
+word right x2 (extend):  3  96  sel [a ]
+bottom then up:  7  54 
+top:  0  0 
+FIND rewriting -> 7 44
+GETSELECTION -> rewriting
+FIND nothing-like-this -> not found [rc 5]
+SPELLNEXT -> thsi
+SUGGEST thsi -> tshi this hsi thai 
+SPELLNEXT -> no more [rc 5]
+GETPARA 7 -> BoldGood software, like good writing, is mostly rewriting.
+GETPARA 7 -> Good software, like good writing, is mostly rewriting.
+REPLACEALL "and" "&" WORD -> 6
+GETPARA 3 -> Penwright keeps your text in paragraphs with styles: headings, quotes, lists & code. Inside a paragraph every letter can be bold, italic, underlined, struck through or coloured, & the spelling checker marks words it does not know, like thsi one.
+PARACOUNT -> 8
+STYLE nonsense -> unknown style nonsense [rc 10]
+FOO -> unknown command FOO [rc 10]
+VERSION -> Penwright 1.0
+PARACOUNT -> 1
+PARACOUNT -> 8
+GETPARA 0 -> Penwright
+GETPARA 3 -> Penwright keeps your text in paragraphs with styles: headings, quotes, lists and code. Inside a paragraph every letter can be bold, italic, underlined, struck through or coloured, and the spelling checker marks words it does not know, like thsi one.
+html bytes  1095 

@@ -57,6 +57,9 @@ Private uCount As Long                  ' steps that can be undone
 Private uRedo As Long                   ' steps above that can be redone
 Private pendP As Long, pendN As Long, pendOld As String, pendCP As Long, pendCO As Long, pendKind As Long
 Public UndoCursorP As Long, UndoCursorO As Long   ' where Undo/Redo leave the cursor
+' what the last change did, for the view's layout cache: paragraphs [EditP, EditP + EditOldN)
+' became [EditP, EditP + EditNewN); EditAll = everything changed. EditSeq counts changes.
+Public EditP As Long, EditOldN As Long, EditNewN As Long, EditAll As Boolean, EditSeq As Long
 
 ' ---- creating ------------------------------------------------------------------------
 
@@ -70,6 +73,26 @@ Public Sub NewDoc()
     DocModified = False
     DocTitle = "": DocAuthor = ""
     uCount = 0: uRedo = 0: uBase = 0
+    NoteAll
+End Sub
+
+' the whole document changed (new, loaded)
+Public Sub NoteAll()
+    EditAll = True
+    EditSeq = EditSeq + 1
+End Sub
+
+Private Sub NoteEdit(ByVal p As Long, ByVal oldN As Long, ByVal newN As Long)
+    ' a second change before the view looked: let it lay everything out again
+    If EditSeq > 0 Then EditAll = True
+    EditP = p: EditOldN = oldN: EditNewN = newN
+    EditSeq = EditSeq + 1
+End Sub
+
+' the view has taken the change into account
+Public Sub EditSeen()
+    EditAll = False
+    EditSeq = 0
 End Sub
 
 Private Sub EnsureCap(ByVal n As Long)
@@ -283,6 +306,7 @@ Public Sub EndEdit(ByVal newN As Long, ByVal curP As Long, ByVal curO As Long)
         If uKind(prev) = 1 And uP(prev) = pendP And uNewN(prev) = 1 And pendN = 1 And newN = 1 Then
             uNew(prev) = SaveParas(pendP, 1)
             uCurP2(prev) = curP: uCurO2(prev) = curO
+            NoteEdit pendP, 1, 1
             Exit Sub
         End If
     End If
@@ -294,6 +318,7 @@ Public Sub EndEdit(ByVal newN As Long, ByVal curP As Long, ByVal curO As Long)
     uKind(k) = pendKind
     uCount = uCount + 1
     uRedo = 0
+    NoteEdit pendP, pendN, newN
 End Sub
 
 ' end a run of typing (the next typing starts a new undo step)
@@ -347,6 +372,7 @@ Public Sub Undo()
     If uCount = 0 Then Exit Sub
     k = (uBase + uCount - 1) Mod UMAX
     ReplaceParas uP(k), uNewN(k), uOld(k)
+    NoteEdit uP(k), uNewN(k), uOldN(k)
     UndoCursorP = uCurP(k): UndoCursorO = uCurO(k)
     uCount = uCount - 1
     uRedo = uRedo + 1
@@ -358,6 +384,7 @@ Public Sub Redo()
     If uRedo = 0 Then Exit Sub
     k = (uBase + uCount) Mod UMAX
     ReplaceParas uP(k), uOldN(k), uNew(k)
+    NoteEdit uP(k), uOldN(k), uNewN(k)
     UndoCursorP = uCurP2(k): UndoCursorO = uCurO2(k)
     uCount = uCount + 1
     uRedo = uRedo - 1

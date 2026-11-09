@@ -1,0 +1,9 @@
+# Penwright (examples/penwright): commands (PwScript.bas) and the page drawn off-screen
+Name=PwViewTest
+Startup=Sub Main
+Module=../../../examples/penwright/Doc.bas
+Module=../../../examples/penwright/DocIO.bas
+Module=../../../examples/penwright/Spell.bas
+Module=../../../examples/penwright/PwView.bas
+Module=../../../examples/penwright/PwScript.bas
+Module=pvtest.bas
