@@ -40,7 +40,9 @@ Sub Main()
     PlayerPoll pp, pt, pr, fr
     Print "after 1.5 s: position"; pp; "pattern"; pt; "row"; pr; " playing "; playing
     Check "VU moves", ChanVU(0) + ChanVU(1) + ChanVU(2) + ChanVU(3) > 0
+    PlayerRead True, 96
     Check "scope has signal", ScopeLive(1, t, 96)
+    Check "scope of channel 2 moves", t(96 + 10) <> t(96 + 40) Or t(96 + 20) <> 0
     ' edits while playing reach the player
     EdNote 1, 5, 3, 37, 6
     Print "edited cell: note"; mp.CellNote(auSong, 1, 5, 3); "sample"; mp.CellSample(auSong, 1, 5, 3)

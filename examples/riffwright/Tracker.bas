@@ -639,9 +639,18 @@ Private sigHeader As String, sigInfo As String, sigHeads As String, sigStatus As
 Private lastView As Long, lastSidePP As Long, scopesLive As Boolean, lastSmpPos As Long
 
 Public Function Frame(ByVal force As Boolean) As Boolean
-    Dim viewY As Long, pr As Long, pp As Long, ppat As Long, frac As Long, mode As Long
-    Dim hint As String, msg As String, sig As String, c As Long, sp As Long
+    Dim pr As Long, pp As Long
     pr = -1: pp = -1
+    ' the player's state for this frame: one call (two with the scopes)
+    PlayerRead playing And Not scopesOff, SCN
+    inFrame = True
+    Frame = FrameDraw(force, pr, pp)
+    inFrame = False
+End Function
+
+Private Function FrameDraw(ByVal force As Boolean, pr As Long, pp As Long) As Boolean
+    Dim viewY As Long, ppat As Long, frac As Long, mode As Long
+    Dim hint As String, msg As String, sig As String, c As Long, sp As Long
     If playing Then
         PlayerPoll pp, ppat, pr, frac
         If followOn Then
@@ -704,7 +713,7 @@ Public Function Frame(ByVal force As Boolean) As Boolean
     If msg = "" Then msg = "Riffwright"
     sig = msg & "|" & hint
     If force Or sig <> sigStatus Then DrawStatus msg, hint: sigStatus = sig
-    Frame = True
+    FrameDraw = True
 End Function
 
 Public Function songFileName() As String

@@ -41,7 +41,7 @@ Private logoImg As Long
 
 ' ---- scope buffers
 Private scX() As Long, scY() As Long
-Private Const SCN As Long = 96
+Public Const SCN As Long = 96
 
 Public Sub ViewInit(c As Object)
     Set cv = c
@@ -331,7 +331,7 @@ End Sub
 ' scopes and VU meters, one box per channel
 Public Sub DrawScopes()
     Dim c As Long, x0 As Long, w As Long, i As Long, y0 As Long, h As Long, vu As Long, col As Long
-    Dim vh As Long, t() As Long, mid As Long, sc As Long
+    Dim vh As Long, t() As Long, mid As Long, sc As Long, k As Long
     x0 = 230
     w = (scrW - x0 - 4) \ nch
     y0 = SY0
@@ -344,9 +344,10 @@ Public Sub DrawScopes()
         cv.Rect x0 + c * w, y0, w - 4, h, cLine
         If ChanMuted(c) Then col = cMute Else col = cWave
         If ScopeLive(c, t, SCN) Then
+            k = c * SCN
             For i = 0 To SCN - 1
                 scX(i) = x0 + c * w + 2 + (i * (w - 12)) \ SCN
-                scY(i) = mid + (t(i) * sc) \ 256
+                scY(i) = mid + (t(k + i) * sc) \ 256
             Next i
             cv.PSetMany scX, scY, col, SCN
         Else

@@ -15,6 +15,11 @@ Public playing As Boolean
 Public playMode As Long          ' 0 stopped, 1 song, 2 pattern
 Public mirrorCount As Long       ' cells sent to the player (tests)
 Private muted(0 To 7) As Boolean
+Private st() As Long             ' the player's state, read once per frame (PlayerRead)
+Private stOk As Boolean
+Public inFrame As Boolean        ' Tracker.Frame read the state already; outside a frame, every read is fresh
+Private scAll() As Long          ' every channel's scope, read once per frame when shown
+Private scopeN As Long
 
 Public Sub PlayerOpen()
     playerOk = False
@@ -163,15 +168,27 @@ Public Sub SetMute(ByVal c As Long, ByVal m As Boolean)
     End If
 End Sub
 
+' read the player's state for this frame in one call (two with the scopes): under QEMU a
+' call returning an array costs ~45 us, a scalar one ~0.6 us
+Public Sub PlayerRead(ByVal withScopes As Boolean, ByVal n As Long)
+    stOk = False
+    scopeN = 0
+    If Not playerOk Or auSong = 0 Then Exit Sub
+    st = mp.State()
+    stOk = True
+    If withScopes And playing Then scAll = mp.Scopes(n): scopeN = n
+End Sub
+
 ' 0..64
 Public Function ChanVU(ByVal c As Long) As Long
-    If playerOk And playing Then ChanVU = mp.ChannelVU(c)
+    If Not inFrame Then PlayerRead False, 0
+    If stOk And playing Then ChanVU = st(16 + c * 5)
 End Function
 
-' the last n output samples of channel c (-128..127) into t(); False when nothing plays
+' channel c's scope (-128..127) as read by PlayerRead: its values are scAll(c * n ..); False when none
 Public Function ScopeLive(ByVal c As Long, t() As Long, ByVal n As Long) As Boolean
-    If Not (playerOk And playing) Then Exit Function
-    t = mp.Scope(c, n)
+    If scopeN <> n Or Not playing Then Exit Function
+    t = scAll
     ScopeLive = True
 End Function
 
@@ -229,13 +246,14 @@ End Sub
 Public Sub PlayerPoll(pos As Long, pat As Long, row As Long, frac As Long)
     Dim rowsec As Double, t As Double, nrows As Long, sp As Long
     If playerOk And auSong <> 0 Then
-        pos = mp.Position
-        row = mp.Row
-        pat = mp.Pattern
-        sp = mp.Speed
-        If sp > 0 Then frac = (mp.Tick * 256) \ sp Else frac = 0
+        If Not inFrame Or Not stOk Then PlayerRead False, 0
+        pos = st(2)
+        row = st(3)
+        pat = st(4)
+        sp = st(6)
+        If sp > 0 Then frac = (st(5) * 256) \ sp Else frac = 0
         If playMode = 2 Then pos = -1
-        If Not mp.Playing Then playing = False: playMode = 0
+        If st(0) = 0 Then playing = False: playMode = 0
         Exit Sub
     End If
     rowsec = initSpeed * 2.5 / initTempo
@@ -255,11 +273,13 @@ Public Sub PlayerPoll(pos As Long, pat As Long, row As Long, frac As Long)
 End Sub
 
 Public Function CurSpeed() As Long
-    If playerOk And playing Then CurSpeed = mp.Speed Else CurSpeed = initSpeed
+    If Not inFrame Then PlayerRead False, 0
+    If stOk And playing Then CurSpeed = st(6) Else CurSpeed = initSpeed
 End Function
 
 Public Function CurTempo() As Long
-    If playerOk And playing Then CurTempo = mp.Tempo Else CurTempo = initTempo
+    If Not inFrame Then PlayerRead False, 0
+    If stOk And playing Then CurTempo = st(7) Else CurTempo = initTempo
 End Function
 
 ' play a note now on a channel (note 13..48 = C-1..B-3), also while the song plays
@@ -282,10 +302,11 @@ End Sub
 Public Function PlayerSamplePos(ByVal i As Long) As Long
     Dim c As Long, o As Long
     PlayerSamplePos = -1
-    If Not playerOk Or auSong = 0 Then Exit Function
+    If Not inFrame Then PlayerRead False, 0
+    If Not stOk Then Exit Function
     For c = 0 To nch - 1
-        If mp.ChannelSample(c) = i Then
-            o = mp.ChannelPos(c)
+        If st(16 + c * 5 + 2) = i Then
+            o = st(16 + c * 5 + 4)
             If o >= 0 Then PlayerSamplePos = o: Exit Function
         End If
     Next c

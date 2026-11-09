@@ -5,6 +5,7 @@ ok   every cell the same
 after 1.5 s: position 0 pattern 0 row 12  playing True
 ok   VU moves
 ok   scope has signal
+ok   scope of channel 2 moves
 edited cell: note 25 sample 6 
 odd period: 431 
 pattern 20 made:True note 18 
