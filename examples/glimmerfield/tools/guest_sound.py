@@ -18,19 +18,12 @@ sys.path.insert(0, ROOT + "/tools")
 import os4guest as g
 
 FRAMES = int(sys.argv[1]) if len(sys.argv) > 1 else 1500
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))   # QEMU monitors on m1
 CAP = "/tmp/bb_glim_sound.wav"
-if g.GUEST == "m1":
-    raise SystemExit("m1 is the user's own guest: run this on BB_GUEST=m1b, m1c or local")
 
 
 def hmp(cmd):
-    """one HMP command on the QEMU monitor (on the guest's host)"""
-    py = ("import socket,time;s=socket.create_connection(('127.0.0.1',%d),5);time.sleep(0.3);s.recv(65536);"
-          "s.sendall(b'%s\\n');time.sleep(1);print(s.recv(65536).decode('latin-1'));s.close()" % (HMP_PORT, cmd))
-    if g.SSH:
-        return g._ssh("python3 -c \"%s\"" % py).stdout
-    return subprocess.run(["python3", "-c", py], capture_output=True, text=True).stdout
+    """one command on the selected guest's QEMU monitor (os4guest.hmp: its own port, refuses m1)"""
+    return g.hmp(cmd)
 
 
 def level(path):
