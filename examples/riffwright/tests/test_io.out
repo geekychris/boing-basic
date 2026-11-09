@@ -1,0 +1,31 @@
+ref4.mod:  4 channels, 3 patterns, length 5 , tag M.K.
+  round trip: same
+title [riffwright ref] restart 127 
+  smp 1 [sine loop] len 64 vol 64 fine 0 loop 0  64 
+  smp 2 [saw] len 512 vol 48 fine 3 loop 128  256 
+  smp 3 [noise] len 2000 vol 40 fine-3 loop 0  2 
+  smp 17 [high number] len 100 vol 33 fine 5 loop 0  2 
+  row 0 : C-1 01 ... | --- .. ... | --- .. ... | --- .. ...
+  row 1 : --- .. ... | --- .. ... | --- .. ... | --- .. ...
+  row 2 : --- .. ... | D-1 01 10E | --- .. ... | --- .. ...
+  row 3 : --- .. ... | --- .. ... | --- .. ... | --- .. ...
+  row 4 : --- .. ... | --- .. ... | E-1 02 21C | --- .. ...
+  row 5 : --- .. ... | --- .. ... | --- .. ... | --- .. ...
+  row 6 : --- .. ... | --- .. ... | --- .. ... | F#1 02 32A
+  row 7 : --- .. ... | --- .. ... | --- .. ... | --- .. ...
+  odd period 431 shows as C-2, 1712 as C-0, 57 as B-4
+  tail bytes 8 
+harbour_lights.mod: [Harbour Lights] 7 patterns, length 11 , samples kick (synth) snare (synth) hat (synth) bass (synth) pad (synth) lead (synth) bell (synth)
+  round trip: same
+boing_shuffle.mod: [Boing Shuffle] 5 patterns, length 10 , samples kick (synth) snare (synth) hat (synth) bass (synth) square lead (synth) organ (synth)
+  round trip: same
+ref6.mod:  6 channels, 1 patterns, length 1 , tag 6CHN
+  round trip: same
+ref8.mod:  8 channels, 1 patterns, length 1 , tag 8CHN
+  round trip: same
+ok   new song saves
+ok   new song size 1084+1024
+ok   new song loads
+ok   tag M.K.
+ok   short file refused
+  not a ProTracker module (too short)

@@ -1,0 +1,9 @@
+# Riffwright host test: sample loading and saving (8SVX, WAV, raw) and the sample operations
+Name=test_samples
+Startup=Sub Main
+Module=../Song.bas
+Module=../Edit.bas
+Module=../Samples.bas
+Module=../Player.bas
+Module=TestLib.bas
+Module=test_samples.bas

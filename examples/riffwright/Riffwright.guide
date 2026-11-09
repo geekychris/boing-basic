@@ -1,0 +1,233 @@
+@database Riffwright.guide
+@author "Boing BASIC examples"
+@$VER: Riffwright.guide 1.0 (08.11.2026)
+@wordwrap
+
+@node Main "Riffwright"
+
+@{b}Riffwright@{ub} - a ProTracker music editor for AmigaOS 4
+
+Riffwright loads, edits, plays and saves ProTracker modules (.mod). It is written in
+Boing BASIC: the editor is BASIC code, the player is the runtime's MOD player.
+
+  @{" Getting started    " link Start}
+  @{" The screen         " link Screen}
+  @{" Pattern editor     " link Pattern}
+  @{" Entering notes     " link Notes}
+  @{" Effects            " link Effects}
+  @{" Blocks             " link Blocks}
+  @{" Order list         " link Orders}
+  @{" Sample editor      " link Samples}
+  @{" Song settings      " link Song}
+  @{" Playing            " link Playing}
+  @{" Files              " link Files}
+  @{" ARexx              " link ARexx}
+  @{" All keys           " link Keys}
+  @{" About              " link About}
+@endnode
+
+@node Start "Getting started"
+@{b}Getting started@{ub}
+
+Start Riffwright from its icon, or drop a .mod on its window or icon. From a Shell:
+
+  Riffwright [song.mod] [--play]
+
+A new song has four synthesised instruments (square, saw, triangle, noise), so the piano
+keys make a sound straight away.
+
+  1. Press @{b}Space@{ub} to switch on edit mode (the EDIT light turns red).
+  2. Play notes on the computer keyboard: the bottom row Z S X D C V ... is one octave,
+     the top row Q 2 W 3 E R ... the next.
+  3. @{b}F5@{ub} plays the song, @{b}F6@{ub} the pattern, @{b}Esc@{ub} stops.
+  4. @{b}Amiga+S@{ub} saves.
+
+Two demo songs are in the demos drawer: harbour_lights.mod and boing_shuffle.mod.
+@endnode
+
+@node Screen "The screen"
+@{b}The screen@{ub}
+
+Top: the song's title and file. Below it, on the left, the counters: position in the
+order list and its length, the pattern, the row, speed, tempo (BPM), the octave and the
+current sample. The lights show edit mode, follow mode and what is playing.
+
+On the right are the channel scopes, with a VU meter in each. A muted channel's scope is
+red.
+
+The middle shows one of three views:
+  @{" Pattern editor " link Pattern} (Amiga+1) with the order and sample lists beside it
+  @{" Sample editor  " link Samples} (Amiga+2)
+  @{" Song settings  " link Song} (Amiga+3)
+F10 steps through them. The line at the bottom shows messages and the main keys.
+@endnode
+
+@node Pattern "Pattern editor"
+@{b}Pattern editor@{ub}
+
+A pattern has 64 rows. Each channel shows the note, the sample number (hex) and the effect
+(command and parameter, hex): @{b}C-3 01 C40@{ub}. Rows 0, 4, 8... are numbered in amber, the
+16-row bars have a lighter stripe. The cursor row stays in the middle of the view and
+the pattern scrolls past it.
+
+  Cursor keys        move (Left/Right go through the fields of each channel)
+  Tab / Shift+Tab    next / previous channel
+  Alt+Up / Alt+Down  16 rows
+  Home / End         first / last row
+  Space              edit mode on/off (off = jam: notes play but don't go in)
+  Ctrl+1..8          mute a channel; Ctrl+Shift+1..8 solo it (again: all on)
+
+In edit mode:
+  Del                clear the field under the cursor (note, sample or effect)
+  Shift+Del          clear the whole cell
+  Backspace          delete the row above the cursor in this channel (Shift: all)
+  Return             insert an empty row here in this channel (Shift: all)
+  keypad *           edit step: how many rows the cursor moves after a note (0-8)
+@endnode
+
+@node Notes "Entering notes"
+@{b}Entering notes@{ub}
+
+The keyboard is a piano. With octave 2:
+
+  Q 2 W 3 E R 5 T 6 Y 7 U I 9 O 0 P [ = ]     C-3 C#3 D-3 ... up to G-4
+  Z S X D C V G B H N J M , L . ; /           C-2 C#2 D-2 ... up to E-3
+
+F1 / F2 change the octave (1-3), F3 / F4 (or keypad - / +) the sample. A note gets the
+current sample. ProTracker's range is C-1 to B-3; notes above it are refused. The
+@{b}1@{ub} key (or `) clears the note under the cursor.
+
+In the sample and effect fields the keys are hex digits (0-9, A-F). A number is typed left
+to right, then the cursor goes down by the edit step.
+
+Without edit mode the keys only play the notes: try a tune before writing it down.
+@endnode
+
+@node Effects "Effects"
+@{b}Effects@{ub}
+
+The ProTracker commands (the parameter is hex xy):
+
+  0xy arpeggio          1xx slide up           2xx slide down
+  3xx tone portamento   4xy vibrato            5xy portamento + volume slide
+  6xy vibrato + volume slide                   7xy tremolo
+  9xx sample offset     Axy volume slide       Bxx jump to position
+  Cxx volume (00-40)    Dxx break to row (decimal) of the next position
+  Exy extended: E1 fine slide up, E2 fine down, E5 finetune, E6 loop, E9 retrigger,
+      EA/EB fine volume, EC cut, ED delay, EE pattern delay
+  Fxx speed (01-1F) or tempo (20-FF)
+@endnode
+
+@node Blocks "Blocks"
+@{b}Blocks@{ub}
+
+Shift+cursor keys select a block. Without a selection the block commands work on the
+whole channel under the cursor.
+
+  Amiga+C   copy                 Amiga+X   cut
+  Amiga+V   paste at the cursor  Amiga+B   mix paste (keeps what is under empty fields)
+  Amiga+A   select the channel   Amiga+Shift+A  select the whole pattern
+  Amiga+T   transpose up a semitone, Amiga+Shift+T down, with Alt: an octave
+  Amiga+I   interpolate effect parameters from the first row to the last (slides)
+  Amiga+K   set the notes in the block to the current sample
+  Amiga+Z   undo (200 steps)     Amiga+Shift+Z or Amiga+Y  redo
+@endnode
+
+@node Orders "Order list"
+@{b}Order list@{ub}
+
+The order list says which pattern plays at each position of the song. In the pattern view:
+
+  Ctrl+Left / Right   previous / next position (and show its pattern)
+  Ctrl+Up / Down      change the pattern at this position
+
+The song view has the whole list as a grid: type two digits for a pattern number, Ins or
+Return inserts a position, Del deletes one.
+@endnode
+
+@node Samples "Sample editor"
+@{b}Sample editor@{ub} (Amiga+2)
+
+The waveform of the current sample with its loop (amber lines) and, while it plays, the
+play position (green).
+
+  Up / Down           choose a setting: name, volume, finetune, loop start, loop length
+  Left / Right        change it (Shift: 16 times as much)
+  Return              edit the name
+  + / -               zoom in / out; Alt+Left / Right scroll
+  L                   load a sample: IFF 8SVX (also Fibonacci-delta packed), WAV (8 or
+                      16 bit, mono or stereo; faster than 22 kHz is resampled to 16574 Hz,
+                      the rate at which C-3 plays it at its own pitch), or raw 8-bit data
+  W                   save it: name it .wav, .raw or anything else for 8SVX
+  R                   reverse     N  normalise     X  cut to the loop end
+  Del                 clear the sample
+  piano keys          play it
+@endnode
+
+@node Song "Song settings"
+@{b}Song settings@{ub} (Amiga+3)
+
+Title, speed (ticks per row at the start), tempo (BPM at the start), song length and the
+restart position. Up / Down choose, Left / Right change (Shift: 10), Return edits the title.
+@endnode
+
+@node Playing "Playing"
+@{b}Playing@{ub}
+
+  F5        play the song from the current position
+  F6        play the current pattern (loops)
+  F7        play the song from the cursor row
+  Esc / F8  stop
+  F9        follow mode on/off: the view follows the song while it plays
+
+With follow mode and edit mode on, notes go in at the row being played: record live.
+Edits are heard at once while the song plays.
+@endnode
+
+@node Files "Files"
+@{b}Files@{ub}
+
+  Amiga+O   open a module           Amiga+S  save (Amiga+Shift+S: save as)
+  Amiga+N   new song                Amiga+Q  quit
+
+Riffwright reads 31-sample ProTracker modules with 4 channels (M.K., M!K!, FLT4, 4CHN), and
+6 and 8 channels (6CHN, 8CHN, FLT8, OCTA). A loaded file saves back byte for byte when it
+was not changed, including data after the last sample.
+@endnode
+
+@node ARexx "ARexx"
+@{b}ARexx@{ub}
+
+The port is @{b}RIFFWRIGHT@{ub}. Commands:
+
+  PLAY [position]   play the song
+  STOP              stop
+  LOAD file         load a module
+  SAVE [file]       save (to its own file without an argument)
+  POSITION [n]      go to position n; returns the position being played
+
+Example:
+  address RIFFWRIGHT
+  'LOAD demos/harbour_lights.mod'
+  'PLAY'
+@endnode
+
+@node Keys "All keys"
+@{b}All keys@{ub}
+
+  F1/F2 octave    F3/F4 sample    F5 play song   F6 play pattern   F7 play from row
+  F8/Esc stop     F9 follow       F10 next view  Help this guide
+  Amiga+1/2/3 pattern/samples/song
+  Amiga+O/S/N/Q open/save/new/quit, Amiga+Z/Y undo/redo
+  Amiga+C/X/V/B copy/cut/paste/mix, Amiga+A select, Amiga+T transpose,
+  Amiga+I interpolate, Amiga+K set sample
+  Ctrl+Left/Right position, Ctrl+Up/Down pattern at position, Ctrl+1..8 mute
+@endnode
+
+@node About "About"
+@{b}About Riffwright@{ub}
+
+Riffwright is an example program of Boing BASIC, a Visual Basic 6 style language for
+AmigaOS 4. Its demo songs and their synthesised samples were made for it and are free to
+use for anything (CC0).
+@endnode

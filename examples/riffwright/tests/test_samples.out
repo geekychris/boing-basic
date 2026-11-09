@@ -1,0 +1,25 @@
+ok   16-bit stereo WAV
+  [tone16s] len 1656 vol 64 loop 0  2  first: 0  10  26  36   WAV 44100 Hz 16 bit stereo, resampled to 16574 Hz
+ok   8-bit mono WAV
+  [tone8m] len 1000 vol 64 loop 0  2  first: 0  36  68  92   WAV 8000 Hz 8 bit
+ok   8SVX
+  [test wave] len 400 vol 32 loop 300  100  first: 0  12  24  36   8SVX 8363 Hz
+ok   8SVX Fibonacci
+  [test wave] len 400 vol 32 loop 300  100  first: 0  13  26  34   8SVX 8363 Hz, Fibonacci-delta
+  Fibonacci vs plain, largest difference: 2 
+ok   raw
+  [ramp] len 768 vol 64 loop 0  2  first: 0  1  2  3   raw 8 bit, 768 bytes
+  [test wave] len 400 vol 32 loop 300  100  first: 0  12  24  36   8SVX 16574 Hz
+ok   8SVX round trip
+ok   WAV round trip
+ok   raw round trip
+ok   reverse
+  reversed first:-1 -2  last: 0 
+  undo: 0  1 
+ok   normalise
+  peak after normalise: 127 
+ok   no crop when the loop ends the sample
+ok   crop to loop
+  len after crop: 200 
+ok   missing file refused
+  File not found

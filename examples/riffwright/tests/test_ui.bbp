@@ -1,0 +1,11 @@
+# Riffwright host test: the editor driven by keys on an off-screen canvas
+Name=test_ui
+Startup=Sub Main
+Module=../Song.bas
+Module=../Edit.bas
+Module=../Samples.bas
+Module=../Player.bas
+Module=../View.bas
+Module=../Tracker.bas
+Module=TestLib.bas
+Module=test_ui.bas

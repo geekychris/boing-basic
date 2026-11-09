@@ -1,0 +1,45 @@
+ok   first frame draws
+ok   jam leaves the pattern
+rows:
+  C-2 01 ... | --- .. ... | --- .. ... | --- .. ...
+  C#2 01 ... | --- .. ... | --- .. ... | --- .. ...
+  C-3 01 ... | --- .. ... | --- .. ... | --- .. ...
+  --- .. ... | --- .. ... | --- .. ... | --- .. ...
+ok   cursor moved 3 rows
+  C-2 02 ... | --- .. ... | --- .. ... | --- .. ...
+  C#2 01 C20 | --- .. ... | --- .. ... | --- .. ...
+  --- .. ... | C-3 02 ... | --- .. ... | --- .. ...
+  --- .. ... | B-3 02 ... | --- .. ... | --- .. ...
+undo:  --- .. ... | --- .. ... | --- .. ... | --- .. ...
+redo:  --- .. ... | B-3 02 ... | --- .. ... | --- .. ...
+paste: C-2 02 ... | --- .. ... | --- .. ... | --- .. ... / C#2 01 C20 | --- .. ... | --- .. ... | --- .. ...
+transp:C#2 02 ... | --- .. ... | --- .. ... | --- .. ... / D-2 01 C20 | --- .. ... | --- .. ... | --- .. ...
+ok   ch2 muted
+ok   sample view
+ok   sample view draws
+sample 2 volume after Shift+Right on 64: 64 
+and Shift+Left: 48 
+ok   song view
+speed 7 
+ok   Amiga+1 pattern view
+Amiga+S asks the form to: save
+frame hash 384983623 
+LOAD -> 0 Boing Shuffle
+PLAY 2 -> 0 playing playing=True
+POSITION -> 0 2
+STOP -> 0 stopped playing=False
+POSITION 4 -> 0 4
+POSITION 99 -> 5 bad position
+SAVE -> 0 rexx.mod same
+LOAD missing -> 10 File not found
+JUMP -> 10 unknown command JUMP
+click -> row 13 ch 1 field 3 
+drag -> selTrue 16  18  1  2 
+above -> row 12 
+ch4 muted:True
+solo ch1:FalseTrueTrueTrue
+sample: 3 
+wheel down -> row 22 
+loop after drag: 0  500  undo steps named loop
+undo: 0  1000 
+edit light click -> editOnTrue

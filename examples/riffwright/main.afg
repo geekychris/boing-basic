@@ -1,0 +1,48 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=main title="Riffwright" width=640 height=480
+vlayout id=root
+  canvas id=view width=640 height=480
+  getfile id=filereq title="Riffwright" pattern="#?.mod"
+  timer id=tick interval=20 enabled=1
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New" key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu id=mnuSave text="Save" key=S
+  menu id=mnuSaveAs text="Save as..."
+  menu text=-
+  menu id=mnuLoadSmp text="Load sample..." key=L
+  menu id=mnuSaveSmp text="Save sample..." key=W
+  menu text=-
+  menu id=mnuAbout text="About..."
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuEdit text="Edit"
+  menu id=mnuUndo text="Undo" key=Z
+  menu id=mnuRedo text="Redo" key=Y
+  menu text=-
+  menu id=mnuCut text="Cut" key=X
+  menu id=mnuCopy text="Copy" key=C
+  menu id=mnuPaste text="Paste" key=V
+  menu id=mnuMix text="Mix paste" key=B
+  menu id=mnuSelAll text="Select channel" key=A
+  menu text=-
+  menu id=mnuTrUp text="Transpose up" key=T
+  menu id=mnuTrDown text="Transpose down" key="Shift T"
+  menu id=mnuOctUp text="Octave up" key="Alt T"
+  menu id=mnuOctDown text="Octave down" key="Shift Alt T"
+  menu id=mnuInterp text="Interpolate" key=I
+  menu id=mnuSetSmp text="Set sample" key=K
+menu id=mnuPlay text="Play"
+  menu id=mnuPlaySong text="Play song" key="F5"
+  menu id=mnuPlayPat text="Play pattern" key="F6"
+  menu id=mnuPlayRow text="Play from row" key="F7"
+  menu id=mnuStop text="Stop" key="Esc"
+  menu text=-
+  menu id=mnuFollow text="Follow song" checkable=1 checked=1 key="F9"
+  menu id=mnuEditMode text="Edit mode" checkable=1 key="Space"
+menu id=mnuView text="View"
+  menu id=mnuVPattern text="Pattern editor" radio=1 checked=1 key=1
+  menu id=mnuVSamples text="Sample editor" radio=1 key=2
+  menu id=mnuVSong text="Song settings" radio=1 key=3
+menu id=mnuHelp text="Help"
+  menu id=mnuGuide text="Riffwright guide..." key="Help"
+  menu id=mnuKeys text="Keys..."

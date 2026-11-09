@@ -1,0 +1,6 @@
+# Riffwright host test: .mod load/save round trips, byte-exact against tests/ref
+Name=test_io
+Startup=Sub Main
+Module=../Song.bas
+Module=TestLib.bas
+Module=test_io.bas
