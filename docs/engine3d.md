@@ -12,8 +12,10 @@ the same camera, clipping and painter's draw list, so a BASIC port of an amiga3d
 what the C game draws. `examples/common/A3Scene.bas` (the stopgap BASIC port) maps onto it
 call for call (table at the end).
 
-**Status: API draft 1 (2026-11-08).** Names and arguments are fixed unless a game agent
-asks for a change; additions will come.
+**Status: implemented (2026-11-08)**, tested in the VM, the JIT and native builds
+(`tests/graphics/engine3d.bas`). Names and arguments are fixed unless a game agent asks for a
+change; additions will come. Demo: `examples/engine3d_demo` (`Engine3DDemo.bbp`, and
+`Bench.bbp` off-screen with an fps figure).
 
 ```basic
 Dim e As Object, cv As Object
@@ -54,7 +56,8 @@ End Sub
   games keep 320 x 256 coordinates, polygons and text are drawn at 640 x 512: amiga3d's
   `A3_SUB`). `Sub` 1 (default): canvas pixels = 3D-area pixels.
 - Arrays may be Long, Integer, Single, Double or Variant; Long is fastest. Output arrays
-  (`XformMany`) must be Long and big enough (error 9).
+  (`XformMany`, `RotYPR`, `SinTable`...) must be Long and big enough (error 9). Array
+  variables are passed to late-bound calls by reference (no copy), so batch calls are cheap.
 - Errors: 5 bad argument, 9 bad array size or index, 13 not an array, 91 no canvas attached,
   380 bad handle (model / grid).
 
@@ -185,6 +188,8 @@ by its slope, inside a window round the camera, so a big map costs only what is 
 | `GridGenerate g, seed, rough, height` | fractal terrain (diamond-square), for demos and generated levels |
 | `GridColours g, waterLevel, waterPen, lowPen, highPen, snowLevel, snowPen` | pens by height |
 | `DrawGrid g [, range [, bias]]` | the cells within `range` units of the camera (default: all) that are ahead of it |
+| `GridShade g, on` | shade the cells by slope with the engine's `Light` (default True, whatever `Shading` is); False: plain pens, one quad a cell |
+| `GridFree g` | |
 
 ## Shading and fog
 
@@ -206,8 +211,9 @@ These draw straight onto the canvas (not into the draw list), in 3D-area coordin
 | `TextShadow x, y, s, pen [, scale]` | with a black shadow one pixel down-right |
 | `TextCentre y, s, pen [, scale]` | centred in the 3D area, shadowed |
 | `TextWidth(s [, scale])` | in 3D-area pixels |
-| `Span y, xl, xr, pen`, `FillRect x0, y0, x1, y1, pen`, `PolyFill xs(), ys(), n, pen` | 2D in pens, finer at Sub 2 like amiga3d's `g_poly_sub` |
-| `Blend y, xl, xr, pen, alpha` | a see-through span (alpha 0..256) |
+| `FillRect x0, y0, x1, y1, pen`, `PolyFill xs(), ys(), n, pen` | 2D in pens, in 3D-area coordinates (amiga3d's `g_rect`, `g_poly`) |
+| `Span y, xl, xr, pen` | a span in the drawing's own pixels (x Sub, amiga3d's `g_span_sub`) |
+| `Blend y, xl, xr, pen, alpha` | a see-through span (alpha 0..256), the drawing's pixels |
 
 ## Maths helpers
 

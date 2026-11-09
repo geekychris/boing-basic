@@ -762,6 +762,16 @@ static const bb_class canvas_class = {
 
 int bb_is_canvas(const bb_obj *o) { return o && o->cls == &canvas_class; }
 
+uint32_t *bb_canvas_pixels(bb_obj *o, int32_t *w, int32_t *h)
+{
+    bb_canvas *c;
+    if (!bb_is_canvas(o)) return NULL;
+    c = (bb_canvas *)o;
+    *w = c->tw;
+    *h = c->th;
+    return c->tp;
+}
+
 bb_obj *bb_canvas_new(int32_t w, int32_t h, bb_ctl *ctl)
 {
     bb_canvas *c = (bb_canvas *)bb_obj_new(&canvas_class);
@@ -823,6 +833,7 @@ bb_obj *bb_create_object(const bb_str *progid)
 {
     const char *p = bb_str_ptr(progid);
     if (!strcasecmp(p, "Boing.Canvas") || !strcasecmp(p, "Canvas")) return bb_canvas_new(320, 200, NULL);
+    if (!strcasecmp(p, "Boing.Engine3D") || !strcasecmp(p, "Engine3D")) return bb_engine3d_new();
     bb_raise(429, NULL);
     return NULL;
 }

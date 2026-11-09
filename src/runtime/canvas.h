@@ -31,6 +31,12 @@ void bb_canvas_key_event(int key, int down);
  * window pixels to canvas pixels). 0 if the control has no canvas. */
 int bb_canvas_ctl_geometry(bb_ctl *ctl, int *w, int *h, int *scale);
 
+/* The pixels of a canvas's current target (back buffer or image): w x h, rows of w pixels,
+ * 0xAARRGGBB. NULL if o is not a canvas. For runtime objects that draw into a canvas. */
+uint32_t *bb_canvas_pixels(bb_obj *o, int32_t *w, int32_t *h);
+/* Boing.Engine3D (engine3d.c, docs/engine3d.md) */
+bb_obj *bb_engine3d_new(void);
+
 /* The off-screen object registry (CreateObject). Raises 429 for unknown names. */
 bb_obj *bb_create_object(const bb_str *progid);
 

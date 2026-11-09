@@ -7,7 +7,7 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 LIMIT=${LIMIT:-16384}
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/bbstack.XXXXXX") || exit 1
 bad=0
-for f in "$root"/src/runtime/*.c "$root"/src/compiler/*.c "$root"/src/vm/*.c "$root"/src/main/*.c; do
+for f in "$root"/src/runtime/*.c "$root"/src/runtime/a3d/*.c "$root"/src/compiler/*.c "$root"/src/vm/*.c "$root"/src/main/*.c; do
     o="$tmp/$(basename "$f" .c).o"
     ${CC:-cc} -std=gnu99 -O2 -fstack-usage -I"$root/src" -I"$root/src/runtime" -c "$f" -o "$o" 2>/dev/null || continue
 done

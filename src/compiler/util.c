@@ -102,7 +102,7 @@ Node *late_byref_var(Node *x)
     if (v->kind == E_CONV && v->ty->kind == T_VARIANT) v = v->a;
     if (v->kind != E_VAR || (v->flags & NF_PARENARG)) return NULL;
     switch (v->ty->kind) {
-    case T_ARRAY: case T_UDT: case T_ANY: return NULL;
+    case T_UDT: case T_ANY: return NULL;     /* arrays go by reference too (no copy; output arrays work) */
     default: break;
     }
     if (v->sym->kind != SK_VAR) return NULL;

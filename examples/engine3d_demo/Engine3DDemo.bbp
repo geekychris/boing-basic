@@ -1,0 +1,6 @@
+# Boing BASIC project: the Engine3D demo (a terrain flyover, spinning models, fps counter)
+Name=Engine3DDemo
+Startup=Form demo
+Module=Scene.bas
+Form=demo.afg
+Stack=262144
