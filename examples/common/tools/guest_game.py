@@ -59,7 +59,7 @@ def amiga(p):
 
 def run(m, cmd, outf, limit):
     m.tool("amiga_dos_command", command="delete %s %s.err QUIET" % (outf, outf))
-    m.tool("amiga_dos_command", command="run >NIL: %s >%s *>%s.err" % (cmd, outf, outf))
+    started = str(m.tool("amiga_dos_command", command="run >NIL: %s >%s *>%s.err" % (cmd, outf, outf)))
     t0, out = time.time(), ""
     while time.time() - t0 < limit:
         time.sleep(3)
@@ -71,7 +71,7 @@ def run(m, cmd, outf, limit):
             stop_ours(m)
             return out + "\n" + err + "\nFAIL (error)"
     stop_ours(m)
-    return out + "\nFAIL (timed out after %ds)" % limit
+    return out + "\n(run: %s)\nFAIL (timed out after %ds)" % (started.strip()[-300:], limit)
 
 
 def stop_ours(m):
@@ -157,6 +157,8 @@ def session(src, md, job, args, exe, want, limit):
                     pull_frame(m, out_png)
                 else:
                     print("FAIL no frame for %s:\n%s" % (out_png, o[-400:]))
+                    print(m.tool("amiga_dos_command", command="list %s" % d))
+                    print(m.tool("amiga_dos_command", command="status"))
                     ok = False
             elif job[0] == "shot":
                 out_png, secs, gargs = job[1:]
@@ -199,7 +201,7 @@ def main():
                 jobs = [("shot", os.path.abspath(parts[1]), float(parts[2]), args)]
                 mode = parts[3] if len(parts) > 3 else "vm"
             else:
-                rows = [l.split(None, 2) for l in open(parts[1]) if l.strip() and not l.startswith("#")]
+                rows = [l.strip().split(None, 2) for l in open(parts[1]) if l.strip() and not l.startswith("#")]
                 jobs = [("frame" if kind == "frames" else "shot", os.path.abspath(r[0]),
                          r[1] if kind == "frames" else float(r[1]), r[2] if len(r) > 2 else "") for r in rows]
                 mode = parts[2] if len(parts) > 2 else "vm"
