@@ -17,7 +17,7 @@ Takes the guest's FIFO ticket, emulator lock and banner (tools/os4guest.py). Onl
 sends input, and only while Tincture reports (--log) that its window is the active one and
 the pointer is over its picture; the other modes drive Tincture's own event handlers.
 """
-import os, subprocess, sys, tempfile, time
+import os, re, subprocess, sys, tempfile, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.dirname(HERE)
@@ -221,7 +221,7 @@ def arexx_test(m):
     print(out)
     wait_for(m, outf, "quit", 30)
     time.sleep(3)
-    ok = ("pixel #FF0000" in out and "info 64 48 2 2" in out and "rc 10" in out and "done" in out and gone(m))
+    ok = ("pixel #FF0000" in out and "info 64 48 2 2" in out and re.search(r"rc\s+10", out) and "done" in out and gone(m))
     if not ok:
         print(dos(m, "type %s" % outf))
     print("process gone:", gone(m))
