@@ -46,6 +46,11 @@ Private Function ParseArgs() As String
         i = i + 1
     Loop
     If playerOk Then LogLine "audio " & mp.Device Else LogLine "audio none"
+    If song = "" Then
+        On Error Resume Next
+        If App.FromWorkbench And App.ArgCount > 0 Then song = App.Arg(0)
+        On Error GoTo 0
+    End If
     If song <> "" Then OpenSong song
     If play Then StartSong 0, 0
     ParseArgs = song
@@ -59,7 +64,9 @@ Private Sub Form_Load()
     NewSong 4
     StarterSamples
     SongChanged
-    filereq.Visible = False
+    On Error Resume Next
+    App.ARexxPort = "RIFFWRIGHT"
+    On Error GoTo 0
     menuFollow = followOn: menuView = curView
     mnuFollow.Checked = followOn
     ParseArgs
@@ -240,28 +247,75 @@ Private Sub Form_Unload(Cancel As Integer)
 End Sub
 
 Private Function ConfirmDiscard() As Boolean
+    Dim r As Long, p As String
     If Not songDirty Then ConfirmDiscard = True: Exit Function
-    ConfirmDiscard = (MsgBox("The song has unsaved changes. Throw them away?", vbYesNo + vbQuestion, "Riffwright") = vbYes)
+    r = App.Request("The song " & songFileName() & " has unsaved changes.", "_Save|_Discard|_Cancel", "Riffwright")
+    Select Case r
+        Case 1
+            p = songPath
+            If p = "" Then p = AskFile("Save the module", "#?.mod", True)
+            If p = "" Then Exit Function
+            If Not SaveSong(p) Then Exit Function
+            ConfirmDiscard = True
+        Case 2: ConfirmDiscard = True
+    End Select
 End Function
 
-' the AmigaGuide manual, at a node (asynchronously, with MultiView)
-Private Sub ShowGuide(ByVal node As String)
+' save, and give a new file a project icon that opens it in Riffwright
+Private Function SaveSong(ByVal p As String) As Boolean
+    Dim tmpl As String
+    If Not SaveMod(p) Then Say "can't save: " & lastError: Exit Function
+    SaveSong = True
+    Say "saved " & songFileName() & " (" & FileLen(p) & " bytes)"
+    If Len(Dir$(p & ".info")) = 0 Then
+        tmpl = DataPath("def_mod.info")
+        On Error Resume Next
+        If tmpl <> "" Then App.SaveIcon p, "", Left$(tmpl, Len(tmpl) - 5) Else App.SaveIcon p
+        On Error GoTo 0
+    End If
+End Function
+
+' a file that ships with Riffwright: beside the program, else in the current drawer
+Private Function DataPath(ByVal name As String) As String
     Dim p As String
     p = App.Path
     If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
-    p = p & "Riffwright.guide"
-    If Len(Dir$(p)) = 0 Then Say "no " & p: Exit Sub
+    If Len(Dir$(p & name)) > 0 Then DataPath = p & name: Exit Function
+    If Len(Dir$(name)) > 0 Then
+        p = CurDir$
+        If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+        DataPath = p & name
+    End If
+End Function
+
+' the AmigaGuide manual, at a node (opens asynchronously)
+Private Sub ShowGuide(ByVal node As String)
+    Dim p As String
+    p = DataPath("Riffwright.guide")
+    If p = "" Then Say "Riffwright.guide is missing": Exit Sub
     On Error Resume Next
-    Shell "run >NIL: SYS:Utilities/MultiView """ & p & """ DOCUMENT " & node
+    App.ShowHelp p, node
     If Err.Number <> 0 Then Say "can't open the guide: " & Err.Description
 End Sub
 
 Private Function AskFile(ByVal title As String, ByVal pattern As String, ByVal save As Boolean) As String
-    filereq.DialogTitle = title
-    filereq.Pattern = pattern
-    filereq.SaveMode = save
-    filereq.ShowOpen
-    AskFile = filereq.FileName
+    Dim p As String, k As Long
+    dlg.DialogTitle = title
+    dlg.Filter = pattern
+    If prefDir <> "" Then dlg.InitDir = prefDir
+    dlg.FileName = ""
+    If save Then
+        dlg.Flags = &H2                      ' ask before overwriting
+        dlg.ShowSave
+    Else
+        dlg.Flags = &H1000                   ' the file must exist
+        dlg.ShowOpen
+    End If
+    If dlg.Cancelled Then Exit Function
+    p = dlg.FileName
+    k = InStrRev(p, "/"): If InStrRev(p, ":") > k Then k = InStrRev(p, ":")
+    If k > 0 Then prefDir = Left$(p, k)
+    AskFile = p
 End Function
 
 Private Sub OpenSong(ByVal path As String)
@@ -290,7 +344,7 @@ Private Sub DoRequest()
             p = songPath
             If a = "saveas" Or p = "" Then p = AskFile("Save the module", "#?.mod", True)
             If p = "" Then Exit Sub
-            If SaveMod(p) Then Say "saved " & songFileName() & " (" & FileLen(p) & " bytes)" Else Say "can't save: " & lastError
+            SaveSong p
         Case "new"
             If Not ConfirmDiscard() Then Exit Sub
             StopPlayer
@@ -326,4 +380,31 @@ Private Sub DoRequest()
             End If
     End Select
     frameDirty = True
+End Sub
+
+' ---- ARexx: the RIFFWRIGHT port (PLAY [pos], STOP, LOAD file, SAVE [file], POSITION [n], TITLE, VERSION)
+Sub ARexx_Command(Cmd As String, Args As String, Result As String)
+    Dim rc As Long
+    LogLine "arexx " & Cmd & " " & Args
+    Result = RexxCommand(Cmd, Args, rc)
+    App.ARexxRC = rc
+    AfterInput
+End Sub
+
+' ---- files dropped on the window: a module opens, a sample goes into the current sample
+Private Sub Form_OLEDragDrop(Count As Integer, X As Integer, Y As Integer)
+    Dim p As String, ext As String
+    If Count < 1 Then Exit Sub
+    p = App.DropFile(0)
+    ext = LCase$(Mid$(p, InStrRev(p, ".") + 1))
+    LogLine "dropped " & p
+    If ext = "mod" Or LCase$(Left$(Mid$(p, InStrRev(p, "/") + 1), 4)) = "mod." Then
+        If ConfirmDiscard() Then OpenSong p
+    ElseIf LoadSampleFile(curSmp, p) Then
+        Say "sample " & Hex2(curSmp) & ": " & smpInfo
+        sideDirty = True
+    Else
+        Say "can't use " & p & ": " & smpError
+    End If
+    AfterInput
 End Sub

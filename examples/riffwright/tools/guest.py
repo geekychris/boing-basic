@@ -61,6 +61,7 @@ def push_all(m):
         if os.path.splitext(f)[1] in (".bas", ".bbp", ".afg", ".guide", ".info"):
             files.append((os.path.join(APP, f), DIR + "/" + f))
     files.append((APP + "/icons/Riffwright.info", DIR + "/Riffwright.info"))
+    files.append((APP + "/icons/def_mod.info", DIR + "/def_mod.info"))
     for f in sorted(os.listdir(APP + "/demos")):
         if f.endswith(".mod"):
             files.append((os.path.join(APP, "demos", f), DIR + "/demos/" + f))
@@ -117,13 +118,30 @@ def smoke(m, shots):
         key(m, outf, k)
     time.sleep(1)
     hmp_shot(os.path.join(shots, "editing"))
+    # the ARexx port
+    def rx(cmd):
+        r = dos(m, "rx \"options results; address RIFFWRIGHT '%s'; say 'RC=' || rc 'RESULT=' || result\"" % cmd)
+        print("ARexx %-38s -> %s" % (cmd, r.strip().splitlines()[-1] if r.strip() else r))
+        return r
+    ok_rx = "Riffwright 1.0" in rx("VERSION")
+    rx("PLAY 2")
+    time.sleep(2)
+    ok_rx &= "RESULT=" in rx("POSITION")
+    rx("STOP")
+    ok_rx &= "Boing Shuffle" in rx("LOAD %s/demos/boing_shuffle.mod" % DIR)
+    rx("SAVE RAM:riffwright_rx.mod")
+    size = dos(m, "list RAM:riffwright_rx.mod")
+    print("saved by ARexx:", size.strip().splitlines()[0] if size.strip() else size)
+    ok_rx &= "riffwright_rx.mod" in size
+    dos(m, "delete RAM:riffwright_rx.mod RAM:riffwright_rx.mod.info QUIET")
+    print("arexx ok:", ok_rx)
     out = wait_for(m, outf, "quit", 60)
     print("log:\n" + (out or dos(m, "type %s" % outf)))
     time.sleep(2)
     st = dos(m, "status")
     left = "Riffwright" in st
     print("process gone:", not left)
-    return out is not None and not left
+    return out is not None and not left and ok_rx
 
 
 def bench(m, n, extra="", only=None):
