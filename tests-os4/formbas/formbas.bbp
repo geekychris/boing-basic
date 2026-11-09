@@ -2,4 +2,5 @@
 Name=FormBas
 Startup=Form formbas
 Form=formbas.afg
+Form=formbas2.afg
 Stack=262144

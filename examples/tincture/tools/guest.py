@@ -73,6 +73,7 @@ def launch(m, cmdline):
     tmp = tempfile.NamedTemporaryFile("w", suffix=".run", delete=False)
     tmp.write("stack 1048576\n%s\n" % cmdline)
     tmp.close()
+    dos(m, "delete RAM:tincture.run QUIET")
     g.push(m, tmp.name, "RAM:tincture.run")
     os.unlink(tmp.name)
     dos(m, "run >NIL: execute RAM:tincture.run")
