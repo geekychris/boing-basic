@@ -12,6 +12,7 @@
 '   --help N / --scores         start on a help page / the high scores
 '   --front                     move the window to the top left and to the front (screenshots)
 '   --saveshot PATH --shotframe N   save frame N (default 150) as a PPM and quit (guest screenshots)
+'   --nosound                   no sound
 '   --saveshot PATH --shotframe N   save frame N (default 150) as a PPM and quit (guest screenshots)
 '   BlockBreaker3D --seed N           the first game's seed
 '
@@ -33,6 +34,7 @@ Private benchN As Long, benchDone As Long, attractOnly As Boolean, logModes As B
 Private nextSeed As Long
 Private demoStart As Boolean, scoresStart As Boolean, frontReq As Boolean
 Private saveShot As String, shotFrame As Long, frameNo As Long
+Private noSound As Boolean
 Private lastMs As Double, accMs As Double
 Private entryName As String
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
@@ -55,6 +57,7 @@ Private Sub ParseArgs()
             Case "--log": logModes = True
             Case "--demo": demoStart = True
             Case "--front": frontReq = True
+            Case "--nosound": noSound = True
             Case "--saveshot"
                 If i < UBound(args) Then saveShot = args(i + 1)
             Case "--shotframe"
@@ -103,13 +106,13 @@ Private Sub Form_Load()
     Set gcv = view
     BbInit
     DrawInit
-    SoundInit
     HsSetup Array("ARKA", "NOID", "BRICK", "PONG", "BOING", "QBERT", "BALLY", "PADDLE"), 2000
     HsLoad HsPath("block_breaker_3d.scores")
     nextSeed = 1
     shotFrame = 150
     startLevel = 1
     ParseArgs
+    If Not noSound Then SoundInit
     PerfReset
     ToTitle
     If demoStart Then

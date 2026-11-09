@@ -12,6 +12,7 @@
 '   --help N / --scores         start on a help page / the high scores
 '   --front                     move the window to the top left and to the front (screenshots)
 '   --saveshot PATH --shotframe N   save frame N (default 150) as a PPM and quit (guest screenshots)
+'   --nosound                   no sound
 '   --saveshot PATH --shotframe N   save frame N (default 150) as a PPM and quit (guest screenshots)
 '   RidgeRunner --seed N           the first game's seed
 '
@@ -34,6 +35,7 @@ Private nextSeed As Long
 Private lastTrack As Long
 Private demoStart As Boolean, scoresStart As Boolean, frontReq As Boolean
 Private saveShot As String, shotFrame As Long, frameNo As Long
+Private noSound As Boolean
 Private lastMs As Double, accMs As Double
 Private entryName As String
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
@@ -56,6 +58,7 @@ Private Sub ParseArgs()
             Case "--log": logModes = True
             Case "--demo": demoStart = True
             Case "--front": frontReq = True
+            Case "--nosound": noSound = True
             Case "--saveshot"
                 If i < UBound(args) Then saveShot = args(i + 1)
             Case "--shotframe"
@@ -113,13 +116,13 @@ Private Sub Form_Load()
     Set gcv = view
     RrInit
     DrawInit
-    SoundInit
     HsSetup Array("VIPER", "BLADE", "DRIFT", "NITRO", "SPARK", "COMET", "RAZOR", "SLIDE"), 3000
     HsLoad HsPath("ridge_runner.scores")
     nextSeed = 1
     shotFrame = 150
     startTrack = 1
     ParseArgs
+    If Not noSound Then SoundInit
     PerfReset
     ToTitle
     If demoStart Then
