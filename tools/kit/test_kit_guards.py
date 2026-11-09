@@ -141,5 +141,95 @@ for reaper, wb, what in ((True, True, "a Grim Reaper"), (False, False, "a silent
         refused = False
     check(refused and not opened, "install-kit: refuses to start on a guest with %s" % what)
 
+# the swap script, run by a small AmigaDOS model (Rename/If EXISTS/Set/Quit/Echo/MakeDir/Delete):
+# a normal swap, an old file in use, a new file that won't move in -> the old install stays whole
+def run_dos(lines, fs, locked=(), stuck=()):
+    """fs: set of paths (dirs and files, 'DH1:a/b'). locked: old paths Rename can't move;
+    stuck: new paths Rename can't move. Returns the Echo output."""
+    out, env, stack = [], {}, []
+    def active():
+        return all(stack)
+    def exists(p):
+        p = p.strip('"')
+        return p in fs or any(x.startswith(p + "/") for x in fs)
+    for raw in lines:
+        t = raw.strip()
+        w = t.split()
+        if not w:
+            continue
+        cmd = w[0].lower()
+        if cmd == "if":
+            if not active():
+                stack.append(False); continue
+            if w[1] == "EXISTS":
+                stack.append(exists(w[2]))
+            elif w[1] == "NOT":
+                stack.append(not exists(w[3]))
+            else:
+                var = w[1].strip('"').lstrip("$")
+                stack.append(env.get(var) == w[3].strip('"'))
+            continue
+        if cmd == "else":
+            parent = all(stack[:-1])
+            stack[-1] = parent and not stack[-1]
+            continue
+        if cmd == "endif":
+            stack.pop(); continue
+        if not active():
+            continue
+        if cmd == "set":
+            env[w[1]] = w[2]
+        elif cmd == "echo":
+            out.append(t[5:].strip('"'))
+        elif cmd == "quit":
+            break
+        elif cmd == "makedir":
+            fs.add(w[1])
+        elif cmd == "delete":
+            d = w[1]
+            for x in [x for x in fs if x == d or x.startswith(d + "/")]:
+                fs.discard(x)
+        elif cmd == "rename":
+            a, b = w[1].strip('"'), w[2].strip('"')
+            if a in locked or a in stuck or not exists(a):
+                continue
+            for x in [x for x in fs if x == a or x.startswith(a + "/")]:
+                fs.discard(x)
+                fs.add(b + x[len(a):])
+    return out
+
+
+OLD = ["AmiForge", "AmiForge.info", "Examples", "boing", "MyProjects"]
+NEW = ["AmiForge", "AmiForge.info", "Examples", "boing", "lib", "KIT-MANIFEST.txt"]
+
+
+def disk():
+    fs = {"DH1:BoingBASIC"} | {"DH1:BoingBASIC/" + e for e in OLD} | {"DH1:BoingBASIC/Examples/old.afp",
+                                                                      "DH1:BoingBASIC/MyProjects/mine.bas"}
+    fs |= {"DH1:BBkit-new", "DH1:BBkit-new/BoingBASIC"} | {"DH1:BBkit-new/BoingBASIC/" + e for e in NEW}
+    fs.add("DH1:BBkit-new/BoingBASIC/Examples/new.afp")
+    return fs
+
+
+fs = disk()
+out = run_dos(ik.swap_lines(OLD, NEW), fs)
+check(not any("FAIL" in o for o in out) and "DH1:BoingBASIC/Examples/new.afp" in fs and
+      "DH1:BoingBASIC/Examples/old.afp" not in fs and "DH1:BoingBASIC/MyProjects/mine.bas" in fs and
+      all("DH1:BoingBASIC/" + e in fs for e in NEW),
+      "install-kit swap: the new kit moves in, MyProjects stays")
+
+fs = disk()
+out = run_dos(ik.swap_lines(OLD, NEW), fs, locked={"DH1:BoingBASIC/boing"})
+check(any("rolled back" in o for o in out) and "DH1:BoingBASIC/Examples/old.afp" in fs and
+      all("DH1:BoingBASIC/" + e in fs for e in OLD) and "DH1:BoingBASIC/lib" not in fs,
+      "install-kit swap: an old file in use rolls back to the old install, whole")
+
+fs = disk()
+out = run_dos(ik.swap_lines(OLD, NEW), fs, stuck={"DH1:BBkit-new/BoingBASIC/lib"})
+check(any("rolled back" in o for o in out) and "DH1:BoingBASIC/Examples/old.afp" in fs and
+      all("DH1:BoingBASIC/" + e in fs for e in OLD) and "DH1:BoingBASIC/KIT-MANIFEST.txt" not in fs and
+      "DH1:BBkit-new/BoingBASIC/KIT-MANIFEST.txt" in fs,
+      "install-kit swap: a new file that won't move in rolls back to the old install, whole")
+
 print("PASS kit guards" if ok else "FAIL kit guards")
 sys.exit(0 if ok else 1)

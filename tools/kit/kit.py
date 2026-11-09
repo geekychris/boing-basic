@@ -462,6 +462,8 @@ def assemble(o):
     # the manifest the installer reads
     m = ["# Boing BASIC kit manifest (tools/make-kit.sh)",
          "bb=%s" % o["bb-rev"], "af=%s" % o["af-rev"], "made=%s" % time.strftime("%Y-%m-%dT%H:%M:%S")]
+    for e in sorted(os.listdir(top)):
+        m.append("entry=%s" % e)              # the drawer's top-level entries (install-kit moves these)
     for e in exs:
         m.append("example=%s|%s|%s|%s|%s|%s" % (e["dir"], e["name"], e["kind"], e["staged"]["afp"],
                                                 e["staged"]["bbp"], e["staged"]["native"] or "-"))

@@ -5,7 +5,7 @@ AmigaOS 4 guest as DH1:BoingBASIC, put the AmiForge icon on the Workbench deskto
     tools/install-kit.py BB_GUEST=m1                      install build/kit/BoingBASIC.lha, verify
     tools/install-kit.py BB_GUEST=m1 --verify-only        only the checks and the screenshot
     tools/install-kit.py BB_GUEST=m1 --icon-only          only the desktop icon (then the checks)
-    options: --kit PATH.lha   --shot OUT.png   --no-icon
+    options: --kit PATH.lha   --shot OUT.png   --no-icon   --check-all (boing check of every example)
 
 Install (one guest session, FIFO ticket + emulator lock + banner, at most BB_SESSION_TIMEOUT s,
 300 by default):
@@ -76,7 +76,9 @@ def manifest():
     if os.path.exists(p):
         for line in open(p, encoding="latin-1"):
             k, _, v = line.strip().partition("=")
-            if k == "example":
+            if k == "entry":
+                out.setdefault("entries", []).append(v)
+            elif k == "example":
                 d, name, kind, afp, bbp, nat = v.split("|")
                 out["examples"].append({"dir": d, "name": name, "kind": kind, "afp": afp, "bbp": bbp, "native": nat})
             elif k and not k.startswith("#"):
@@ -111,7 +113,7 @@ def script(m, name, lines, limit=240):
     """Run an AmigaDOS script in the background on the guest (its own CLI with a real stack, so a
     long step doesn't hold the bridge's shell) and wait for its last line."""
     outf = "RAM:bbkit/%s.log" % name
-    control = {"if", "else", "endif", "quit", "failat", "stack", "cd", "skip", "lab"}
+    control = {"if", "else", "endif", "quit", "failat", "stack", "cd", "skip", "lab", "set"}
     body = []
     for line in lines + ['Echo "SCRIPT-END"']:
         # output of a script started with run goes to NIL:: every command appends to the log itself
@@ -139,14 +141,51 @@ def script(m, name, lines, limit=240):
     raise RuntimeError("%s: no end after %ds (still running on the guest?): %s" % (name, limit, out[-400:]))
 
 
-def move_lines():
-    """The new drawer's entries moved into DH1:BoingBASIC with Rename (no second copy on the
-    disk); without the local stage to name them, a Copy."""
+def new_entries():
+    """The new drawer's top-level entries: from KIT-MANIFEST (entry=), else the local stage."""
+    e = manifest().get("entries")
+    if e:
+        return e
     top = os.path.join(os.path.dirname(KIT), "stage", "BoingBASIC")
-    if not os.path.isdir(top):
-        return ['  Copy DH1:BBkit-new/BoingBASIC/#? DH1:BoingBASIC ALL CLONE QUIET']
-    return ['  Rename "DH1:BBkit-new/BoingBASIC/%s" "DH1:BoingBASIC/%s"' % (e, e)
-            for e in sorted(os.listdir(top)) if not e.startswith("MyProjects")]
+    if os.path.isdir(top):
+        return sorted(os.listdir(top))
+    raise RuntimeError("the kit's KIT-MANIFEST.txt has no entry= lines and there is no stage: rebuild the kit")
+
+
+def guest_entries(m, drawer):
+    """Top-level entries of a drawer on the guest (names only)."""
+    out = dos(m, 'list "%s" LFORMAT "%%N" NOHEAD QUICK' % drawer)
+    if "not found" in out.lower() or "no information" in out.lower():
+        return []
+    return [l.strip() for l in out.splitlines() if l.strip() and not l.startswith("[")]
+
+
+KEEP = ("MyProjects", "MyProjects.info")        # the user's own: never moved
+
+
+def q(p):
+    return '"%s"' % p
+
+
+def swap_lines(old, new):
+    """Swap DH1:BoingBASIC's contents for DH1:BBkit-new/BoingBASIC's, reversibly: the old entries
+    move to DH1:BBkit-old, the new ones move in (Rename: the same disk, no copies; the drawer
+    itself stays, Workbench's left-out icon holds a lock on it); a step that doesn't take rolls
+    everything back and the script ends with INSTALL-FAIL, leaving the old install as it was."""
+    old = [e for e in old if e not in KEEP]
+    new = [e for e in new if e not in KEEP]
+    D, O, N = "DH1:BoingBASIC/", "DH1:BBkit-old/", "DH1:BBkit-new/BoingBASIC/"
+    back_old = sum((['  If EXISTS %s' % q(O + e), '    Rename %s %s' % (q(O + e), q(D + e)), '  EndIf'] for e in old), [])
+    back_new = sum((['  If EXISTS %s' % q(D + e), '    Rename %s %s' % (q(D + e), q(N + e)), '  EndIf'] for e in new), [])
+    L = ['Set kitbad 0', 'If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf', 'MakeDir DH1:BBkit-old']
+    L += ['Rename %s %s' % (q(D + e), q(O + e)) for e in old]
+    L += sum((['If EXISTS %s' % q(D + e), '  Set kitbad 1', 'EndIf'] for e in old), [])
+    L += ['If "$kitbad" EQ "1"'] + back_old + ['  Echo "INSTALL-FAIL an old file is in use: rolled back"', '  Quit 20', 'EndIf']
+    L += ['Rename %s %s' % (q(N + e), q(D + e)) for e in new]
+    L += sum((['If NOT EXISTS %s' % q(D + e), '  Set kitbad 1', 'EndIf'] for e in new), [])
+    L += ['If "$kitbad" EQ "1"'] + back_new + back_old + ['  Echo "INSTALL-FAIL a new file didn\'t move in: rolled back"',
+                                                         '  Quit 20', 'EndIf']
+    return L
 
 
 def free_bytes(info):
@@ -316,6 +355,15 @@ def install(m):
         raise RuntimeError("these run from the kit on the guest; quit them first: %s" % "; ".join(hits))
     # leftovers of an interrupted install (the old drawer kept as -previous, a half-unpacked
     # BBkit-new) are deleted first: they can hold most of the space the install needs
+    saved = guest_entries(m, "DH1:BBkit-old")
+    if saved:
+        if "AmiForge" not in guest_entries(m, DEST):
+            # a swap was interrupted after the old install moved aside: put it back first
+            out = script(m, "restore", ['Rename %s %s' % (q("DH1:BBkit-old/" + e), q("DH1:BoingBASIC/" + e))
+                                        for e in saved], limit=120)
+            log("restored the old install from DH1:BBkit-old (an interrupted swap) %s" % " ".join(out.split())[:120])
+        if not guest_entries(m, "DH1:BBkit-old") or "AmiForge" in guest_entries(m, DEST):
+            script(m, "oldaside", ['If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf'], limit=120)
     out = script(m, "leftovers", ['If EXISTS DH1:BoingBASIC-previous', '  Delete DH1:BoingBASIC-previous ALL QUIET FORCE',
                                   '  Echo "LEFTOVER BoingBASIC-previous"', 'EndIf',
                                   'If EXISTS DH1:BBkit-new', '  Delete DH1:BBkit-new ALL QUIET FORCE',
@@ -334,41 +382,30 @@ def install(m):
     t0 = time.time()
     log(g.push(m, KIT, "RAM:bbkit/BoingBASIC.lha"))
     log("pushed in %.0f s" % (time.time() - t0))
-    # The drawer itself stays (Workbench's left-out icon holds a lock on it, so it can't be
-    # renamed away and deleted): its contents are replaced, MyProjects moved aside and back.
+    have = guest_entries(m, DEST)
+    exists = bool(have) or "Directory" in dos(m, "list %s DIRS QUICK" % DEST)
+    if "MyProjects" in have:
+        log("DH1:BoingBASIC/MyProjects stays as it is (the user's projects)")
     lines = [
         'If EXISTS DH1:BBkit-new', '  Delete DH1:BBkit-new ALL QUIET FORCE', 'EndIf',
         'MakeDir DH1:BBkit-new',
-        'xadUnFile RAM:bbkit/BoingBASIC.lha DEST=DH1:BBkit-new QUIET',
-        'If NOT EXISTS DH1:BBkit-new/BoingBASIC/AmiForge', '  Echo "INSTALL-FAIL unpack"', '  Quit 20', 'EndIf',
-        'If NOT EXISTS DH1:BBkit-new/BoingBASIC/KIT-MANIFEST.txt', '  Echo "INSTALL-FAIL unpack"', '  Quit 20', 'EndIf',
-        'If EXISTS DH1:BoingBASIC',
-        '  If EXISTS DH1:BoingBASIC/MyProjects',
-        '    Rename DH1:BoingBASIC/MyProjects DH1:BBkit-new/MyProjects',
-        '    Echo "kept MyProjects"',
-        '  EndIf',
-        '  If EXISTS DH1:BoingBASIC/MyProjects.info',
-        '    Rename DH1:BoingBASIC/MyProjects.info DH1:BBkit-new/MyProjects.info',
-        '  EndIf',
-        '  Delete DH1:BoingBASIC/#? ALL QUIET FORCE',
-    ] + move_lines() + [
-        'Else',
-        '  Rename DH1:BBkit-new/BoingBASIC DH1:BoingBASIC',
-        'EndIf',
-        'If NOT EXISTS DH1:BoingBASIC/KIT-MANIFEST.txt', '  Echo "INSTALL-FAIL copy"', '  Quit 20', 'EndIf',
+        'xadUnFile RAM:bbkit/BoingBASIC.lha DEST=DH1:BBkit-new QUIET']
+    # the staged kit must be complete before anything of the old install is touched
+    lines += sum((['If NOT EXISTS %s' % q("DH1:BBkit-new/BoingBASIC/" + e), '  Echo "INSTALL-FAIL unpack (%s missing)"' % e,
+                   '  Quit 20', 'EndIf'] for e in new_entries()), [])
+    if exists:
+        lines += swap_lines(guest_entries(m, DEST), new_entries())
+    else:
+        lines += ['Rename DH1:BBkit-new/BoingBASIC DH1:BoingBASIC']
+    lines += [
+        'If NOT EXISTS DH1:BoingBASIC/KIT-MANIFEST.txt', '  Echo "INSTALL-FAIL swap"', '  Quit 20', 'EndIf',
         'Copy DH1:BBkit-new/BoingBASIC.info DH1:BoingBASIC.info CLONE QUIET',
-        'If EXISTS DH1:BBkit-new/MyProjects',
-        '  Rename DH1:BBkit-new/MyProjects DH1:BoingBASIC/MyProjects',
-        'Else',
-        '  MakeDir DH1:BoingBASIC/MyProjects',
-        'EndIf',
-        'If EXISTS DH1:BBkit-new/MyProjects.info',
-        '  Rename DH1:BBkit-new/MyProjects.info DH1:BoingBASIC/MyProjects.info',
-        'EndIf',
+        'If NOT EXISTS DH1:BoingBASIC/MyProjects', '  MakeDir DH1:BoingBASIC/MyProjects', 'EndIf',
         'If NOT EXISTS DH1:BoingBASIC/MyProjects.info',
         '  Copy DH1:BoingBASIC/Templates.info DH1:BoingBASIC/MyProjects.info CLONE QUIET',
         'EndIf',
         'Delete DH1:BBkit-new ALL QUIET FORCE',
+        'If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf',
         'Delete RAM:bbkit/BoingBASIC.lha QUIET', 'Echo "INSTALL-OK"']
     t0 = time.time()
     out = script(m, "install", lines, limit=260)
@@ -406,13 +443,25 @@ def verify(m):
         lines += ['CD %s/Examples/%s' % (DEST, ex["dir"]),
                   '%s/boing check %s' % (DEST, ex["bbp"]),
                   'If WARN', '  Echo "CHECK-FAIL"', 'Else', '  Echo "CHECK-OK"', 'EndIf']
-    out = script(m, "verify", lines, limit=180)
+    if "--check-all" in args:
+        # every example with the guest's own (the kit's) boing
+        for e in man["examples"]:
+            lines += ['CD %s/Examples/%s' % (DEST, e["dir"]), '%s/boing check %s' % (DEST, e["bbp"]),
+                      'If WARN', '  Echo "ALLCHECK-FAIL %s"' % e["dir"], 'Else', '  Echo "ALLCHECK-OK %s"' % e["dir"], 'EndIf']
+        lines += ['CD RAM:']
+    out = script(m, "verify", lines, limit=250 if "--check-all" in args else 180)
     log("boing: %s" % " ".join(out.split())[:300])
     ok &= bool(re.search(r"boing|Boing", out))
     if ex:
         good = "CHECK-OK" in out and "CHECK-FAIL" not in out
         log("boing check %s/%s: %s" % (ex["dir"], ex["bbp"], "ok" if good else "FAILED"))
         ok &= good
+    if "--check-all" in args:
+        good_all = re.findall(r"ALLCHECK-OK (\S+)", out)
+        bad_all = re.findall(r"ALLCHECK-FAIL (\S+)", out)
+        log("boing check of every example on the guest: %d ok%s" % (len(good_all),
+            ", FAILED: " + " ".join(bad_all) if bad_all else ""))
+        ok &= not bad_all and len(good_all) == len(man["examples"])
     gm = dos(m, "type %s/KIT-MANIFEST.txt" % DEST)
     same = man.get("bb", "?") in gm and man.get("af", "?") in gm
     log("KIT-MANIFEST on the guest matches the kit (bb %s, af %s): %s"
