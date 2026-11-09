@@ -137,6 +137,13 @@ error ends the wait.
 | `tests-os4/declare/` (`tools/os4guest.py bas`) | Declare from BASIC: generated bindings (slots), Declares by name, Interface/Version, a String argument, a Space(n) buffer filled by GetVar | 8/8 VM and native (2026-11-08) |
 | `tests-os4/bindings/` | exec, dos, utility, intuition/graphics, locale and error paths through the generated bindings ([bindings.md](bindings.md)) | 42/42 VM and native, output == libs.out |
 | `tests-os4/audio/` (`tools/os4guest.py bas`) | the Audio object: fx.mod and effects rendered off-line give the Mac's PCM hashes, then music + effects through AHI from the mixer task ([audio.md](audio.md)) | PASS VM and native, mixer 0.9 % CPU on m1 (2026-11-08) |
+| `tests/os4/ui_menu_test.c` | menus ([ui.md](ui.md)): Amiga-key shortcuts fire `<menu>_Click`, checkable/radio items, Enabled, AddMenu/RemoveMenu, a context menu opened with the right mouse button | 25/25 (m1 and local, 2026-11-08) |
+| `tests/os4/ui_mouse_test.c` | canvas MouseDown/Move/Up in canvas pixels (scale 2), DblClick, Form_MouseDown | 7/7 |
+| `tests/os4/ui_bars_test.c` | toolbar (click, menu= link), status bar, image, CommonDialog: custom-button requester, asl open (Esc, CancelError, Return), colour requester | 25/25 (local) |
+| `tests/os4/ui_controls_test.c` | TextEditor selection/find/replace, ListBrowser columns/sort/multi-select, tabs, TreeView, Grid (typed cell edit, keys) | 35/35 (local) |
+| `tests/os4/ui_forms2_test.c` | Show vbModal, iconify/WindowState, remember=1 | 9/9 (local) |
+| `tests/os4/ui_leak_test.c` | every UI kind loaded/freed 50 times vs a plain form (AvailMem; noisy on a busy guest) | informational |
+| `tests-os4/uibas/` | the same from BASIC: menus, toolbar, CommonDialog object, settings, App, ARexx round trip via RX, SaveIcon, clipboard pictures | 30/30 VM, JIT and native (local) |
 | `tests/os4/sys_test.c` | Command, App.Path, Shell, Environ, Dir with patterns and vbDirectory, Kill, MkDir/RmDir, FileCopy, Name, clipboard (restored afterwards) | 30/30 |
 
 Input injection uses input.device (`IND_WRITEEVENT`) from inside the test, at the control's
