@@ -3,7 +3,7 @@ category = "game"
 order = 65
 summary = "A hover-bike race down a winding valley against three rivals, through gates that add time, over six tracks."
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
-perf = "117 fps native, 28 fps in the VM, 23 fps with the JIT (`--bench 300`, m1b guest)."
+perf = "124 fps native, 31 fps in the VM, 29 fps with the JIT (`--bench 300`, m1b guest)."
 
 [[shot]]
 file = "docs/play.png"

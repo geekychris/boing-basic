@@ -183,7 +183,7 @@ Breakout down a tunnel: move a paddle frame on the near opening and send the bal
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
-**Performance:** 128 fps native, 35 fps in the VM, 34 fps with the JIT (`--bench 300`, m1b guest).
+**Performance:** 148 fps native, 38 fps in the VM, 36 fps with the JIT (`--bench 300`, m1b guest).
 
 <img src="../examples/block_breaker_3d/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
@@ -201,7 +201,7 @@ A rail shooter down a winding canyon: move the sight, shoot turrets, drones and 
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
-**Performance:** 123 fps native, 38 fps in the VM, 33 fps with the JIT (`--bench 300`, m1b guest).
+**Performance:** 131 fps native, 41 fps in the VM, 40 fps with the JIT (`--bench 300`, m1b guest).
 
 <img src="../examples/canyon_rail/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
@@ -219,7 +219,7 @@ Parcel deliveries by drone across a city of towers: collect at the depot pad, la
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
-**Performance:** 141 fps native, 43 fps in the VM, 40 fps with the JIT (`--bench 300`, m1b guest).
+**Performance:** 149 fps native, 48 fps in the VM, 46 fps with the JIT (`--bench 300`, m1b guest).
 
 <img src="../examples/drone_courier/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
@@ -237,7 +237,7 @@ A gantry crane loading a ship that rolls in the swell: swing containers onto the
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
-**Performance:** 74 fps native, 32 fps in the VM, 26 fps with the JIT (`--bench 300`, m1b guest) (JIT/native blit slowed by Screen Sharing on m1).
+**Performance:** 119 fps native, 35 fps in the VM, 33 fps with the JIT (`--bench 300`, m1b guest).
 
 <img src="../examples/harbour_crane/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
@@ -255,7 +255,7 @@ Tilt a floating maze board to roll a marble to the exit: holes, gates, bumpers, 
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
-**Performance:** 126 fps native, 39 fps in the VM, 36 fps with the JIT (`--bench 300`, m1b guest).
+**Performance:** 122 fps native, 44 fps in the VM, 40 fps with the JIT (`--bench 300`, m1b guest).
 
 <img src="../examples/marble_tilt/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
@@ -273,7 +273,7 @@ A hover-bike race down a winding valley against three rivals, through gates that
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
-**Performance:** 117 fps native, 28 fps in the VM, 23 fps with the JIT (`--bench 300`, m1b guest).
+**Performance:** 124 fps native, 31 fps in the VM, 29 fps with the JIT (`--bench 300`, m1b guest).
 
 <img src="../examples/ridge_runner/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
@@ -291,7 +291,7 @@ A shooter inside a hollow sphere: your ship rides the shell facing the centre, a
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
-**Performance:** 86 fps native, 26 fps in the VM, 15 fps with the JIT (`--bench 300`, m1b guest) (VM with adaptive grid detail; blit slowed by Screen Sharing on m1).
+**Performance:** 126 fps native, 32 fps in the VM, 32 fps with the JIT (`--bench 300`, m1b guest).
 
 <img src="../examples/sphere_siege/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 
@@ -309,7 +309,7 @@ A tank fight in a walled arena seen from the turret: shells bounce once off the 
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
-**Performance:** 143 fps native, 35 fps in the VM, 31 fps with the JIT (`--bench 300`, m1b guest).
+**Performance:** 158 fps native, 44 fps in the VM, 36 fps with the JIT (`--bench 300`, m1b guest).
 
 <img src="../examples/tank_duel/docs/play.png" width="512" alt="Playing on the AmigaOS 4 guest">
 

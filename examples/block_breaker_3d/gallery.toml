@@ -3,7 +3,7 @@ category = "game"
 order = 60
 summary = "Breakout down a tunnel: move a paddle frame on the near opening and send the ball at a block of bricks at the far end, over 8 levels with capsules."
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
-perf = "128 fps native, 35 fps in the VM, 34 fps with the JIT (`--bench 300`, m1b guest)."
+perf = "148 fps native, 38 fps in the VM, 36 fps with the JIT (`--bench 300`, m1b guest)."
 
 [[shot]]
 file = "docs/play.png"

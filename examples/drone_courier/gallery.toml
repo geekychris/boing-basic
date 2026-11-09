@@ -3,7 +3,7 @@ category = "game"
 order = 62
 summary = "Parcel deliveries by drone across a city of towers: collect at the depot pad, land gently on the customer's pad, beat the clock and the wind."
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
-perf = "141 fps native, 43 fps in the VM, 40 fps with the JIT (`--bench 300`, m1b guest)."
+perf = "149 fps native, 48 fps in the VM, 46 fps with the JIT (`--bench 300`, m1b guest)."
 
 [[shot]]
 file = "docs/play.png"
