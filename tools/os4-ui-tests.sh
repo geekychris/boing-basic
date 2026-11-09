@@ -12,6 +12,11 @@ for t in $tests; do
     echo "$out" | grep -q "^PASS" || fail=1
     # still running (timed out or stuck): Ctrl-C it so no window is left behind
     cli=$(timeout 60 tools/os4guest.py dos status 2>/dev/null | grep "bbtest/$t" | sed -n 's/^Process *\([0-9]*\):.*/\1/p')
+    if [ -n "$cli" ]; then
+        # a requester it left open first gets Esc (only while it's the active window), then Ctrl-C
+        timeout 120 tools/os4guest.py push build/os4/tests/ui_closereq RAM:bbtest/ui_closereq >/dev/null 2>&1
+        timeout 60 tools/os4guest.py dos 'RAM:bbtest/ui_closereq "Bars test" "Bars test dialog" "forms_test" "Boing forms2 dialog"' 2>/dev/null | sed "s/^/$t: /"
+    fi
     for c in $cli; do
         echo "$t: still running (CLI $c): sending Ctrl-C"
         timeout 60 tools/os4guest.py dos "break $c C" >/dev/null 2>&1

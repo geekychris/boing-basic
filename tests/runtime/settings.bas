@@ -18,5 +18,4 @@ Print Err.Number
 On Error GoTo 0
 Print App.ToolType("WIDTH", "640")
 Print App.FromWorkbench
-Print App.Request("Save the changes?", "_Save|_Discard|_Cancel")
 Print App.Str(12, "Open...")
