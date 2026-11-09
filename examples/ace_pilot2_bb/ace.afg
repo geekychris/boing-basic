@@ -1,5 +1,5 @@
 # AmiForge GUI (edit with Tools > GUI Designer)
-window name=ace title="Ace Pilot 2" width=640 height=512
+window name=ace title="Ace Pilot 2 (Boing BASIC)" width=640 height=512
 vlayout id=root
   canvas id=view width=320 height=256 scale=2
   timer id=tick interval=20 enabled=1
