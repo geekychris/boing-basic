@@ -1,23 +1,23 @@
 # AmiForge GUI (edit with Tools > GUI Designer)
 window name=gridwise title="Gridwise" width=660 height=480 resizable=1 dropfiles=1 iconify=1
 vlayout id=root
-  toolbar id=tb weight=0
-    tool id=tbNew text="New" image="TBImages:new" hint="New sheet (Amiga-N)" menu=mnuNew
-    tool id=tbOpen text="Open" image="TBImages:open" hint="Open a sheet or CSV file (Amiga-O)" menu=mnuOpen
-    tool id=tbSave text="Save" image="TBImages:save" hint="Save (Amiga-S)" menu=mnuSave
-    tool id=tbPrint text="Print" image="TBImages:print" hint="Print the sheet" menu=mnuPrint
+  toolbar id=tb weight=0 textonly=1
+    tool id=tbNew text="New" hint="New sheet (Amiga-N)" menu=mnuNew
+    tool id=tbOpen text="Open" hint="Open a sheet or CSV file (Amiga-O)" menu=mnuOpen
+    tool id=tbSave text="Save" hint="Save (Amiga-S)" menu=mnuSave
+    tool id=tbPrint text="Print" hint="Print the sheet" menu=mnuPrint
     tool separator=1
-    tool id=tbUndo text="Undo" image="TBImages:undo" hint="Undo (Amiga-Z)" menu=mnuUndo
-    tool id=tbRedo text="Redo" image="TBImages:redo" hint="Redo (Amiga-Y)" menu=mnuRedo
+    tool id=tbUndo text="Undo" hint="Undo (Amiga-Z)" menu=mnuUndo
+    tool id=tbRedo text="Redo" hint="Redo (Amiga-Y)" menu=mnuRedo
     tool separator=1
-    tool id=tbCut text="Cut" image="TBImages:cut" hint="Cut (Amiga-X)" menu=mnuCut
-    tool id=tbCopy text="Copy" image="TBImages:copy" hint="Copy (Amiga-C)" menu=mnuCopy
-    tool id=tbPaste text="Paste" image="TBImages:paste" hint="Paste (Amiga-V)" menu=mnuPaste
+    tool id=tbCut text="Cut" hint="Cut (Amiga-X)" menu=mnuCut
+    tool id=tbCopy text="Copy" hint="Copy (Amiga-C)" menu=mnuCopy
+    tool id=tbPaste text="Paste" hint="Paste (Amiga-V)" menu=mnuPaste
     tool separator=1
-    tool id=tbBold text="Bold" image="TBImages:bold" hint="Bold (Amiga-B)" menu=mnuBold
-    tool id=tbItalic text="Italic" image="TBImages:italic" hint="Italic (Amiga-I)" menu=mnuItalic
-    tool id=tbSum text="Sum" image="TBImages:sum" hint="AutoSum (Amiga-U)" menu=mnuAutoSum
-    tool id=tbChart text="Chart" image="TBImages:chart" hint="Bar chart of the selection" menu=mnuBar
+    tool id=tbBold text="Bold" hint="Bold (Amiga-B)" menu=mnuBold
+    tool id=tbItalic text="Italic" hint="Italic (Amiga-I)" menu=mnuItalic
+    tool id=tbSum text="Sum" hint="AutoSum (Amiga-U)" menu=mnuAutoSum
+    tool id=tbChart text="Chart" hint="Bar chart of the selection" menu=mnuBar
   hlayout weight=0
     label id=cellname text="A1      "
     chooser id=tbFormat items="General|Integer|Fixed|Thousands|Thousands .00|Percent|Percent .00|Currency|Scientific|Date|Time" selected=0 weight=0 hint="Number format"

@@ -1,21 +1,21 @@
 # AmiForge GUI (edit with Tools > GUI Designer)
 window name=penwright title="Penwright" width=660 height=520 resizable=1 dropfiles=1 iconify=1
 vlayout id=root
-  toolbar id=tb weight=0
-    tool id=tbNew text="New" image="TBImages:new" hint="New document (Amiga-T)" menu=mnuNewDoc
-    tool id=tbOpen text="Open" image="TBImages:open" hint="Open (Amiga-O)" menu=mnuOpen
-    tool id=tbSave text="Save" image="TBImages:save" hint="Save (Amiga-S)" menu=mnuSave
-    tool id=tbPrint text="Print" image="TBImages:print" hint="Print" menu=mnuPrint
+  toolbar id=tb weight=0 textonly=1
+    tool id=tbNew text="New" hint="New document (Amiga-T)" menu=mnuNewDoc
+    tool id=tbOpen text="Open" hint="Open (Amiga-O)" menu=mnuOpen
+    tool id=tbSave text="Save" hint="Save (Amiga-S)" menu=mnuSave
+    tool id=tbPrint text="Print" hint="Print" menu=mnuPrint
     tool separator=1
-    tool id=tbUndo text="Undo" image="TBImages:undo" hint="Undo (Amiga-Z)" menu=mnuUndo
-    tool id=tbRedo text="Redo" image="TBImages:redo" hint="Redo (Amiga-Y)" menu=mnuRedo
+    tool id=tbUndo text="Undo" hint="Undo (Amiga-Z)" menu=mnuUndo
+    tool id=tbRedo text="Redo" hint="Redo (Amiga-Y)" menu=mnuRedo
     tool separator=1
-    tool id=tbCut text="Cut" image="TBImages:cut" hint="Cut (Amiga-X)" menu=mnuCut
-    tool id=tbCopy text="Copy" image="TBImages:copy" hint="Copy (Amiga-C)" menu=mnuCopy
-    tool id=tbPaste text="Paste" image="TBImages:paste" hint="Paste (Amiga-V)" menu=mnuPaste
+    tool id=tbCut text="Cut" hint="Cut (Amiga-X)" menu=mnuCut
+    tool id=tbCopy text="Copy" hint="Copy (Amiga-C)" menu=mnuCopy
+    tool id=tbPaste text="Paste" hint="Paste (Amiga-V)" menu=mnuPaste
     tool separator=1
-    tool id=tbFind text="Find" image="TBImages:search" hint="Find (Amiga-F)" menu=mnuFind
-    tool id=tbSpell text="Spelling" image="TBImages:spellcheck" hint="Next misspelt word (Amiga-K)" menu=mnuSpell
+    tool id=tbFind text="Find" hint="Find (Amiga-F)" menu=mnuFind
+    tool id=tbSpell text="Spelling" hint="Next misspelt word (Amiga-K)" menu=mnuSpell
   hlayout weight=0
     chooser id=style items="Body|Heading 1|Heading 2|Heading 3|Quote|Bullet|Code" selected=0 weight=0 hint="Paragraph style"
     chooser id=size items="8|9|10|11|12|14|16|18|20|24|28|32|36|48" selected=4 weight=0 hint="Text size (points)"
