@@ -14,7 +14,8 @@ static const char *afg =
     "vlayout id=root\n"
     "  canvas id=view width=100 height=60 scale=2\n"
     "  space id=gap minheight=30\n"
-    "  timer id=tick interval=400\n";
+    "  timer id=tick interval=400\n"
+    "  timer id=guard interval=120000\n";
 
 static bb_form *form;
 static int step;
@@ -27,6 +28,13 @@ static void script(void);
 
 static int on_event(void *ud, bb_form *f, const char *ctl, const char *ev, int argc, int32_t *args)
 {
+    if (!strcasecmp(ctl, "guard") && !strcasecmp(ev, "Timer")) {
+        /* a step got stuck: fail and close everything rather than leave a window behind */
+        printf("not ok - the test took more than 2 minutes (guard timer)\n");
+        fails++;
+        bb_forms_end();
+        return 0;
+    }
     (void)ud; (void)f;
     if (!strcasecmp(ctl, "view")) {
         if (!strcasecmp(ev, "MouseDown")) { downs++; memcpy(last, args, sizeof last); }

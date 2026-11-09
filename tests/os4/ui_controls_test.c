@@ -22,7 +22,8 @@ static const char *afg =
     "  hlayout\n"
     "    treeview id=tree minwidth=120\n"
     "    grid id=sheet rows=6 cols=4 fixedrows=1 fixedcols=1 colwidth=60 editable=1 headers=1\n"
-    "  timer id=tick interval=400\n";
+    "  timer id=tick interval=400\n"
+    "  timer id=guard interval=120000\n";
 
 static bb_form *form;
 static int step, afteredits, enters, colclicks, edchanges, nodeclicks;
@@ -74,6 +75,13 @@ static int calls(const char *ctl, const char *m, int argc, const char *a0, const
 static void script(void);
 static int on_event(void *ud, bb_form *f, const char *ctl, const char *ev, int argc, int32_t *args)
 {
+    if (!strcasecmp(ctl, "guard") && !strcasecmp(ev, "Timer")) {
+        /* a step got stuck: fail and close everything rather than leave a window behind */
+        printf("not ok - the test took more than 2 minutes (guard timer)\n");
+        fails++;
+        bb_forms_end();
+        return 0;
+    }
     (void)ud; (void)f; (void)argc; (void)args;
     if (!strcasecmp(ctl, "sheet") && !strcasecmp(ev, "AfterEdit")) afteredits++;
     if (!strcasecmp(ctl, "sheet") && !strcasecmp(ev, "EnterCell")) enters++;

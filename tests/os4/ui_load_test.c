@@ -24,6 +24,7 @@ static const char *afg =
     "    listbrowser id=lb columns=\"A|B\" items=\"x\t1|y\t2\"\n"
     "  statusbar id=sb panels=\"a|b\"\n"
     "  timer id=tick interval=400\n"
+    "  timer id=guard interval=120000\n"
     "menu id=mFile text=\"File\"\n"
     "  menu id=mNew text=\"New\" key=N\n"
     "  menu id=mSep text=-\n"
@@ -94,6 +95,13 @@ static void on_load(bb_form *f)
 static void script(void);
 static int on_event(void *ud, bb_form *f, const char *ctl, const char *ev, int argc, int32_t *args)
 {
+    if (!strcasecmp(ctl, "guard") && !strcasecmp(ev, "Timer")) {
+        /* a step got stuck: fail and close everything rather than leave a window behind */
+        printf("not ok - the test took more than 2 minutes (guard timer)\n");
+        fails++;
+        bb_forms_end();
+        return 0;
+    }
     (void)ud; (void)argc;
     if (!strcasecmp(ctl, "Form") && !strcasecmp(ev, "Load")) on_load(f);
     if (!strcasecmp(ctl, "view") && !strcasecmp(ev, "Resize")) resizes++;

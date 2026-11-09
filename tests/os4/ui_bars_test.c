@@ -22,6 +22,7 @@ static const char *afg =
     "  commondialog id=dlg title=\"Bars test dialog\"\n"
     "  statusbar id=sb panels=\"Ready|Ln 1|100%\" widths=\"0|60|50\"\n"
     "  timer id=tick interval=400\n"
+    "  timer id=guard interval=120000\n"
     "menu id=mnuFile text=\"Project\"\n"
     "  menu id=mnuNew text=\"New\" key=N\n";
 
@@ -64,6 +65,13 @@ static void script(void);
 
 static int on_event(void *ud, bb_form *f, const char *ctl, const char *ev, int argc, int32_t *args)
 {
+    if (!strcasecmp(ctl, "guard") && !strcasecmp(ev, "Timer")) {
+        /* a step got stuck: fail and close everything rather than leave a window behind */
+        printf("not ok - the test took more than 2 minutes (guard timer)\n");
+        fails++;
+        bb_forms_end();
+        return 0;
+    }
     (void)ud; (void)f; (void)argc; (void)args;
     if (!strcasecmp(ev, "Click")) {
         if (!strcasecmp(ctl, "tbNew")) c_tbnew++;

@@ -15,6 +15,7 @@ static const char *afg =
     "  label id=status text=\"Ready\"\n"
     "  button id=ok text=\"_OK\" contextmenu=mnuCtx minheight=40\n"
     "  timer id=tick interval=400\n"
+    "  timer id=guard interval=120000\n"
     "menu id=mnuFile text=\"Project\"\n"
     "  menu id=mnuNew text=\"_New\" key=N\n"
     "  menu text=-\n"
@@ -81,6 +82,13 @@ static void script(void);
 
 static int on_event(void *ud, bb_form *f, const char *ctl, const char *ev, int argc, int32_t *args)
 {
+    if (!strcasecmp(ctl, "guard") && !strcasecmp(ev, "Timer")) {
+        /* a step got stuck: fail and close everything rather than leave a window behind */
+        printf("not ok - the test took more than 2 minutes (guard timer)\n");
+        fails++;
+        bb_forms_end();
+        return 0;
+    }
     (void)ud; (void)f; (void)argc; (void)args;
     char line[80];
     snprintf(line, sizeof line, "%s_%s ", ctl, ev);

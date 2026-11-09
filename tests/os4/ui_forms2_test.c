@@ -13,6 +13,7 @@ static const char *afg_main =
     "vlayout id=root\n"
     "  button id=ok text=\"_OK\" minheight=40\n"
     "  timer id=tick interval=400\n"
+    "  timer id=guard interval=120000\n"
     "  timer id=tick2 interval=300\n";
 static const char *afg_dlg =
     "window name=dlg title=\"Boing forms2 dialog\" width=220 height=80 remember=1 iconify=1 toolwindow=1\n"
@@ -60,6 +61,13 @@ static int ev_dlg(void *ud, bb_form *f, const char *ctl, const char *ev, int arg
 
 static int ev_main(void *ud, bb_form *f, const char *ctl, const char *ev, int argc, int32_t *args)
 {
+    if (!strcasecmp(ctl, "guard") && !strcasecmp(ev, "Timer")) {
+        /* a step got stuck: fail and close everything rather than leave a window behind */
+        printf("not ok - the test took more than 2 minutes (guard timer)\n");
+        fails++;
+        bb_forms_end();
+        return 0;
+    }
     (void)ud; (void)f; (void)argc; (void)args;
     if (!strcasecmp(ctl, "ok") && !strcasecmp(ev, "Click")) mainclicks++;
     /* another timer of the main form (tick's own event is still running: it started the modal) */
