@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Glimmerfield's sound on the AmigaOS 4 guest: is sound produced, and what does it cost?
 
-    BB_GUEST=m1b examples/glimmerfield/tools/guest_sound.py [FRAMES]
+    BB_GUEST=m1b|m1c examples/glimmerfield/tools/guest_sound.py [FRAMES]
 
 (m1 is the user's own guest: agents use m1b or local.)
 
@@ -18,7 +18,7 @@ sys.path.insert(0, ROOT + "/tools")
 import os4guest as g
 
 FRAMES = int(sys.argv[1]) if len(sys.argv) > 1 else 1500
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", "2448" if g.GUEST == "m1b" else "2348"))   # m1b's QEMU monitor: m1:2448
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))   # QEMU monitors on m1
 CAP = "/tmp/bb_glim_sound.wav"
 
 
