@@ -182,7 +182,8 @@ Private Sub TrackRibbon()
     z1 = z0 + groundRange + 3 * CELL
     If z0 < -CELL Then z0 = -CELL
     If z1 > RR_LEN + CELL Then z1 = RR_LEN + CELL
-    a3QuadBias = 20 * 16
+    UseCamera                             ' (then the quads go straight to the engine)
+    e3d.QuadBias = 20 * 16
     z = z0
     Do While z < z1
         za = z: zb = z + SEG
@@ -200,13 +201,13 @@ Private Sub TrackRibbon()
                 Else
                     p = PEN_TRACK + ((k + stripe) And 1)
                 End If
-                A3QuadW cam, -1, p, ca + off5(k), ya(k), za, cb + off5(k), yb(k), zb, cb + off5(k + 1), yb(k + 1), zb, _
-                        ca + off5(k + 1), ya(k + 1), za
+                e3d.QuadW -1, p, ca + off5(k), ya(k), za, cb + off5(k), yb(k), zb, cb + off5(k + 1), yb(k + 1), zb, _
+                          ca + off5(k + 1), ya(k + 1), za
             Next k
         End If
         z = z + SEG
     Loop
-    a3QuadBias = 0
+    e3d.QuadBias = 0
 End Sub
 
 Private Sub Gates()
