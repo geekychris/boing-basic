@@ -15,9 +15,6 @@ Public duHurtTimer As Long
 Public entryRank As Long
 Public polyTotal As Double
 Public showPerf As Boolean
-Public gridFixed As Boolean          ' --grid N or the G key: no adapting
-Private adaptWin As Long, adaptAge As Long
-Private bandC(0 To 31) As Long
 Public gridDetail As Long          ' 0 no grid, 1 every other dot, 2 every dot (the original; the default)
 
 ' pens: 0 black, 1 white, 2 panel, 3 grey, 4 space, 5-6 stars, 7-9 the grid far to
@@ -69,6 +66,9 @@ Private shipV(0 To 23) As Long, shipF(0 To 31) As Long
 Private shX(0 To 7) As Long, shY(0 To 7) As Long, shZ(0 To 7) As Long
 Private helpText(1 To 2, 0 To 11) As String
 Private spaceTop As Long, spaceBottom As Long
+Public gridFixed As Boolean          ' --grid N or the G key: no adapting
+Private adaptWin As Long, adaptAge As Long
+Private bandC(0 To 31) As Long
 
 Public Sub DrawInit()
     Dim i As Long, j As Long, n As Long, s As Long, lat As Long, lon As Long, cl As Long, sl As Long
@@ -78,7 +78,6 @@ Public Sub DrawInit()
                      &H9FF, &HF65, &HF33, &HFE4, &H6F6, &H5EF, &H822, &H58A)
     spaceTop = Rgb12(&H13)
     spaceBottom = Rgb12(&H103)
-    BandColours
     If gridDetail = 0 Then gridDetail = 2
     For i = 0 To 10
         lat = ((i - 5) * 65536) \ 24
@@ -457,6 +456,7 @@ End Sub
 
 Private Sub SpaceBands()
     Dim y As Long
+    If bandC(0) = 0 Then BandColours     ' (not in DrawInit: see the README's note on code layout)
     For y = 0 To G_H - 1 Step 16
         gcv.Box 0, y, G_W, 16, bandC(y \ 16)
     Next y
