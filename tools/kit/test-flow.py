@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 import os4guest as g  # noqa: E402
 
 RUN_SECONDS = int(os.environ.get("BB_FLOW_RUN", "25"))
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", g._G.get("hmp", 2348)))   # the guest's QEMU monitor (os4guest.py)
 OUT = os.path.join(ROOT, "build", "kit", "flow-%s" % g.GUEST)
 DEST = "DH1:BoingBASIC"
 names = names or ["glimmerfield", "stack_tower_bb", "tincture", "riffwright"]

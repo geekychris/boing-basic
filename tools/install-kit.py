@@ -56,7 +56,7 @@ def opt(name, default=None):
 
 KIT = os.path.abspath(opt("--kit", os.path.join(ROOT, "build", "kit", "BoingBASIC.lha")))
 SHOT = os.path.abspath(opt("--shot", os.path.join(os.path.dirname(KIT), "desktop-%s.png" % g.GUEST)))
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))   # QEMU monitors
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", g._G.get("hmp", 2348)))   # the guest's QEMU monitor (os4guest.py)
 DEST = "DH1:BoingBASIC"
 ENTRY = ":BoingBASIC/AmiForge"
 WB = "WORKBENCH"
