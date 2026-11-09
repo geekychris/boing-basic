@@ -11,6 +11,8 @@
 '   --demo                      start a game with the autopilot on (screenshots)
 '   --help N / --scores         start on a help page / the high scores
 '   --front                     move the window to the top left and to the front (screenshots)
+'   --saveshot PATH --shotframe N   save frame N (default 150) as a PPM and quit (guest screenshots)
+'   --saveshot PATH --shotframe N   save frame N (default 150) as a PPM and quit (guest screenshots)
 '   TankDuel --seed N           the first game's seed
 '
 ' Keys: cursor keys / WASD drive, Space fires, P pause, B autopilot, Help/H the
@@ -30,6 +32,7 @@ Private fireLock As Boolean
 Private benchN As Long, benchDone As Long, attractOnly As Boolean, logModes As Boolean
 Private nextSeed As Long
 Private demoStart As Boolean, scoresStart As Boolean, frontReq As Boolean
+Private saveShot As String, shotFrame As Long, frameNo As Long
 Private lastMs As Double, accMs As Double
 Private entryName As String
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
@@ -52,6 +55,10 @@ Private Sub ParseArgs()
             Case "--log": logModes = True
             Case "--demo": demoStart = True
             Case "--front": frontReq = True
+            Case "--saveshot"
+                If i < UBound(args) Then saveShot = args(i + 1)
+            Case "--shotframe"
+                If i < UBound(args) Then shotFrame = CLng(args(i + 1))
             Case "--scores": scoresStart = True
             Case "--help"
                 duHelp = 1
@@ -100,6 +107,7 @@ Private Sub Form_Load()
     HsSetup Array("ROMMEL", "PATTON", "GUDERIAN", "ZHUKOV", "MONTY", "BRADLEY", "KONEV", "MANTEUF"), 1500
     HsLoad HsPath("tank_duel.scores")
     nextSeed = 1
+    shotFrame = 150
     startRound = 1
     ParseArgs
     PerfReset
@@ -246,6 +254,12 @@ Private Sub Frame(ByVal steps As Long)
     PerfAdd PH_BLIT
     benchBlit = benchBlit + (TimerMs() - t)
     PerfEnd
+    frameNo = frameNo + 1
+    If Len(saveShot) > 0 And frameNo = shotFrame Then   ' --saveshot: this frame as a PPM, then quit
+        gcv.SaveImage saveShot
+        Print "saved " & saveShot
+        Unload Me
+    End If
 End Sub
 
 Private Sub BenchReport(ByVal totalMs As Double)

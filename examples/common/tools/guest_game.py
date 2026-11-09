@@ -7,6 +7,8 @@ FIFO ticket, emulator lock, "CLAUDE IS TESTING" banner; BB_GUEST=m1|spark|local)
            shot:OUT.png:SECONDS[:native]   start the game (VM, or the native build), wait,
                    save a screenshot of the guest's screen (QEMU HMP screendump), stop it
            shots:LIST.txt[:native]   several in one session: lines "OUT.png SECONDS game args"
+           frames:LIST.txt[:native]  the game's own picture (Canvas.SaveImage on the guest, then
+                   pulled): lines "OUT.png FRAME game args" - independent of what screen is in front
            jit     the same with --jit
            native  boing build --target os4, then the executable
            all     vm, jit and native one after the other
@@ -51,7 +53,7 @@ def run(m, cmd, outf, limit):
         time.sleep(3)
         out = str(m.tool("amiga_dos_command", command="type %s" % outf))
         err = str(m.tool("amiga_dos_command", command="type %s.err" % outf))
-        if "picture hash" in out or "bye" in out:
+        if "picture hash" in out or "bye" in out or "saved " in out:
             return out + err
         if "runtime error" in err or "error:" in err:
             return out + "\n" + err + "\nFAIL (error)"
@@ -122,6 +124,11 @@ def main():
     limit = float(os.environ.get("BB_TEST_TIMEOUT", "300"))
     shot = None
     shotlist = None
+    framelist = None
+    if mode.startswith("frames:"):
+        parts = mode.split(":")
+        framelist = [l.split(None, 2) for l in open(parts[1]) if l.strip() and not l.startswith("#")]
+        mode = parts[2] if len(parts) > 2 else "vm"
     if mode.startswith("shots:"):
         parts = mode.split(":")
         shotlist = [l.split(None, 2) for l in open(parts[1]) if l.strip() and not l.startswith("#")]
@@ -138,7 +145,7 @@ def main():
     want = None
     mm = re.search(r"--bench (\d+)", args)
     bench = os.path.join(os.path.dirname(src), "Bench.bbp")
-    if mm and os.path.exists(bench) and not shot and not shotlist:
+    if mm and os.path.exists(bench) and not shot and not shotlist and not framelist:
         extra = re.sub(r"--bench \d+", "", args)
         out = subprocess.run([os.path.join(ROOT, "build/boing"), "run", bench, "--frames", mm.group(1)] + extra.split(),
                              cwd=os.path.dirname(bench), capture_output=True, text=True).stdout
@@ -169,6 +176,28 @@ def main():
                 cmd = "RAM:bbg/boing run %s%s %s" % ("--jit " if md == "jit" else "", amiga(src), args)
             print("(pushed in %.0f s)" % (time.time() - t0))
             m.tool("amiga_dos_command", command="cd " + d)
+            if framelist:
+                from PIL import Image
+                import tempfile
+                base = cmd[:len(cmd) - len(args)].rstrip() if args else cmd
+                for row in framelist:
+                    out_png, fr, gargs = os.path.abspath(row[0]), row[1], (row[2] if len(row) > 2 else "")
+                    m.tool("amiga_dos_command", command="delete RAM:bbg/shot.ppm QUIET")
+                    o = run(m, "%s %s --saveshot RAM:bbg/shot.ppm --shotframe %s" % (base, gargs, fr), "RAM:bbg/frame.out", limit)
+                    if "saved " not in o:
+                        print("FAIL no frame for %s:\n%s" % (out_png, o[-400:]))
+                        ok = False
+                        continue
+                    tmp = tempfile.mktemp(suffix=".ppm")
+                    if g.SSH:
+                        print(m.tool("amiga_pull_file", amiga_path="RAM:bbg/shot.ppm", local_path="/tmp/bbg_frame.ppm"))
+                        subprocess.run(["scp", "-q", g.SSH + ":/tmp/bbg_frame.ppm", tmp], check=True)
+                    else:
+                        print(m.tool("amiga_pull_file", amiga_path="RAM:bbg/shot.ppm", local_path=tmp))
+                    Image.open(tmp).save(out_png)
+                    os.unlink(tmp)
+                    print("frame", out_png)
+                continue
             if shotlist:
                 base = cmd[:len(cmd) - len(args)].rstrip() if args else cmd
                 for row in shotlist:
