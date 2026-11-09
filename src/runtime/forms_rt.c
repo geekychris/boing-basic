@@ -25,7 +25,10 @@ typedef struct formdef {
     int loading;
 } formdef;
 
-static formdef *forms;
+/* one allocation per form: form objects keep a formdef pointer, so the table must not move
+   them (a realloc of an array of formdefs left the first form's objects dangling as soon as a
+   second form was registered) */
+static formdef **forms;
 static int nforms;
 static int forms_used;
 
@@ -115,7 +118,7 @@ static formdef *find_form(const char *module)
 {
     int i;
     for (i = 0; i < nforms; i++)
-        if (strcasecmp(forms[i].module, module) == 0 || strcasecmp(forms[i].name, module) == 0) return &forms[i];
+        if (strcasecmp(forms[i]->module, module) == 0 || strcasecmp(forms[i]->name, module) == 0) return forms[i];
     return NULL;
 }
 
@@ -148,6 +151,16 @@ static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
     /* form-level operations that also work on an unloaded form */
     if (o->is_form && (kind & BB_INV_METHOD) && !strcasecmp(name, "Show")) {
         c = ctl_of(o);
+        /* frm.Show vbModal (1): returns when the form is hidden or unloaded */
+        if (argc >= 1 && !(argv[0].type == BB_ERROR && (argv[0].flags & BB_VF_MISSING)) && bb_v_to_long(&argv[0]) == 1) {
+            formdef *fd = o->fd;
+            err = bb_form_show_modal(fd->form);
+            if (fd->form && bb_form_find(fd->name) == NULL) {     /* unloaded meanwhile */
+                fd->form = NULL;
+            }
+            if (err) bb_raise(err, NULL);
+            return;
+        }
         err = bb_form_show(o->fd->form);
         if (err) bb_raise(err, NULL);
         return;
@@ -210,20 +223,41 @@ static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
         return;
     }
     if (kind & (BB_INV_LET | BB_INV_SET)) {
-        if (argc < 1 || argc > 2) bb_raise(450, NULL);
+        if (argc < 1 || argc > 3) bb_raise(450, NULL);
         fv_from_value(&argv[argc - 1], &fv, &hold);
-        err = bb_ctl_set(c, name, argc == 2 ? bb_v_to_long(&argv[0]) : -1, &fv);
+        if (argc == 3)      /* grid.TextMatrix(r, c) = x */
+            err = bb_ctl_set2(c, name, bb_v_to_long(&argv[0]), bb_v_to_long(&argv[1]), &fv);
+        else
+            err = bb_ctl_set(c, name, argc == 2 ? bb_v_to_long(&argv[0]) : -1, &fv);
         bb_str_release(hold);
         if (err) bb_raise(err, NULL);
         return;
     }
     err = 438;
+    if ((kind & BB_INV_GET) && argc == 2) {
+        memset(&out, 0, sizeof out);
+        err = bb_ctl_get2(c, name, bb_v_to_long(&argv[0]), bb_v_to_long(&argv[1]), &out);
+        if (!err) { *ret = value_from_fv(&out); return; }
+        if (err != 438 || !(kind & BB_INV_METHOD)) bb_raise(err, NULL);
+    }
+    /* tv.NodeText("key"): a string argument isn't a property index, it's a method's */
+    if ((kind & BB_INV_GET) && argc == 1 && (kind & BB_INV_METHOD)) {
+        bb_value tv;
+        const bb_value *a0 = bb_v_deref(&argv[0], &tv);
+        if (a0->type == BB_STRING) {
+            char *e;
+            const char *sp = bb_str_ptr(a0->u.s);
+            strtod(sp, &e);
+            if (!*sp || *e) goto method;
+        }
+    }
     if ((kind & BB_INV_GET) && argc <= 1) {
         memset(&out, 0, sizeof out);
         err = bb_ctl_get(c, name, argc == 1 ? bb_v_to_long(&argv[0]) : -1, &out);
         if (!err) { *ret = value_from_fv(&out); return; }
         if (err != 438 || !(kind & BB_INV_METHOD)) bb_raise(err, NULL);
     }
+method:
     if (kind & BB_INV_METHOD) {
         bb_fval args[8];
         bb_str *holds[8];
@@ -454,9 +488,10 @@ static int load_form(formdef *fd)
 void bb_forms_register(const char *module, const char *form_name, const char *afg_text, const char *afg_path)
 {
     formdef *fd;
-    forms = (formdef *)bb_realloc(forms, sizeof(formdef) * (size_t)(nforms + 1));
-    fd = &forms[nforms++];
-    memset(fd, 0, sizeof *fd);
+    forms = (formdef **)bb_realloc(forms, sizeof(formdef *) * (size_t)(nforms + 1));
+    fd = (formdef *)calloc(1, sizeof(formdef));
+    if (!fd) bb_raise(7, NULL);
+    forms[nforms++] = fd;
     fd->module = strdup(module);
     fd->name = strdup(form_name && *form_name ? form_name : module);
     fd->afg = strdup(afg_text ? afg_text : "");

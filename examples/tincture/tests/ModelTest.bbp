@@ -1,0 +1,11 @@
+# Tincture host test: document model, tools, undo/redo, file round trips, the command language
+Name=TinctureModelTest
+Startup=Sub Main
+Module=../Doc.bas
+Module=../History.bas
+Module=../Tools.bas
+Module=../View.bas
+Module=../FileIO.bas
+Module=../Script.bas
+Module=ModelTest.bas
+Stack=262144

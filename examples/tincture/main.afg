@@ -1,0 +1,103 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=main title="Tincture" width=920 height=560 resizable=1 dropfiles=1 iconify=1 remember=1
+vlayout id=root
+  hlayout id=body
+    vlayout id=left weight=0
+      canvas id=tools width=62 height=238
+      space id=leftfill
+    canvas id=view width=640 height=480 mousemove=1
+    vlayout id=side weight=0
+      canvas id=colours width=168 height=362
+      hlayout id=sizerow weight=0
+        label id=sizelabel text="Brush 1"
+        slider id=size min=1 max=64 level=1 hint="Brush size ([ and ])"
+      checkbox id=square text="Square brush" hint="Square or round brush"
+      listbrowser id=layerList hint="Layers: the top one first"
+      hlayout id=layerbtns weight=0 even=1
+        button id=layerAdd text="New" hint="New layer"
+        button id=layerDel text="Del" hint="Delete the layer"
+        button id=layerUp text="Up" hint="Move the layer up"
+        button id=layerDown text="Down" hint="Move the layer down"
+      hlayout id=layerrow weight=0
+        checkbox id=layerVis text="Show" checked=1 hint="Show or hide the layer"
+        slider id=opacity min=0 max=255 level=255 hint="Layer opacity"
+  label id=status text="Ready"
+  timer id=tick interval=60 enabled=1
+  timer id=autotimer interval=30000 enabled=1
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New..." key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu id=mnuRecent text="Open Recent"
+    menu id=mnuRecent0 text="(none)" disabled=1
+    menu id=mnuRecent1 text="(empty)" hidden=1
+    menu id=mnuRecent2 text="(empty)" hidden=1
+    menu id=mnuRecent3 text="(empty)" hidden=1
+    menu id=mnuRecent4 text="(empty)" hidden=1
+  menu id=mnuOpenLayer text="Open as Layer..."
+  menu id=mnuRevert text="Revert"
+  menu text=-
+  menu id=mnuSave text="Save" key=S
+  menu id=mnuSaveAs text="Save As..." key=A
+  menu text=-
+  menu id=mnuHelp text="Help..."
+  menu id=mnuAbout text="About Tincture..."
+  menu text=-
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuEdit text="Edit"
+  menu id=mnuUndo text="Undo" key=Z
+  menu id=mnuRedo text="Redo" key=Y
+  menu text=-
+  menu id=mnuCut text="Cut" key=X
+  menu id=mnuCopy text="Copy" key=C
+  menu id=mnuPaste text="Paste" key=V
+  menu id=mnuClear text="Clear" key="Del"
+  menu text=-
+  menu id=mnuSelAll text="Select All" key=L
+  menu id=mnuSelNone text="Select None"
+  menu id=mnuCrop text="Crop to Selection"
+  menu text=-
+  menu id=mnuMakeBrush text="Brush from Selection" key=B
+  menu id=mnuBrushColour text="Brush in One Colour" checkable=1
+  menu id=mnuBrushFlipH text="Flip Brush"
+  menu id=mnuBrushRotate text="Rotate Brush"
+  menu id=mnuBrushBigger text="Brush Double Size"
+  menu id=mnuBrushSmaller text="Brush Half Size"
+  menu id=mnuBrushReset text="Built-in Brush"
+menu id=mnuImage text="Picture"
+  menu id=mnuCanvasSize text="Canvas Size..."
+  menu id=mnuScale text="Scale..."
+  menu text=-
+  menu id=mnuFlipH text="Flip Horizontally"
+  menu id=mnuFlipV text="Flip Vertically"
+  menu id=mnuRotR text="Rotate Right"
+  menu id=mnuRotL text="Rotate Left"
+  menu text=-
+  menu id=mnuIndexed text="Indexed Colours..."
+  menu id=mnuDither text="Dither when Reducing" checkable=1
+  menu id=mnuTrue text="True Colour"
+  menu id=mnuPalReset text="Default Palette"
+menu id=mnuLayer text="Layer"
+  menu id=mnuLayerNew text="New Layer"
+  menu id=mnuLayerDel text="Delete Layer"
+  menu id=mnuLayerUp text="Move Up"
+  menu id=mnuLayerDown text="Move Down"
+  menu id=mnuLayerMerge text="Merge Down"
+  menu id=mnuLayerFlatten text="Flatten"
+menu id=mnuView text="View"
+  menu id=mnuZoomIn text="Zoom In" key="+"
+  menu id=mnuZoomOut text="Zoom Out" key="-"
+  menu id=mnuZoom1 text="Actual Size" key="1"
+  menu id=mnuZoomFit text="Fit in Window" key="0"
+  menu text=-
+  menu id=mnuMag text="Magnifier" checkable=1 key=M
+  menu id=mnuGrid text="Pixel Grid" checkable=1 key=G
+  menu text=-
+  menu id=mnuSym text="Symmetry"
+    menu id=mnuSym0 text="Off" radio=1 checked=1
+    menu id=mnuSym1 text="Left and Right" radio=1
+    menu id=mnuSym2 text="Top and Bottom" radio=1
+    menu id=mnuSym3 text="Four Ways" radio=1
+menu id=mnuSettings text="Settings"
+  menu id=mnuAutosave text="Autosave" checkable=1 checked=1
+  menu id=mnuIcons text="Create Icons" checkable=1 checked=1
+  menu id=mnuSavePrefs text="Save Settings"

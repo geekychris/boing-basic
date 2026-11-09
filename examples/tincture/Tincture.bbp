@@ -1,0 +1,17 @@
+# Boing BASIC project: Tincture, a paint program
+Name=Tincture
+Startup=Form main
+Module=Doc.bas
+Module=History.bas
+Module=Tools.bas
+Module=View.bas
+Module=FileIO.bas
+Module=Script.bas
+Module=Panels.bas
+Module=Actions.bas
+Module=Prefs.bas
+Module=Workbench.bas
+Form=main.afg
+Form=newdlg.afg
+Stack=262144
+Icon=Tincture.info

@@ -97,7 +97,7 @@ static void tool_set(bb_ctl *tc, Tag tag, uint32 v)
     struct TagItem t[2] = { { tag, v }, { TAG_DONE, 0 } };
     bb_form *f = tc->form;
     if (f->win)
-        IIntuition->DoGadgetMethod((struct Gadget *)tc->bar->obj, f->win, NULL,
+        IIntuition->DoGadgetMethodA((struct Gadget *)tc->bar->obj, f->win, NULL,
                                    (Msg) & (struct sbSetNodeAttrs){ SBM_SETNODEATTRS, NULL, tc->sbnode, t });
     else if (sb_iface())
         ISB->SetSpeedButtonNodeAttrsA(tc->sbnode, t);
@@ -251,6 +251,9 @@ Object *bbf_ext_build(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
     case AFG_STATUSBAR: return build_statusbar(f, n, c, t);
     case AFG_IMAGE: return build_image(f, n, c, t);
     case AFG_COMMONDIALOG: return NULL;
+    case AFG_TABS: return bbf_tabs_build(f, n, c, t);
+    case AFG_TREEVIEW: return bbf_tree_build(f, n, c, t);
+    case AFG_GRID: return bbf_grid_build(f, n, c, t);
     default: return NULL;
     }
 }
@@ -278,7 +281,8 @@ int bbf_ext_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
         }
         return 438;
     case AFG_COMMONDIALOG: return bbf_dialog_get(c, prop, index, out);
-    default: return 438;
+    case AFG_GRID: return bbf_grid_get(c, prop, index, out);
+    default: return bbf_tt_get(c, prop, index, out);
     }
 }
 
@@ -306,7 +310,8 @@ int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         }
         return 438;
     case AFG_COMMONDIALOG: return bbf_dialog_set(c, prop, index, v);
-    default: return 438;
+    case AFG_GRID: return bbf_grid_set(c, prop, index, v);
+    default: return bbf_tt_set(c, prop, index, v);
     }
 }
 
@@ -315,7 +320,8 @@ int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
 int bbf_ext_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret)
 {
     if (c->kind == AFG_COMMONDIALOG) return bbf_dialog_call(c, method, argc, argv, ret);
-    return 438;
+    if (c->kind == AFG_GRID) return bbf_grid_call(c, method, argc, argv, ret);
+    return bbf_tt_call(c, method, argc, argv, ret);
 }
 
 void bbf_ext_gadget_up(bb_form *f, bb_ctl *c, uint16 code)
@@ -328,6 +334,8 @@ void bbf_ext_gadget_up(bb_form *f, bb_ctl *c, uint16 code)
         if (*menu && !ending && f->loaded) fire(f, menu, "Click", 0, NULL);
         return;
     }
+    if (c->kind == AFG_GRID) bbf_grid_gadget_up(f, c, code);
+    else bbf_tt_gadget_up(f, c, code);
 }
 
 void bbf_ext_free(bb_ctl *c)
@@ -337,10 +345,13 @@ void bbf_ext_free(bb_ctl *c)
         while ((nd = IExec->RemHead(&c->labels)))
             if (ISB) ISB->FreeSpeedButtonNode(nd);
     }
+    if (c->selimg) IIntuition->DisposeObject(c->selimg);     /* a label.image using img: first */
     if (c->img) IIntuition->DisposeObject(c->img);
-    if (c->selimg) IIntuition->DisposeObject(c->selimg);
     c->img = c->selimg = NULL;
     free(c->panels);
     c->panels = NULL;
     if (c->kind == AFG_COMMONDIALOG) bbf_dialog_free(c);
+    if (c->kind == AFG_TREEVIEW) bbf_tree_free(c);
+    if (c->kind == AFG_GRID) bbf_grid_free(c);
+    if (c->kind == AFG_TABS) c->ext = NULL;       /* the page group went with the clicktab */
 }

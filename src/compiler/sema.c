@@ -1298,6 +1298,11 @@ static void add_vb_constants(Program *p)
         {"vbKeyDecimal", T_LONG, 110, 0}, {"vbKeyDivide", T_LONG, 111, 0},
         {"vbUnchecked", T_LONG, 0, 0}, {"vbChecked", T_LONG, 1, 0}, {"vbGrayed", T_LONG, 2, 0},
         {"vbLeftButton", T_LONG, 1, 0}, {"vbRightButton", T_LONG, 2, 0}, {"vbMiddleButton", T_LONG, 4, 0},
+        {"vbModal", T_LONG, 1, 0}, {"vbModeless", T_LONG, 0, 0}, {"vbMinimized", T_LONG, 1, 0},
+        {"cdlOFNAllowMultiselect", T_LONG, 0x200, 0}, {"cdlOFNOverwritePrompt", T_LONG, 2, 0},
+        {"cdlOFNFileMustExist", T_LONG, 0x1000, 0}, {"cdlOFNPathMustExist", T_LONG, 0x800, 0},
+        {"cdlOFNNoChangeDir", T_LONG, 8, 0}, {"cdlCancel", T_LONG, 32755, 0},
+        {"flexAlignLeft", T_LONG, 0, 0}, {"flexAlignRight", T_LONG, 1, 0}, {"flexAlignCenter", T_LONG, 2, 0},
         {NULL, 0, 0, 0}
     };
     int i;

@@ -280,23 +280,22 @@ view (`ScrollX`, `ScrollY`, `VirtualWidth`, `VirtualHeight`; event `<id>_Scroll(
 
 `Text` (a label in the gauge instead of the percentage), `ShowPercent`.
 
-Status: canvas mouse events **done** (tests/os4/ui_mouse_test.c, 7/7 on m1); the rest
-**planned**.
+Status: **done** (tests/os4/ui_controls_test.c 35/35 on the local guest, ui_mouse_test 7/7):
+canvas mouse events, TextEditor, ListBrowser columns/sorting/multi-select, tabs, TreeView, Grid,
+splitter, images and picture buttons. **Not done**: canvas `scrollbars=1` (use scroller
+controls beside it for now), fuelgauge `Text`/`ShowPercent`.
 
 ## 5. Multiple windows, modal dialogs, tool windows
 
 | | |
 |---|---|
-| `frm.Show vbModal` | shows the form and returns when it is hidden or unloaded; the other windows get a busy pointer and no input meanwhile (VB `vbModal` = 1) |
-| `frm.Show vbModeless, owner` | |
-| `toolwindow=1` (.afg) | a small tool window: no size or depth gadget, stays in front of its owner |
-| `remember=1` (.afg) | the window's position and size are saved in `ENVARC:<App.Title>/<form>.window` when it closes and used when it opens |
-| `iconify=1` (.afg) | an iconify gadget; `WindowState = vbMinimized` (1) iconifies from code |
-| `Forms.Count`, `Forms(i)` | the loaded forms |
-| `Me.ActiveControl` | name of the control with the input focus |
-| `Form_Initialize`, `Form_Paint` | not planned |
+| `frm.Show vbModal` | shows the form and returns when it is hidden or unloaded; the other windows get a busy pointer and no input meanwhile (VB `vbModal` = 1); timers keep running (a timer whose own event opened the modal form waits, as events never overlap) |
+| `toolwindow=1` (.afg) | a tool window: no size or depth gadget |
+| `remember=1` (.afg) | the window's position and size are saved in `ENV:` and `ENVARC:<App.Title>/windows/<form>` when it closes and used when it opens |
+| `iconify=1` (.afg) | an iconify gadget; `WindowState = 1` iconifies from code, `0` opens it again; `Form_Resize` follows both |
 
-Status: **planned**.
+Status: **done** (tests/os4/ui_forms2_test.c 9/9 on the local guest). **Not done**: the
+`Forms` collection, `Me.ActiveControl`, an owner for `Show vbModeless, owner`.
 
 ## 6. Workbench integration
 

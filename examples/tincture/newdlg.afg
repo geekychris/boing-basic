@@ -1,0 +1,12 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=newpic title="New Picture" width=300 height=0 resizable=0 toolwindow=1
+vlayout id=root
+  chooser id=preset items="320 x 256 (PAL lores)|640 x 512 (PAL hires)|800 x 600|1024 x 768|1280 x 1024|Custom" selected=1
+  hlayout weight=0
+    integer id=w label="Width" value=640 min=1 max=4096
+    integer id=h label="Height" value=512 min=1 max=4096
+  radio id=colours items="True colour|32 colours|256 colours" selected=0
+  chooser id=fill items="Background colour|White|Black|Foreground colour" selected=0
+  hlayout weight=0 even=1
+    button id=ok text="_Create"
+    button id=cancel text="_Cancel"

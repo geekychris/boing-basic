@@ -95,7 +95,7 @@ static int ready(void)
 }
 
 /* the mouse also needs the Workbench screen in front, or the clicks land on another screen */
-static int ready_mouse(void)
+static __attribute__((unused)) int ready_mouse(void)
 {
     int front = 0;
     if (!ready()) return 0;

@@ -42,6 +42,9 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
 const char *bb_form_name(bb_form *f);        /* the window's name= */
 int bb_form_show(bb_form *f);
 int bb_form_hide(bb_form *f);
+/* Show vbModal: show the form and handle events until it is hidden or unloaded; the other forms
+ * get a busy pointer and no input meanwhile (their timers keep running). */
+int bb_form_show_modal(bb_form *f);
 /* Unload: fires QueryUnload/Unload (mode 1 = from code), returns 1 if a sub cancelled it. */
 int bb_form_unload(bb_form *f);
 bb_form *bb_form_find(const char *name);     /* a loaded form by name */
@@ -54,6 +57,9 @@ const char *bb_ctl_kind(bb_ctl *c);          /* "button", "window"... */
 /* Properties. index is the array index for List(i), else -1. */
 int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out);
 int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v);
+/* Two-index properties: Cell(row, col), TextMatrix(row, col) (docs/ui.md). */
+int bb_ctl_get2(bb_ctl *c, const char *prop, int i, int j, bb_fval *out);
+int bb_ctl_set2(bb_ctl *c, const char *prop, int i, int j, const bb_fval *v);
 /* Methods: AddItem, RemoveItem, Clear, SetFocus, Refresh, ShowOpen, Show, Hide, Move. */
 int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
 

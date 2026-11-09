@@ -1,0 +1,5 @@
+# a second form, never shown: registering it must not disturb formbas (regression: the form
+# table was realloc'ed and formbas's Me dangled -> crash in bb_form_ctl on Me.Caption)
+window name=second title="Second" width=120 height=40
+vlayout id=root
+  label id=hello text="Second form"

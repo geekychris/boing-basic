@@ -1,0 +1,25 @@
+fill 324  FF FFFFFF 0
+outside 2672  FF0000
+same 0 
+tol 3072  FF00
+ellipse FFFF FFFF 0 FFFF 0
+outline FFFF FFFF 0 hash 1136639429 
+brush FFFFFF FFFFFF 0 0 0
+square FF hash 33680746 
+img  65280 -1  bounds  0  0  4  4 
+rot 4  8  FF00 -1 
+flip FF00 -1 
+scale 16  FF00 FF00
+copy 10  10  FFFFFF
+zoom FFFFFF FFFFFF FF0000 FFFFFF 0
+blend 808080 800000
+stamp FF00 FF00 hash 1363178437 
+replace FF
+palette 3  FF FFFFFF 0 over True
+quantize 8 
+remapTrue
+png True 64  48 True
+ilbm24 True
+ilbm8 True 3  True
+png8 True 3 
+pnga True-1 FF

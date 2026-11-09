@@ -1,0 +1,11 @@
+# Tincture host benchmark: strokes through the tool code + view redraws, off-screen
+Name=TinctureBench
+Startup=Sub Main
+Module=../Doc.bas
+Module=../History.bas
+Module=../Tools.bas
+Module=../View.bas
+Module=../FileIO.bas
+Module=../Script.bas
+Module=Bench.bas
+Stack=262144
