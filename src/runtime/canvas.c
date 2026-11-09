@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <math.h>
 
 typedef struct cv_image {
     int32_t w, h;
@@ -400,6 +401,9 @@ static int save_ppm(const char *path, const uint32_t *px, int32_t w, int32_t h)
     return fclose(f) == 0;
 }
 
+/* the paint-program members (FloodFill, DrawImageScaled, SavePNG, ...): see that file */
+#include "canvas_paint_impl.h"
+
 /* ---------------------------------------------------------------- the object */
 
 enum {
@@ -438,6 +442,10 @@ static int32_t cv_find(const bb_class *cls, const char *name)
     if (!name || !*name) return BB_NOMEMBER;
     for (i = 0; i < sizeof members / sizeof members[0]; i++)
         if (strcasecmp(members[i].name, name) == 0) return members[i].id;
+    {
+        int32_t pid = paint_find(name);       /* the paint members (canvas_paint_impl.h) */
+        if (pid != BB_NOMEMBER) return pid;
+    }
     /* other names go to the form control the canvas shows in (ContextMenu, Visible,
        ToolTipText, Left/Top...; docs/ui.md), when it has one */
     for (i = 0; i < (size_t)n_ctl_names; i++)
@@ -506,6 +514,10 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
     if (id >= CV_CTL_MEMBER) {
         if (!c->ctl) bb_raise(438, NULL);
         bb_ctl_invoke_named(c->ctl, ctl_names[id - CV_CTL_MEMBER], kind, argc, argv, ret);
+        return;
+    }
+    if (id >= MP_FLOODFILL) {
+        paint_invoke(c, id, argc, argv, ret);
         return;
     }
     switch (id) {
@@ -657,7 +669,8 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         int32_t w = 0, h = 0;
         uint32_t *px;
         s = args_(argc, argv, 0, &hold, &len);
-        px = canvas_plat_load_picture(s, &w, &h);
+        px = paint_load_picture(s, &w, &h);       /* PNG and IFF ILBM: the same everywhere */
+        if (!px) px = canvas_plat_load_picture(s, &w, &h);
         if (!px) px = load_ppm(s, &w, &h);
         if (!px) {
             FILE *f = fopen(s, "rb");
