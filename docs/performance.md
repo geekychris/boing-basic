@@ -158,7 +158,10 @@ unrelated commits), and native games by 5-10% (Tank Duel 384 -> 342 fps with no 
 code it runs). Smaller code is the one lever that helps across the board. m1b, -O2 -> -Os:
 VM Tank Duel 37.4 -> 43.3 fps, late-bound calls 34 -> 2.3 us, `a = o.State()` 42 -> 2.3 us,
 string scan 572 -> 357 ms, Chr$ building 730 -> 35 ms; numeric loops and native Tank Duel the
-same (340 fps both). Expect numbers measured on the guest to move by layout alone.
+same (340 fps both). The pixel loops are the exception and stay -O2 (canvas.c, canvas_os4.c,
+engine3d.c, a3d/*, the audio mixer): with -Os, Orbit Docking's blit went 2.96 -> 6.38 ms and its
+draw 1.89 -> 2.67 ms (bb-g-stack2). With the mix, m1b: native blit 3.1 ms, draw 1.5 ms, Tank Duel
+native 385 fps (hashes as on the Mac); the VM keeps the -Os gains. Expect numbers measured on the guest to move by layout alone.
 
 Strings (bb-app-office; m1b guest, a 16,000-character scan): strings and array data share a
 small-block pool (rt.c, free lists per size class up to 2 KB) instead of newlib malloc/free;

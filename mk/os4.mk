@@ -22,6 +22,11 @@ CFLAGS  ?= -Os
 CFLAGS  += -mcrt=newlib -mcpu=powerpc -Wall -Werror=implicit-function-declaration -std=gnu99 -D__USE_OLD_TIMEVAL__ \
            -DBB_PLATFORM_OS4 -Isrc -Isrc/runtime -Isrc/vm -Isrc/compiler
 LDFLAGS += -mcrt=newlib -mcpu=powerpc
+# pixel loops (Canvas drawing and blits, the Engine3D rasterizer, the audio mixer) stay -O2: with
+# -Os they ran 2x slower (Orbit Docking on m1b: blit 2.96 -> 6.38 ms, draw 1.89 -> 2.67 ms)
+HOT_OBJS := $(OUT)/obj/runtime/canvas.o $(OUT)/obj/runtime/os4/canvas_os4.o $(OUT)/obj/runtime/engine3d.o \
+            $(patsubst src/%.c,$(OUT)/obj/%.o,$(wildcard src/runtime/a3d/*.c)) $(OUT)/obj/runtime/audio/bbmix.o
+$(HOT_OBJS): CFLAGS += -O2
 LIBS    += -lauto -lm
 
 # libboing: the portable runtime plus the OS4 parts
