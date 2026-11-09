@@ -211,7 +211,7 @@ End Sub
 
 Private Sub RingAt(ByVal x As Long, ByVal z As Long, ByVal r As Long, ByVal col As Long)
     Dim k As Long, a0 As Long, a1 As Long, s0 As Long, c0 As Long, s1 As Long, c1 As Long
-    a3QuadBias = 30 * 16                  ' drawn over the floor round it
+    a3QuadBias = 30 * 16                  ' sorted behind what stands in the ring
     For k = 0 To 11
         a0 = k * 5461
         a1 = a0 + 5461
