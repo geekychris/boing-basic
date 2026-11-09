@@ -120,6 +120,7 @@ static void add_ctl(afg_node *n, void *ud)
         c->next_fire = now_s() + c->interval / 1000.0;
         break;
     case AFG_MENU: c->value = afg_get_int(n, "checked"); break;
+    case AFG_STATUSBAR: set_items(c, afg_get(n, "panels")); break;
     default: break;
     }
     f->ctls = (bb_ctl **)realloc(f->ctls, sizeof(bb_ctl *) * (size_t)(f->nctls + 1));
@@ -241,6 +242,11 @@ int bb_ctl_get(bb_ctl *c, const char *prop, int i, bb_fval *o)
     if (IS("Top")) return ret_int(o, c->top);
     if (IS("Width")) return ret_int(o, c->width);
     if (IS("Height")) return ret_int(o, c->height);
+    if (c->kind == AFG_STATUSBAR) {
+        if (IS("PanelCount")) return ret_int(o, c->nitems);
+        if (IS("Panel")) return (i >= 0 && i < c->nitems) ? ret_str(c, o, c->items[i]) : 381;
+        if (IS("Text") || IS("SimpleText")) return ret_str(c, o, c->nitems ? c->items[0] : "");
+    }
     if (IS("Caption") || IS("Text") || IS("FileName")) {
         if (is_list(c) && IS("Text")) return ret_str(c, o, c->listindex >= 0 && c->listindex < c->nitems ? c->items[c->listindex] : "");
         if (c->kind == AFG_INTEGER && IS("Text")) { char b[16]; snprintf(b, sizeof b, "%d", (int)c->value); return ret_str(c, o, b); }
@@ -277,6 +283,13 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int i, const bb_fval *v)
         if (c->kind != AFG_WINDOW) return 383;
         if (IS("Width")) c->width = fv_int(v); else if (IS("Height")) c->height = fv_int(v);
         else if (IS("Left")) c->left = fv_int(v); else c->top = fv_int(v);
+        return 0;
+    }
+    if (c->kind == AFG_STATUSBAR && (IS("Panel") || IS("Text") || IS("SimpleText"))) {
+        int k = IS("Panel") ? i : 0;
+        if (k < 0 || k >= c->nitems) return 381;
+        free(c->items[k]);
+        c->items[k] = xdup(v->type == BB_FV_STR ? v->s : "");
         return 0;
     }
     if (IS("Caption") || IS("Text") || IS("FileName")) {

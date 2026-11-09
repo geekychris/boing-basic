@@ -5,7 +5,7 @@ with multi-level undo, custom brushes, a magnifier and an ARexx-style command la
 application logic is BASIC; the per-pixel work (fills, brushes, scaled views, codecs) is done
 by Canvas members in the runtime's C.
 
-![Tincture on the AmigaOS 4 guest](docs/tincture.png)
+![Tincture on the AmigaOS 4 guest: the --smoke run (every tool through the event handlers)](docs/smoke.png)
 
 ## Features
 
@@ -92,9 +92,14 @@ PERFORMANCE_TABLE
   whole-picture operations, indexed colour, PNG/ILBM/`.tinc` round trips (pixel hashes), autosave
   and recovery, and the view mapping — in the VM and as a native build.
   `tests/graphics/paint.bas` tests the Canvas paint members.
+- `make test` also runs the whole program (form, menus, panels, timers) headless on the host
+  (`BOING_HEADLESS=1`): `Tincture --smoke` in the VM and native, and expects the same result.
 - `tools/guest.py smoke` runs `Tincture --smoke` on a guest: every tool through the real event
   handlers, undo all (hash back to the blank picture), redo all, screenshot, clean exit.
-  `tools/guest.py bench N` gives the timings above; `tools/guest.py demo` the screenshots.
+  `tools/guest.py input` steers the real mouse into Tincture's own active window (using the
+  positions Tincture logs) and paints a stroke (`docs/input.png`); `tools/guest.py arexx` drives
+  a running Tincture through its ARexx port; `tools/guest.py bench N` gives the timings above;
+  `tools/guest.py demo` paints `demo/*.tsc` for screenshots.
 - `tests/Render.bbp` renders a script off-screen on the host (view and panels as PPM).
 
 ## Known limits

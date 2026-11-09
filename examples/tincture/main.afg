@@ -21,7 +21,7 @@ vlayout id=root
       hlayout id=layerrow weight=0
         checkbox id=layerVis text="Show" checked=1 hint="Show or hide the layer"
         slider id=opacity min=0 max=255 level=255 hint="Layer opacity"
-  label id=status text="Ready"
+  statusbar id=status panels=" |Ready| | " widths="150|0|190|130"
   timer id=tick interval=60 enabled=1
   timer id=autotimer interval=30000 enabled=1
 menu id=mnuProject text="Project"

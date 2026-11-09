@@ -15,7 +15,7 @@ Private colourDrag As Long
 Private layerListGen As Long
 Private smokeMode As Boolean, benchStrokes As Long
 Private autosaveOn As Boolean
-Private shownStatus As String
+Private statusPending As Boolean     ' a status update was skipped (throttled): the tick does it
 Private syncing As Boolean          ' the program is setting controls: their Click/Change events are ignored
 Private quitAt As Double            ' --smoke / --hold: quit at this Timer value
 Private holdSecs As Long
@@ -257,14 +257,24 @@ Private Sub UpdateTitle()
 End Sub
 
 Private Sub UpdateStatus()
-    Dim s As String
-    If cursorIn Then s = cursorX & ", " & cursorY & " " & ColorHex(view.ImagePoint(comp, cursorX, cursorY)) & "   " Else s = ""
-    s = s & docW & " x " & docH & "   " & zoomPct & "%   " & ToolName(curTool)
-    If selActive Then s = s & "   sel " & selW & " x " & selH
-    s = s & "   layer " & curLayer & "/" & nLayers
-    If docMode = MODE_INDEXED Then s = s & "   " & palCount & " colours"
-    If statusMsg <> "" Then s = s & "   -   " & statusMsg
-    If s <> shownStatus Then shownStatus = s: status.Caption = s
+    ' four panels: pointer and colour | message | picture size, zoom, colours | tool, layer.
+    ' Only changed panels are set, at most every 150 ms while the mouse moves (a status
+    ' update costs more than drawing a stroke on the guest)
+    Static shown(0 To 3) As String, lastT As Double
+    Dim p(0 To 3) As String, i As Long
+    If IsStroking() Or cursorIn Then
+        If Abs(Timer - lastT) < 0.15 Then statusPending = True: Exit Sub
+    End If
+    lastT = Timer
+    statusPending = False
+    If cursorIn Then p(0) = cursorX & ", " & cursorY & "  " & ColorHex(view.ImagePoint(comp, cursorX, cursorY))
+    p(1) = statusMsg
+    p(2) = docW & " x " & docH & "  " & zoomPct & "%" & IIf(docMode = MODE_INDEXED, "  " & palCount & " col", "")
+    If selActive Then p(2) = p(2) & "  sel " & selW & "x" & selH
+    p(3) = ToolName(curTool) & "  " & curLayer & "/" & nLayers
+    For i = 0 To 3
+        If p(i) <> shown(i) Then shown(i) = p(i): status.Panel(i) = p(i)
+    Next
 End Sub
 
 Private Sub FillLayerList()
@@ -554,7 +564,11 @@ Private Sub tick_Timer()
         needView = True
     End If
     If IsStroking() And curTool = T_AIRBRUSH Then ToolTick: needView = True
-    If needView Or needTools Or needColours Or needLayers Or needTitle Or needFit Then UpdateAll
+    If needView Or needTools Or needColours Or needLayers Or needTitle Or needFit Then
+        UpdateAll
+    ElseIf statusPending Then
+        UpdateStatus
+    End If
 End Sub
 
 Private Sub autotimer_Timer()
@@ -1158,6 +1172,22 @@ Private Sub RunBench(ByVal n As Long)
         view.Refresh
     Next
     Debug.Print "BENCH full view redraw: " & Format$((Timer - t0) * 1000# / 100, "0.00") & " ms"
+    t0 = Timer
+    For i = 1 To 100
+        RenderView
+    Next
+    Debug.Print "BENCH   of which drawing (RenderView): " & Format$((Timer - t0) * 1000# / 100, "0.00") & " ms"
+    t0 = Timer
+    For i = 1 To 50
+        status.Panel(1) = "bench " & i
+    Next
+    Debug.Print "BENCH status bar panel update: " & Format$((Timer - t0) * 1000# / 50, "0.00") & " ms"
+    t0 = Timer
+    For i = 1 To 1000
+        ToolDown 100, 100, 1, 0
+        ToolUp 100, 100, 1, 0
+    Next
+    Debug.Print "BENCH a click of the brush (tool logic + undo record, no redraw): " & Format$((Timer - t0) * 1000# / 1000, "0.000") & " ms"
     t0 = Timer
     For i = 1 To 50
         RunCommand "BOX 100 100 300 200"

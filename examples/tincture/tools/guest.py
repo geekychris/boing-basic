@@ -74,7 +74,7 @@ def launch(m, cmdline):
     """Start a command in the background with a 1 MB stack: processes started through the
     bridge get 64 KB, and the $STACK cookie isn't honoured there (the VM overflowed it)."""
     tmp = tempfile.NamedTemporaryFile("w", suffix=".run", delete=False)
-    tmp.write("stack 1048576\n%s\n" % cmdline)
+    tmp.write("stack 1048576\nchangetaskpri -1\n%s\n" % cmdline)     # below the bridge's priority
     tmp.close()
     script = "RAM:tincture-%d.run" % int(time.time())     # own name: an old one may still be open
     g.push(m, tmp.name, script)
@@ -216,8 +216,8 @@ def arexx_test(m):
         return False
     time.sleep(1)
     # the client: App.SendARexx from a BASIC program (rx needs RexxMast, which may not run)
-    launch(m, "%s/boing run %s/tests/arexx_client.bas >%s *>%s" % (DIR, DIR, rxout, rxout))
-    out = wait_for(m, rxout, "done", 60) or dos(m, "type %s" % rxout)
+    launch(m, "%s/boing run %s/tests/arexx_client.bas >%s *>%s.err" % (DIR, DIR, rxout, rxout))
+    out = wait_for(m, rxout, "done", 60) or (dos(m, "type %s" % rxout) + dos(m, "type %s.err" % rxout))
     print(out)
     wait_for(m, outf, "quit", 30)
     time.sleep(3)
@@ -277,7 +277,7 @@ def main():
         elif what == "run":
             outf = "RAM:tincture_run_%d.out" % int(time.time())
             dos(m, "delete %s QUIET" % outf)
-            launch(m, "%s %s >%s *>%s" % (vm_cmd(), sys.argv[2], outf, outf))
+            launch(m, "%s %s >%s *>%s.err" % (vm_cmd(), sys.argv[2], outf, outf))
             time.sleep(20)
             print(dos(m, "type %s" % outf))
         elif what == "hold":
