@@ -9,6 +9,7 @@
 '   ScairyFun --cockpit           the cockpit view;  --help N / --scores: open on those
 '   ScairyFun --smoke N           drive N frames in real time with music, effects and the
 '                                 voice, then a report (the guest smoke test)
+'   ScairyFun --saveshot PATH --shotframe N   save frame N's picture (PPM) and quit
 '   ScairyFun --perf --log --nosound --nomusic --blit N --data DIR
 '
 ' Keys: Left/Right steer (takes over), Down brake (takes over), Up accelerate (driving
@@ -23,6 +24,7 @@ Private benchN As Long, benchDone As Long, logModes As Boolean, noSound As Boole
 Private lastMs As Double, accMs As Double
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
 Private lastState As Long, startRoute As Long, startHelp As Long, startScores As Boolean, startCockpit As Boolean
+Private gone As Boolean, shotPath As String, shotFrame As Long, frameNo As Long
 Private smokeN As Long, smokeDone As Long, showScores As Boolean, scoreTimer As Long, entering As Boolean
 Private entryName As String, entryRank As Long, pendingStart As Boolean, lastScore As Long
 
@@ -61,6 +63,11 @@ Private Sub ParseArgs()
                 If i < UBound(args) Then view.BlitMode = CLng(args(i + 1))
             Case "--data"
                 If i < UBound(args) Then dataDir = args(i + 1)
+            Case "--saveshot"
+                If i < UBound(args) Then shotPath = args(i + 1)
+                If shotFrame = 0 Then shotFrame = 50
+            Case "--shotframe"
+                If i < UBound(args) Then shotFrame = CLng(args(i + 1))
         End Select
     Next i
     If startRoute > NUM_ROUTES Then startRoute = NUM_ROUTES
@@ -132,12 +139,23 @@ Private Sub RunBench()
 End Sub
 
 Private Sub tick_Timer()
-    Dim now As Double, steps As Long
+    Dim now As Double, steps As Long, iv As Long
     If benchN > 0 Then
         If benchDone = 0 Then RunBench
         Exit Sub
     End If
     now = TimerMs()
+    TickFrame now
+    If gone Then Exit Sub
+    ' the timer starts again only when this returns: take this frame's time off the next wait,
+    ' so a frame comes every 20 ms, or as soon as the last one is done when it took longer
+    iv = 20 - CLng(TimerMs() - now)
+    If iv < 1 Then iv = 1
+    If tick.Interval <> iv Then tick.Interval = iv
+End Sub
+
+Private Sub TickFrame(ByVal now As Double)
+    Dim steps As Long
     accMs = accMs + (now - lastMs)
     lastMs = now
     steps = Int(accMs / 40#)
@@ -146,6 +164,14 @@ Private Sub tick_Timer()
     If accMs > 80# Or accMs < -40# Then accMs = 0
     If smokeN > 0 Then KeepDriving
     Frame steps
+    frameNo = frameNo + 1
+    If Len(shotPath) > 0 And frameNo >= shotFrame Then
+        view.SaveImage shotPath
+        Print "saved " & shotPath & " at frame " & frameNo
+        gone = True
+        Unload Me
+        Exit Sub
+    End If
     If smokeN > 0 Then
         smokeDone = smokeDone + 1
         If smokeDone >= smokeN Then
@@ -154,6 +180,7 @@ Private Sub tick_Timer()
             If Not au Is Nothing Then Print "audio: " & au.Device & ", music " & IIf(au.Playing, "playing", "stopped") & _
                                             ", voice lines " & voiceCount & ", effects " & sfxCount(SFX_CHIME_ON) & " chimes"
             Print "picture hash " & view.Hash
+            gone = True
             Unload Me
         End If
     End If

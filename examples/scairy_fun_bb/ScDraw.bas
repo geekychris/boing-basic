@@ -184,6 +184,11 @@ Private Sub ScPalette()
     palRoute = wRoute: palGlare = wGlare
 End Sub
 
+' the screens drawn without the road (the title painting, help, the update) need the pens too
+Private Sub PalCheck()
+    If wRoute <> palRoute Or wGlare <> palGlare Then ScPalette
+End Sub
+
 ' ---------- the models (models.c) ----------
 
 Private Function MV(ByVal x As Long, ByVal y As Long, ByVal z As Long) As Long
@@ -869,7 +874,7 @@ End Sub
 ' ---------- one frame of the road ----------
 Public Sub DrawScene(cv As Object)
     Dim s0 As Long, s1 As Long, i As Long, hz As Long, vx As Long, vy As Long, vz As Long
-    If wRoute <> palRoute Or wGlare <> palGlare Then ScPalette
+    PalCheck
     If Not skylinesMade Then MakeSkylines
     LoadArt cv
     CameraFollow
@@ -1085,6 +1090,7 @@ End Sub
 
 ' ---------- the software update between routes ----------
 Public Sub DrawUpdate(cv As Object)
+    PalCheck
     Dim nxt As Long, done As Long, k As Long, fill As Long
     If wRoute + 1 < NUM_ROUTES Then nxt = wRoute + 1 Else nxt = NUM_ROUTES - 1
     done = 200 - wStateTimer
@@ -1108,6 +1114,7 @@ End Sub
 
 ' ---------- the rules ----------
 Public Sub DrawHelp(cv As Object, ByVal page As Long)
+    PalCheck
     Dim k As Long, p As Long
     If page < 1 Or page > HELP_PAGES Then Exit Sub
     cv.Cls pen(PEN_BLACK)
@@ -1145,6 +1152,7 @@ Public Sub DrawTitleText(cv As Object)
 End Sub
 
 Public Sub DrawTitleArt(cv As Object)
+    PalCheck
     cv.DrawImage titleImg, 0, 0, True
     GTextCentre cv, G_H - 26, PEN_WHITE, "PRESS FIRE TO START"
     GTextCentre cv, G_H - 12, PEN_GREY, "HELP OR H: HOW TO PLAY"

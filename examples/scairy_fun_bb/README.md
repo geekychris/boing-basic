@@ -67,6 +67,8 @@ Changed:
 - **High scores**: a table of eight, saved beside the program, with name entry when a game ends
   (cancelled or home).
 - **Text** is the Canvas's 6 x 9 font.
+  The autopilot's view in the HUD draws its label ("AI" / "OFF") last, over the dotted road
+  edges, as render.c does; the left edge's dots run just beside the "I", in the C too.
 - **Keys**: Space also starts (the C's fire); M and S switch the music and effects, F9 the
   timing overlay. The AmigaBridge interface (the tunables, the scene hooks) isn't ported.
 
