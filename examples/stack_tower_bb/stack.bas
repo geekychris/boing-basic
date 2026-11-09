@@ -7,12 +7,14 @@
 '   StackTower --mode M --level L the title's mode (0 marathon, 1 rising, 2 dig) and level
 '   StackTower --perf             timing overlay (also F9) and a log line a second
 '   StackTower --log              print each change of screen (tests)
+'   StackTower --nomusic          no music (M switches it, S the effects)
 '   StackTower --seed N           the first game's seed
 '   StackTower --blit N           the canvas's BlitMode
 '
 ' Keys: Left/Right (A/D) turn the tower (held: repeats), Up/X rotate clockwise, Z
 ' anticlockwise, Down soft drop, Space hard drop, C hold, G ghost, P pause, B the bot
-' plays, Help/H the rules, Esc the title (or quit from it), F9 the timing overlay.
+' plays, Help/H the rules, Esc the title (or quit from it), F9 the timing overlay, M music
+' on/off, S effects on/off.
 ' On the title Left/Right choose the mode, Up/Down the level, Space or Return start.
 Option Explicit
 
@@ -23,6 +25,7 @@ Private benchN As Long, benchDone As Long, logModes As Boolean
 Private lastMs As Double, accMs As Double
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
 Private lastState As Long
+Private noMusic As Boolean
 
 Private Sub ParseArgs()
     Dim args() As String, i As Long, a As String
@@ -39,6 +42,7 @@ Private Sub ParseArgs()
                 showPerf = True
                 perfLog = True
             Case "--log": logModes = True
+            Case "--nomusic": noMusic = True
             Case "--mode"
                 If i < UBound(args) Then svMode = CLng(args(i + 1)) Mod MODE_COUNT
             Case "--level"
@@ -75,13 +79,13 @@ End Sub
 
 Private Sub Form_Load()
     DrawInit view
-    SoundInit
     HsSetup Array("TOWER", "STACK", "RING", "ROD", "ELBOW", "ANCHOR", "BOLT", "STAIRS"), 1000
     svGhost = 1
     svStartLevel = 1
     nextSeed = 1
     lastState = -1
     ParseArgs
+    SoundInit benchN = 0 And Not noMusic
     LoadBests
     PerfReset
     ShellToTitle
@@ -221,6 +225,14 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
     End If
     If k = vbKeyF9 Then
         showPerf = Not showPerf
+        Exit Sub
+    End If
+    If k = vbKeyM Then
+        ToggleMusic
+        Exit Sub
+    End If
+    If k = vbKeyS And svState <> SS_TITLE Then
+        ToggleEffects
         Exit Sub
     End If
     If svHelp <> 0 Then

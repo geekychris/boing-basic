@@ -46,8 +46,8 @@ Sub Main()
           " hash " & Hex8(StStateHash()) & " picture " & cv.Hash
     Print "time: logic " & Format$(tl / n, "0.000") & " draw " & Format$(td / n, "0.000") & " ms/frame, " & _
           Format$(n * 1000# / t, "0.0") & " fps;  polys/frame " & Format$(polyTotal / n, "0.0")
-    If profOn Then Print "parts: sky " & Format$(prSky / n, "0.000") & " build " & Format$(prBuild / n, "0.000") & _
-          " faces " & Format$(prAdd / n, "0.000") & " flush " & Format$(prFlush / n, "0.000") & " panel " & Format$(prPanel / n, "0.000")
+    If profOn Then Print "parts: sky " & Format$(prSky / n, "0.000") & " tower " & Format$(prTower / n, "0.000") & _
+          " panel " & Format$(prPanel / n, "0.000")
     Print "picture hash " & cv.Hash
     If Len(shots) > 0 Then
         ShellToTitle
