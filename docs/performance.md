@@ -356,6 +356,9 @@ VM than native because its ~20 calls a frame do all the work in C. What is left 
 13.7 ms of drawing in the VM is mostly game-side Canvas work (sky bands, HUD, radar, text) and
 the call overhead of ~60 engine calls; its logic (7.2 ms) is BASIC.
 
+Stack Tower on the engine (bb-g-stack's numbers, m1b, 500 frames of the bot, about 4
+`DrawModels` calls and ~230 polygons a frame): VM 82 fps, `--jit` 76, native 127.
+
 Natively built, Tank Duel is faster with A3Scene (490 fps) than with the engine (395): there the
 BASIC 3D is compiled C too, and each engine call goes through late-bound dispatch (Variant
 arguments, member lookup per call site). Both are far above the 25 fps frame rate the games run at.
