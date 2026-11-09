@@ -90,3 +90,34 @@ about=a text editor: menus, toolbar, status bar, file dialogs, settings, ARexx p
 title=MiniSheet
 kind=app
 about=a small spreadsheet: grid, tree view, tabs, list columns and a splitter
+
+[ace_pilot2_bb]
+title=Ace Pilot 2
+kind=game
+about=a biplane war in 3D: eight missions, balloons, trains, bombers and the Grey Falcon
+keys=Left/Right bank, Up/Down nose down/up (I inverts), Space guns, A/Z throttle
+keys=V or C chase view/cockpit, P pause, B autopilot, Help/H how to fly, M effects
+keys=F9 timing, Esc title/quit; on the title Up/Down choose the mission, Space starts
+
+[boing_pinball_bb]
+title=Boing Pinball
+kind=game
+about=three pinball tables (Comet Tour, Deep Dive, Robot Foundry) with ramps, orbits and missions
+keys=Left Shift/Z or left mouse button: left flippers; Right Shift or right button: right flippers
+keys=Space/Down/Return: hold to pull the plunger, let go to launch; Left/Right/Up nudge
+keys=P pause, Help/H controls and rules, S high scores, M music, F1 timing, Esc title/quit
+
+[orbit_docking_bb]
+title=Orbit Docking
+kind=game
+about=a docking simulator: line up with a spinning station's slot and dock gently
+keys=Cursor keys move across, W/S forward/back, A/D roll (Space + cursors: in/out and roll)
+keys=P pause, B autopilot, Help/H rules, M effects, F9 timing, Esc title/quit
+keys=On the title Up/Down choose the station, Space starts
+
+[scairy_fun_bb]
+title=ScAIry Fun
+kind=game
+about=a self-driving car game: keep your trusting autopilot out of trouble on four routes
+keys=Left/Right steer, Down brake, Up accelerate (taking over); Space autopilot on/off, starts
+keys=V or C chase/cockpit view, P pause, Help/H rules, M/S music/effects, F9 timing, Esc title/quit

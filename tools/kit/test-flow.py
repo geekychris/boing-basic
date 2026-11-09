@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 import os4guest as g  # noqa: E402
 
 RUN_SECONDS = int(os.environ.get("BB_FLOW_RUN", "25"))
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2349"}.get(g.GUEST, "2348")))
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))
 OUT = os.path.join(ROOT, "build", "kit", "flow-%s" % g.GUEST)
 DEST = "DH1:BoingBASIC"
 names = names or ["glimmerfield", "stack_tower_bb", "tincture", "riffwright"]
@@ -161,13 +161,21 @@ def main():
     ok = True
     m = g.MCP(g.URL)
     per = int(os.environ.get("BB_FLOW_PER_SESSION", "1"))
+    if len(names) > per:
+        # one process per guest session: os4guest's watchdog thread is timed from the first lock
+        for i in range(0, len(names), per):
+            env = dict(os.environ, BB_FLOW_FIRST="1" if i == 0 else "0")
+            ok &= subprocess.call([sys.executable, os.path.abspath(__file__), "BB_GUEST=" + g.GUEST]
+                                  + names[i:i + per], env=env) == 0
+        log("ALL OK" if ok else "SOME STEPS FAILED")
+        return 0 if ok else 1
     for i in range(0, len(names), per):
         group = names[i:i + per]
         with g.testing("AmiForge + Boing BASIC: user flow (%s)" % ", ".join(group)):
             try:
                 start_amiforge(m)
                 shot(m, "amiforge-%d" % i)
-                if i == 0:
+                if os.environ.get("BB_FLOW_FIRST", "1") == "1":
                     keys("meta_r-u")          # Project > Browse Projects
                     time.sleep(4)
                     shot(m, "browse-projects")

@@ -56,7 +56,7 @@ def opt(name, default=None):
 
 KIT = os.path.abspath(opt("--kit", os.path.join(ROOT, "build", "kit", "BoingBASIC.lha")))
 SHOT = os.path.abspath(opt("--shot", os.path.join(os.path.dirname(KIT), "desktop-%s.png" % g.GUEST)))
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2349"}.get(g.GUEST, "2348")))
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))   # QEMU monitors
 DEST = "DH1:BoingBASIC"
 ENTRY = ":BoingBASIC/AmiForge"
 WB = "WORKBENCH"
@@ -195,13 +195,72 @@ def leave_out(m):
     time.sleep(2)
     rexx(m, "WINDOW \"%s\" CLOSE" % DEST)
     if ENTRY.lower() in backdrop(m).lower():
-        rexx(m, "ICON WINDOW ROOT NAMES AmiForge SELECT")
-        r3 = rexx(m, "MENU WINDOW ROOT INVOKE ICONS.SNAPSHOT")
-        rexx(m, "ICON WINDOW ROOT NAMES AmiForge UNSELECT")
-        log("desktop icon left out through Workbench ARexx (snapshot: %s)" % r3)
+        log("desktop icon left out through Workbench ARexx")
+        place(m)
         return "arexx"
     log("Workbench ARexx LEAVEOUT didn't take (%s / %s)" % (r1, r2))
     return None
+
+
+def place(m):
+    """Put the left-out icon where it's seen (right edge, below the window area; a fresh
+    AmiForge.info carries no position, and the Launcher covers the default place) and snapshot it."""
+    w, h = screen_size(m)
+    x, y = w - 120, int(h * 0.65)
+    r = [rexx(m, "ICON WINDOW ROOT NAMES AmiForge X %d Y %d" % (x, y)),
+         rexx(m, "ICON WINDOW ROOT NAMES AmiForge MAKEVISIBLE"),
+         rexx(m, "ICON WINDOW ROOT NAMES AmiForge SELECT"),
+         rexx(m, "MENU WINDOW ROOT INVOKE ICONS.SNAPSHOT"),
+         rexx(m, "ICON WINDOW ROOT NAMES AmiForge UNSELECT")]
+    log("desktop icon placed at %d,%d on a %dx%d screen and snapshotted (%s)" % (x, y, w, h, " ".join(r)))
+    PLACED[:] = [x, y]
+    return all(v.startswith("[OK]") for v in r)
+
+
+PLACED = []
+
+
+def screen_size(m):
+    try:
+        from PIL import Image
+        p = screenshot(m, os.path.join(tempfile.gettempdir(), "bbkit-size-%d.png" % os.getpid()))
+        w, h = Image.open(p).size
+        os.unlink(p)
+        return w, h
+    except Exception as e:
+        log("screen size unknown (%s): using 1280x720" % e)
+        return 1280, 720
+
+
+def icon_visible(png, xy=None):
+    """Is AmiForge's icon image on the screenshot (near xy when given)? Compares the opaque pixels
+    of the true-colour image in the kit's AmiForge.info with every place on the screen."""
+    import struct
+    import zlib
+    import numpy as np
+    from PIL import Image
+    info = os.path.join(os.path.dirname(KIT), "stage", "BoingBASIC", "AmiForge.info")
+    d = open(info, "rb").read()
+    images, i = [], d.find(b"ARGB")
+    while i >= 0:                       # the normal and the selected image
+        n = struct.unpack(">I", d[i + 4:i + 8])[0]
+        raw = np.frombuffer(zlib.decompress(d[i + 18:i + 8 + n]), np.uint8).reshape(64, 64, 4)
+        images.append((raw[:, :, 0] > 200, raw[:, :, 1:4].astype(np.int16)))
+        i = d.find(b"ARGB", i + 8 + n)
+    scr = np.asarray(Image.open(png).convert("RGB")).astype(np.int16)
+    H, W = scr.shape[:2]
+    if xy:
+        xs, ys = range(max(0, xy[0] - 40), min(W - 64, xy[0] + 40)), range(max(0, xy[1] - 40), min(H - 64, xy[1] + 40))
+    else:
+        xs, ys = range(0, W - 64, 2), range(0, H - 64, 2)
+    best = (1e9, None)
+    for alpha, rgb in images:
+        for y in ys:
+            for x in xs:
+                diff = np.abs(scr[y:y + 64, x:x + 64][alpha] - rgb[alpha]).mean()
+                if diff < best[0]:
+                    best = (diff, (x, y))
+    return best[0] < 25, best
 
 
 def backdrop_entry(m):
@@ -343,6 +402,11 @@ def verify(m):
     ok &= n == 0
     try:
         log("desktop screenshot: %s" % screenshot(m, SHOT))
+        if "--no-icon" not in args:
+            seen, (diff, where) = icon_visible(SHOT)
+            log("AmiForge icon visible on the desktop: %s (best match at %s, difference %.0f)"
+                % ("yes" if seen else "NO", where, diff))
+            ok &= seen
     except Exception as e:
         log("screenshot failed: %s" % e)
         ok = False
@@ -358,12 +422,21 @@ def main():
     m = g.MCP(g.URL)
     if "--icon-only" in args:
         with g.testing("Boing BASIC: desktop icon"):
-            how = leave_out(m) or backdrop_entry(m)
+            if ENTRY.lower() in backdrop(m).lower() and wb_alive(m):
+                how = "placed" if place(m) else None
+            else:
+                how = leave_out(m) or backdrop_entry(m)
             log("desktop icon: %s" % (how or "FAILED"))
         args.append("--verify-only")
     if "--verify-only" not in args:
         with g.testing("Installing Boing BASIC + AmiForge"):
             install(m)
+    if "--verify-only" not in sys.argv[1:]:
+        # a new process for the second guest session: os4guest's watchdog thread is timed from the
+        # first lock and would end this session early
+        sys.stdout.flush()
+        os.execv(sys.executable, [sys.executable, os.path.abspath(__file__), "BB_GUEST=" + g.GUEST, "--verify-only"]
+                 + [a for a in args if a not in ("--icon-only", "--verify-only")])
     with g.testing("Checking the Boing BASIC install"):
         ok = verify(m)
     log("ALL OK" if ok else "SOME CHECKS FAILED")
