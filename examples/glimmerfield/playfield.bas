@@ -126,10 +126,7 @@ Private Sub Form_Load()
     SoundInit AppDir(), Not noSound And (benchN = 0 Or benchSound)
     PerfReset
     StartAttract
-    If benchN > 0 Then
-        tick.Enabled = False
-        showPerf = True
-    End If
+    If benchN > 0 Then showPerf = True      ' the first tick starts the bench (RunBench)
 End Sub
 
 Private Sub Form_Deactivate()
@@ -137,10 +134,13 @@ Private Sub Form_Deactivate()
 End Sub
 
 Private Sub Form_Activate()
-    Dim t0 As Double, t As Double
     If logModes Then Print "active"
-    If benchN <= 0 Or benchDone > 0 Then Exit Sub
-    ' --bench: run the frames back to back, keeping the window alive
+End Sub
+
+' --bench: run the frames back to back, keeping the window alive. Started by the first Timer
+' tick, not by Form_Activate: on a shared screen another window may stay in front.
+Private Sub RunBench()
+    Dim t0 As Double, t As Double
     t0 = NowMs()
     Do While benchDone < benchN
         FrameStep
@@ -153,6 +153,13 @@ Private Sub Form_Activate()
 End Sub
 
 Private Sub tick_Timer()
+    If benchN > 0 Then
+        If benchDone = 0 Then
+            tick.Enabled = False
+            RunBench
+        End If
+        Exit Sub
+    End If
     If Not paused Then FrameStep
 End Sub
 
