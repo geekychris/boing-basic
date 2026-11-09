@@ -371,6 +371,7 @@ every Amiga window, so `Button = 2` only arrives in forms without menus — or o
 | `Fill` | Boolean | `fill` | the picture takes the control's whole size and follows the window (`width`/`height` are then the minimum); `<id>_Resize()` after each change, the old picture kept at the top left |
 | `MouseX`, `MouseY` | Long, R/O | — | the last mouse position over the canvas, in its pixels |
 | `MouseButtons` | Long, R/O | — | the buttons held now (1 left, 2 right, 4 middle) |
+| `MousePointer` | Integer | `mousepointer` | the pointer over the canvas: `vbDefault` 0, `vbCrosshair` 2, `vbIbeam` 3, `vbHourglass` 11, `vbSizeAll` 15, or 100 + an OS4 pointer type (pen 135, rubber 137, zoom in 133, hand 111, select 138, smudge 139). The form has `MousePointer` too (where no canvas sets one) |
 
 | Event | Signature | When |
 |---|---|---|

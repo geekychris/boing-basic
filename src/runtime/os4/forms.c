@@ -9,6 +9,7 @@
  * RethinkLayout). */
 #include "forms_int.h"
 #include "../boing.h"     /* bb_app_title for remembered window boxes */
+#include <intuition/pointerclass.h>
 
 /* ReAction's layout code is stack hungry, and a program started from a background CLI (or
  * Workbench) may get only a few KB: every program linking the forms gets 256 KB. (A
@@ -688,6 +689,39 @@ static void rmb_trap(bb_form *f, int x, int y)
     }
 }
 
+/* MousePointer: VB's values -> pointer types (V53.37 SetWindowPointer WA_PointerType) */
+static int vb_pointer(int v)
+{
+    switch (v) {
+    case 2: return POINTERTYPE_CROSS;           /* vbCrosshair */
+    case 3: return POINTERTYPE_TEXT;            /* vbIbeam */
+    case 11: return POINTERTYPE_BUSY;           /* vbHourglass */
+    case 15: return POINTERTYPE_SCROLLALL;      /* vbSizeAll */
+    default:
+        /* 100 + an OS4 pointer type: pen 135, rubber 137, zoom in 133, hand 111 ... */
+        if (v >= 100 && v <= 100 + POINTERTYPE_SMUDGE) return v - 100;
+        return POINTERTYPE_NORMAL;              /* vbDefault, vbArrow */
+    }
+}
+
+void bbf_update_pointer(bb_form *f, int x, int y)
+{
+    if (!f->win) return;
+    int v = f->self.ptr;
+    if (x >= 0) {
+        bb_ctl *c = f->buttons ? f->capture : mouse_target(f, x, y);
+        if (c && c->kind == AFG_CANVAS && c->ptr) v = c->ptr;
+    } else if (!f->mouse_wanted)
+        /* no mouse reports in this window: a canvas pointer covers the whole window */
+        for (int i = 0; i < f->nctls; i++)
+            if (f->ctls[i]->kind == AFG_CANVAS && f->ctls[i]->ptr) v = f->ctls[i]->ptr;
+    int t = vb_pointer(v);
+    if (t != f->curptr) {
+        f->curptr = t;
+        IIntuition->SetWindowPointer(f->win, WA_PointerType, t, TAG_DONE);
+    }
+}
+
 static void mouse_events_handle(bb_form *f)
 {
     for (int k = 0; k < f->nmq && f->loaded && !ending; k++) {
@@ -700,7 +734,10 @@ static void mouse_events_handle(bb_form *f)
             if (!bit) continue;
         }
         bb_ctl *c = f->capture && f->buttons ? f->capture : mouse_target(f, e.x, e.y);
-        if (e.mcls == IDCMP_MOUSEMOVE) rmb_trap(f, e.x, e.y);
+        if (e.mcls == IDCMP_MOUSEMOVE) {
+            rmb_trap(f, e.x, e.y);
+            bbf_update_pointer(f, e.x, e.y);
+        }
         if (e.mcls == IDCMP_MOUSEBUTTONS && !up)
             for (int i = 0; i < f->nctls; i++)       /* a click elsewhere takes the focus from grids */
                 if (f->ctls[i]->kind == AFG_GRID && f->ctls[i] != c) bbf_grid_blur(f->ctls[i]);
@@ -887,6 +924,8 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
             f->ctls[i]->rmb = afg_get_bool(f->ctls[i]->node, "rmb");
             f->ctls[i]->fill = afg_get_bool(f->ctls[i]->node, "fill");
             if (f->ctls[i]->rmb) f->mouse_wanted = 1;
+            f->ctls[i]->ptr = afg_get_int(f->ctls[i]->node, "mousepointer");
+            if (f->ctls[i]->ptr) f->mouse_wanted = 1;
         }
     }
     if (wants_mouse(f, &f->self)) f->mouse_wanted = 1;
@@ -977,7 +1016,9 @@ int bb_form_show(bb_form *f)
     f->win = (struct Window *)IIntuition->IDoMethod(f->winobj, WM_OPEN);
     if (!f->win) return 7;
     f->self.visible = 1;
+    f->curptr = POINTERTYPE_NORMAL;
     bbf_app_window_open(f);
+    if (f->self.ptr || !f->mouse_wanted) bbf_update_pointer(f, -1, -1);
     f->lastw = f->win->Width;
     f->lasth = f->win->Height;
     canvas_refresh_all(f);       /* canvas */
@@ -1093,6 +1134,8 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
     if (IS("ContextMenu")) return ret_str(&f->self, out, f->self.ctxmenu ? f->self.ctxmenu : afg_get(f->afg, "contextmenu"));
     if (IS("ContextControl")) return ret_str(&f->self, out, f->ctx_control ? f->ctx_control : "");
     if (IS("OLEDropMode")) return ret_int(out, f->dropmode || afg_get_bool(f->afg, "dropfiles"));
+    if (IS("MousePointer")) return ret_int(out, f->self.ptr);
+    if (IS("PointerType")) return ret_int(out, f->curptr);     /* the OS4 pointer type shown now (tests) */
     return 438;
 }
 
@@ -1131,6 +1174,11 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
     if (IS("ContextMenu")) {
         free(f->self.ctxmenu);
         f->self.ctxmenu = xstrdup(vstr(v, buf));
+        return 0;
+    }
+    if (IS("MousePointer")) {
+        f->self.ptr = vint(v);
+        bbf_update_pointer(f, -1, -1);
         return 0;
     }
     if (IS("OLEDropMode")) {

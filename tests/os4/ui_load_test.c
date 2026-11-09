@@ -17,7 +17,7 @@ static const char *afg =
     "    tool id=t1 text=\"New\" image=\"TBImages:new\" menu=mNew\n"
     "    tool id=t2 text=\"Grid\" toggle=1\n"
     "    tool id=t3 text=\"Gone\" image=\"TBImages:no_such_image_here\"\n"
-    "  canvas id=view width=100 height=50 fill=1 rmb=1 contextmenu=ctx\n"
+    "  canvas id=view width=100 height=50 fill=1 rmb=1 contextmenu=ctx mousepointer=2\n"
     "  hlayout weight=0\n"
     "    grid id=g rows=5 cols=3 minheight=60\n"
     "    treeview id=tv\n"
@@ -157,6 +157,8 @@ static void script(void)
         } else step = 6;
         break;
     case 4:
+        printf("# pointer type %d\n", geti("Form", "PointerType", -1));
+        check(geti("Form", "PointerType", -1) == 7, "mousepointer=2 (vbCrosshair): the cross pointer over the canvas");
         mbutton(IECODE_RBUTTON, 0);
         IDOS->Delay(3);
         mbutton(IECODE_RBUTTON, 1);

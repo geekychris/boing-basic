@@ -99,6 +99,7 @@ struct bb_ctl {
     int rmb;                 /* canvas: RightButton (rmb=1): the right button goes to it */
     int fill;                /* canvas: fill=1, the picture follows the control size */
     int32 mx, my;            /* canvas: the last mouse position over it (MouseX/MouseY) */
+    int ptr;                 /* canvas / form: MousePointer (VB value) */
 };
 
 struct bb_form {
@@ -136,6 +137,7 @@ struct bb_form {
     int iconified;           /* iconify=1 and iconified (WindowState = 1) */
     int modal_depth;         /* > 0 while shown with vbModal */
     struct AppWindow *appwin;
+    int curptr;              /* the pointer type set on the window now */
 };
 
 
@@ -242,7 +244,8 @@ int bbf_grid_focused(bb_ctl *c);
 extern int bbf_last_part;                                    /* the part of the last GADGETUP */
 int bbf_vb_key(int raw);
 int bbf_vb_shift(uint32 q);
-int bbf_map_key(int raw, uint32 qual);                       /* Latin-1 character, 0 = none */
+int bbf_map_key(int raw, uint32 qual);
+void bbf_update_pointer(bb_form *f, int x, int y);         /* MousePointer under (x, y), -1 = keep */                       /* Latin-1 character, 0 = none */
 
 /* ui_dialog.c: commondialog (also used by CreateObject("Boing.CommonDialog")) */
 int bbf_dialog_get(bb_ctl *c, const char *prop, int index, bb_fval *out);

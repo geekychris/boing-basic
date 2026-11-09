@@ -305,6 +305,7 @@ int bbf_ext_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
         if (IS("MouseX")) return ret_int(out, c->mx);
         if (IS("MouseY")) return ret_int(out, c->my);
         if (IS("MouseButtons")) return ret_int(out, c->form->capture == c ? c->form->buttons : 0);
+        if (IS("MousePointer")) return ret_int(out, c->ptr);
         return 438;
     case AFG_COMMONDIALOG: return bbf_dialog_get(c, prop, index, out);
     case AFG_GRID: return bbf_grid_get(c, prop, index, out);
@@ -342,6 +343,11 @@ int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
             return 0;
         }
         if (IS("Fill")) { c->fill = vint(v) != 0; relayout(c->form); return 0; }
+        if (IS("MousePointer")) {
+            c->ptr = vint(v);
+            bbf_update_pointer(c->form, c->form->mouse_wanted ? c->mx : -1, -1);   /* takes effect at the next move */
+            return 0;
+        }
         if (IS("MouseX") || IS("MouseY") || IS("MouseButtons")) return 383;
         return 438;
     case AFG_COMMONDIALOG: return bbf_dialog_set(c, prop, index, v);
