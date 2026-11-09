@@ -30,6 +30,22 @@ Sub Main()
     Next i
     Print "  odd period 431 shows as "; NoteText(431); ", 1712 as "; NoteText(1712); ", 57 as "; NoteText(57)
     Print "  tail bytes"; UBound(songTail) + 1
+    ' the demo songs
+    Dim dm As Variant
+    For Each dm In Array("harbour_lights.mod", "boing_shuffle.mod")
+        If LoadMod("../demos/" & dm) Then
+            Print dm; ": ["; TitleText(); "]"; nPat; "patterns, length"; songLen; ", samples";
+            For i = 1 To 31
+                If smpLen(i) > 0 Then Print " "; SampleText(i);
+            Next i
+            Print
+            SaveMod "out.mod"
+            Print "  round trip: "; CompareFiles("../demos/" & dm, "out.mod")
+            Kill "out.mod"
+        Else
+            Print dm; ": "; lastError
+        End If
+    Next
     RoundTrip "ref6.mod"
     RoundTrip "ref8.mod"
     ' a new song saves as a valid M.K. file and loads back

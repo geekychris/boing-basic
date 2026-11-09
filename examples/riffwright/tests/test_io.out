@@ -15,6 +15,10 @@ title [riffwright ref] restart 127
   row 7 : --- .. ... | --- .. ... | --- .. ... | --- .. ...
   odd period 431 shows as C-2, 1712 as C-0, 57 as B-4
   tail bytes 8 
+harbour_lights.mod: [Harbour Lights] 7 patterns, length 11 , samples kick (synth) snare (synth) hat (synth) bass (synth) pad (synth) lead (synth) bell (synth)
+  round trip: same
+boing_shuffle.mod: [Boing Shuffle] 5 patterns, length 10 , samples kick (synth) snare (synth) hat (synth) bass (synth) square lead (synth) organ (synth)
+  round trip: same
 ref6.mod:  6 channels, 1 patterns, length 1 , tag 6CHN
   round trip: same
 ref8.mod:  8 channels, 1 patterns, length 1 , tag 8CHN
