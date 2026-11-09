@@ -154,7 +154,7 @@ static void script(void)
             IDOS->Delay(5);
             pointer(cx + cw / 2 + 2, cy + ch / 2 + 1);   /* a move: the trap goes on */
             IDOS->Delay(5);
-        } else step = 6;
+        } else step = 9;
         break;
     case 4:
         printf("# pointer type %d\n", geti("Form", "PointerType", -1));
@@ -167,6 +167,17 @@ static void script(void)
         check(cdown == 2, "rmb=1: the right button over the canvas is view_MouseDown(2), no menu");
         break;
     case 6:
+    case 7:
+    case 8: {
+        /* run-time MousePointer changes with moves, then quitting (bb-app-paint's crash at exit:
+           pen/rubber/select need intuition 54.21) */
+        static const int p[3] = { 135, 137, 138 };
+        seti(form, "view", "MousePointer", -1, p[step - 7]);
+        if (ready_mouse() && bb_ctl_screen_box(C("view"), &cx, &cy, &cw, &ch)) pointer(cx + cw / 2 + step, cy + ch / 2);
+        break;
+    }
+    case 9:
+        printf("# pointer type after the run-time changes %d\n", geti("Form", "PointerType", -1));
         seti(form, "tick", "Enabled", -1, 0);
         bb_form_unload(form);
         break;
@@ -196,6 +207,7 @@ int main(void)
     bb_forms_run();
     bb_obj_release(cv);
     bb_forms_cleanup();
+    check(1, "the program closed cleanly after run-time MousePointer changes");
     inject_close();
     printf("%s (%d/%d)\n", fails ? "FAIL" : "PASS", n - fails, n);
     return fails ? 10 : 0;
