@@ -5,6 +5,7 @@
 '   BoingPinball --table N         start on table N (0 Comet Tour, 1 Deep Dive, 2 Robot Foundry)
 '   BoingPinball --bench N         the bot plays N frames as fast as it can (20 ms of game
 '                                  time each), drawing every one, then prints a timing report
+'   BoingPinball --bench N --withsound   the same with the music and the effects playing
 '   BoingPinball --attract         the title only, forever (no game starts)
 '   BoingPinball --perf            timing overlay (also F1) and a log line a second
 '   BoingPinball --log             print each change of screen (tests)
@@ -24,7 +25,7 @@ Option Explicit
 Private Const KEY_HELP As Long = 47
 Private Const KEY_SLASH As Long = 314               ' 256 + raw key 0x3A
 
-Private scriptOn As Boolean, scriptFrame As Long
+Private scriptOn As Boolean, scriptFrame As Long, soundInfoOn As Boolean, benchSound As Boolean
 Private benchN As Long, benchDone As Long, attractOnly As Boolean, tableArg As Long, screenArg As String
 Private lastMs As Double
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
@@ -47,6 +48,8 @@ Private Sub ParseArgs()
             Case "--blit"
                 If i < UBound(args) Then view.BlitMode = CLng(args(i + 1))
             Case "--script": scriptOn = True: logStates = True
+            Case "--soundinfo": soundInfoOn = True
+            Case "--withsound": benchSound = True
             Case "--screen"
                 If i < UBound(args) Then screenArg = LCase$(args(i + 1))
         End Select
@@ -57,7 +60,8 @@ Private Sub Form_Load()
     ParseArgs
     ShellInit view, 1
     If tableArg <> 0 Then ChooseTable tableArg: ToTitle
-    If benchN = 0 Then SoundInit App.Path & "/art/boing_pinball.mod"
+    If benchN = 0 Or benchSound Then SoundInit App.Path & "/art/boing_pinball.mod"
+    If soundInfoOn Then Print "sound: device " & SoundDevice() & ", " & SoundInfo()
     PerfReset
     If benchN > 0 Then
         StartGame dTable

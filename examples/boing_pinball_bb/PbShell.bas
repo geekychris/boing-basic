@@ -215,7 +215,7 @@ Public Sub ShellFrame(ByVal dtMs As Double)
         steps = steps + 1
         stepsRun = stepsRun + 1
         DrawEvents
-        If Not pDemo Then SoundEvents
+        If Not pDemo Then SoundEvents         ' (the bot's games in --bench too: the C is quiet only in the demo)
         gNev = 0
         If pDemo And gState = GS_OVER Then StartDemo
     Loop

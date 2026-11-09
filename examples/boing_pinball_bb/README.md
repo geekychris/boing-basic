@@ -71,6 +71,7 @@ starts a game. After a game, a score good enough for the table's top eight asks 
 | `tools/trace.c`, `trace.sh`, `check_trace.sh` | the C original's games, and the comparison |
 | `tools/guest.py` | runs, benchmarks and screenshots on an AmigaOS 4 guest |
 | `tests/run.sh` | the host tests |
+| `tools/probe/` | the native build's start-up step by step, and the sound on its own (for finding a crash) |
 
 Command line of the game: `--table N` (0-2), `--bench N`, `--attract`, `--perf`, `--log`,
 `--blit M`, `--screen demo|help1|help2|scores|play` (start on a screen, for screenshots).
@@ -88,8 +89,12 @@ rules, timers, the random generator) every 1000 steps with the C original's
 (`tests/programs/boing_pinball`) in the VM and natively.
 
 `tests/run.sh` also plays the bot through the console bench on each table with every frame drawn
-and checks the state and picture hashes against `tests/expected.txt` (the VM and native builds
-give the same pictures).
+and checks the state and picture hashes against `tests/expected.txt` (the VM and native builds,
+on the Mac and on AmigaOS 4, give the same pictures); runs the form program on the headless forms
+backend (`--bench` must give the console bench's hashes; every screen must run); and plays
+`--script`, a fixed sequence of keys through the form's own key handlers (start, plunger,
+flippers, nudge, pause, help, the next table, its high scores, quit), against
+`tests/script.out`. On AmigaOS 4 (`tools/guest.py run vm --script`) the script prints the same.
 
 ## How it is drawn
 
@@ -122,6 +127,9 @@ m1b guest (QEMU sam460ex on an unloaded Mac mini M1), 2026-11-08:
 | VM (`boing run`) | **84.5** | 4.89 | 4.80 | 1.77 |
 | VM + JIT (`boing run --jit`) | 76.2 | 5.74 | 5.31 | 1.72 |
 | native (`boing build --target os4`) | 217.3 | 0.43 | 2.47 | 1.61 |
+
+With the music and the sound effects playing (AHI, `--bench 1500 --withsound`): VM 77.8 fps
+(logic 5.12, draw 5.39, blit 1.98).
 
 All three give the same state hash (F9AFA545) and picture hash (2032836992) as the Mac, so the
 game is the same on PPC in every build. The game needs 50 fps; the interpreter has 70 % to
