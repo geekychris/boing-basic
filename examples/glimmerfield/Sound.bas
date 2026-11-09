@@ -9,7 +9,7 @@ Option Explicit
 Public musicOn As Boolean
 Public soundOn As Boolean
 
-Private au As Object
+Private au As Audio
 Private haveAudio As Boolean
 Private problem As String           ' why there is no sound or no music, for the title screen
 Private song As Long
