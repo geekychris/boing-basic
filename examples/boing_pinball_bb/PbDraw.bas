@@ -193,7 +193,7 @@ Private Function FIr(ByVal a As Long) As Long
 End Function
 
 Private Function FMr(ByVal a As Long, ByVal b As Long) As Long
-    FMr = Int(CDbl(a) * b / 65536#)
+    FMr = MulShr(a, b, 16)
 End Function
 
 ' table mm (16.16) -> the drawing's pixels

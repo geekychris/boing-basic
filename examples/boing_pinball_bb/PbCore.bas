@@ -361,11 +361,11 @@ Private coreReady As Boolean
 ' ================================================================ fixed point (inlined)
 
 Private Function FM(ByVal a As Long, ByVal b As Long) As Long
-    FM = Int(CDbl(a) * b / 65536#)
+    FM = MulShr(a, b, 16)
 End Function
 
 Private Function FD(ByVal a As Long, ByVal b As Long) As Long
-    FD = Fix(CDbl(a) * 65536# / b)
+    FD = MulDiv(a, 65536, b)
 End Function
 
 Private Function FI(ByVal a As Long) As Long
