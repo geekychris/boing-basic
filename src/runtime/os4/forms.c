@@ -9,6 +9,7 @@
  * RethinkLayout). */
 #include "forms_int.h"
 #include "../boing.h"     /* bb_app_title for remembered window boxes */
+#include "../platform.h"  /* bb_plat_seconds: timers keep a fixed timeline */
 #include <intuition/pointerclass.h>
 
 /* ReAction's layout code is stack hungry, and a program started from a background CLI (or
@@ -508,18 +509,36 @@ static int timers_init(void)
     return 1;
 }
 
-static void timer_send(bb_ctl *c)
+/* Timers keep a fixed timeline, as VB's do: each tick is due one Interval after the previous
+   one was due, not after its handler returned (that made the period Interval + handler time).
+   A tick that is due already fires at once; more than a period behind, the timeline restarts
+   from now (no burst of catch-up ticks). */
+static void timer_arm(bb_ctl *c)
 {
+    double now, wait;
+    long us;
     if (c->pending || !c->enabled || c->interval <= 0 || !c->form->loaded) return;
     if (!timers_init()) return;
     if (!c->tio)
         c->tio = IExec->AllocSysObjectTags(ASOT_IOREQUEST, ASOIOR_Duplicate, timer_master, TAG_DONE);
     if (!c->tio) return;
+    now = bb_plat_seconds();
+    if (c->deadline < now - c->interval / 1000.0) c->deadline = now;
+    wait = c->deadline - now;
+    us = wait > 0 ? (long)(wait * 1e6) : 0;
     c->tio->Request.io_Command = TR_ADDREQUEST;
-    c->tio->Time.Seconds = c->interval / 1000;
-    c->tio->Time.Microseconds = (c->interval % 1000) * 1000;
+    c->tio->Time.Seconds = us / 1000000;
+    c->tio->Time.Microseconds = us % 1000000;
     IExec->SendIO((struct IORequest *)c->tio);
     c->pending = 1;
+}
+
+/* (re)start: the first tick one Interval from now */
+static void timer_send(bb_ctl *c)
+{
+    if (c->pending) return;
+    c->deadline = bb_plat_seconds() + c->interval / 1000.0;
+    timer_arm(c);
 }
 
 static void timer_stop(bb_ctl *c)
@@ -549,7 +568,12 @@ static void timers_handle(void)
             c->pending = 0;
             if (c->enabled && f->loaded && !f->unloading) {
                 fire0(c, "Timer");
-                timer_send(c);
+                /* the next tick is due one Interval after this one was (the handler may have
+                   restarted the timer: then it is pending already) */
+                if (!c->pending) {
+                    c->deadline += c->interval / 1000.0;
+                    timer_arm(c);
+                }
             }
         }
 }

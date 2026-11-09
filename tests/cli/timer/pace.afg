@@ -1,0 +1,3 @@
+window name=pace title="timer pace" width=100 height=50
+vlayout id=root
+  timer id=tick interval=20 enabled=1

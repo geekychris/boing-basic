@@ -14,6 +14,12 @@ if "$B" build "$d/apppath/apppath.bas" -o "$d/apppath/apppath.exe" >/dev/null 2>
     check "native" "$(cd "$tmp" && "$d/apppath/apppath.exe" 2>&1)"
     rm -f "$d/apppath/apppath.exe"
 else echo "FAIL cli native (build)"; fail=1; fi
+# a form Timer keeps its period when its handler is slow (headless forms, VM and native)
+for mode in vm nat; do
+    if [ $mode = vm ]; then got=$(cd "$d/timer" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=5 "$B" run timer.bbp 2>&1)
+    else "$B" build "$d/timer/timer.bbp" -o "$tmp/timer" >/dev/null 2>&1 && got=$(cd "$d/timer" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=5 "$tmp/timer" 2>&1); fi
+    [ "$got" = "ticks ok" ] || { echo "FAIL cli timer ($mode): $got"; fail=1; }
+done
 rm -rf "$tmp"
 echo "cli tests: $([ $fail = 0 ] && echo all passed || echo FAILURES)"
 exit $fail

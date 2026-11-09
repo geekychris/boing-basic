@@ -19,7 +19,7 @@ OUT     ?= build/os4
 # calls 34 -> 2.3 us, Chr$ string building 730 -> 35 ms; native games unchanged (docs/performance.md)
 CFLAGS  ?= -Os
 # no -D__USE_INLINE__: the runtime calls IFace->Function() explicitly
-CFLAGS  += -mcrt=newlib -mcpu=powerpc -Wall -std=gnu99 -D__USE_OLD_TIMEVAL__ \
+CFLAGS  += -mcrt=newlib -mcpu=powerpc -Wall -Werror=implicit-function-declaration -std=gnu99 -D__USE_OLD_TIMEVAL__ \
            -DBB_PLATFORM_OS4 -Isrc -Isrc/runtime -Isrc/vm -Isrc/compiler
 LDFLAGS += -mcrt=newlib -mcpu=powerpc
 LIBS    += -lauto -lm

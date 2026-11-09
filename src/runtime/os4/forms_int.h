@@ -79,6 +79,7 @@ struct bb_ctl {
     struct Hook edit_hook;
     struct TimeRequest *tio;
     int interval, enabled, pending;
+    double deadline;            /* Timer: when the next tick is due (bb_plat_seconds) */
     /* docs/ui.md */
     Object *strip;           /* menu: a hidden top-level menu's own strip (context / pop-up) */
     char *ctxmenu;           /* ContextMenu set at run time (NULL = the .afg's contextmenu=) */

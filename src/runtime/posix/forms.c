@@ -391,8 +391,15 @@ int bb_forms_run(void)
             for (i = 0; i < f->nctls && f->loaded && !hl_ending; i++) {
                 bb_ctl *c = f->ctls[i];
                 if (c->kind == AFG_TIMER && c->timer_on && c->enabled && c->interval > 0 && t >= c->next_fire) {
-                    c->next_fire = t + c->interval / 1000.0;
+                    /* a fixed timeline: the next tick is due one Interval after this one was
+                       (not after the handler returned); more than a period behind, restart
+                       from now; a handler that set Interval/Enabled restarted it already */
+                    double due = c->next_fire, per = c->interval / 1000.0, n;
                     hl_fire(f, c->name, "Timer", 0, NULL);
+                    if (c->next_fire == due) {
+                        n = now_s();
+                        c->next_fire = due + per < n - per ? n : due + per;
+                    }
                 }
             }
         }
