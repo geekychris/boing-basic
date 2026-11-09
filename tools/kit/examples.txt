@@ -1,0 +1,82 @@
+# tools/kit/examples.txt - what tools/make-kit.sh says about each example in Getting-Started.txt
+# and whether it ships a native build.
+#
+#   [dir]           an examples/ drawer (examples/common and other drawers without .bas are skipped)
+#   title=          shown name (default: Name= of the .bbp)
+#   kind=           game | app | demo | console   (games and apps get a native build by default)
+#   native=0|1      override the default
+#   bbp=            the project's .bbp when there are several (default: the one that is not Bench/Trace)
+#   about=          one line
+#   keys=           a line of controls (repeat)
+#
+# An example with no entry here still goes into the kit: its title and line come from its .bbp,
+# its kind from Startup= (Form: app, with a native build), and Getting-Started points to its
+# README. Add an entry when a game or app lands on main.
+
+[hello]
+title=Hello
+kind=console
+about=a console program: Print, loops, App.Path and Command()
+
+[declare]
+title=SysInfo
+kind=console
+about=calls exec, dos and intuition through Declare'd library functions
+
+[declare_gfx]
+title=DeclareGfx
+kind=console
+about=a window and animation through the generated OS bindings (bindings drawer), no forms
+
+[calculator]
+title=Calculator
+kind=app
+native=0
+about=a form with buttons, the first VB-style program to read
+
+[fileviewer]
+title=Viewer
+kind=app
+native=0
+about=a file viewer: a form with a file requester and a text box
+
+[engine3d_demo]
+title=Engine3D demo
+kind=demo
+native=1
+about=the 3D engine: a terrain flyover, spinning models and an fps counter
+keys=Esc or the close gadget ends it
+
+[glimmerfield]
+title=Glimmerfield
+kind=game
+about=arcade: fly a skiff through drifting glimmer crystals; shards grow back if you leave them
+keys=Left/Right turn, Up thrust, Space fire
+keys=P pause, M music on/off, S sound effects on/off, F1 timing overlay
+keys=Esc back to the title (or quit)
+
+[stack_tower_bb]
+title=Stack Tower
+kind=game
+about=the falling-block puzzle wrapped round a tower: no side walls, rings clear all the way round
+keys=Left/Right (A/D) turn the tower, Up/X rotate, Z rotate back
+keys=Down soft drop, Space hard drop, C hold, G ghost on/off
+keys=P pause, B the bot plays, Help/H the rules, M/S music/effects, F9 timing, Esc title/quit
+keys=On the title: Left/Right mode (Marathon, Rising, Dig), Up/Down level, Space starts
+
+[tincture]
+title=Tincture
+kind=app
+about=a paint program: layers, undo, custom brushes, indexed or true colour, ILBM and PNG
+keys=Tools: d freehand, v line, r/R rectangle, o/O ellipse, f fill, a airbrush, t text,
+keys=  s select, i pick colour, e eraser, G gradient; [ ] brush size; Shift constrains
+keys=View: wheel or + - 1 0 zoom, middle button or Space-drag scrolls; Help opens Tincture.guide
+
+[riffwright]
+title=Riffwright
+kind=app
+about=a ProTracker music editor: patterns, samples, order list, scopes; two demo songs in demos
+keys=Piano keys Z S X D C V ... and Q 2 W 3 E ...; Space edit mode on/off
+keys=F5/F6/F7 play song/pattern/from the cursor, Esc stop; F1/F2 octave, F3/F4 sample
+keys=F10, Amiga+1/2/3 pattern editor, sample editor, song settings; Amiga+Z/Y undo/redo
+keys=Amiga+O/S/N/Q open, save, new, quit; Help opens Riffwright.guide
