@@ -19,7 +19,7 @@ Private statusPending As Boolean     ' a status update was skipped (throttled): 
 Private syncing As Boolean          ' the program is setting controls: their Click/Change events are ignored
 Private quitAt As Double            ' --smoke / --hold: quit at this Timer value
 Private holdSecs As Long
-Private noPointer As Boolean         ' True unless --pointer: per-tool pointers wait for a runtime fix
+Private noPointer As Boolean         ' --nopointer: no per-tool pointers
 Private logActive As Boolean        ' --log: print active/inactive and events for the guest tests
 Private traceOn As Boolean          ' --trace: each step appended to RAM:tincture.trace (survives a crash)
 
@@ -29,7 +29,6 @@ Private Sub Form_Load()
     Dim args() As String, i As Long, openPath As String, scriptPath As String, a As String, p As Long
 
     If InStr(Command$, "--trace") Then traceOn = True: Tr "load"
-    noPointer = True
     DocAttach view
     ToolsInit
     Tr "prefs"
@@ -53,7 +52,7 @@ Private Sub Form_Load()
             Case "--bench": i = i + 1: If i <= UBound(args) Then benchStrokes = CLng(args(i))
             Case "--hold": i = i + 1: If i <= UBound(args) Then holdSecs = CLng(args(i))
             Case "--log": logActive = True
-            Case "--pointer": noPointer = False      ' per-tool pointers (off: setting MousePointer at run time crashes the exit on OS4)
+            Case "--nopointer": noPointer = True     ' leave the pointer alone (tests)
             Case "--trace": traceOn = True: Tr "trace on"
             Case "--size"
                 i = i + 1

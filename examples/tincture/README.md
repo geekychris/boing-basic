@@ -132,8 +132,7 @@ mouse move costs 0.04 ms in both the VM and native builds.
 
 - Text uses the built-in 6 x 9 font, scaled; no OS fonts yet.
 - Selections are rectangles (no lasso or magic wand); flood fill works on the current layer.
-- The picture shows a crosshair pointer; per-tool pointers (pen, rubber, select) are written
-  (`--pointer`) but off by default: setting `MousePointer` at run time currently makes the
-  program crash when it quits on AmigaOS 4 (reported to the forms runtime).
+- Per-tool pointers (pen, rubber, select) need intuition.library 54.21; older Intuitions
+  (the QEMU guests have 54.10) show the crosshair instead.
 - Iconify isn't available in forms yet; "Icon on Workbench" gives the AppIcon for drops.
 - PNG files with Adam7 interlacing are read through the datatypes (not the built-in reader).
