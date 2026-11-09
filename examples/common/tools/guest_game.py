@@ -127,21 +127,27 @@ def main():
         subprocess.check_call([os.path.join(ROOT, "build/boing"), "build", src, "--target", "os4", "-o", exe])
     m = g.MCP(g.URL)
     ok = True
-    with g.testing("Boing BASIC: " + os.path.basename(src)):
-        fl = files_of(src)
-        dirs = sorted({os.path.dirname(amiga(p)) for p in fl})
-        m.tool("amiga_dos_command", command="makedir RAM:bbg " + " ".join(
-            sorted({"/".join(x.split("/")[:i]) for x in dirs for i in range(2, x.count("/") + 2)})) + " QUIET")
-        for f in fl:
-            g.push(m, f, amiga(f))
-        d = os.path.dirname(amiga(src))
-        for md in modes:
+    fl = files_of(src)
+    d = os.path.dirname(amiga(src))
+    pushed = False
+    # one guest session (lock + banner) a mode: sessions are limited to 600 s
+    for md in modes:
+        with g.testing("Boing BASIC: %s (%s)" % (os.path.basename(src), md)):
+            t0 = time.time()
+            if not pushed:
+                dirs = sorted({os.path.dirname(amiga(p)) for p in fl})
+                m.tool("amiga_dos_command", command="makedir RAM:bbg " + " ".join(
+                    sorted({"/".join(x.split("/")[:i]) for x in dirs for i in range(2, x.count("/") + 2)})) + " QUIET")
+                for f in fl:
+                    g.push(m, f, amiga(f))
+                pushed = True
             if md == "native":
                 g.push(m, exe, d + "/native")
                 cmd = "%s/native %s" % (d, args)
             else:
                 g.push(m, os.path.join(ROOT, "build/os4/boing"), "RAM:bbg/boing")
                 cmd = "RAM:bbg/boing run %s%s %s" % ("--jit " if md == "jit" else "", amiga(src), args)
+            print("(pushed in %.0f s)" % (time.time() - t0))
             m.tool("amiga_dos_command", command="cd " + d)
             if shot:
                 m.tool("amiga_dos_command", command="run >NIL: %s >RAM:bbg/shot.out *>RAM:bbg/shot.err" % cmd)
@@ -154,10 +160,9 @@ def main():
             out = run(m, cmd, "RAM:bbg/%s.out" % md, limit)
             print("== %s: %s\n%s" % (md, cmd, out.strip()))
             ok &= "FAIL" not in out
-        n = g.reapers(m)
-        if n:
-            print("Grim Reapers: %d" % n)
-            ok = False
+            n = g.reapers(m)
+            if n:
+                print("Grim Reapers on the guest: %d" % n)
     return 0 if ok else 1
 
 
