@@ -552,7 +552,7 @@ static int clip_set_picture(bb_obj *canvas)
 {
     const uint32_t *px;
     int32_t w, h;
-    if (!canvas || !bb_canvas_pixels(canvas, &px, &w, &h)) return 13;
+    if (!canvas || !(px = bb_canvas_pixels(canvas, &w, &h))) return 13;
     if (!dt()) return 5;
     Object *o = IDT->NewDTObject(NULL, DTA_SourceType, DTST_RAM, DTA_GroupID, GID_PICTURE, PDTA_DestMode, PMODE_V43,
                                  TAG_DONE);

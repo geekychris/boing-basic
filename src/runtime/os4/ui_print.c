@@ -76,7 +76,7 @@ static uint32 source_hook(struct Hook *h, APTR dummy, struct DRPSourceMsg *m)
 static int paint_picture(bb_obj *canvas, int argc, const bb_fval *argv)
 {
     struct pic p;
-    if (!canvas || !bb_canvas_pixels(canvas, &p.px, &p.w, &p.h)) return 13;
+    if (!canvas || !(p.px = bb_canvas_pixels(canvas, &p.w, &p.h))) return 13;
     int e = prn_open();
     if (e) return e;
     struct Hook hook = { { 0 } };

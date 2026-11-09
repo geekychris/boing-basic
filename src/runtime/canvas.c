@@ -823,18 +823,7 @@ int bb_canvas_ctl_geometry(bb_ctl *ctl, int *w, int *h, int *scale)
     return 0;
 }
 
-/* Clipboard.SetPicture / GetPicture (docs/ui.md): the pixels of the canvas's drawing target,
-   and a picture copied into its back buffer (resized to w x h) */
-int bb_canvas_pixels(bb_obj *o, const uint32_t **px, int32_t *w, int32_t *h)
-{
-    bb_canvas *c = (bb_canvas *)o;
-    if (!bb_is_canvas(o)) return 0;
-    *px = c->tp;
-    *w = c->tw;
-    *h = c->th;
-    return 1;
-}
-
+/* Clipboard.GetPicture (docs/ui.md): a picture copied into the back buffer (resized to w x h) */
 int bb_canvas_put_picture(bb_obj *o, const uint32_t *px, int32_t w, int32_t h)
 {
     bb_canvas *c = (bb_canvas *)o;
