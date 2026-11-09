@@ -9,7 +9,7 @@ that axis, turning with it. Fly your craft in along the axis, roll to match the 
 as fast as it turns, and close in gently. There is no friction in space: a push lasts until
 you push back, and fuel is limited.
 
-![The approach to station 4, on the guest](screenshots/os4-approach.png)
+![The approach to station 4 (range 500, debris drifting across), on the guest](screenshots/os4-approach.png)
 
 | Key | |
 |---|---|
@@ -37,7 +37,9 @@ On the title, Up / Down choose the station to start from; Space or Return starts
 - Scoring: 1000 a dock, + 500 x the station, + 2 for each unit of fuel left, less a little
   for the time taken.
 
-![High scores](screenshots/os4-scores.png)
+| | |
+|---|---|
+| ![How to play](screenshots/os4-help.png) | ![High scores](screenshots/os4-scores.png) |
 
 ## What is the same, what changed
 
@@ -97,8 +99,8 @@ Changed:
 - **Guest smoke run**: `BB_GUEST=m1b examples/common/tools/guest_game.py
   examples/orbit_docking_bb/OrbitDocking.bbp vm --smoke 400 --data RAM:bbg/examples/orbit_docking_bb`
   (passed: AHI, the thrusters' effect, no Grim Reaper).
-- **Screenshots**: `tools/guest_shots.py OUTDIR` (one lock ticket each); the ones here are
-  from the local guest.
+- **Screenshots**: `tools/guest_shots.py OUTDIR [vm] [names]` (one lock ticket each); the
+  approach and help are from m1b, the scores from the local guest.
 
 ## Performance
 

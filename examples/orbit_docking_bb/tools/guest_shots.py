@@ -14,6 +14,7 @@ import guest_game as gg
 g = gg.g
 
 SHOTS = [  # name, arguments, seconds
+    ("far", "--autoplay --level 4", 7),
     ("approach", "--autoplay --level 4", 14),
     ("close", "--autoplay --level 1", 50),
     ("title", "", 16),
