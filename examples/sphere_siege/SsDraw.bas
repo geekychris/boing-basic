@@ -258,10 +258,10 @@ Private Sub StarsAndShell()
     nDots = 0
     For i = 0 To NSTARS - 1
         x = sX(i): y = sY(i): z = sZ(i)
-        qz = Int((CDbl(x) * cF.x + CDbl(y) * cF.y + CDbl(z) * cF.z) / 65536#)
+        qz = MulShr(x, cF.x, 16) + MulShr(y, cF.y, 16) + MulShr(z, cF.z, 16)
         If qz >= 2000 Then
-            qx = Int((CDbl(x) * cR.x + CDbl(y) * cR.y + CDbl(z) * cR.z) / 65536#)
-            qy = Int((CDbl(x) * cU.x + CDbl(y) * cU.y + CDbl(z) * cU.z) / 65536#)
+            qx = MulShr(x, cR.x, 16) + MulShr(y, cR.y, 16) + MulShr(z, cR.z, 16)
+            qy = MulShr(x, cU.x, 16) + MulShr(y, cU.y, 16) + MulShr(z, cU.z, 16)
             If Proj() Then AddDot pen(sPen(i))
         End If
     Next i
@@ -277,13 +277,13 @@ Private Sub StarsAndShell()
         ' Xfi and Proj written out (calls cost in the VM)
         x = gX(i) - cpx: y = gY(i) - cpy: z = gZ(i) - cpz
         t = x * fx + y * fy + z * fz
-        qz = (t - (t And 16383)) \ 16384
+        qz = ShrA(t, 14)
         If qz >= 300 Then
             t = x * rx + y * ry + z * rz
-            scx = G_W \ 2 + (((t - (t And 16383)) \ 16384) * FOV) \ qz
+            scx = G_W \ 2 + (ShrA(t, 14) * FOV) \ qz
             If scx >= 0 And scx < G_W Then
                 t = x * ux + y * uy + z * uz
-                scy = G_H \ 2 - (((t - (t And 16383)) \ 16384) * FOV) \ qz
+                scy = G_H \ 2 - (ShrA(t, 14) * FOV) \ qz
                 If scy >= 0 And scy < G_H Then
                     If qz > 6400 Then
                         dotX(nDots) = scx: dotY(nDots) = scy: dotC(nDots) = c7

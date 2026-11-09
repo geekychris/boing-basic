@@ -88,15 +88,7 @@ End Function
 
 ' (integer only: clearing the low bits first makes \ round down; floating point is
 ' slow on the QEMU guest)
-Public Function ShrA(ByVal x As Long, ByVal k As Long) As Long
-    If k = 0 Then
-        ShrA = x
-    ElseIf k >= 31 Then
-        If x < 0 Then ShrA = -1 Else ShrA = 0
-    Else
-        ShrA = (x - (x And (pow2L(k) - 1))) \ pow2L(k)
-    End If
-End Function
+' ShrA(x, k) is the builtin (an arithmetic shift, k 0..31)
 
 Public Function ShrU(ByVal x As Long, ByVal k As Long) As Long
     If k = 0 Then
@@ -149,11 +141,11 @@ End Function
 ' ---------- 16.16 fixed point ----------
 
 Public Function FMul(ByVal a As Long, ByVal b As Long) As Long
-    FMul = Int(CDbl(a) * b / 65536#)
+    FMul = MulShr(a, b, 16)          ' (int64)a * b >> 16, rounding down
 End Function
 
 Public Function FDiv(ByVal a As Long, ByVal b As Long) As Long
-    FDiv = Fix(CDbl(a) * 65536# / b)
+    FDiv = MulDiv(a, 65536, b)       ' (int64)a * 65536 / b, truncating
 End Function
 
 Public Function FromI(ByVal i As Long) As Long
