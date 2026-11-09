@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Tincture on an AmigaOS 4 guest: deploy, smoke test, benchmarks, screenshots.
 
-    BB_GUEST=m1 examples/tincture/tools/guest.py push             sources, help, icons, binaries -> DH1:tincture/
-    BB_GUEST=m1 examples/tincture/tools/guest.py smoke [SHOTDIR]  every tool through the real handlers, undo all,
+    BB_GUEST=m1b examples/tincture/tools/guest.py push             sources, help, icons, binaries -> DH1:tincture/
+    BB_GUEST=m1b examples/tincture/tools/guest.py smoke [SHOTDIR]  every tool through the real handlers, undo all,
                                                                   redo all, a screenshot; checks it quits cleanly
-    BB_GUEST=m1 examples/tincture/tools/guest.py input [SHOTDIR]  real mouse input into its own active window:
+    BB_GUEST=m1b examples/tincture/tools/guest.py input [SHOTDIR]  real mouse input into its own active window:
                                                                   steer into the view, paint a stroke, check it
-    BB_GUEST=m1 examples/tincture/tools/guest.py arexx            drive a running Tincture from demo/arexx-test.rexx
-    BB_GUEST=m1 examples/tincture/tools/guest.py demo [SHOTDIR]   paints demo/*.tsc scripts, screenshots each
-    BB_GUEST=m1 examples/tincture/tools/guest.py bench [N]        --bench N strokes: native, VM, VM --jit
-    BB_GUEST=m1 examples/tincture/tools/guest.py run 'ARGS'       run the VM build with ARGS, print its output
+    BB_GUEST=m1b examples/tincture/tools/guest.py idle             idle 30 s: the bridge must keep answering
+    BB_GUEST=m1b examples/tincture/tools/guest.py arexx            drive a running Tincture from demo/arexx-test.rexx
+    BB_GUEST=m1b examples/tincture/tools/guest.py demo [SHOTDIR]   paints demo/*.tsc scripts, screenshots each
+    BB_GUEST=m1b examples/tincture/tools/guest.py bench [N]        --bench N strokes: native, VM, VM --jit
+    BB_GUEST=m1b examples/tincture/tools/guest.py run 'ARGS'       run the VM build with ARGS, print its output
 
 Needs build/os4/boing (tools/build-os4.sh) and, for native runs, build/Tincture
 (build/boing build examples/tincture/Tincture.bbp --target os4 -o build/Tincture).
@@ -228,6 +229,28 @@ def arexx_test(m):
     return ok
 
 
+def idle_test(m):
+    """Start Tincture, leave it idle 30 s, and check the bridge answers quickly all along."""
+    t = int(time.time())
+    outf = "RAM:tincture_idle_%d.log" % t
+    prog = ("%s/Tincture" % DIR) if os.path.exists(ROOT + "/build/Tincture") else vm_cmd()
+    launch(m, "%s --hold 45 --log >%s *>%s.err" % (prog, outf, outf))
+    if not wait_for(m, outf, "active", 90):
+        print(dos(m, "type %s.err" % outf))
+        return False
+    worst, t0 = 0.0, time.time()
+    while time.time() - t0 < 30:
+        a = time.time()
+        dos(m, "echo ping")
+        worst = max(worst, time.time() - a)
+        time.sleep(2)
+    print("idle 30 s: slowest bridge round trip %.2f s" % worst)
+    wait_for(m, outf, "quit", 40)
+    time.sleep(2)
+    print("process gone:", gone(m))
+    return worst < 3.0 and gone(m)
+
+
 def bench(m, n):
     runs = [("native", "%s/Tincture" % DIR), ("vm", vm_cmd()),
             ("jit", "%s/boing run --jit %s/Tincture.bbp" % (DIR, DIR))]
@@ -261,6 +284,11 @@ def main():
             push_all(m)
             ok = input_test(m, sys.argv[2] if len(sys.argv) > 2 else os.path.join(tempfile.gettempdir(), "tincture"))
             print("INPUT", "PASS" if ok else "FAIL")
+            sys.exit(0 if ok else 1)
+        elif what == "idle":
+            push_all(m)
+            ok = idle_test(m)
+            print("IDLE", "PASS" if ok else "FAIL")
             sys.exit(0 if ok else 1)
         elif what == "arexx":
             push_all(m)

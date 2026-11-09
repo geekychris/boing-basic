@@ -180,6 +180,7 @@ Private Sub UpdateAll()
     busy = True
     UpdateOnce
     If needView Or needTools Or needColours Or needLayers Or needTitle Then UpdateOnce
+    SetTickRate
     busy = False
 End Sub
 
@@ -553,14 +554,24 @@ End Sub
 
 ' ---------------------------------------------------------------- timers
 
+' the tick runs fast (60 ms) only while something animates (marching ants, the airbrush) or
+' work is pending, and every 500 ms otherwise: an idle Tincture costs nothing
+Private Sub SetTickRate()
+    Dim want As Long
+    If selActive Or floatImg <> 0 Or quitAt > 0 Or statusPending Or (IsStroking() And curTool = T_AIRBRUSH) Then want = 60 Else want = 500
+    If tick.Interval <> want Then tick.Interval = want
+End Sub
+
 Private Sub tick_Timer()
     If quitAt > 0 And Timer >= quitAt Then
         If logActive Then Debug.Print "quit"
         QuitNow
         Exit Sub
     End If
-    If selActive Or floatImg <> 0 Then
-        antsPhase = (antsPhase + 1) Mod 8
+    Static n As Long
+    n = n + 1
+    If (selActive Or floatImg <> 0) And (n Mod 3) = 0 And Not IsStroking() Then
+        antsPhase = (antsPhase + 2) Mod 8          ' marching ants, about 5 steps a second
         needView = True
     End If
     If IsStroking() And curTool = T_AIRBRUSH Then ToolTick: needView = True
@@ -569,6 +580,7 @@ Private Sub tick_Timer()
     ElseIf statusPending Then
         UpdateStatus
     End If
+    SetTickRate
 End Sub
 
 Private Sub autotimer_Timer()
