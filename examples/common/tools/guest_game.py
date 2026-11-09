@@ -24,7 +24,7 @@ import os4guest as g
 def files_of(src):
     d = os.path.dirname(src)
     out = [os.path.join(d, f) for f in sorted(os.listdir(d))
-           if os.path.splitext(f)[1].lower() in (".bas", ".bbp", ".afg", ".cls", ".mod", ".ppm")]
+           if os.path.splitext(f)[1].lower() in (".bas", ".bbp", ".afg", ".cls", ".mod", ".ppm", ".raw")]
     for line in open(src, encoding="latin-1"):
         mm = re.match(r"\s*(Module|Form|Class)\s*=\s*(\S+)", line, re.I)
         if mm:

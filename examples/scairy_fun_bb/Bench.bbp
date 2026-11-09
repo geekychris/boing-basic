@@ -1,0 +1,13 @@
+# Boing BASIC project: ScAIry Fun console bench (logic + drawing on an off-screen Canvas)
+Name=ScairyBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/Gfx2D.bas
+Module=ScCore.bas
+Module=ScDraw.bas
+Module=ScSound.bas
+Module=ScShell.bas
+Module=BenchMain.bas
+Stack=262144

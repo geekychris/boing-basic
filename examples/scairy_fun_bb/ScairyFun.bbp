@@ -1,0 +1,13 @@
+# Boing BASIC project: ScAIry Fun, a self-driving car game (a port of amiga_mcp's examples/scairy_fun)
+Name=ScairyFun
+Startup=Form scairy
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/Gfx2D.bas
+Module=ScCore.bas
+Module=ScDraw.bas
+Module=ScSound.bas
+Module=ScShell.bas
+Form=scairy.afg
+Stack=262144
