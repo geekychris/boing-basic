@@ -59,11 +59,12 @@ static struct Window *find_window_ex(const char *title, int *front)
     struct IntuitionBase *ib = (struct IntuitionBase *)IntuitionBase;
     struct Window *found = NULL;
     struct Screen *wb = IIntuition->LockPubScreen(NULL);
-    uint32 lock = IIntuition->LockIBase(0);
+    /* Forbid, not LockIBase: a crashed task holding Intuition's lock must not hang the test */
+    IExec->Forbid();
     for (struct Window *w = wb ? wb->FirstWindow : NULL; w; w = w->NextWindow)
         if (w->Title && !strcmp((const char *)w->Title, title)) found = w;
     if (front) *front = ib->FirstScreen == wb;
-    IIntuition->UnlockIBase(lock);
+    IExec->Permit();
     if (wb) IIntuition->UnlockPubScreen(NULL, wb);
     return found;
 }

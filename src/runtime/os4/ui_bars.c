@@ -349,7 +349,8 @@ int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         if (IS("Fill")) { c->fill = vint(v) != 0; relayout(c->form); return 0; }
         if (IS("MousePointer")) {
             c->ptr = vint(v);
-            bbf_update_pointer(c->form, c->form->mouse_wanted ? c->mx : -1, -1);   /* takes effect at the next move */
+            if (!c->form->mouse_wanted) bbf_update_pointer(c->form, -1, -1);   /* else at the next mouse move */
+            else c->form->curptr = -1;                                       /* (forces the update then) */
             return 0;
         }
         if (IS("MouseX") || IS("MouseY") || IS("MouseButtons")) return 383;

@@ -26,6 +26,7 @@ with os4guest.testing("Boing pointer screenshot"):
         if "ui_pointer_show" not in st:
             break
     print(m.tool("amiga_dos_command", command="type RAM:bbtest/ptr.out"))
+    print(m.tool("amiga_dos_command", command="type RAM:bbtest/ptr.err"))
     for line in st.splitlines():
         if "ui_pointer_show" in line:
             cli = line.split()[1].rstrip(":")

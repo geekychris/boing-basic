@@ -592,6 +592,7 @@ static void form_free(bb_form *f)
     }
     box_save(f);
     bbf_app_window_close(f);
+    if (f->win && f->curptr != POINTERTYPE_NORMAL) IIntuition->SetWindowPointer(f->win, TAG_DONE);
     if (f->winobj) {
         if (f->win) IIntuition->IDoMethod(f->winobj, WM_CLOSE);
         IIntuition->DisposeObject(f->winobj);    /* disposes the layout and gadgets too */
@@ -723,7 +724,14 @@ static int vb_pointer(int v)
     case 15: return POINTERTYPE_SCROLLALL;      /* vbSizeAll */
     default:
         /* 100 + an OS4 pointer type: pen 135, rubber 137, zoom in 133, hand 111 ... */
-        if (v >= 100 && v <= 100 + POINTERTYPE_SMUDGE) return v - 100;
+        if (v >= 100 && v <= 100 + POINTERTYPE_SMUDGE) {
+            int t = v - 100;
+            /* pen, rotate, rubber, select and smudge are intuition.library 54.21: older ones get the cross */
+            struct Library *ib = (struct Library *)IntuitionBase;
+            if (t >= POINTERTYPE_PEN && (ib->lib_Version < 54 || (ib->lib_Version == 54 && ib->lib_Revision < 21)))
+                t = POINTERTYPE_CROSS;
+            return t;
+        }
         return POINTERTYPE_NORMAL;              /* vbDefault, vbArrow */
     }
 }
@@ -1056,6 +1064,8 @@ int bb_form_hide(bb_form *f)
     if (!f->loaded) return 364;
     box_save(f);
     bbf_app_window_close(f);
+    if (f->win && f->curptr != POINTERTYPE_NORMAL) IIntuition->SetWindowPointer(f->win, TAG_DONE);   /* back to the default first */
+    f->curptr = POINTERTYPE_NORMAL;
     if (f->win) IIntuition->IDoMethod(f->winobj, WM_CLOSE);
     f->win = NULL;
     f->iconified = 0;

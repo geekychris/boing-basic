@@ -8,7 +8,7 @@
 
 static const char __attribute__((used)) stack_cookie[] = "$STACK:262144";
 static bb_form *form;
-static int ticks, secs = 8;
+static int ticks, secs = 8;   /* a guard: the timer quits after secs */
 
 static int ev(void *ud, bb_form *f, const char *ctl, const char *e, int argc, int32_t *args)
 {
@@ -27,6 +27,16 @@ static int ev(void *ud, bb_form *f, const char *ctl, const char *e, int argc, in
         bb_fval v;
         bb_ctl_get(bb_form_self(f), "PointerType", -1, &v);
         printf("PointerType %ld\n", (long)v.i);
+    }
+    /* run-time MousePointer changes (pen, rubber, select, cross) before quitting: bb-app-paint's
+       crash at exit */
+    if (ticks == secs * 2 - 4 || ticks == secs * 2 - 3 || ticks == secs * 2 - 2) {
+        static const int p[3] = { 135, 137, 138 };
+        bb_fval v = { BB_FV_INT, p[ticks - (secs * 2 - 4)], NULL, NULL };
+        bb_ctl_set(bb_form_ctl(f, "view"), "MousePointer", -1, &v);
+        printf("MousePointer = %ld\n", (long)v.i);
+        int x, y, w, h;       /* a move over the canvas, so the new pointer is set on the window */
+        if (ready_mouse() && bb_ctl_screen_box(bb_form_ctl(f, "view"), &x, &y, &w, &h)) pointer(x + w / 2 + (ticks & 1), y + h / 2);
     }
     if (ticks >= secs * 2) bb_form_unload(f);
     return 0;
@@ -50,5 +60,6 @@ int main(int argc, char **argv)
     bb_obj_release(cv);
     bb_forms_cleanup();
     inject_close();
+    printf("ok 1 - closed after run-time MousePointer changes\nPASS (1/1)\n");
     return 0;
 }
