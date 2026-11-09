@@ -1,0 +1,6 @@
+# Canyon Rail's rules (examples/canyon_rail): games with hashes equal to the C original's
+Name=CrTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/canyon_rail/CrCore.bas
+Module=crtest.bas
