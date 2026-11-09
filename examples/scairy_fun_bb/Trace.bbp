@@ -1,0 +1,7 @@
+# Boing BASIC project: ScAIry Fun's simulation against the C original (tools/trace.sh prints the same)
+Name=ScairyTrace
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=ScCore.bas
+Module=TraceMain.bas
+Stack=262144

@@ -1,0 +1,58 @@
+mode 0 route 1 traffic 100, 3000 frames: route 1 state 0 seg 272 score 0 cover 100 saves 0 needless 0 takeovers 0 events 0/811C9DC5 hash BF5A6F08
+  f 1000 route 1 state 2 seg 104 score 2367 cover 100 hash 51A0F3DE
+  f 2000 route 1 state 2 seg 188 score 7437 cover 100 hash 2EE9EE66
+  f 3000 route 1 state 2 seg 272 score 12809 cover 100 hash 8F4A00E0
+  f 4000 route 1 state 2 seg 359 score 18420 cover 100 hash 7140A444
+mode 1 route 1 traffic 100, 4744 frames: route 1 state 3 seg 438 score 28433 cover 100 saves 0 needless 0 takeovers 0 events 13/00FB6665 hash 7845C1DB
+  f 1000 route 2 state 2 seg 118 score 2463 cover 100 hash FA3C2816
+  f 2000 route 2 state 2 seg 201 score 7377 cover 100 hash 5C634AAD
+  f 3000 route 2 state 2 seg 284 score 12690 cover 100 hash 8836F515
+  f 4000 route 2 state 2 seg 366 score 17935 cover 90 hash B069B75F
+  f 5000 route 2 state 2 seg 450 score 23315 cover 90 hash 6E0676CD
+mode 1 route 2 traffic 100, 5232 frames: route 2 state 3 seg 470 score 29552 cover 100 saves 0 needless 0 takeovers 0 events 15/3559AF4F hash 42DB97EC
+  f 1000 route 3 state 2 seg 99 score 2329 cover 100 hash 49333102
+  f 2000 route 3 state 2 seg 191 score 7720 cover 100 hash 318C4018
+  f 3000 route 3 state 2 seg 288 score 13938 cover 100 hash D7AA4A92
+  f 4000 route 3 state 2 seg 385 score 20157 cover 100 hash FA7F05F4
+mode 1 route 3 traffic 100, 4126 frames: route 3 state 3 seg 398 score 25947 cover 100 saves 0 needless 0 takeovers 0 events 13/1A4BF50F hash 029202D1
+  f 1000 route 4 state 2 seg 67 score 1558 cover 100 hash B9025FFE
+  f 2000 route 4 state 2 seg 105 score 3787 cover 100 hash 56320C40
+  f 3000 route 4 state 2 seg 156 score 7061 cover 100 hash 98596392
+  f 4000 route 4 state 2 seg 225 score 11491 cover 100 hash 4F6A316E
+  f 5000 route 4 state 2 seg 267 score 14122 cover 100 hash 1D8E5B81
+  f 6000 route 4 state 2 seg 331 score 18222 cover 100 hash 2E7A7214
+  f 7000 route 4 state 2 seg 400 score 22659 cover 100 hash 08774B11
+mode 1 route 4 traffic 100, 7137 frames: route 4 state 3 seg 410 score 28272 cover 100 saves 0 needless 0 takeovers 0 events 15/37CB13AC hash 032E249C
+  f 1000 route 1 state 2 seg 109 score 2561 cover 60 hash 7F5A78D3
+  f 2000 route 1 state 2 seg 98 score 2561 cover 60 hash A523008E
+  f 3000 route 1 state 2 seg 98 score 2561 cover 60 hash A8A0D835
+  f 4000 route 1 state 2 seg 98 score 2561 cover 60 hash 4DCCB2F4
+  f 5000 route 1 state 2 seg 98 score 2561 cover 60 hash ADC61C13
+  f 6000 route 1 state 2 seg 98 score 2561 cover 60 hash 6D6FB4AE
+  f 7000 route 1 state 2 seg 98 score 2561 cover 60 hash 8645EC46
+  f 8000 route 1 state 2 seg 98 score 2561 cover 60 hash 1070ED33
+  f 9000 route 1 state 2 seg 98 score 2561 cover 60 hash D5B5E798
+mode 2 route 1 traffic 100, 9000 frames: route 1 state 2 seg 98 score 2561 cover 60 saves 0 needless 0 takeovers 0 events 10/36A583AC hash D5B5E798
+  f 1000 route 2 state 2 seg 118 score 2497 cover 85 hash EE7676B1
+  f 2000 route 2 state 2 seg 201 score 7412 cover 85 hash 911685E7
+  f 3000 route 2 state 2 seg 284 score 12724 cover 85 hash B3543AAB
+  f 4000 route 2 state 2 seg 367 score 18038 cover 60 hash 80C2E490
+  f 5000 route 2 state 2 seg 450 score 23347 cover 60 hash 3B9D0471
+mode 2 route 2 traffic 100, 5232 frames: route 2 state 3 seg 470 score 29585 cover 90 saves 0 needless 0 takeovers 0 events 25/201262B6 hash 973BACC3
+  f 1000 route 3 state 2 seg 98 score 2286 cover 75 hash 5F3F9AA8
+  f 2000 route 3 state 2 seg 188 score 7555 cover 20 hash ACC69616
+mode 2 route 3 traffic 100, 2278 frames: route 3 state 5 seg 215 score 9284 cover 0 saves 0 needless 0 takeovers 0 events 33/6A1F871C hash 6717459E
+  f 1000 route 4 state 2 seg 67 score 1558 cover 100 hash B9025FFE
+  f 2000 route 4 state 2 seg 74 score 2471 cover 60 hash B7BE4F46
+  f 3000 route 4 state 2 seg 74 score 2471 cover 60 hash 2B249ECC
+  f 4000 route 4 state 2 seg 74 score 2471 cover 60 hash B05F4FEC
+  f 5000 route 4 state 2 seg 74 score 2471 cover 60 hash A521F227
+  f 6000 route 4 state 2 seg 74 score 2471 cover 60 hash 768B6A32
+  f 7000 route 4 state 2 seg 74 score 2471 cover 60 hash 14D5E455
+  f 8000 route 4 state 2 seg 74 score 2471 cover 60 hash D2589D59
+  f 9000 route 4 state 2 seg 74 score 2471 cover 60 hash 35426EE9
+mode 2 route 4 traffic 100, 9000 frames: route 4 state 2 seg 74 score 2471 cover 60 saves 0 needless 0 takeovers 0 events 14/52A4660B hash 35426EE9
+mode 3 route 1 traffic 60, 4000 frames: route 1 state 2 seg 64 score 28 cover 15 saves 0 needless 4 takeovers 4 events 118/0E455A8D hash 13A68AD3
+mode 3 route 2 traffic 60, 4000 frames: route 2 state 2 seg 49 score 9 cover 100 saves 0 needless 1 takeovers 1 events 136/7BF4C2C0 hash D110E3EC
+mode 3 route 3 traffic 60, 4000 frames: route 3 state 2 seg 68 score 103 cover 100 saves 0 needless 19 takeovers 20 events 176/5240674F hash 9FD914BA
+mode 3 route 4 traffic 60, 4000 frames: route 4 state 2 seg 76 score 189 cover 100 saves 0 needless 24 takeovers 32 events 201/30C31F74 hash 7800BC11
