@@ -8,4 +8,4 @@ Module=PwView.bas
 Module=PwScript.bas
 Form=penwright.afg
 Stack=262144
-Icon=Penwright.info
+Icon=icons/Penwright.info

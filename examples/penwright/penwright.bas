@@ -21,6 +21,7 @@ Private autosaveTicks As Long
 Private findWhat As String
 Private findCase As Boolean
 Private findWord As Boolean
+Private dragging As Boolean
 Private Const TICKS_PER_SEC As Long = 4
 Private Const AUTOSAVE_SECS As Long = 120
 
@@ -525,3 +526,130 @@ Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
     If PwQuit Then Exit Sub
     If Not ConfirmDiscard() Then Cancel = True
 End Sub
+
+' ---- menus --------------------------------------------------------------------------------
+
+Private Sub mnuNew_Click(): CmdNew: End Sub
+Private Sub mnuOpen_Click(): CmdOpen: End Sub
+Private Sub mnuSave_Click(): CmdSave: End Sub
+Private Sub mnuSaveAs_Click(): CmdSaveAs: End Sub
+Private Sub mnuExpRtf_Click(): ExportKind "rtf": End Sub
+Private Sub mnuExpHtml_Click(): ExportKind "html": End Sub
+Private Sub mnuExpTxt_Click(): ExportKind "txt": End Sub
+Private Sub mnuInfo_Click()
+    Dim t As String
+    t = InputBox("Title of the document:", "Penwright", DocTitle)
+    If t <> DocTitle Then Exec "TITLE " & t
+    t = InputBox("Author:", "Penwright", DocAuthor)
+    If t <> DocAuthor Then Exec "AUTHOR " & t
+End Sub
+Private Sub mnuHelp_Click(): ShowHelp: End Sub
+Private Sub mnuAbout_Click()
+    MsgBox "Penwright 1.0" & vbLf & "A word processor for AmigaOS 4," & vbLf & "written in Boing BASIC." & vbLf & vbLf & _
+           IIf(SpellReady, "Spelling dictionary loaded.", "No spelling dictionary found."), vbInformation, "About Penwright"
+End Sub
+Private Sub mnuQuit_Click(): Unload Me: End Sub
+Private Sub mnuUndo_Click(): Exec "UNDO": End Sub
+Private Sub mnuRedo_Click(): Exec "REDO": End Sub
+Private Sub mnuCut_Click(): CmdCopy True: End Sub
+Private Sub mnuCopy_Click(): CmdCopy False: End Sub
+Private Sub mnuPaste_Click(): CmdPaste: End Sub
+Private Sub mnuSelAll_Click(): Exec "SELECTALL": End Sub
+Private Sub mnuFind_Click(): CmdFind: End Sub
+Private Sub mnuFindNext_Click(): CmdFindNext: End Sub
+Private Sub mnuReplace_Click(): CmdReplace: End Sub
+Private Sub mnuBold_Click(): Exec "BOLD": End Sub
+Private Sub mnuItalic_Click(): Exec "ITALIC": End Sub
+Private Sub mnuUnder_Click(): Exec "UNDERLINE": End Sub
+Private Sub mnuStrike_Click(): Exec "STRIKE": End Sub
+Private Sub mnuPlain_Click(): Exec "PLAIN": End Sub
+Private Sub mnuBigger_Click(): StepSize 1: End Sub
+Private Sub mnuSmaller_Click(): StepSize -1: End Sub
+Private Sub mnuStBody_Click(): Exec "STYLE BODY": End Sub
+Private Sub mnuStH1_Click(): Exec "STYLE HEADING1": End Sub
+Private Sub mnuStH2_Click(): Exec "STYLE HEADING2": End Sub
+Private Sub mnuStH3_Click(): Exec "STYLE HEADING3": End Sub
+Private Sub mnuStQuote_Click(): Exec "STYLE QUOTE": End Sub
+Private Sub mnuStBullet_Click(): Exec "STYLE BULLET": End Sub
+Private Sub mnuStCode_Click(): Exec "STYLE CODE": End Sub
+Private Sub mnuAlLeft_Click(): Exec "ALIGN LEFT": End Sub
+Private Sub mnuAlCenter_Click(): Exec "ALIGN CENTER": End Sub
+Private Sub mnuAlRight_Click(): Exec "ALIGN RIGHT": End Sub
+Private Sub mnuAlJustify_Click(): Exec "ALIGN JUSTIFY": End Sub
+Private Sub mnuSpell_Click(): CmdSpell: End Sub
+Private Sub mnuLive_Click(): LiveSpell = mnuLive.Checked: Redraw: End Sub
+Private Sub mnuCount_Click(): CmdCount: End Sub
+Private Sub mnuMarks_Click(): ShowMarks = mnuMarks.Checked: Redraw: End Sub
+
+Private Sub ExportKind(ByVal k As String)
+    Dim f As String, base As String
+    base = PwPath
+    If base = "" Then base = "RAM:document.pwd"
+    If InStrRev(base, ".") > 0 Then base = Left$(base, InStrRev(base, ".") - 1)
+    f = AskFile("Export as " & UCase$(k) & " to:", base & "." & k)
+    If f = "" Then Exit Sub
+    Exec "EXPORT " & k & " " & f
+    If PwRC = 0 Then ShowStatus "Exported to " & f
+End Sub
+
+' the next size up or down in the size list
+Private Sub StepSize(ByVal d As Long)
+    Dim k As Long
+    k = size.ListIndex + d
+    If k < 0 Or k >= size.ListCount Then Exit Sub
+    Exec "SIZE " & size.List(k)
+End Sub
+
+' ---- mouse --------------------------------------------------------------------------------
+
+Private Sub page_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    Dim p As Long, o As Long
+    If Button <> 1 Then Exit Sub
+    PosAt X, Y, p, o
+    SetCursor p, o, (Shift And 1) <> 0
+    TypingSet = False
+    BreakTyping
+    dragging = True
+    wantX = -1
+    Redraw
+End Sub
+
+Private Sub page_MouseMove(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    Dim p As Long, o As Long
+    If Not dragging Then Exit Sub
+    If Y < 0 Then scrollY = scrollY - 16
+    If Y >= vh Then scrollY = scrollY + 16
+    If scrollY > DocHeight() - vh Then scrollY = DocHeight() - vh
+    If scrollY < 0 Then scrollY = 0
+    PosAt X, Y, p, o
+    SetCursor p, o, True
+    Redraw
+End Sub
+
+Private Sub page_MouseUp(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    dragging = False
+End Sub
+
+Private Sub page_DblClick()
+    Dim ws As Long, wl As Long
+    WordAt curP, curO, ws, wl
+    If wl = 0 Then Exit Sub
+    SetCursor curP, ws, False
+    SetCursor curP, ws + wl, True
+    dragging = False
+    Redraw
+End Sub
+
+Private Sub page_MouseWheel(Delta As Integer)
+    scrollY = scrollY - Delta * 48
+    If scrollY > DocHeight() - vh Then scrollY = DocHeight() - vh
+    If scrollY < 0 Then scrollY = 0
+    Redraw
+End Sub
+
+Private Sub mnuXCut_Click(): CmdCopy True: End Sub
+Private Sub mnuXCopy_Click(): CmdCopy False: End Sub
+Private Sub mnuXPaste_Click(): CmdPaste: End Sub
+Private Sub mnuXBold_Click(): Exec "BOLD": End Sub
+Private Sub mnuXItalic_Click(): Exec "ITALIC": End Sub
+Private Sub mnuXSpell_Click(): CmdSpell: End Sub

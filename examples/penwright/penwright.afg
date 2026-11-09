@@ -11,7 +11,69 @@ vlayout id=root
     chooser id=align items="Left|Centre|Right|Justify" selected=0 weight=0 hint="Alignment"
     button id=findbtn text="_Find" weight=0 hint="Find and replace (Amiga-F)"
     button id=spellbtn text="_Spell" weight=0 hint="Next misspelt word (Amiga-K)"
-  canvas id=page width=660 height=430
+  canvas id=page width=660 height=430 contextmenu=mnuCtx
   hlayout weight=0
     label id=status text="Ready"
   timer id=tick interval=250 enabled=1
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New" key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu id=mnuSave text="Save" key=S
+  menu id=mnuSaveAs text="Save as..."
+  menu text=-
+  menu id=mnuExpRtf text="Export RTF..."
+  menu id=mnuExpHtml text="Export HTML..."
+  menu id=mnuExpTxt text="Export text..."
+  menu text=-
+  menu id=mnuInfo text="Document info..."
+  menu id=mnuHelp text="Help..."
+  menu id=mnuAbout text="About..."
+  menu text=-
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuEdit text="Edit"
+  menu id=mnuUndo text="Undo" key=Z
+  menu id=mnuRedo text="Redo" key=Y
+  menu text=-
+  menu id=mnuCut text="Cut" key=X
+  menu id=mnuCopy text="Copy" key=C
+  menu id=mnuPaste text="Paste" key=V
+  menu id=mnuSelAll text="Select all" key=A
+  menu text=-
+  menu id=mnuFind text="Find..." key=F
+  menu id=mnuFindNext text="Find next" key=G
+  menu id=mnuReplace text="Replace all..." key=R
+menu id=mnuText text="Text"
+  menu id=mnuBold text="Bold" key=B
+  menu id=mnuItalic text="Italic" key=I
+  menu id=mnuUnder text="Underline" key=U
+  menu id=mnuStrike text="Strike through"
+  menu id=mnuPlain text="Plain" key=P
+  menu text=-
+  menu id=mnuBigger text="Bigger" key=>
+  menu id=mnuSmaller text="Smaller" key=<
+menu id=mnuPara text="Paragraph"
+  menu id=mnuStBody text="Body" key=0
+  menu id=mnuStH1 text="Heading 1" key=1
+  menu id=mnuStH2 text="Heading 2" key=2
+  menu id=mnuStH3 text="Heading 3" key=3
+  menu id=mnuStQuote text="Quote" key=4
+  menu id=mnuStBullet text="Bullet" key=5
+  menu id=mnuStCode text="Code" key=6
+  menu text=-
+  menu id=mnuAlLeft text="Align left" key=[
+  menu id=mnuAlCenter text="Centre" key=|
+  menu id=mnuAlRight text="Align right" key=]
+  menu id=mnuAlJustify text="Justify" key=J
+menu id=mnuTools text="Tools"
+  menu id=mnuSpell text="Check spelling" key=K
+  menu id=mnuLive text="Mark misspelt words" checkable=1 checked=1
+  menu id=mnuCount text="Word count" key=W
+  menu id=mnuMarks text="Show paragraph marks" checkable=1 key=M
+menu id=mnuCtx text="Edit" hidden=1
+  menu id=mnuXCut text="Cut"
+  menu id=mnuXCopy text="Copy"
+  menu id=mnuXPaste text="Paste"
+  menu text=-
+  menu id=mnuXBold text="Bold"
+  menu id=mnuXItalic text="Italic"
+  menu id=mnuXSpell text="Check spelling"

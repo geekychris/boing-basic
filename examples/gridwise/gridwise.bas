@@ -16,6 +16,10 @@ Private settingText As Boolean        ' formula.Text set by code: ignore its Cha
 Private editing As Boolean            ' the formula bar holds an edit of the cursor cell
 Private lastStatus As String
 Private lastCellName As String
+Private lastFind As String
+Private clipText As String
+Private dragMode As Long              ' 1 cells, 2 column width, 3 move chart, 4 size chart, 5 columns, 6 rows
+Private dragX As Long, dragY As Long, dragW As Long, dragH As Long, dragCol As Long
 Private scriptLog As String
 Private autosaveTicks As Long
 Private Const AUTOSAVE_SECS As Long = 120
@@ -320,9 +324,9 @@ Private Sub AmigaKey(ByVal k As Integer, ByVal shifted As Boolean)
     Case vbKeyQ: CmdQuit
     Case vbKeyZ: If shifted Then Exec "REDO" Else Exec "UNDO"
     Case vbKeyY: Exec "REDO"
-    Case vbKeyX: Exec "CUT"
-    Case vbKeyC: Exec "COPY"
-    Case vbKeyV: Exec "PASTE"
+    Case vbKeyX: CmdCopy True
+    Case vbKeyC: CmdCopy False
+    Case vbKeyV: CmdPaste
     Case vbKeyD: Exec "FILLDOWN"
     Case vbKeyR: Exec "FILLRIGHT"
     Case vbKeyB: Exec "BOLD"
@@ -420,8 +424,9 @@ End Sub
 
 Private Sub CmdFind()
     Dim f As String
-    f = InputBox("Find text in the cells:", "Gridwise")
+    f = InputBox("Find text in the cells:", "Gridwise", lastFind)
     If f = "" Then Exit Sub
+    lastFind = f
     Redraw
     If FindNext(f, False) = "" Then ShowStatus "Not found: " & f Else Redraw
 End Sub
@@ -474,4 +479,231 @@ Private Sub tick_Timer()
         End If
     End If
     UpdateTitle
+End Sub
+
+' ---- menus --------------------------------------------------------------------------------
+
+Private Sub mnuNew_Click(): CmdNew: End Sub
+Private Sub mnuOpen_Click(): CmdOpen: End Sub
+Private Sub mnuSave_Click(): CmdSave: End Sub
+Private Sub mnuSaveAs_Click(): CmdSaveAs: End Sub
+Private Sub mnuImport_Click()
+    Dim f As String
+    If Not ConfirmDiscard() Then Exit Sub
+    f = AskFile("Import a CSV file:", "")
+    If f <> "" Then Exec "IMPORTCSV " & f
+End Sub
+Private Sub mnuExport_Click(): CmdExportCsv: End Sub
+Private Sub mnuHelp_Click(): CmdHelp: End Sub
+Private Sub mnuAbout_Click()
+    MsgBox "Gridwise 1.0" & vbLf & "A spreadsheet with charts for AmigaOS 4," & vbLf & "written in Boing BASIC." & vbLf & vbLf & _
+           NR & " rows x " & NC & " columns, " & FormulaCount & " formulas", vbInformation, "About Gridwise"
+End Sub
+Private Sub mnuQuit_Click(): CmdQuit: End Sub
+Private Sub mnuUndo_Click(): Exec "UNDO": End Sub
+Private Sub mnuRedo_Click(): Exec "REDO": End Sub
+Private Sub mnuCut_Click(): CmdCopy True: End Sub
+Private Sub mnuCopy_Click(): CmdCopy False: End Sub
+Private Sub mnuPaste_Click(): CmdPaste: End Sub
+Private Sub mnuClear_Click(): CmdClear: End Sub
+Private Sub mnuFillDown_Click(): Exec "FILLDOWN": End Sub
+Private Sub mnuFillRight_Click(): Exec "FILLRIGHT": End Sub
+Private Sub mnuSelAll_Click(): SelectRange 0, 0, NR - 1, NC - 1: Redraw: End Sub
+Private Sub mnuFind_Click(): CmdFind: End Sub
+Private Sub mnuFindNext_Click()
+    If lastFind = "" Then CmdFind: Exit Sub
+    Redraw
+    If FindNext(lastFind, False) = "" Then ShowStatus "Not found: " & lastFind Else Redraw
+End Sub
+Private Sub mnuGoto_Click(): CmdGoto: End Sub
+Private Sub mnuBold_Click(): Exec "BOLD": End Sub
+Private Sub mnuItalic_Click(): Exec "ITALIC": End Sub
+Private Sub mnuNfGeneral_Click(): Exec "FORMAT GENERAL": End Sub
+Private Sub mnuNfInt_Click(): Exec "FORMAT INTEGER": End Sub
+Private Sub mnuNfFixed_Click(): Exec "FORMAT FIXED": End Sub
+Private Sub mnuNfThous_Click(): Exec "FORMAT THOUSANDS": End Sub
+Private Sub mnuNfThous2_Click(): Exec "FORMAT THOUSANDS2": End Sub
+Private Sub mnuNfCurrency_Click(): Exec "FORMAT CURRENCY": End Sub
+Private Sub mnuNfPercent_Click(): Exec "FORMAT PERCENT": End Sub
+Private Sub mnuNfPercent2_Click(): Exec "FORMAT PERCENT2": End Sub
+Private Sub mnuNfSci_Click(): Exec "FORMAT SCIENTIFIC": End Sub
+Private Sub mnuNfDate_Click(): Exec "FORMAT DATE": End Sub
+Private Sub mnuNfTime_Click(): Exec "FORMAT TIME": End Sub
+Private Sub mnuAlAuto_Click(): Exec "ALIGN AUTO": End Sub
+Private Sub mnuAlLeft_Click(): Exec "ALIGN LEFT": End Sub
+Private Sub mnuAlCenter_Click(): Exec "ALIGN CENTER": End Sub
+Private Sub mnuAlRight_Click(): Exec "ALIGN RIGHT": End Sub
+Private Sub mnuWider_Click(): AdjustWidth 8: End Sub
+Private Sub mnuNarrower_Click(): AdjustWidth -8: End Sub
+Private Sub mnuInsRow_Click(): Exec "INSERTROW": End Sub
+Private Sub mnuDelRow_Click(): Exec "DELETEROW": End Sub
+Private Sub mnuInsCol_Click(): Exec "INSERTCOL": End Sub
+Private Sub mnuDelCol_Click(): Exec "DELETECOL": End Sub
+Private Sub mnuSortAsc_Click(): Exec "SORT " & ColName(curC) & " ASC": End Sub
+Private Sub mnuSortDesc_Click(): Exec "SORT " & ColName(curC) & " DESC": End Sub
+Private Sub mnuRecalc_Click()
+    Dim t As Double
+    t = TimerMs
+    Exec "RECALC"
+    ShowStatus RecalcCount & " formulas recalculated in " & Format$(TimerMs - t, "0") & " ms"
+End Sub
+Private Sub mnuFormulas_Click(): ShowFormulas = mnuFormulas.Checked: Redraw: End Sub
+Private Sub mnuGridLines_Click(): ShowGridLines = mnuGridLines.Checked: Redraw: End Sub
+Private Sub mnuBar_Click(): CmdChartKind "BAR": End Sub
+Private Sub mnuLine_Click(): CmdChartKind "LINE": End Sub
+Private Sub mnuPie_Click(): CmdChartKind "PIE": End Sub
+Private Sub mnuDelChart_Click()
+    If selChart < 0 Then ShowStatus "Click a chart first": Exit Sub
+    Exec "DELCHART"
+End Sub
+Private Sub mnuCCut_Click(): CmdCopy True: End Sub
+Private Sub mnuCCopy_Click(): CmdCopy False: End Sub
+Private Sub mnuCPaste_Click(): CmdPaste: End Sub
+Private Sub mnuCClear_Click(): CmdClear: End Sub
+Private Sub mnuCBold_Click(): Exec "BOLD": End Sub
+Private Sub mnuCChart_Click(): CmdChartKind "BAR": End Sub
+
+Private Sub CmdChartKind(ByVal k As String)
+    Dim t As String
+    t = InputBox("Title of the " & LCase$(k) & " chart of " & SelName() & ":", "Gridwise", "")
+    Exec "CHART " & k & " " & SelName() & " " & t
+End Sub
+
+' copy also puts the cells' text on the system clipboard (tab-separated)
+Private Sub CmdCopy(ByVal cut As Boolean)
+    Dim r1 As Long, c1 As Long, r2 As Long, c2 As Long
+    SelBounds r1, c1, r2, c2
+    clipText = RangeAsText(r1, c1, r2, c2)
+    On Error Resume Next
+    Clipboard.SetText clipText
+    On Error GoTo 0
+    If cut Then Exec "CUT" Else Exec "COPY"
+End Sub
+
+' paste Gridwise's own cells, or text another program put on the clipboard
+Private Sub CmdPaste()
+    Dim t As String
+    On Error Resume Next
+    t = Clipboard.GetText
+    On Error GoTo 0
+    If t <> "" And Replace(t, vbCr, "") <> clipText Then
+        PasteText curR, curC, t
+        Redraw
+        UpdateTitle
+    Else
+        Exec "PASTE"
+    End If
+End Sub
+
+' ---- mouse --------------------------------------------------------------------------------
+
+Private Sub grid_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    Dim r As Long, c As Long, edge As Boolean, ch As Long, corner As Boolean, cx As Long, cy As Long
+    If Button <> 1 Then Exit Sub
+    If editing Then CommitEdit 0, 0
+    dragMode = 0
+    ch = ChartAt(X, Y, corner)
+    If ch >= 0 Then
+        selChart = ch
+        ChartPos ch, cx, cy
+        dragX = X: dragY = Y
+        If corner Then
+            dragMode = 4: dragW = chW(ch): dragH = chH(ch)
+        Else
+            dragMode = 3: dragW = cx: dragH = cy
+        End If
+        Redraw
+        Exit Sub
+    End If
+    selChart = -1
+    If Not HitTest(X, Y, r, c, edge) Then Exit Sub
+    If edge Then
+        dragMode = 2: dragCol = c: dragX = X: dragW = colW(c)
+    ElseIf r = -1 And c = -1 Then
+        SelectRange 0, 0, NR - 1, NC - 1
+    ElseIf r = -1 Then
+        If (Shift And 1) <> 0 Then
+            ancR = 0: curR = NR - 1: curC = c
+        Else
+            ancR = 0: ancC = c: curR = NR - 1: curC = c
+        End If
+        dragMode = 5
+    ElseIf c = -1 Then
+        If (Shift And 1) <> 0 Then
+            ancC = 0: curC = NC - 1: curR = r
+        Else
+            ancC = 0: ancR = r: curC = NC - 1: curR = r
+        End If
+        dragMode = 6
+    Else
+        MoveCursor r, c, (Shift And 1) <> 0
+        dragMode = 1
+    End If
+    Redraw
+End Sub
+
+Private Sub grid_MouseMove(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    Dim r As Long, c As Long, edge As Boolean, w As Long
+    If Button <> 1 Or dragMode = 0 Then Exit Sub
+    Select Case dragMode
+    Case 1, 5, 6
+        ' scroll when dragging past the edges
+        If Y >= vh And topRow + VisibleRows() < NR Then topRow = topRow + 1
+        If Y < HDR_H And topRow > 0 Then topRow = topRow - 1
+        If X >= vw And leftCol < NC - 1 Then leftCol = leftCol + 1
+        If X < RHDR_W And leftCol > 0 Then leftCol = leftCol - 1
+        If Y < HDR_H Then Y = HDR_H
+        If Y >= vh Then Y = vh - 1
+        If X < RHDR_W Then X = RHDR_W
+        If X >= vw Then X = vw - 1
+        If HitTest(X, Y, r, c, edge) Then
+            If dragMode = 1 Then curR = r: curC = c
+            If dragMode = 5 Then curC = c
+            If dragMode = 6 Then curR = r
+        End If
+    Case 2
+        w = dragW + X - dragX
+        If w < 12 Then w = 12
+        If w > 600 Then w = 600
+        colW(dragCol) = w
+        Modified = True
+    Case 3
+        MoveChartTo selChart, dragW + X - dragX, dragH + Y - dragY
+    Case 4
+        chW(selChart) = dragW + X - dragX
+        chH(selChart) = dragH + Y - dragY
+        If chW(selChart) < 120 Then chW(selChart) = 120
+        If chH(selChart) < 80 Then chH(selChart) = 80
+        Modified = True
+    End Select
+    Redraw
+End Sub
+
+' put a chart's top-left at screen (x, y): it snaps to the cell there
+Private Sub MoveChartTo(ByVal i As Long, ByVal x As Long, ByVal y As Long)
+    Dim r As Long, c As Long, edge As Boolean
+    If x < RHDR_W Then x = RHDR_W
+    If y < HDR_H Then y = HDR_H
+    If HitTest(x, y, r, c, edge) Then
+        If r >= 0 And c >= 0 Then
+            If chRow(i) <> r Or chCol(i) <> c Then chRow(i) = r: chCol(i) = c: Modified = True
+        End If
+    End If
+End Sub
+
+Private Sub grid_MouseUp(Button As Integer, Shift As Integer, X As Long, Y As Long)
+    dragMode = 0
+    UpdateTitle
+End Sub
+
+Private Sub grid_DblClick()
+    If selChart >= 0 Then Exit Sub
+    StartEdit GetSrc(curR, curC)
+End Sub
+
+Private Sub grid_MouseWheel(Delta As Integer)
+    topRow = topRow - Delta * 3
+    If topRow < 0 Then topRow = 0
+    If topRow > NR - VisibleRows() Then topRow = NR - VisibleRows()
+    Redraw
 End Sub

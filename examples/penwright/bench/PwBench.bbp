@@ -1,0 +1,10 @@
+# Penwright: console benchmark of layout, drawing, typing and spelling
+Name=PwBench
+Startup=Sub Main
+Module=../Doc.bas
+Module=../DocIO.bas
+Module=../Spell.bas
+Module=../PwView.bas
+Module=../PwScript.bas
+Module=PwBench.bas
+Stack=262144

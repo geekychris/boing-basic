@@ -1,0 +1,237 @@
+@DATABASE Gridwise.guide
+@$VER: Gridwise.guide 1.0 (08.11.2026)
+@AUTHOR Boing BASIC
+@WORDWRAP
+@NODE Main "Gridwise"
+
+@{b}Gridwise@{ub} - a spreadsheet with charts for AmigaOS 4
+
+Gridwise is written in Boing BASIC. A sheet has 1000 rows and 26 columns (A to Z)
+of numbers, text and formulas. Formulas are recalculated in dependency order as soon
+as a cell changes, and bar, line and pie charts float over the sheet.
+
+  @{" Getting started  " LINK Start}    moving around, typing, editing
+  @{" Formulas         " LINK Formulas}    references, ranges, operators
+  @{" Functions        " LINK Functions}    SUM, IF, VLOOKUP and the others
+  @{" Formats          " LINK Formats}    number formats, bold, alignment
+  @{" Copy and paste   " LINK Clipboard}    relative references, fill down/right
+  @{" Charts           " LINK Charts}    bar, line and pie charts
+  @{" Files            " LINK Files}    .gws, CSV import and export
+  @{" Menus and keys   " LINK Keys}    every command and its shortcut
+  @{" ARexx            " LINK ARexx}    the GRIDWISE port and its commands
+  @{" Command line     " LINK CLI}    arguments and scripts
+@ENDNODE
+
+@NODE Start "Getting started"
+@{b}Getting started@{ub}
+
+The cursor cell has a blue frame. Move it with the cursor keys or click a cell.
+Shift with a cursor key or a drag of the mouse selects a range. Click a column
+letter or a row number to select the whole column or row, the corner to select all.
+
+Just start typing to enter something into the cursor cell: the text goes into the
+formula bar above the sheet. @{b}Return@{ub} enters it and moves down, @{b}Tab@{ub}
+enters it and moves right, the @{b}Enter@{ub} button enters it and stays.
+@{b}Return@{ub} or @{b}F2@{ub} on a cell (or a double click) edits what is in it.
+@{b}Del@{ub} or @{b}Backspace@{ub} clears the selection.
+
+What you type becomes:
+  a number      12   -3.5   1,234   1e6   15% (0.15, shown as a percentage)   $5
+  a formula     anything starting with =      =A1*2
+  a truth value TRUE  FALSE
+  text          anything else; start with ' to keep numbers as text: '007
+
+The status line shows the cursor cell's value and format, or the sum, average and
+count of the numbers in a selected range.
+
+Drag the right edge of a column letter to make the column wider or narrower.
+The mouse wheel scrolls; Alt+cursor keys jump to the edges, Shift+Ctrl+Up/Down by a page.
+@ENDNODE
+
+@NODE Formulas "Formulas"
+@{b}Formulas@{ub}
+
+A formula starts with = and can use:
+
+  numbers and "text"         =2*3.5   ="Total: "&B9
+  cell references            =A1+B2        (row and column move when copied)
+  absolute references        =$A$1  =A$1  =$A1  ($ keeps that part fixed)
+  ranges                     =SUM(B2:B13)
+  operators                  + - * / ^ (power)  & (join text)  % (per cent)
+  comparisons                = <> < > <= >=   (give TRUE or FALSE)
+  functions                  =ROUND(AVERAGE(B2:B9), 2)   see @{"Functions" LINK Functions}
+
+Precedence, highest first: - (sign), %, ^, * /, + -, &, comparisons.
+Text compares without regard to case. Empty cells count as 0 or "".
+
+Errors show in the cell, in red:
+  #DIV/0!   division by zero          #VALUE!  wrong kind of value (text in a sum)
+  #REF!     a reference off the sheet #NAME?   unknown function
+  #N/A      not found (VLOOKUP)       #NUM!    bad number (SQRT(-1))
+  #CIRC!    the formula depends on itself, directly or through other cells
+  #ERROR!   the formula can't be read; the status line says why
+
+Recalculation only touches the formulas that depend on the changed cell, in order.
+Sheet > Recalculate recomputes everything and says how long it took.
+@ENDNODE
+
+@NODE Functions "Functions"
+@{b}Functions@{ub}
+
+Arguments are separated by commas (or semicolons).
+
+@{b}Totals@{ub}
+  SUM(...)  AVERAGE(...)  MIN(...)  MAX(...)  PRODUCT(...)  MEDIAN(...)  STDEV(...)
+  COUNT(...) numbers   COUNTA(...) non-empty cells   COUNTBLANK(range)
+  SUMIF(range, criterion [, sum_range])   COUNTIF(range, criterion)
+  AVERAGEIF(range, criterion [, average_range])
+  A criterion is a value or a comparison as text: ">100", "<>0", "apple", "a*".
+
+@{b}Logic@{ub}
+  IF(test, then [, else])   only the chosen branch is calculated
+  AND(...)  OR(...)  NOT(x)  IFERROR(x, alternative)
+  ISNUMBER(x)  ISTEXT(x)  ISBLANK(x)  CHOOSE(n, a, b, ...)  NA()
+
+@{b}Numbers@{ub}
+  ROUND(x [, digits])  ROUNDUP  ROUNDDOWN  TRUNC  INT(x)  ABS(x)  SIGN(x)
+  SQRT(x)  POWER(x, y)  MOD(x, y)  EXP(x)  LN(x)  LOG10(x)  SIN  COS  TAN  PI()
+
+@{b}Text@{ub}
+  LEN(t)  LEFT(t [, n])  RIGHT(t [, n])  MID(t, start, n)  UPPER(t)  LOWER(t)
+  TRIM(t)  CONCAT(...) (also CONCATENATE)  FIND(what, text [, start])
+  SUBSTITUTE(text, old, new)  REPT(t, n)  EXACT(a, b)
+  TEXT(x, "pattern")  e.g. TEXT(B2, "#,##0.00")    VALUE(t)
+
+@{b}Lookup and ranges@{ub}
+  VLOOKUP(key, range, column [, approximate])   FALSE as the last argument: exact match
+  ROWS(range)  COLUMNS(range)
+
+@{b}Dates@{ub} (day numbers, as in other spreadsheets: 1 = 31 Dec 1899)
+  TODAY()  NOW()  DATE(y, m, d)  YEAR(d)  MONTH(d)  DAY(d)
+@ENDNODE
+
+@NODE Formats "Formats"
+@{b}Formats@{ub}
+
+Format > Numbers sets how numbers are shown (the value itself does not change):
+
+  General      as precise as fits      Amiga-1
+  Fixed        1234.50                 Amiga-2
+  Thousands    1,234.50                Amiga-3
+  Currency     $1,234.50               Amiga-4
+  Percent      15%                     Amiga-5
+  Date         2026-11-08              Amiga-6
+  and Integer, Thousands without decimals, Percent with two decimals, Scientific, Time
+
+Format > Bold (Amiga-B) and Italic (Amiga-I) switch the style of the selection.
+Format > Alignment: automatic (numbers right, text left), left, centre or right.
+Amiga-+ and Amiga-- make the selected columns wider or narrower.
+
+A number too wide for its column shows as ####; text runs on into empty cells
+to its right.
+@ENDNODE
+
+@NODE Clipboard "Copy and paste"
+@{b}Copy and paste@{ub}
+
+Edit > Copy (Amiga-C) and Cut (Amiga-X) take the selection; Paste (Amiga-V) puts it at
+the cursor. Formulas move their relative references: =A1*2 copied one row down
+becomes =A2*2. After a cut the formulas stay as they were (the cells moved).
+Paste into a selection that is a multiple of the copied size fills it with copies.
+
+The cells' text also goes on the system clipboard, tab-separated, so other programs
+can paste it; text from other programs pastes into cells (tabs between columns).
+
+Fill down (Amiga-D) copies the top row of the selection into the rows below it,
+Fill right (Amiga-R) the left column into the columns to its right.
+
+Undo (Amiga-Z) and Redo (Amiga-Y) go back and forth through your changes, also
+inserted and deleted rows and columns, and sorting.
+@ENDNODE
+
+@NODE Charts "Charts"
+@{b}Charts@{ub}
+
+Select a range and choose Chart > Bar, Line or Pie chart. The first row and column
+are used as labels when they hold text: each column becomes a series (a colour) and
+each row a category, or the other way round when the range is wider than tall.
+A pie chart shows the first series, with percentages.
+
+Charts float over the sheet and follow the cells as they change. Drag a chart to
+move it (it snaps to a cell), drag its bottom-right corner to resize it. Click a
+chart and choose Chart > Delete selected chart to remove it. Charts are saved
+with the sheet.
+@ENDNODE
+
+@NODE Files "Files"
+@{b}Files@{ub}
+
+Gridwise sheets are saved as .gws: plain text, one line per cell with what you
+typed and its format, plus the column widths and the charts.
+
+Project > Import CSV reads comma, semicolon or tab separated files (the separator is
+guessed from the first line); quoted fields may contain separators, quotes and new
+lines. Fields starting with = are imported as text, not as formulas.
+Project > Export CSV writes the values (numbers without formatting, so they read back
+exactly).
+
+Every two minutes a changed sheet that has a file name is also saved as
+name.gws.autosave, so little is lost if something goes wrong.
+@ENDNODE
+
+@NODE Keys "Menus and keys"
+@{b}Menus and keys@{ub}
+
+Project   New A-N, Open A-O, Save A-S, Save as, Import CSV, Export CSV A-E, Help, About, Quit A-Q
+Edit      Undo A-Z, Redo A-Y, Cut A-X, Copy A-C, Paste A-V, Clear A-K, Fill down A-D,
+          Fill right A-R, Select all A-A, Find A-F, Find next A-G, Go to cell A-J
+Format    Bold A-B, Italic A-I, Numbers (A-1 .. A-6), Alignment, Wider A-+, Narrower A--
+Sheet     Insert/delete row, insert/delete column, Sort ascending/descending (by the
+          cursor's column, within the selection), Recalculate, Show formulas A-L, Grid lines
+Chart     Bar, Line, Pie chart of the selection, Delete selected chart
+
+The right mouse button over the sheet opens the menus; with the Cell context menu
+you get Cut, Copy, Paste, Clear, Bold and a chart of the selection.
+
+Keys on the sheet: cursor keys, Shift+cursor (select), Alt+cursor (edges), Tab,
+Return/F2 (edit), Del/Backspace (clear), Esc (collapse the selection), Help (this guide).
+@ENDNODE
+
+@NODE ARexx "ARexx"
+@{b}ARexx@{ub}
+
+Gridwise opens the ARexx port GRIDWISE (GRIDWISE.1, .2 ... for more copies).
+Commands (also usable in scripts, see @{"Command line" LINK CLI}):
+
+  GETCELL [A1]          the text a cell shows        GETVALUE A1  the raw value
+  GETFORMULA A1         what was typed               SETCELL A1 =SUM(B1:B9)
+  SELECT A1:C9          select (GOTO is the same)    GETSELECTION
+  CLEAR [range]  COPY  CUT  PASTE [A1]  FILLDOWN  FILLRIGHT  UNDO  REDO
+  FORMAT GENERAL|INTEGER|FIXED|THOUSANDS|THOUSANDS2|CURRENCY|PERCENT|PERCENT2|SCIENTIFIC|DATE|TIME
+  BOLD [ON|OFF]  ITALIC [ON|OFF]  ALIGN LEFT|CENTER|RIGHT|AUTO  COLWIDTH B [pixels]
+  INSERTROW [n]  DELETEROW [n]  INSERTCOL [n]  DELETECOL [n]  SORT [col] [ASC|DESC]
+  CHART BAR|LINE|PIE [range] [title]   DELCHART [n]   CHARTS
+  NEW  OPEN file  SAVE [file]  IMPORTCSV file  EXPORTCSV file
+  RECALC  FIND text  SIZE  MODIFIED  FILENAME  SHOWFORMULAS [OFF]  VERSION  QUIT
+
+Example:
+  /* fill.rexx */
+  ADDRESS GRIDWISE
+  OPTIONS RESULTS
+  DO i = 1 TO 10
+    'SETCELL A'i i*i
+  END
+  'SETCELL A11 =SUM(A1:A10)'
+  'GETCELL A11'
+  SAY RESULT
+@ENDNODE
+
+@NODE CLI "Command line"
+@{b}Command line@{ub}
+
+  Gridwise [file.gws|file.csv] [--script commands.gwr] [--log results.log]
+
+--script runs the commands of a text file (one per line, as for @{"ARexx" LINK ARexx},
+; starts a comment) once the window is open, writes each command and its result to
+the log, and quits at QUIT. PAUSE n [tag] waits n seconds.
+@ENDNODE

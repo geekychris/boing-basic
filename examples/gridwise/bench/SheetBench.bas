@@ -10,7 +10,7 @@ Sub Main()
     rows = 1000
     If Command$ <> "" Then rows = Val(Command$)
     NewSheet rows + 2, 26
-    t0 = Timer
+    t0 = TimerMs
     BeginBatch
     For r = 0 To rows - 1
         SetCell r, 0, CStr(r + 1)
@@ -24,26 +24,26 @@ Sub Main()
         SetCell rows, c, "=SUM(" & ColName(c) & "1:" & ColName(c) & rows & ")"
     Next c
     SetCell rows + 1, 0, "=AVERAGE(Z1:Z" & rows & ")"
-    t0 = Timer - t0
+    t0 = TimerMs - t0
     ' (the EndBatch below does the first full recalculation)
-    Print "enter "; NCELLS - 25; " cells: "; Format$(t0 * 1000, "0"); " ms"
-    t0 = Timer
+    Print "enter "; NCELLS - 25; " cells: "; Format$(t0, "0"); " ms"
+    t0 = TimerMs
     EndBatch
-    Print "first recalc: "; Format$((Timer - t0) * 1000, "0"); " ms, "; RecalcCount; " formulas"
-    t0 = Timer
+    Print "first recalc: "; Format$((TimerMs - t0), "0"); " ms, "; RecalcCount; " formulas"
+    t0 = TimerMs
     RecalcAll
-    Print "full recalc: "; Format$((Timer - t0) * 1000, "0"); " ms, "; RecalcCount; " formulas"
-    t0 = Timer
+    Print "full recalc: "; Format$((TimerMs - t0), "0"); " ms, "; RecalcCount; " formulas"
+    t0 = TimerMs
     For i = 1 To 10
         SetCell 0, 0, CStr(i)
     Next i
-    Print "edit A1 (x10): "; Format$((Timer - t0) * 100, "0.0"); " ms each, "; RecalcCount; " formulas"
-    t0 = Timer
+    Print "edit A1 (x10): "; Format$((TimerMs - t0) / 10, "0.0"); " ms each, "; RecalcCount; " formulas"
+    t0 = TimerMs
     For i = 1 To 10
         SetCell rows \ 2, 0, CStr(i * 7)
     Next i
-    Print "edit A"; rows \ 2 + 1; " (x10): "; Format$((Timer - t0) * 100, "0.0"); " ms each, "; RecalcCount; " formulas"
-    t0 = Timer
+    Print "edit A"; rows \ 2 + 1; " (x10): "; Format$((TimerMs - t0) / 10, "0.0"); " ms each, "; RecalcCount; " formulas"
+    t0 = TimerMs
     For i = 1 To 20
         For r = 0 To 39
             For c = 0 To 9
@@ -52,6 +52,26 @@ Sub Main()
             Next c
         Next r
     Next i
-    Print "cell text, 40x10 screen: "; Format$((Timer - t0) * 1000 / 20, "0.0"); " ms"
+    Print "cell text, 40x10 screen: "; Format$((TimerMs - t0) / 20, "0.0"); " ms"
+    ' drawing: the grid scrolled one row per frame (what holding the cursor key does)
+    Dim cv As Object, f As Long, frames As Long
+    Set cv = CreateObject("Boing.Canvas")
+    cv.Resize 660, 420
+    ViewInit 660, 420
+    ClearCharts
+    frames = 100
+    t0 = TimerMs
+    For f = 1 To frames
+        topRow = f * 3
+        DrawGrid cv
+    Next f
+    Print "draw grid 660x420 (40 rows x 9 cols): "; Format$((TimerMs - t0) / frames, "0.0"); " ms per frame"
+    t0 = TimerMs
+    For f = 1 To frames
+        SetCell 5, 0, CStr(f)
+        topRow = 0
+        DrawGrid cv
+    Next f
+    Print "edit + recalc + draw: "; Format$((TimerMs - t0) / frames, "0.0"); " ms per keystroke"
     Print "Z1="; CellText(0, 25); " Z"; rows + 1; "="; CellText(rows, 25); " A"; rows + 2; "="; CellText(rows + 1, 0)
 End Sub

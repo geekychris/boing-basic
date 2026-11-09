@@ -1,7 +1,9 @@
-# Gridwise: console benchmark of the sheet engine (1000 x 26 cells)
+# Gridwise: console benchmark of the sheet engine and the grid drawing (1000 x 26 cells)
 Name=SheetBench
 Startup=Sub Main
 Module=../Formula.bas
 Module=../Sheet.bas
+Module=../Charts.bas
+Module=../GridView.bas
 Module=SheetBench.bas
 Stack=262144

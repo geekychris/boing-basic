@@ -13,6 +13,8 @@ Public IOError As String
 
 Private Function ReadAll(ByVal path As String) As String
     Dim fn As Integer, s As String
+    ' (Open For Binary would create a missing file)
+    If Dir(path) = "" Then Err.Raise 53, , "File not found: " & path
     fn = FreeFile
     Open path For Binary Access Read As #fn
     s = Space$(LOF(fn))

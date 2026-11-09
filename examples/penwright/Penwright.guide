@@ -1,0 +1,165 @@
+@DATABASE Penwright.guide
+@$VER: Penwright.guide 1.0 (08.11.2026)
+@AUTHOR Boing BASIC
+@WORDWRAP
+@NODE Main "Penwright"
+
+@{b}Penwright@{ub} - a word processor for AmigaOS 4
+
+Penwright is written in Boing BASIC. It keeps your text in paragraphs with styles
+(headings, quotes, lists, code) and alignment, and every letter can be bold, italic,
+underlined, struck through, coloured and sized. It checks your spelling as you type,
+finds and replaces, counts words, and saves its own format or exports RTF, HTML and
+plain text.
+
+  @{" Writing          " LINK Writing}    typing, moving, selecting
+  @{" Styles           " LINK Styles}    character and paragraph styles
+  @{" Find and replace " LINK Find}
+  @{" Spelling         " LINK Spelling}    the dictionary, learning words
+  @{" Files            " LINK Files}    .pwd, RTF, HTML, text; autosave
+  @{" Menus and keys   " LINK Keys}
+  @{" ARexx            " LINK ARexx}    the PENWRIGHT port and its commands
+  @{" Command line     " LINK CLI}
+@ENDNODE
+
+@NODE Writing "Writing"
+@{b}Writing@{ub}
+
+Type as usual: Return starts a new paragraph, Backspace and Del delete (with Alt or
+Ctrl a whole word), Tab inserts four spaces. Click to put the cursor somewhere,
+drag to select, double-click to select a word, Shift+click to extend the selection.
+
+Cursor keys move by letters and lines; Alt+Left/Right (or Ctrl) by words;
+Alt+Up/Down to the start or end of the document; Shift+Ctrl+Up/Down by a page;
+Home/End to the start and end of the line. Hold Shift to select while moving.
+The mouse wheel scrolls.
+
+Undo (Amiga-Z) takes back your changes one by one (a run of typing counts as one);
+Redo (Amiga-Y) puts them back.
+
+Cut (Amiga-X), Copy (Amiga-C) and Paste (Amiga-V) keep the styles inside Penwright;
+the plain text also goes on the system clipboard, and text copied in other programs
+pastes in.
+
+The status line shows where the cursor is and the style there.
+@ENDNODE
+
+@NODE Styles "Styles"
+@{b}Styles@{ub}
+
+@{b}Characters@{ub}: Bold (Amiga-B), Italic (Amiga-I), Underline (Amiga-U), Strike through,
+Plain (Amiga-P), a colour (the colour chooser) and a size in points (the size chooser,
+or Amiga-> and Amiga-<). With a selection they change the selected text; without one
+they change what you type next.
+
+@{b}Paragraphs@{ub}: the style chooser or Amiga-0 .. Amiga-6:
+  Body      ordinary text                       Amiga-0
+  Heading 1, 2, 3  larger, bold                 Amiga-1 .. 3
+  Quote     indented, with a bar                Amiga-4
+  Bullet    a list item                         Amiga-5
+  Code      not wrapped, on a grey background   Amiga-6
+A new paragraph after a heading is body text.
+
+@{b}Alignment@{ub}: left (Amiga-[), centre (Amiga-|), right (Amiga-]) and justified (Amiga-J),
+or the alignment chooser.
+
+Note: the canvas font on this system has one size; sizes are kept, saved and
+exported, and shown at their size where the screen font supports it.
+@ENDNODE
+
+@NODE Find "Find and replace"
+@{b}Find and replace@{ub}
+
+Edit > Find (Amiga-F) asks for the text and selects the next match after the
+cursor, wrapping round at the end. End the text with " CASE" to match upper and
+lower case exactly, with " WORD" to find whole words only (both may be given).
+Find next (Amiga-G) repeats the search.
+
+Edit > Replace all (Amiga-R) replaces every match in the document, with the same
+CASE and WORD options; the replaced text keeps the style of the text it replaces.
+One Undo takes the whole replacement back.
+@ENDNODE
+
+@NODE Spelling "Spelling"
+@{b}Spelling@{ub}
+
+Words that are not in the dictionary get a red wavy underline (Tools > Mark
+misspelt words switches this off). Tools > Check spelling (Amiga-K) selects the next
+one and offers suggestions: type the correction, + to add the word to your own
+list, or leave it as it is to skip.
+
+The dictionary (penwright.dict, beside the program) holds about 225 000 words from
+Webster's Second International (public domain) plus modern words; endings such as
+-s, -ed, -ing, -er, -ly and -'s are understood. Your own words are kept in
+penwright.words, one per line. Code paragraphs, numbers and short words in capitals
+(RTF, HTML) are not checked.
+@ENDNODE
+
+@NODE Files "Files"
+@{b}Files@{ub}
+
+Penwright documents (.pwd) are plain text: one line per paragraph with its style,
+alignment, text and the character styles as runs.
+
+Open reads .pwd, RTF (styles, sizes, colours and alignment; pictures and tables are
+skipped) and plain text. Project > Export writes RTF (for other word processors),
+HTML (headings, lists, quotes, colours and sizes as CSS) or plain text.
+Project > Document info sets the title and author, which go into the RTF and HTML too.
+
+Every two minutes a changed document that has a file name is also saved as
+name.pwd.autosave.
+@ENDNODE
+
+@NODE Keys "Menus and keys"
+@{b}Menus and keys@{ub}
+
+Project    New A-N, Open A-O, Save A-S, Save as, Export RTF / HTML / text,
+           Document info, Help, About, Quit A-Q
+Edit       Undo A-Z, Redo A-Y, Cut A-X, Copy A-C, Paste A-V, Select all A-A,
+           Find A-F, Find next A-G, Replace all A-R
+Text       Bold A-B, Italic A-I, Underline A-U, Strike through, Plain A-P, Bigger A->, Smaller A-<
+Paragraph  Body A-0, Heading 1-3 A-1..3, Quote A-4, Bullet A-5, Code A-6,
+           Align left A-[, Centre A-|, Align right A-], Justify A-J
+Tools      Check spelling A-K, Mark misspelt words, Word count A-W, Show paragraph marks A-M
+
+The right mouse button over the page opens a menu with Cut, Copy, Paste, Bold,
+Italic and Check spelling.
+@ENDNODE
+
+@NODE ARexx "ARexx"
+@{b}ARexx@{ub}
+
+Penwright opens the ARexx port PENWRIGHT. Commands (also usable in scripts):
+
+  INSERTTEXT text (\n = new paragraph)   TYPE text   NEWPARAGRAPH   DELETE
+  GETTEXT (the selection, or all)   GETPARA n   PARACOUNT   GETCURSOR
+  SETCURSOR para offset   SELECT p1 o1 p2 o2   SELECTALL   GETSELECTION
+  BOLD|ITALIC|UNDERLINE|STRIKE [ON|OFF]   PLAIN   COLOR 0..15   SIZE points
+  STYLE BODY|HEADING1|HEADING2|HEADING3|QUOTE|BULLET|CODE   ALIGN LEFT|CENTER|RIGHT|JUSTIFY
+  FIND text [CASE] [WORD]   REPLACEALL "find" "with" [CASE] [WORD]
+  WORDCOUNT   CHARCOUNT   UNDO   REDO   COPY   CUT   PASTE
+  NEW   OPEN file   SAVE [file]   EXPORT RTF|HTML|TXT file   TITLE text   AUTHOR text
+  SPELLNEXT   SUGGEST word   LEARN word   LIVESPELL [OFF]
+  MODIFIED   FILENAME   VERSION   QUIT
+
+Example:
+  /* letter.rexx */
+  ADDRESS PENWRIGHT
+  OPTIONS RESULTS
+  'NEW'
+  'INSERTTEXT Dear Sir or Madam,\n\nThank you for your letter.'
+  'SELECTALL'
+  'SIZE 14'
+  'WORDCOUNT'
+  SAY RESULT 'words'
+@ENDNODE
+
+@NODE CLI "Command line"
+@{b}Command line@{ub}
+
+  Penwright [file] [--script commands.pws] [--log results.log]
+
+--script runs the commands of a text file (one per line, as for @{"ARexx" LINK ARexx})
+once the window is open and writes each command and its result to the log.
+PAUSE n [tag] waits n seconds; QUIT ends the program.
+@ENDNODE

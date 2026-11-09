@@ -5,7 +5,86 @@ vlayout id=root
     label id=cellname text="A1      "
     string id=formula text=""
     button id=enter text="_Enter" weight=0
-  canvas id=grid width=660 height=420
+  canvas id=grid width=660 height=420 contextmenu=mnuCell
   hlayout weight=0
     label id=status text="Ready"
   timer id=tick interval=250 enabled=1
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New" key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu id=mnuSave text="Save" key=S
+  menu id=mnuSaveAs text="Save as..."
+  menu text=-
+  menu id=mnuImport text="Import CSV..."
+  menu id=mnuExport text="Export CSV..." key=E
+  menu text=-
+  menu id=mnuHelp text="Help..."
+  menu id=mnuAbout text="About..."
+  menu text=-
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuEdit text="Edit"
+  menu id=mnuUndo text="Undo" key=Z
+  menu id=mnuRedo text="Redo" key=Y
+  menu text=-
+  menu id=mnuCut text="Cut" key=X
+  menu id=mnuCopy text="Copy" key=C
+  menu id=mnuPaste text="Paste" key=V
+  menu id=mnuClear text="Clear" key=K
+  menu text=-
+  menu id=mnuFillDown text="Fill down" key=D
+  menu id=mnuFillRight text="Fill right" key=R
+  menu text=-
+  menu id=mnuSelAll text="Select all" key=A
+  menu id=mnuFind text="Find..." key=F
+  menu id=mnuFindNext text="Find next" key=G
+  menu id=mnuGoto text="Go to cell..." key=J
+menu id=mnuFormat text="Format"
+  menu id=mnuBold text="Bold" key=B
+  menu id=mnuItalic text="Italic" key=I
+  menu text=-
+  menu id=mnuNumbers text="Numbers"
+    menu id=mnuNfGeneral text="General" key=1
+    menu id=mnuNfInt text="Integer (0)"
+    menu id=mnuNfFixed text="Fixed (0.00)" key=2
+    menu id=mnuNfThous text="Thousands (#,##0)"
+    menu id=mnuNfThous2 text="Thousands (#,##0.00)" key=3
+    menu id=mnuNfCurrency text="Currency" key=4
+    menu id=mnuNfPercent text="Percent (0%)" key=5
+    menu id=mnuNfPercent2 text="Percent (0.00%)"
+    menu id=mnuNfSci text="Scientific"
+    menu id=mnuNfDate text="Date" key=6
+    menu id=mnuNfTime text="Time"
+  menu id=mnuAlign text="Alignment"
+    menu id=mnuAlAuto text="Automatic"
+    menu id=mnuAlLeft text="Left"
+    menu id=mnuAlCenter text="Centre"
+    menu id=mnuAlRight text="Right"
+  menu text=-
+  menu id=mnuWider text="Wider column" key=+
+  menu id=mnuNarrower text="Narrower column" key=-
+menu id=mnuSheet text="Sheet"
+  menu id=mnuInsRow text="Insert row"
+  menu id=mnuDelRow text="Delete row"
+  menu id=mnuInsCol text="Insert column"
+  menu id=mnuDelCol text="Delete column"
+  menu text=-
+  menu id=mnuSortAsc text="Sort ascending"
+  menu id=mnuSortDesc text="Sort descending"
+  menu text=-
+  menu id=mnuRecalc text="Recalculate"
+  menu id=mnuFormulas text="Show formulas" checkable=1 key=L
+  menu id=mnuGridLines text="Grid lines" checkable=1 checked=1
+menu id=mnuChart text="Chart"
+  menu id=mnuBar text="Bar chart of selection"
+  menu id=mnuLine text="Line chart of selection"
+  menu id=mnuPie text="Pie chart of selection"
+  menu text=-
+  menu id=mnuDelChart text="Delete selected chart"
+menu id=mnuCell text="Cell" hidden=1
+  menu id=mnuCCut text="Cut"
+  menu id=mnuCCopy text="Copy"
+  menu id=mnuCPaste text="Paste"
+  menu id=mnuCClear text="Clear"
+  menu text=-
+  menu id=mnuCBold text="Bold"
+  menu id=mnuCChart text="Bar chart of selection"
