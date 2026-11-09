@@ -1,0 +1,18 @@
+title = "Boing Pinball"
+category = "game"
+order = 25
+summary = "Pinball with three tables and the Boing ball: the classic Amiga view, tilted and scrolling to follow the ball, with a dot-matrix display."
+shows = ["Canvas (painted playfields, scrolling)", "Ball physics in BASIC", "Audio: music and sound effects", "Bot player", "a port of a C amiga3d game"]
+perf = "217.3 fps native, 84.5 fps in the VM, 76.2 fps with the JIT (`--bench 1500`, m1b guest); the game needs 50."
+
+[[shot]]
+file = "screenshots/os4-comet.png"
+caption = "Comet Tour"
+
+[[shot]]
+file = "screenshots/os4-title.png"
+caption = "The title: Comet Tour's backglass"
+
+[[shot]]
+file = "screenshots/os4-foundry.png"
+caption = "Foundry"

@@ -4,13 +4,13 @@
 
 Boing BASIC is a Visual Basic 6 style language for AmigaOS 4.1 (PowerPC). A program runs in the interpreter (a bytecode VM, with an optional PowerPC JIT) for a quick edit-run cycle, or is compiled to C and built with GCC into a native executable. Forms are designed in the [AmiForge](https://github.com/geekychris/amiforge) IDE; the runtime brings a Canvas for 2D graphics, Engine3D for filled 3D, a ProTracker player and sound effects through AHI, menus, dialogs and ReAction gadgets, an ARexx port, and `Declare` for calling any AmigaOS library. See the [README](../README.md) and the [design](DESIGN.md).
 
-Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 5 games, 4 applications and 6 examples and tools.
+Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 6 games, 4 applications and 6 examples and tools.
 
 **Games**
 
 <table>
-<tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#ace-pilot-2">Ace Pilot 2</a></td><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/gallery/driving.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#boing-pinball"><img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="200" alt="Boing Pinball"><br>Boing Pinball</a></td><td align="center" valign="bottom"><a href="#ace-pilot-2">Ace Pilot 2</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/gallery/driving.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td></tr>
 </table>
 
 **Applications**
@@ -67,6 +67,28 @@ The falling-block puzzle wrapped round a sixteen-column tower: no side walls, an
 *High scores*
 
 [README](../examples/stack_tower_bb/README.md) · [source](../examples/stack_tower_bb/)
+
+### Boing Pinball
+
+Pinball with three tables and the Boing ball: the classic Amiga view, tilted and scrolling to follow the ball, with a dot-matrix display.
+
+**Shows off:** Canvas (painted playfields, scrolling), Ball physics in BASIC, Audio: music and sound effects, Bot player, a port of a C amiga3d game
+
+**Performance:** 217.3 fps native, 84.5 fps in the VM, 76.2 fps with the JIT (`--bench 1500`, m1b guest); the game needs 50.
+
+<img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="560" alt="Comet Tour">
+
+*Comet Tour*
+
+<img src="../examples/boing_pinball_bb/screenshots/os4-title.png" width="560" alt="The title: Comet Tour's backglass">
+
+*The title: Comet Tour's backglass*
+
+<img src="../examples/boing_pinball_bb/screenshots/os4-foundry.png" width="560" alt="Foundry">
+
+*Foundry*
+
+[README](../examples/boing_pinball_bb/README.md) · [source](../examples/boing_pinball_bb/)
 
 ### Ace Pilot 2
 
