@@ -30,6 +30,7 @@ Private Function ParseArgs() As String
             Case "": 
             Case "--log": logOn = True
             Case "--play": play = True
+            Case "--noscopes": scopesOff = True
             Case "--quit-after"
                 i = i + 1
                 If i <= UBound(a) Then quitAt = Timer + Val(a(i))
@@ -44,6 +45,7 @@ Private Function ParseArgs() As String
         End Select
         i = i + 1
     Loop
+    If playerOk Then LogLine "audio " & mp.Device Else LogLine "audio none"
     If song <> "" Then OpenSong song
     If play Then StartSong 0, 0
     ParseArgs = song
@@ -222,6 +224,7 @@ Private Sub RunBench()
     Debug.Print "bench frames"; benchN; " total"; Format$(t0, "0.000"); "s  fps "; Format$(benchN / t0, "0.0")
     Debug.Print "  draw ms/frame "; Format$(benchDraw * 1000 / benchN, "0.000"); _
         "  blit ms/frame "; Format$(benchBlit * 1000 / benchN, "0.000"); "  worst ms "; Format$(benchWorst * 1000, "0.0")
+    If playerOk Then Debug.Print "  audio "; mp.Device; ", mixer CPU "; Format$(mp.CpuLoad / 10, "0.0"); "%, still playing: "; mp.Playing; ", position"; mp.Position
     benchN = 0
     songDirty = False
     Unload Me

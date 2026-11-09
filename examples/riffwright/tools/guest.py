@@ -126,15 +126,17 @@ def smoke(m, shots):
     return out is not None and not left
 
 
-def bench(m, n):
+def bench(m, n, extra="", only=None):
     res = {}
     runs = [("native", "%s/Riffwright" % DIR),
             ("vm", "%s/boing run %s/Riffwright.bbp" % (DIR, DIR)),
             ("jit", "%s/boing run --jit %s/Riffwright.bbp" % (DIR, DIR))]
     for name, cmd in runs:
+        if only and name not in only:
+            continue
         outf = "RAM:riffwright_%s.out" % name
         dos(m, "delete %s QUIET" % outf)
-        dos(m, "run >NIL: %s %s --bench %d >%s *>%s.err" % (cmd, SONG, n, outf, outf))
+        dos(m, "run >NIL: %s %s --bench %d %s >%s *>%s.err" % (cmd, SONG, n, extra, outf, outf))
         out = wait_for(m, outf, "worst ms", 300)
         print("==", name, "\n" + (out or dos(m, "type %s.err" % outf)))
         res[name] = out
@@ -157,13 +159,14 @@ def main():
               rc = 0 if ok else 1
           elif what == "bench":
               push_all(m)
-              bench(m, int(sys.argv[2]) if len(sys.argv) > 2 else 500)
+              bench(m, int(sys.argv[2]) if len(sys.argv) > 2 else 500,
+                    " ".join(sys.argv[4:]), sys.argv[3].split(",") if len(sys.argv) > 3 else None)
           elif what == "start":
               # the gentlest check: start, screenshot, let it quit by itself
               push_all(m)
               outf = "RAM:riffwright.log"
               dos(m, "delete %s QUIET" % outf)
-              dos(m, "run >NIL: %s/Riffwright %s --log --quit-after 15 >%s *>%s.err" % (DIR, SONG, outf, outf))
+              dos(m, "run >NIL: %s/Riffwright %s --play --log --quit-after 15 >%s *>%s.err" % (DIR, SONG, outf, outf))
               time.sleep(8)
               hmp_shot(os.path.join(tempfile.gettempdir(), "riffwright_start"))
               print("log:", wait_for(m, outf, "quit", 40))

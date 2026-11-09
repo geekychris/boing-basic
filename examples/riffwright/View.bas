@@ -18,6 +18,7 @@ Public Const SY0 As Long = 18         ' info / scope strip top
 Public Const SH As Long = 52
 
 Public cv As Object                   ' the canvas
+Public scopesOff As Boolean           ' --noscopes (benchmarks)
 Public scrW As Long, scrH As Long
 
 ' ---- colours
@@ -330,21 +331,27 @@ End Sub
 ' scopes and VU meters, one box per channel
 Public Sub DrawScopes()
     Dim c As Long, x0 As Long, w As Long, i As Long, y0 As Long, h As Long, vu As Long, col As Long
-    Dim vh As Long
+    Dim vh As Long, t() As Long, mid As Long, sc As Long
     x0 = 230
     w = (scrW - x0 - 4) \ nch
     y0 = SY0
     h = SH
+    mid = y0 + h \ 2
+    sc = h - 6
     cv.Box x0, y0, scrW - x0, h, cBg
+    If scopesOff Then Exit Sub
     For c = 0 To nch - 1
         cv.Rect x0 + c * w, y0, w - 4, h, cLine
-        ScopeData c, scY, SCN
-        For i = 0 To SCN - 1
-            scX(i) = x0 + c * w + 2 + (i * (w - 12)) \ SCN
-            scY(i) = y0 + h \ 2 + (scY(i) * (h - 6)) \ 256
-        Next i
         If ChanMuted(c) Then col = cMute Else col = cWave
-        cv.PSetMany scX, scY, col, SCN
+        If ScopeLive(c, t, SCN) Then
+            For i = 0 To SCN - 1
+                scX(i) = x0 + c * w + 2 + (i * (w - 12)) \ SCN
+                scY(i) = mid + (t(i) * sc) \ 256
+            Next i
+            cv.PSetMany scX, scY, col, SCN
+        Else
+            cv.Line x0 + c * w + 2, mid, x0 + c * w + w - 10, mid, col
+        End If
         vu = ChanVU(c)
         vh = (vu * (h - 4)) \ 64
         If vh > 0 Then

@@ -317,6 +317,15 @@ End Function
 
 ' ---- save as .mod; False and lastError on failure
 Public Function SaveMod(ByVal path As String) As Boolean
+    If WriteMod(path) Then
+        songPath = path
+        songDirty = False
+        SaveMod = True
+    End If
+End Function
+
+' write the song as a .mod without making it the song's file (the player mirror uses this too)
+Public Function WriteMod(ByVal path As String) As Boolean
     Dim b() As Byte, i As Long, o As Long, p As Long, r As Long, c As Long, k As Long
     Dim f As Integer, d() As Byte, tag As String
     On Error GoTo bad
@@ -375,9 +384,7 @@ Public Function SaveMod(ByVal path As String) As Boolean
     Put #f, , b
     Close #f
     f = 0
-    songPath = path
-    songDirty = False
-    SaveMod = True
+    WriteMod = True
     Exit Function
 bad:
     lastError = Err.Description

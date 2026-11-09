@@ -369,7 +369,12 @@ Private Sub PatternKey(ByVal k As Integer, ByVal shift As Boolean, ByVal ctrl As
             Exit Sub
     End Select
     If Not editOn Then
-        ' jam: play the note, leave the pattern alone
+        ' jam: play the note, leave the pattern alone; Return plays the row and steps down
+        If k = vbKeyReturn Then
+            JamRow curPat, curRow
+            MoveRow 1, False
+            Exit Sub
+        End If
         If curField = 0 Then
             off = PianoOffset(k)
             If off >= 0 Then
