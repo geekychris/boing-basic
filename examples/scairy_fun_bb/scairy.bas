@@ -139,19 +139,13 @@ Private Sub RunBench()
 End Sub
 
 Private Sub tick_Timer()
-    Dim now As Double, steps As Long, iv As Long
+    Dim now As Double
     If benchN > 0 Then
         If benchDone = 0 Then RunBench
         Exit Sub
     End If
     now = TimerMs()
     TickFrame now
-    If gone Then Exit Sub
-    ' the timer starts again only when this returns: take this frame's time off the next wait,
-    ' so a frame comes every 20 ms, or as soon as the last one is done when it took longer
-    iv = 20 - CLng(TimerMs() - now)
-    If iv < 1 Then iv = 1
-    If tick.Interval <> iv Then tick.Interval = iv
 End Sub
 
 Private Sub TickFrame(ByVal now As Double)
