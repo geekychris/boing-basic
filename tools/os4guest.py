@@ -7,9 +7,9 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
     tools/os4guest.py dos 'AmigaDOS command'
     tools/os4guest.py shot OUT.png                     screenshot of the selected guest (wakes the blanker
                                                       with a 1-pixel move; shot(m, png) in scripts)
-    tools/os4guest.py mouse DX DY                      move the selected guest's mouse (its QEMU monitor;
-                                                      hmp(cmd) in scripts). Both use BB_GUEST's own
-                                                      monitor port and always refuse m1 (the user's guest)
+    tools/os4guest.py mouse DX DY                      move the selected guest's mouse (through its devbench;
+                                                      QEMU monitor commands: hmp(cmd) in scripts). Both
+                                                      always refuse m1 (the user's guest)
     tools/os4guest.py test LOCAL_TEST_BINARY [args]   push to RAM:bbtest/ and run it, exit 1 on FAIL
     tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|jit|native|both|all]
                                                       run a BASIC test with build/os4/boing (VM)
@@ -510,22 +510,26 @@ def hmp(cmd, user_ok=False, wait=1.0):
     return out
 
 
-def mouse(dx, dy, user_ok=False):
-    """Move the selected guest's mouse by (dx, dy) through its QEMU monitor"""
-    return hmp("mouse_move %d %d" % (int(dx), int(dy)), user_ok)
+def mouse(dx, dy, user_ok=False, m=None):
+    """Move the selected guest's mouse by (dx, dy) through its devbench (input.device on the
+    guest: amiga_input_mouse_move). QEMU's monitor mouse_move does not reach the guest's
+    pointer (seen on m1c), so it is not used. Refuses m1 like everything here."""
+    _check_user_guest(user_ok)
+    m = m or MCP(URL)
+    return str(m.tool("amiga_input_mouse_move", dx=int(dx), dy=int(dy)))
 
 
 def shot(m, png, user_ok=False):
     """A screenshot of the selected guest's screen as PNG (or .ppm without Pillow): wakes the
     screen blanker with a 1-pixel mouse move (the guests' blankers stay as the user set them),
     waits, then QEMU's `screendump` on that guest's monitor. Call it while holding the guest
-    (inside testing()). m is unused (kept for callers)."""
+    (inside testing()); m is its MCP client (None: one is made)."""
     import subprocess
     import time
     _check_user_guest(user_ok)
-    mouse(1, 0, user_ok)
-    mouse(-1, 0, user_ok)
-    time.sleep(1.0)
+    mouse(1, 0, user_ok, m)            # wake the blanker (through the devbench, not the monitor)
+    mouse(-1, 0, user_ok, m)
+    time.sleep(1.5)
     if SSH:
         remote = "/tmp/bb_shot_%d.ppm" % os.getpid()
         hmp("screendump %s" % remote, user_ok, wait=2.0)
@@ -622,7 +626,7 @@ def main():
         elif cmd == "shot":
             print("screenshot", shot(m, args[0]))
         elif cmd == "mouse":
-            print(mouse(args[0], args[1]).strip())
+            print(mouse(args[0], args[1], m=m).strip())
         elif cmd == "setup":
             setup(m)
         elif cmd == "reapers":
