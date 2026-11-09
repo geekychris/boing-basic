@@ -127,11 +127,12 @@ Private Sub UpdateBars()
     k = SizeIndex(z)
     If k >= 0 And size.ListIndex <> k Then size.ListIndex = k
     settingBars = False
-    s = "Para " & (curP + 1) & "/" & NP & "  Col " & (curO + 1) & "   " & StyleName(pStyle(curP))
+    If sb.Panel(1) <> "Para " & (curP + 1) & "/" & NP & "  Col " & (curO + 1) Then sb.Panel(1) = "Para " & (curP + 1) & "/" & NP & "  Col " & (curO + 1)
+    If sb.Panel(2) <> z & "pt" Then sb.Panel(2) = z & "pt"
+    s = StyleName(pStyle(curP))
     If a And A_BOLD Then s = s & "  Bold"
     If a And A_ITALIC Then s = s & "  Italic"
     If a And A_UNDER Then s = s & "  Underline"
-    s = s & "  " & z & "pt"
     If HasSelection() Then s = s & "   (" & Len(RunCommand("GETSELECTION")) & " chars selected)"
     If s <> lastStatus Then sb.Text = s: lastStatus = s
 End Sub
