@@ -3,6 +3,7 @@ category = "game"
 order = 61
 summary = "A rail shooter down a winding canyon: move the sight, shoot turrets, drones and their bolts, then a guardian at the end of each stage."
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+perf = "123 fps native, 38 fps in the VM, 33 fps with the JIT (`--bench 300`, m1b guest)."
 
 [[shot]]
 file = "docs/play.png"

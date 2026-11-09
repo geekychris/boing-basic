@@ -3,6 +3,7 @@ category = "game"
 order = 63
 summary = "A gantry crane loading a ship that rolls in the swell: swing containers onto the deck by trolley and winch, and keep her level."
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+perf = "74 fps native, 32 fps in the VM, 26 fps with the JIT (`--bench 300`, m1b guest) (JIT/native blit slowed by Screen Sharing on m1)."
 
 [[shot]]
 file = "docs/play.png"

@@ -3,6 +3,7 @@ category = "game"
 order = 66
 summary = "A shooter inside a hollow sphere: your ship rides the shell facing the centre, and shots cross it to the far wall."
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+perf = "86 fps native, 26 fps in the VM, 15 fps with the JIT (`--bench 300`, m1b guest) (VM with adaptive grid detail; blit slowed by Screen Sharing on m1)."
 
 [[shot]]
 file = "docs/play.png"

@@ -3,6 +3,7 @@ category = "game"
 order = 67
 summary = "A tank fight in a walled arena seen from the turret: shells bounce once off the walls, over 8 rounds of scouts, mortars and bulwarks."
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+perf = "143 fps native, 35 fps in the VM, 31 fps with the JIT (`--bench 300`, m1b guest)."
 
 [[shot]]
 file = "docs/play.png"

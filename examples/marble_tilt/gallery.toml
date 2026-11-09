@@ -3,6 +3,7 @@ category = "game"
 order = 64
 summary = "Tilt a floating maze board to roll a marble to the exit: holes, gates, bumpers, sand and checkpoints over 8 levels against the clock."
 shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+perf = "126 fps native, 39 fps in the VM, 36 fps with the JIT (`--bench 300`, m1b guest)."
 
 [[shot]]
 file = "docs/play.png"

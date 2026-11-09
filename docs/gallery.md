@@ -10,9 +10,9 @@ Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screens
 
 <table>
 <tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#boing-pinball"><img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="200" alt="Boing Pinball"><br>Boing Pinball</a></td><td align="center" valign="bottom"><a href="#lander-3d"><img src="../examples/lander_3d_bb/docs/guest-moon.png" width="200" alt="Lander 3D"><br>Lander 3D</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#ace-pilot-2"><img src="../examples/ace_pilot2_bb/screenshots/os4-strafing.png" width="200" alt="Ace Pilot 2"><br>Ace Pilot 2</a></td><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/screenshots/os4-levee.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td><td align="center" valign="bottom"><a href="#block-breaker-3d">Block Breaker 3D</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#canyon-rail">Canyon Rail</a></td><td align="center" valign="bottom"><a href="#drone-courier">Drone Courier</a></td><td align="center" valign="bottom"><a href="#harbour-crane">Harbour Crane</a></td><td align="center" valign="bottom"><a href="#marble-tilt">Marble Tilt</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#ridge-runner">Ridge Runner</a></td><td align="center" valign="bottom"><a href="#sphere-siege">Sphere Siege</a></td><td align="center" valign="bottom"><a href="#tank-duel">Tank Duel</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#ace-pilot-2"><img src="../examples/ace_pilot2_bb/screenshots/os4-strafing.png" width="200" alt="Ace Pilot 2"><br>Ace Pilot 2</a></td><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/screenshots/os4-levee.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td><td align="center" valign="bottom"><a href="#block-breaker-3d"><img src="../examples/block_breaker_3d/docs/play.png" width="200" alt="Block Breaker 3D"><br>Block Breaker 3D</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#canyon-rail"><img src="../examples/canyon_rail/docs/play.png" width="200" alt="Canyon Rail"><br>Canyon Rail</a></td><td align="center" valign="bottom"><a href="#drone-courier"><img src="../examples/drone_courier/docs/play.png" width="200" alt="Drone Courier"><br>Drone Courier</a></td><td align="center" valign="bottom"><a href="#harbour-crane"><img src="../examples/harbour_crane/docs/play.png" width="200" alt="Harbour Crane"><br>Harbour Crane</a></td><td align="center" valign="bottom"><a href="#marble-tilt"><img src="../examples/marble_tilt/docs/play.png" width="200" alt="Marble Tilt"><br>Marble Tilt</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#ridge-runner"><img src="../examples/ridge_runner/docs/play.png" width="200" alt="Ridge Runner"><br>Ridge Runner</a></td><td align="center" valign="bottom"><a href="#sphere-siege"><img src="../examples/sphere_siege/docs/play.png" width="200" alt="Sphere Siege"><br>Sphere Siege</a></td><td align="center" valign="bottom"><a href="#tank-duel"><img src="../examples/tank_duel/docs/play.png" width="200" alt="Tank Duel"><br>Tank Duel</a></td></tr>
 </table>
 
 **Applications**
@@ -183,6 +183,16 @@ Breakout down a tunnel: move a paddle frame on the near opening and send the bal
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
+**Performance:** 128 fps native, 35 fps in the VM, 34 fps with the JIT (`--bench 300`, m1b guest).
+
+<img src="../examples/block_breaker_3d/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+
+*Playing on the AmigaOS 4 guest*
+
+<img src="../examples/block_breaker_3d/docs/title.png" width="560" alt="The title">
+
+*The title*
+
 [README](../examples/block_breaker_3d/README.md) · [source](../examples/block_breaker_3d/)
 
 ### Canyon Rail
@@ -190,6 +200,16 @@ Breakout down a tunnel: move a paddle frame on the near opening and send the bal
 A rail shooter down a winding canyon: move the sight, shoot turrets, drones and their bolts, then a guardian at the end of each stage.
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+**Performance:** 123 fps native, 38 fps in the VM, 33 fps with the JIT (`--bench 300`, m1b guest).
+
+<img src="../examples/canyon_rail/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+
+*Playing on the AmigaOS 4 guest*
+
+<img src="../examples/canyon_rail/docs/title.png" width="560" alt="The title">
+
+*The title*
 
 [README](../examples/canyon_rail/README.md) · [source](../examples/canyon_rail/)
 
@@ -199,6 +219,16 @@ Parcel deliveries by drone across a city of towers: collect at the depot pad, la
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
+**Performance:** 141 fps native, 43 fps in the VM, 40 fps with the JIT (`--bench 300`, m1b guest).
+
+<img src="../examples/drone_courier/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+
+*Playing on the AmigaOS 4 guest*
+
+<img src="../examples/drone_courier/docs/title.png" width="560" alt="The title">
+
+*The title*
+
 [README](../examples/drone_courier/README.md) · [source](../examples/drone_courier/)
 
 ### Harbour Crane
@@ -206,6 +236,16 @@ Parcel deliveries by drone across a city of towers: collect at the depot pad, la
 A gantry crane loading a ship that rolls in the swell: swing containers onto the deck by trolley and winch, and keep her level.
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+**Performance:** 74 fps native, 32 fps in the VM, 26 fps with the JIT (`--bench 300`, m1b guest) (JIT/native blit slowed by Screen Sharing on m1).
+
+<img src="../examples/harbour_crane/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+
+*Playing on the AmigaOS 4 guest*
+
+<img src="../examples/harbour_crane/docs/title.png" width="560" alt="The title">
+
+*The title*
 
 [README](../examples/harbour_crane/README.md) · [source](../examples/harbour_crane/)
 
@@ -215,6 +255,16 @@ Tilt a floating maze board to roll a marble to the exit: holes, gates, bumpers, 
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
+**Performance:** 126 fps native, 39 fps in the VM, 36 fps with the JIT (`--bench 300`, m1b guest).
+
+<img src="../examples/marble_tilt/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+
+*Playing on the AmigaOS 4 guest*
+
+<img src="../examples/marble_tilt/docs/title.png" width="560" alt="The title">
+
+*The title*
+
 [README](../examples/marble_tilt/README.md) · [source](../examples/marble_tilt/)
 
 ### Ridge Runner
@@ -222,6 +272,16 @@ Tilt a floating maze board to roll a marble to the exit: holes, gates, bumpers, 
 A hover-bike race down a winding valley against three rivals, through gates that add time, over six tracks.
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+**Performance:** 117 fps native, 28 fps in the VM, 23 fps with the JIT (`--bench 300`, m1b guest).
+
+<img src="../examples/ridge_runner/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+
+*Playing on the AmigaOS 4 guest*
+
+<img src="../examples/ridge_runner/docs/title.png" width="560" alt="The title">
+
+*The title*
 
 [README](../examples/ridge_runner/README.md) · [source](../examples/ridge_runner/)
 
@@ -231,6 +291,16 @@ A shooter inside a hollow sphere: your ship rides the shell facing the centre, a
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
 
+**Performance:** 86 fps native, 26 fps in the VM, 15 fps with the JIT (`--bench 300`, m1b guest) (VM with adaptive grid detail; blit slowed by Screen Sharing on m1).
+
+<img src="../examples/sphere_siege/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+
+*Playing on the AmigaOS 4 guest*
+
+<img src="../examples/sphere_siege/docs/title.png" width="560" alt="The title">
+
+*The title*
+
 [README](../examples/sphere_siege/README.md) · [source](../examples/sphere_siege/)
 
 ### Tank Duel
@@ -238,6 +308,16 @@ A shooter inside a hollow sphere: your ship rides the shell facing the centre, a
 A tank fight in a walled arena seen from the turret: shells bounce once off the walls, over 8 rounds of scouts, mortars and bulwarks.
 
 **Shows off:** Engine3D (examples/common/A3Engine.bas), Canvas (HUD), Audio: sound effects, Autopilot bot, a port of a C amiga3d game, same state hashes as the C
+
+**Performance:** 143 fps native, 35 fps in the VM, 31 fps with the JIT (`--bench 300`, m1b guest).
+
+<img src="../examples/tank_duel/docs/play.png" width="560" alt="Playing on the AmigaOS 4 guest">
+
+*Playing on the AmigaOS 4 guest*
+
+<img src="../examples/tank_duel/docs/title.png" width="560" alt="The title">
+
+*The title*
 
 [README](../examples/tank_duel/README.md) · [source](../examples/tank_duel/)
 
