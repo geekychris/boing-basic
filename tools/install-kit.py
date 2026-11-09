@@ -385,8 +385,13 @@ def install(m):
         raise RuntimeError("DH1 has %.0f MB free, the kit needs about %.0f MB" % (free / 2**20, need / 2**20))
     dos(m, "makedir RAM:bbkit")
     t0 = time.time()
-    log(g.push(m, KIT, "RAM:bbkit/BoingBASIC.lha"))
-    log("pushed in %.0f s" % (time.time() - t0))
+    # bbfetch renames its .part file only after the length and CRC check, so an archive of the
+    # right length already in RAM:bbkit is this kit (a push that outlived its bridge command)
+    if dos(m, 'list RAM:bbkit/BoingBASIC.lha LFORMAT "%l"').strip() == str(lha_size):
+        log("RAM:bbkit/BoingBASIC.lha is already there (%d bytes)" % lha_size)
+    else:
+        log(g.push(m, KIT, "RAM:bbkit/BoingBASIC.lha"))
+        log("pushed in %.0f s" % (time.time() - t0))
     have = guest_entries(m, DEST)
     exists = bool(have) or "Directory" in dos(m, "list %s DIRS QUICK" % DEST)
     if "MyProjects" in have:
