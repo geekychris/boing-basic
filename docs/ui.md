@@ -280,8 +280,10 @@ view (`ScrollX`, `ScrollY`, `VirtualWidth`, `VirtualHeight`; event `<id>_Scroll(
 
 `Text` (a label in the gauge instead of the percentage), `ShowPercent`.
 
-Status: canvas mouse events **done** (tests/os4/ui_mouse_test.c, 7/7 on m1); the rest
-**planned**.
+Status: **done** (tests/os4/ui_controls_test.c 35/35 on the local guest, ui_mouse_test 7/7):
+canvas mouse events, TextEditor, ListBrowser columns/sorting/multi-select, tabs, TreeView, Grid,
+splitter, images and picture buttons. **Not done**: canvas `scrollbars=1` (use scroller
+controls beside it for now), fuelgauge `Text`/`ShowPercent`.
 
 ## 5. Multiple windows, modal dialogs, tool windows
 

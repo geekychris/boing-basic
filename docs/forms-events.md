@@ -203,10 +203,21 @@ Esc (27), Tab (9), Backspace (8), Delete (46), Help (`vbKeyHelp` = 47). `Shift` 
 | `RemoveItem index` | method | |
 | `Clear` | method | |
 
+| `ColumnCount` | Long, R/O | `columns` (`"Name\|Size\|Date"`; rows are tab-separated: `AddItem "a" & vbTab & "1"`) |
+| `ColumnTitle(i)` | String | `columns` |
+| `Cell(row, col)` | String (get and set) | |
+| `Selected(i)` | Boolean | `multiselect` |
+| `SelCount` | Long, R/O | |
+| `SortColumn`, `SortOrder` | Long | `sortable` (title clicks sort); 0 ascending, 1 descending |
+| `ItemData(i)` | Long | — (moves with its row) |
+| `Sort [col [, order]]` | method | numbers sort as numbers |
+| | | `widths` (column weights) |
+
 | Event | Signature | When |
 |---|---|---|
 | `Click` | `<id>_Click()` | a row was selected (by the user, or code set `ListIndex`) |
 | `DblClick` | `<id>_DblClick()` | a row was double-clicked (`Click` comes first) |
+| `ColumnClick` | `<id>_ColumnClick(Column As Integer)` | a column title was clicked (with `sortable=1` the list is sorted first) |
 
 ## Text label (`label`) — VB `Label`
 
@@ -253,10 +264,23 @@ No events.
 | `Locked` | Boolean | — |
 | `SelText` | String | the selected text; setting it replaces the selection |
 | `LineCount` | Long, R/O | |
+| `SelStart`, `SelLength` | Long | — (characters from the start) |
+| `CurrentLine`, `CurrentColumn` | Long | — (0-based cursor) |
+| `Modified` | Boolean | — |
+| `FixedFont` | Boolean | `fixedfont` |
+| `TabSize` | Long | — |
+| `Bold`, `Italic`, `Underline` | Boolean | — (the selection / at the cursor) |
+| `CanUndo`, `CanRedo` | Boolean, R/O | — |
+| `Cut`, `Copy`, `Paste`, `Undo`, `Redo`, `Clear`, `SelectAll` | method | |
+| `InsertText s` | method | at the cursor |
+| `Find(text [, matchCase [, fromTop]])` | method | selects the match; True if found |
+| `Replace(find, with [, all [, matchCase]])` | method | returns how many |
+| `LoadFile path`, `SaveFile path` | method | |
 
 | Event | Signature |
 |---|---|
-| `Change` | `<id>_Change()` |
+| `Change` | `<id>_Change()` (also while typing) |
+| `CursorMove` | `<id>_CursorMove()` — the cursor moved |
 
 ## Timer (`timer`) — VB `Timer` — **new .afg kind**
 
@@ -414,6 +438,102 @@ No events.
 | | | `frame` | a recessed frame around it |
 
 No events.
+
+## Tabs (`tabs`) — VB `TabStrip` — **new .afg kind**
+
+A clicktab whose children (layouts) are the pages; each page's `title` is its tab.
+
+```
+tabs id=pages
+  vlayout title="General"
+    ...
+  vlayout title="Advanced"
+    ...
+```
+
+| Property | Type | Design-time key | Notes |
+|---|---|---|---|
+| `Tab` | Long | `selected` | the page shown, 0-based (also `Value`) |
+| `TabCount` | Long, R/O | number of pages | |
+| `TabCaption(i)` | String | the pages' `title` | |
+
+| Event | Signature | When |
+|---|---|---|
+| `Click` | `<id>_Click()` | another tab was chosen (also when code sets `Tab`) |
+
+## Tree view (`treeview`) — VB `TreeView` — **new .afg kind**
+
+A hierarchical list; nodes have a key (unique) and a parent key.
+
+| Property / method | Type | Notes |
+|---|---|---|
+| `AddNode key, parent, text` | method | parent `""` = a root node; error 457 for a key in use |
+| `RemoveNode key` | method | with its children |
+| `Clear` | method | |
+| `Expand key`, `Collapse key` | method | |
+| `NodeText(key)` | method / `NodeText key, text` | |
+| `NodeParent(key)` | method | the parent's key, "" for a root |
+| `NodeExpanded(key)` | method | |
+| `NodeCount` | Long, R/O | |
+| `SelectedKey` | String | setting it opens the node's parents and selects it |
+| `EventKey` | String, R/O | the node of the last event |
+
+| Event | Signature | When |
+|---|---|---|
+| `NodeClick` | `<id>_NodeClick()` | a node was selected (`SelectedKey`) |
+| `DblClick` | `<id>_DblClick()` | |
+| `Expand` | `<id>_Expand()` | the user opened a node (`EventKey`) |
+| `Collapse` | `<id>_Collapse()` | the user closed a node |
+
+## Grid (`grid`) — VB `MSFlexGrid` — **new .afg kind**
+
+An editable cell grid drawn by the runtime, with scrollers. [ui.md](ui.md#grid-grid--an-editable-cell-grid-vb-msflexgrid-for-spreadsheets)
+
+```
+grid id=sheet rows=100 cols=27 fixedrows=1 fixedcols=1 colwidth=64 editable=1 headers=1
+```
+
+| Property / method | Type | Design-time key | Notes |
+|---|---|---|---|
+| `Rows`, `Cols` | Long | `rows`, `cols` | |
+| `FixedRows`, `FixedCols` | Long | `fixedrows`, `fixedcols` | title rows / columns |
+| | | `headers` | titles A, B, C... and 1, 2, 3... in them |
+| `Row`, `Col` | Long | | the current cell |
+| `Text` | String | | the current cell; setting it sets every selected cell |
+| `TextMatrix(row, col)` | String | | any cell (get and set) |
+| `ColWidth(col)` | Long | `colwidth` | pixels; `ColWidth = n` sets every column |
+| `RowHeight` | Long | | |
+| `ColAlignment(col)` | Long | | 0 left, 1 right, 2 centre (default: numbers right) |
+| `CellBold(row, col)`, `CellForeColor(row, col)`, `CellBackColor(row, col)` | | | also without indexes for the current cell |
+| `TopRow`, `LeftCol` | Long | | scrolling |
+| `SelStartRow`, `SelStartCol`, `SelEndRow`, `SelEndCol` | Long | | the selected range |
+| `Editable` | Boolean | `editable` | typing starts editing a cell |
+| `Editing` | Boolean, R/O | | |
+| `Redraw` | Boolean | | False while filling many cells |
+| `AddItem text [, row]` | method | | a row; cells separated by `vbTab` |
+| `RemoveItem row` | method | | |
+| `Clear` | method | | the cells (not the titles) |
+| `EditCell` | method | | start editing the current cell |
+
+| Event | Signature | When |
+|---|---|---|
+| `EnterCell` | `<id>_EnterCell()` | the current cell changed (after) |
+| `LeaveCell` | `<id>_LeaveCell()` | it is about to change |
+| `BeforeEdit` | `<id>_BeforeEdit(Cancel As Integer)` | editing is about to start |
+| `AfterEdit` | `<id>_AfterEdit()` | an edit was committed (Return, Tab, cursor keys, a click elsewhere) or Del cleared cells |
+| `Click` | `<id>_Click()` | |
+| `DblClick` | `<id>_DblClick()` | (starts editing when `Editable`) |
+| `KeyDown` | `<id>_KeyDown(KeyCode As Integer, Shift As Integer)` | a key while the grid has the focus; set KeyCode = 0 to swallow it |
+| `Scroll` | `<id>_Scroll()` | |
+
+Keys: cursor keys (with Shift: extend the selection), Tab, Return, Page Up/Down, Home/End,
+F2 (edit), Del (clear the selection), Esc (cancel an edit).
+
+## Layouts: splitter, picture buttons
+
+- `hlayout splitter=1` / `vlayout splitter=1`: draggable bars between the children.
+- `button image="file" [selimage="file"] [text="..."]`: a button with a picture (and its text
+  beside it).
 
 ## Common dialog (`commondialog`) — VB `CommonDialog` — **new .afg kind**
 
