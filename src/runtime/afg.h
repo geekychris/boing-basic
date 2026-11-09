@@ -56,6 +56,7 @@ const char *afg_get(const afg_node *n, const char *key);
 int afg_get_int(const afg_node *n, const char *key);
 int afg_get_bool(const afg_node *n, const char *key);
 int afg_has(const afg_node *n, const char *key);     /* set and not empty */
+void afg_set(afg_node *n, const char *key, const char *value);   /* add or replace a property */
 
 /* Depth-first walk, calling fn for every node below (and including) n. */
 void afg_walk(afg_node *n, void (*fn)(afg_node *, void *), void *ud);

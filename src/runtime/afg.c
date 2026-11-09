@@ -270,6 +270,11 @@ afg_node *afg_parse(const char *text, char *err, int errlen)
     return win;
 }
 
+void afg_set(afg_node *n, const char *key, const char *value)
+{
+    add_prop(n, dupn(key, strlen(key)), dupn(value, strlen(value)));
+}
+
 void afg_free(afg_node *n)
 {
     if (!n) return;

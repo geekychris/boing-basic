@@ -281,7 +281,10 @@ Object *bbf_build(bb_form *f, afg_node *n)
         if (!strcmp(frame, "group")) tg(&t, LAYOUT_BevelStyle, BVS_GROUP);
         else if (!strcmp(frame, "button")) tg(&t, LAYOUT_BevelStyle, BVS_BUTTON);
         else if (!strcmp(frame, "field")) tg(&t, LAYOUT_BevelStyle, BVS_FIELD);
-        if (afg_has(n, "title") && !page) tg(&t, LAYOUT_Label, (uint32)afg_get(n, "title"));
+        if (afg_has(n, "title") && !page) {
+            tg(&t, LAYOUT_Label, (uint32)afg_get(n, "title"));
+            afg_set(n, "_framed", "1");      /* what the layout was given (layout.gadget doesn't say) */
+        }
         if (afg_get_bool(n, "even")) tg(&t, LAYOUT_EvenSize, TRUE);
         if (afg_get_bool(n, "splitter")) tg(&t, LAYOUT_WeightBar, TRUE);     /* draggable bars between children */
         for (int i = 0; i < n->nchildren; i++) {
