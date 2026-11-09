@@ -110,8 +110,7 @@ End Sub
 
 Private Sub Form_Resize()
     Tr "resize"
-    needView = True
-    UpdateAll
+    needView = True          ' drawn by the next tick (a relayout must not recurse into drawing)
 End Sub
 
 Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
@@ -142,11 +141,16 @@ Private Function ConfirmDiscard(ByVal what As String) As Boolean
     End If
 End Function
 
+' (the host runs are headless test runs: their paths are Unix paths)
+Private Function OnAmiga() As Boolean
+    OnAmiga = Mid$(App.Path, 1, 1) <> "/"
+End Function
+
 Private Sub Tr(ByVal what As String)
     Dim f As Integer
     If Not traceOn Then Exit Sub
     f = FreeFile
-    If InStr(App.Path, ":") > 0 And InStr(App.Path, "/") <> 1 Then
+    If OnAmiga() Then
         Open "RAM:tincture.trace" For Append As #f
     Else
         Open "tincture.trace" For Append As #f          ' on the host (headless runs)
@@ -158,6 +162,17 @@ End Sub
 ' ---------------------------------------------------------------- drawing the window
 
 Private Sub UpdateAll()
+    ' never re-entered: setting a control can fire events (and layout changes Form_Resize) that
+    ' would call this again; the flags left set are handled at the end or by the next tick
+    Static busy As Boolean
+    If busy Then Exit Sub
+    busy = True
+    UpdateOnce
+    If needView Or needTools Or needColours Or needLayers Or needTitle Then UpdateOnce
+    busy = False
+End Sub
+
+Private Sub UpdateOnce()
     If needFit Then needFit = False: ZoomFit: needView = True
     If needView Then needView = False: Tr "render": RenderView: Tr "refresh": view.Refresh
     If needTools Then needTools = False: Tr "toolbox": DrawToolBox tools
@@ -1082,7 +1097,7 @@ Private Sub RunSmoke()
     NeedAll
     UpdateAll
     Debug.Print "SMOKE redo-all hash=" & RunCommand("HASH")
-    If InStr(App.Path, ":") > 0 And InStr(App.Path, "/") <> 1 Then view.SaveImage "RAM:tincture-smoke.ppm"
+    If OnAmiga() Then view.SaveImage "RAM:tincture-smoke.ppm"
     docDirty = False
     If holdSecs = 0 Then QuitNow
 End Sub
