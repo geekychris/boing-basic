@@ -41,6 +41,7 @@ Private Const HALF As Long = 240
 
 Private cam As A3Cam
 Private cr As Long, sr As Long, cp As Long, sp As Long     ' the board's tilt
+Private bwx As Long, bwy As Long, bwz As Long, engBias As Long
 Private octX(0 To 7) As Long, octZ(0 To 7) As Long
 Private qx(0 To 7) As Long, qy(0 To 7) As Long, qz(0 To 7) As Long
 Private tx8(0 To 7) As Long, ty8(0 To 7) As Long, tz8(0 To 7) As Long
@@ -121,15 +122,38 @@ Private Sub Bpt(ByVal x As Long, ByVal y As Long, ByVal z As Long)
     CamXform cam, x1, y2, z2
 End Sub
 
+' a point on the board to the world (tilted, not yet through the camera): bwx, bwy, bwz
+Private Sub BptW(ByVal x As Long, ByVal y As Long, ByVal z As Long)
+    Dim y1 As Long, t As Long
+    t = x * cr + y * sr: bwx = (t - (t And 65535)) \ 65536
+    t = y * cr - x * sr: y1 = (t - (t And 65535)) \ 65536
+    t = z * cp + y1 * sp: bwz = (t - (t And 65535)) \ 65536
+    t = y1 * cp - z * sp: bwy = (t - (t And 65535)) \ 65536
+End Sub
+
+' a quad on the board: tilted here, the camera transform and the rest in the engine (sorted
+' by the middle of two opposite corners plus bias; the C: of all four)
 Private Sub BQuad(ByVal x0 As Long, ByVal y0 As Long, ByVal z0 As Long, ByVal x1 As Long, ByVal y1 As Long, ByVal z1 As Long, _
                   ByVal x2 As Long, ByVal y2 As Long, ByVal z2 As Long, ByVal x3 As Long, ByVal y3 As Long, ByVal z3 As Long, _
                   ByVal bias As Long, ByVal col As Long)
     Dim ax As Long, ay As Long, az As Long, bx As Long, by As Long, bz As Long, cx As Long, cy As Long, cz As Long
-    Bpt x0, y0, z0: ax = ox: ay = oy: az = oz
-    Bpt x1, y1, z1: bx = ox: by = oy: bz = oz
-    Bpt x2, y2, z2: cx = ox: cy = oy: cz = oz
-    Bpt x3, y3, z3
-    A3Quad cam, (az + bz + cz + oz) \ 4 + bias, col, ax, ay, az, bx, by, bz, cx, cy, cz, ox, oy, oz
+    BptW x0, y0, z0: ax = bwx: ay = bwy: az = bwz
+    BptW x1, y1, z1: bx = bwx: by = bwy: bz = bwz
+    BptW x2, y2, z2: cx = bwx: cy = bwy: cz = bwz
+    BptW x3, y3, z3
+    If bias <> engBias Then
+        e3d.QuadBias = bias
+        engBias = bias
+    End If
+    e3d.QuadW -1, col, ax, ay, az, bx, by, bz, cx, cy, cz, bwx, bwy, bwz
+End Sub
+
+' the engine's camera set to ours once (A3Engine compares the whole camera on every call;
+' the board's quads then go straight to the engine, with its QuadBias set here)
+Private Sub SyncCamera()
+    A3QuadW cam, 0, 0, cam.x, cam.y, cam.z, cam.x, cam.y, cam.z, cam.x, cam.y, cam.z, cam.x, cam.y, cam.z
+    e3d.QuadBias = 0
+    engBias = 0
 End Sub
 
 ' a flat rectangle on the board at height y
@@ -161,6 +185,7 @@ Private Sub Board()
     Dim r As Long, c As Long, e As Long, p As Long, z0 As Long, z1 As Long
     ' the floor, in runs along each row; then the slab's front edge
     A3Begin 2000
+    SyncCamera
     For r = 0 To MT_N - 1
         z1 = (6 - r) * MT_CELL
         z0 = z1 - MT_CELL
@@ -181,6 +206,8 @@ Private Sub Board()
         Loop
     Next r
     BQuad -HALF, 0, -HALF, HALF, 0, -HALF, HALF, -16, -HALF, -HALF, -16, -HALF, 30, PEN_EDGE
+    e3d.QuadBias = 0
+    engBias = 0
     A3Flush
     polyTotal = polyTotal + a3NPolys
 End Sub
@@ -303,8 +330,11 @@ Private Sub Scene()
     VoidBands
     Board
     A3Begin 2000
+    SyncCamera
     Blocks
     Marble
+    e3d.QuadBias = 0
+    engBias = 0
     A3Flush
     polyTotal = polyTotal + a3NPolys
 End Sub
