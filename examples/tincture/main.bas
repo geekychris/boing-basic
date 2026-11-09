@@ -1085,24 +1085,24 @@ Private Sub RunBench(ByVal n As Long)
     t1 = Timer
     Debug.Print "BENCH " & n & " strokes, " & segs & " moves: " & Format$((t1 - t0) * 1000# / segs, "0.00") & " ms per mouse move (incl. view redraw)"
     t0 = Timer
-    For i = 1 To 20
+    For i = 1 To 100
         RenderView
         view.Refresh
     Next
-    Debug.Print "BENCH full view redraw: " & Format$((Timer - t0) * 1000# / 20, "0.00") & " ms"
+    Debug.Print "BENCH full view redraw: " & Format$((Timer - t0) * 1000# / 100, "0.00") & " ms"
     t0 = Timer
-    For i = 1 To 10
+    For i = 1 To 50
         RunCommand "BOX 100 100 300 200"
         Undo
     Next
-    Debug.Print "BENCH undo of a 300x200 box: " & Format$((Timer - t0) * 1000# / 10, "0.00") & " ms (draw + undo)"
+    Debug.Print "BENCH undo of a 300x200 box: " & Format$((Timer - t0) * 1000# / 50, "0.00") & " ms (draw + undo)"
     t0 = Timer
-    For i = 1 To 5
+    For i = 1 To 20
         curTool = T_FILL
         ToolDown 5, 5, 1 + (i Mod 2), 0
         ToolUp 5, 5, 1 + (i Mod 2), 0
     Next
-    Debug.Print "BENCH flood fill of 640x512: " & Format$((Timer - t0) * 1000# / 5, "0.00") & " ms (fill + undo record)"
+    Debug.Print "BENCH flood fill of 640x512: " & Format$((Timer - t0) * 1000# / 20, "0.00") & " ms (fill + undo record)"
     docDirty = False
     QuitNow
 End Sub
