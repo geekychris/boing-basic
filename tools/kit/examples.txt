@@ -80,3 +80,13 @@ keys=Piano keys Z S X D C V ... and Q 2 W 3 E ...; Space edit mode on/off
 keys=F5/F6/F7 play song/pattern/from the cursor, Esc stop; F1/F2 octave, F3/F4 sample
 keys=F10, Amiga+1/2/3 pattern editor, sample editor, song settings; Amiga+Z/Y undo/redo
 keys=Amiga+O/S/N/Q open, save, new, quit; Help opens Riffwright.guide
+
+[boingpad]
+title=BoingPad
+kind=app
+about=a text editor: menus, toolbar, status bar, file dialogs, settings, ARexx port, drag and drop
+
+[minisheet]
+title=MiniSheet
+kind=app
+about=a small spreadsheet: grid, tree view, tabs, list columns and a splitter

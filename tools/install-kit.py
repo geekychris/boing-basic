@@ -4,6 +4,7 @@ AmigaOS 4 guest as DH1:BoingBASIC, put the AmiForge icon on the Workbench deskto
 
     tools/install-kit.py BB_GUEST=m1                      install build/kit/BoingBASIC.lha, verify
     tools/install-kit.py BB_GUEST=m1 --verify-only        only the checks and the screenshot
+    tools/install-kit.py BB_GUEST=m1 --icon-only          only the desktop icon (then the checks)
     options: --kit PATH.lha   --shot OUT.png   --no-icon   --keep-previous
 
 Install (one guest session, FIFO ticket + emulator lock + banner, at most BB_SESSION_TIMEOUT s,
@@ -105,16 +106,26 @@ def rexx(m, cmd):
 def script(m, name, lines, limit=240):
     """Run an AmigaDOS script in the background on the guest (its own CLI with a real stack, so a
     long step doesn't hold the bridge's shell) and wait for its last line."""
+    outf = "RAM:bbkit/%s.log" % name
+    control = {"if", "else", "endif", "quit", "failat", "stack", "cd", "skip", "lab"}
+    body = []
+    for line in lines + ['Echo "SCRIPT-END"']:
+        # output of a script started with run goes to NIL:: every command appends to the log itself
+        # (AmigaDOS wants the redirection right after the command name)
+        ind = line[:len(line) - len(line.lstrip())]
+        parts = line.strip().split(None, 1)
+        if parts and parts[0].lower() not in control and not (len(parts) > 1 and parts[1].startswith(">")):
+            line = ind + parts[0] + " >>" + outf + (" " + parts[1] if len(parts) > 1 else "")
+        body.append(line)
     with tempfile.NamedTemporaryFile("w", delete=False, suffix=".dos", encoding="latin-1") as f:
-        f.write("FailAt 21\nStack 262144\n" + "\n".join(lines) + "\nEcho \"SCRIPT-END\"\n")
+        f.write("FailAt 21\nStack 262144\n" + "\n".join(body) + "\n")
         local = f.name
     try:
         g.push(m, local, "RAM:bbkit/%s.dos" % name)
     finally:
         os.unlink(local)
-    outf = "RAM:bbkit/%s.log" % name
     dos(m, "delete %s QUIET" % outf)
-    dos(m, "run >NIL: execute RAM:bbkit/%s.dos >%s" % (name, outf))
+    dos(m, "run >NIL: execute RAM:bbkit/%s.dos" % name)
     t0, out = time.time(), ""
     while time.time() - t0 < limit:
         time.sleep(3)
@@ -125,13 +136,16 @@ def script(m, name, lines, limit=240):
 
 
 def free_bytes(info):
-    # info DH1:  ->  "DH1:  2.0G  1.2G  800M  60%  0  Read/Write DevDrive"
+    # info DH1:  ->  "DH1: 511M 398,898 124,758  76%  0 Read/Write chris" (Used/Free in blocks):
+    # free = Size x (100 - Full) %
+    units = {"": 1, "K": 1 << 10, "M": 1 << 20, "G": 1 << 30}
     for line in info.splitlines():
         if line.startswith("DH1"):
             cols = line.split()
-            m = re.match(r"([\d.]+)([KMG]?)", cols[3]) if len(cols) > 3 else None
-            if m:
-                return float(m.group(1)) * {"": 1, "K": 1 << 10, "M": 1 << 20, "G": 1 << 30}[m.group(2)]
+            sz = re.match(r"([\d.]+)([KMG]?)$", cols[1]) if len(cols) > 4 else None
+            full = re.match(r"(\d+)%$", cols[4]) if len(cols) > 4 else None
+            if sz and full:
+                return float(sz.group(1)) * units[sz.group(2)] * (100 - int(full.group(1))) / 100
     return None
 
 
@@ -152,26 +166,38 @@ def put_away(m):
     its lock on the old drawer, so the drawer can be swapped)."""
     if ENTRY.lower() not in backdrop(m).lower():
         return True
-    r1 = rexx(m, "ICON WINDOW root NAMES AmiForge SELECT")
-    r2 = rexx(m, "MENU WINDOW root INVOKE ICONS.PUTAWAY")
+    if not wb_alive(m):
+        return False
+    r1 = rexx(m, "ICON WINDOW ROOT NAMES AmiForge SELECT")
+    r2 = rexx(m, "MENU WINDOW ROOT INVOKE ICONS.PUTAWAY")
     time.sleep(2)
     ok = ENTRY.lower() not in backdrop(m).lower()
     log("put away the old desktop icon: %s (%s / %s)" % ("ok" if ok else "NOT done", r1, r2))
     return ok
 
 
+def wb_alive(m):
+    r = rexx(m, "HELP")
+    if "ICON" not in r:
+        log("Workbench's ARexx port doesn't answer (%s)" % r.strip()[:60])
+        return False
+    return True
+
+
 def leave_out(m):
     """LEAVEOUT through Workbench's ARexx port; returns how it was done, or None."""
-    rexx(m, "WINDOW '%s' OPEN" % DEST)
+    if not wb_alive(m):
+        return None
+    rexx(m, "WINDOW \"%s\" OPEN" % DEST)
     time.sleep(3)
-    r1 = rexx(m, "ICON WINDOW '%s' NAMES AmiForge SELECT" % DEST)
-    r2 = rexx(m, "MENU WINDOW '%s' INVOKE ICONS.LEAVEOUT" % DEST)
+    r1 = rexx(m, "ICON WINDOW \"%s\" NAMES AmiForge SELECT" % DEST)
+    r2 = rexx(m, "MENU WINDOW \"%s\" INVOKE ICONS.LEAVEOUT" % DEST)
     time.sleep(2)
-    rexx(m, "WINDOW '%s' CLOSE" % DEST)
+    rexx(m, "WINDOW \"%s\" CLOSE" % DEST)
     if ENTRY.lower() in backdrop(m).lower():
-        rexx(m, "ICON WINDOW root NAMES AmiForge SELECT")
-        r3 = rexx(m, "MENU WINDOW root INVOKE ICONS.SNAPSHOT")
-        rexx(m, "ICON WINDOW root NAMES AmiForge UNSELECT")
+        rexx(m, "ICON WINDOW ROOT NAMES AmiForge SELECT")
+        r3 = rexx(m, "MENU WINDOW ROOT INVOKE ICONS.SNAPSHOT")
+        rexx(m, "ICON WINDOW ROOT NAMES AmiForge UNSELECT")
         log("desktop icon left out through Workbench ARexx (snapshot: %s)" % r3)
         return "arexx"
     log("Workbench ARexx LEAVEOUT didn't take (%s / %s)" % (r1, r2))
@@ -206,7 +232,7 @@ def install(m):
     log("pushed in %.0f s" % (time.time() - t0))
     if "--no-icon" not in args:
         put_away(m)
-        rexx(m, "WINDOW '%s' CLOSE" % DEST)
+        rexx(m, "WINDOW \"%s\" CLOSE" % DEST)
     keep_prev = "--keep-previous" in args
     lines = [
         'If EXISTS DH1:BBkit-new', '  Delete DH1:BBkit-new ALL QUIET FORCE', 'EndIf',
@@ -272,7 +298,7 @@ def screenshot(m, out):
     if g.SSH:
         subprocess.run(["ssh", "-o", "BatchMode=yes", g.SSH,
                         "sips -s format png %s --out %s.png >/dev/null 2>&1 || "
-                        "python3 -c \"from PIL import Image; Image.open('%s').save('%s.png')\"; rm -f %s"
+                        "python3 -c \"from PIL import Image; Image.open(\"%s\").save('%s.png')\"; rm -f %s"
                         % (tmp, tmp, tmp, tmp, tmp)], check=True, timeout=60)
         subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "%s:%s.png" % (g.SSH, tmp), out], check=True)
         subprocess.run(["ssh", "-o", "BatchMode=yes", g.SSH, "rm -f %s.png" % tmp], timeout=30)
@@ -330,6 +356,11 @@ def main():
     if not os.path.exists(KIT):
         sys.exit("install-kit: no %s (run tools/make-kit.sh)" % KIT)
     m = g.MCP(g.URL)
+    if "--icon-only" in args:
+        with g.testing("Boing BASIC: desktop icon"):
+            how = leave_out(m) or backdrop_entry(m)
+            log("desktop icon: %s" % (how or "FAILED"))
+        args.append("--verify-only")
     if "--verify-only" not in args:
         with g.testing("Installing Boing BASIC + AmiForge"):
             install(m)
