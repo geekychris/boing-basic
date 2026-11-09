@@ -55,6 +55,7 @@ Public Sub ResetCursor()
     sideDirty = True
     InvalidatePattern
     frameDirty = True
+    lastView = -1
 End Sub
 
 Public Sub Say(ByVal s As String)
@@ -301,6 +302,23 @@ Private Sub PatternKey(ByVal k As Integer, ByVal shift As Boolean, ByVal ctrl As
                 EdInterpolate curPat, r0, r1, c0, c1
                 RefreshRows curPat, r0, r1
                 Say "interpolated"
+            Case vbKeyD                     ' duplicate this position's pattern into a new one after it
+                n = FreePattern()
+                EdCopyPattern curPat, n
+                EdInsertOrder curPos + 1, n
+                GoPosition curPos + 1
+                AfterBigChange
+                Say "pattern " & n & " is a copy, at position " & curPos
+            Case vbKeyP                     ' a new empty pattern after this position
+                n = FreePattern()
+                EdInsertOrder curPos + 1, n
+                GoPosition curPos + 1
+                AfterBigChange
+                Say "new pattern " & n & " at position " & curPos
+            Case vbKeyDelete                ' clear the whole pattern
+                EdClearPattern curPat
+                AfterBigChange
+                Say "pattern " & curPat & " cleared"
             Case vbKeyK
                 BlockRange r0, r1, c0, c1
                 EdSwapSample curPat, r0, r1, c0, c1, 0, curSmp
@@ -351,7 +369,12 @@ Private Sub PatternKey(ByVal k As Integer, ByVal shift As Boolean, ByVal ctrl As
             Exit Sub
     End Select
     If Not editOn Then
-        ' jam: play the note, leave the pattern alone
+        ' jam: play the note, leave the pattern alone; Return plays the row and steps down
+        If k = vbKeyReturn Then
+            JamRow curPat, curRow
+            MoveRow 1, False
+            Exit Sub
+        End If
         If curField = 0 Then
             off = PianoOffset(k)
             If off >= 0 Then
@@ -534,7 +557,7 @@ End Sub
 
 Private Sub SongKey(ByVal k As Integer, ByVal shift As Boolean, ByVal ctrl As Boolean, _
                     ByVal alt As Boolean, ByVal amiga As Boolean)
-    Dim d As Long, h As Long
+    Dim d As Long, h As Long, ok As Boolean
     If songField = 5 Then
         Select Case k
             Case vbKeyLeft: GoPosition curPos - 1: typedCount = 0
@@ -571,8 +594,15 @@ Private Sub SongKey(ByVal k As Integer, ByVal shift As Boolean, ByVal ctrl As Bo
             If k = vbKeyLeft Then d = -1 Else d = 1
             If shift Then d = d * 10
             Select Case songField
-                Case 1: EdSpeedTempo initSpeed + d, initTempo: SetPlayerSpeed
-                Case 2: EdSpeedTempo initSpeed, initTempo + d: SetPlayerSpeed
+                Case 1, 2
+                    If songField = 1 Then ok = EdSpeedTempo(initSpeed + d, initTempo) Else ok = EdSpeedTempo(initSpeed, initTempo + d)
+                    If ok Then
+                        SetPlayerSpeed
+                        InvalidatePattern
+                        Say "speed " & initSpeed & ", tempo " & initTempo & " (Fxx in row 0 of pattern " & orders(0) & ")"
+                    Else
+                        Say "row 0 of pattern " & orders(0) & " has no free effect column for it"
+                    End If
                 Case 3: EdSongLength songLen + d
                 Case 4
                     UndoSong "restart"
@@ -605,10 +635,22 @@ End Sub
 ' ---------------------------------------------------------------- a frame
 
 ' follow the player, then draw. Call every timer tick; returns True when something was drawn.
+Private sigHeader As String, sigInfo As String, sigHeads As String, sigStatus As String
+Private lastView As Long, lastSidePP As Long, scopesLive As Boolean, lastSmpPos As Long
+
 Public Function Frame(ByVal force As Boolean) As Boolean
-    Dim viewY As Long, pr As Long, pp As Long, ppat As Long, frac As Long, mode As Long
-    Dim hint As String, msg As String
+    Dim pr As Long, pp As Long
     pr = -1: pp = -1
+    ' the player's state for this frame: one call (two with the scopes)
+    PlayerRead playing And Not scopesOff, SCN
+    inFrame = True
+    Frame = FrameDraw(force, pr, pp)
+    inFrame = False
+End Function
+
+Private Function FrameDraw(ByVal force As Boolean, pr As Long, pp As Long) As Boolean
+    Dim viewY As Long, ppat As Long, frac As Long, mode As Long
+    Dim hint As String, msg As String, sig As String, c As Long, sp As Long
     If playing Then
         PlayerPoll pp, ppat, pr, frac
         If followOn Then
@@ -623,21 +665,42 @@ Public Function Frame(ByVal force As Boolean) As Boolean
         End If
     End If
     If message <> "" And Timer - msgTime > 4 Then message = "": frameDirty = True
+    If curView = V_SAMPLES Then
+        ' the play cursor in the waveform while the sample sounds (and one frame after)
+        sp = PlayerSamplePos(curSmp)
+        If sp >= 0 Or lastSmpPos >= 0 Then frameDirty = True
+        lastSmpPos = sp
+    End If
     If Not (frameDirty Or force) Then Exit Function
     frameDirty = False
     If playing And followOn Then viewY = curRow * RH + (frac * RH) \ 256 Else viewY = curRow * RH
     If playing Then mode = playMode Else mode = 0
-    DrawHeader songFileName()
-    DrawInfo curPos, curPat, curRow, CurSpeed(), CurTempo(), octave, curSmp, editOn, followOn, mode
-    DrawScopes
+    ' Only the parts that changed are drawn again: the back buffer keeps the rest
+    ' (Refresh always shows the whole picture).
+    If curView <> lastView Then force = True: lastView = curView
+    sig = songFileName() & "|" & TitleText() & "|" & songDirty
+    If force Or sig <> sigHeader Then DrawHeader songFileName(): sigHeader = sig
+    sig = curPos & "|" & curPat & "|" & curRow & "|" & CurSpeed() & "|" & CurTempo() & "|" & octave & "|" & _
+          curSmp & "|" & editOn & "|" & followOn & "|" & mode & "|" & smpName(curSmp)
+    If force Or sig <> sigInfo Then
+        DrawInfo curPos, curPat, curRow, CurSpeed(), CurTempo(), octave, curSmp, editOn, followOn, mode
+        sigInfo = sig
+    End If
+    If force Or playing Or scopesLive Then DrawScopes: scopesLive = playing
     Select Case curView
         Case V_PATTERN
-            DrawChannelHeads curCh
+            sig = curCh & "|" & nch
+            For c = 0 To nch - 1: sig = sig & IIf(ChanMuted(c), "m", "-"): Next c
+            If force Or sig <> sigHeads Then DrawChannelHeads curCh: sigHeads = sig
             If ppat = curPat Then pr = pr Else pr = -1
             If followOn Then pr = -1
             DrawPattern curPat, viewY, curRow, curCh, curField, pr, editOn, selOn, selR0, selR1, selC0, selC1
-            cv.Box PatWidth(), PY0 - 12, scrW - PatWidth(), PH + 12, cBg
-            If SideVisible() Then DrawSide curPos, pp, curSmp, 0
+            If force Or sideDirty Or pp <> lastSidePP Then
+                cv.Box PatWidth(), PY0 - 12, scrW - PatWidth(), PH + 12, cBg
+                If pp <> lastSidePP Then sideDirty = True
+                If SideVisible() Then DrawSide curPos, pp, curSmp, 0
+                lastSidePP = pp
+            End If
             hint = "F1/F2 octave  F3/F4 sample  F5 play  F8 stop  Space edit  F10 view  Help"
         Case V_SAMPLES
             DrawSampleView curSmp, smpField, smpZoomS, smpZoomL, PlayerSamplePos(curSmp)
@@ -648,8 +711,9 @@ Public Function Frame(ByVal force As Boolean) As Boolean
     End Select
     msg = message
     If msg = "" Then msg = "Riffwright"
-    DrawStatus msg, hint
-    Frame = True
+    sig = msg & "|" & hint
+    If force Or sig <> sigStatus Then DrawStatus msg, hint: sigStatus = sig
+    FrameDraw = True
 End Function
 
 Public Function songFileName() As String
@@ -663,6 +727,7 @@ End Function
 
 ' after a load or new song
 Public Sub SongChanged()
+    DeriveSpeedTempo
     ClearUndo
     MirrorAll
     ResetCursor

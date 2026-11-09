@@ -130,6 +130,9 @@ whole channel under the cursor.
   Amiga+T   transpose up a semitone, Amiga+Shift+T down, with Alt: an octave
   Amiga+I   interpolate effect parameters from the first row to the last (slides)
   Amiga+K   set the notes in the block to the current sample
+  Amiga+D   duplicate the pattern into a new one at the next position
+  Amiga+P   a new empty pattern at the next position
+  Amiga+Del clear the pattern
   Amiga+Z   undo (200 steps)     Amiga+Shift+Z or Amiga+Y  redo
 @endnode
 
@@ -169,6 +172,10 @@ play position (green).
 
 Title, speed (ticks per row at the start), tempo (BPM at the start), song length and the
 restart position. Up / Down choose, Left / Right change (Shift: 10), Return edits the title.
+
+A module has no header field for the start speed and tempo: Riffwright keeps them as F
+commands (Fxx below 20 = speed, 20 and up = tempo) in row 0 of the first pattern played, as
+ProTracker users do, and reads them from there when it loads a song.
 @endnode
 
 @node Playing "Playing"

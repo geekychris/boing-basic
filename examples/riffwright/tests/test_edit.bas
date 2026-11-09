@@ -104,7 +104,8 @@ Sub Main()
     Print "free pattern:"; FreePattern()
     ' song settings
     EdTitle "Undo Me"
-    EdSpeedTempo 4, 140
+    Check "speed/tempo into row 0", EdSpeedTempo(4, 140)
+    Print "  row 0: "; RowText(orders(0), 0); " ->"; initSpeed; initTempo
     Undo
     Print "["; TitleText(); "]"; initSpeed; initTempo
     Undo

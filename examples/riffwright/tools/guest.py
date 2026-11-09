@@ -18,16 +18,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 APP = os.path.dirname(HERE)
 ROOT = os.path.abspath(os.path.join(APP, "../.."))
 sys.path.insert(0, ROOT + "/tools")
+os.environ.setdefault("BB_SESSION_TIMEOUT", "290")   # the guests' rule: at most 5 minutes per lock ticket
 import os4guest as g  # noqa: E402
 
 DIR = "DH1:riffwright"
 SONG = DIR + "/demos/harbour_lights.mod"
 
 
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448"}.get(g.GUEST, "2348")))
+
+
 def hmp_shot(path_local):
-    """QEMU screendump of the whole guest screen (HMP on the QEMU machine's 127.0.0.1:2348)."""
-    remote = "/tmp/riffwright_shot.ppm"
-    cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 2348 >/dev/null; sleep 1" % remote
+    """QEMU screendump of the whole guest screen (HMP on the QEMU machine's 127.0.0.1:2348, m1b 2448)."""
+    remote = "/tmp/riffwright_shot_%s.ppm" % g.GUEST
+    cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 %d >/dev/null; sleep 1" % (remote, HMP_PORT)
     if g.SSH:
         subprocess.run(["ssh", g.SSH, cmd], check=True, timeout=30)
         subprocess.run(["scp", "-q", "%s:%s" % (g.SSH, remote), path_local + ".ppm"], check=True, timeout=60)
@@ -61,6 +65,7 @@ def push_all(m):
         if os.path.splitext(f)[1] in (".bas", ".bbp", ".afg", ".guide", ".info"):
             files.append((os.path.join(APP, f), DIR + "/" + f))
     files.append((APP + "/icons/Riffwright.info", DIR + "/Riffwright.info"))
+    files.append((APP + "/icons/def_mod.info", DIR + "/def_mod.info"))
     for f in sorted(os.listdir(APP + "/demos")):
         if f.endswith(".mod"):
             files.append((os.path.join(APP, "demos", f), DIR + "/demos/" + f))
@@ -96,7 +101,7 @@ def smoke(m, shots):
     os.makedirs(shots, exist_ok=True)
     outf = "RAM:riffwright.log"
     dos(m, "delete %s QUIET" % outf)
-    dos(m, "run >NIL: %s/Riffwright %s --play --log --quit-after 40 >%s" % (DIR, SONG, outf))
+    dos(m, "run >NIL: %s/Riffwright %s --play --log --quit-after 75 >%s" % (DIR, SONG, outf))
     ok = wait_for(m, outf, "active", 30) is not None
     print("window active:", ok)
     if not ok:
@@ -117,29 +122,63 @@ def smoke(m, shots):
         key(m, outf, k)
     time.sleep(1)
     hmp_shot(os.path.join(shots, "editing"))
-    out = wait_for(m, outf, "quit", 60)
+    # the ARexx port
+    print(g.push(m, os.path.join(HERE, "rwcmd.rexx"), "RAM:rwcmd.rexx"))
+
+    def rx(cmd):
+        r = dos(m, "rx RAM:rwcmd.rexx %s" % cmd)
+        print("ARexx %-38s -> %s" % (cmd, r.strip().splitlines()[-1] if r.strip() else r))
+        return r
+    ok_rx = "Riffwright 1.0" in rx("VERSION")
+    rx("PLAY 2")
+    time.sleep(2)
+    ok_rx &= "RESULT=" in rx("POSITION")
+    rx("STOP")
+    ok_rx &= "Boing Shuffle" in rx("LOAD %s/demos/boing_shuffle.mod" % DIR)
+    rx("SAVE RAM:riffwright_rx.mod")
+    size = dos(m, "list RAM:riffwright_rx.mod")
+    print("saved by ARexx:", size.strip().splitlines()[0] if size.strip() else size)
+    ok_rx &= "riffwright_rx.mod" in size
+    dos(m, "delete RAM:riffwright_rx.mod RAM:riffwright_rx.mod.info RAM:rwcmd.rexx QUIET")
+    print("arexx ok:", ok_rx)
+    out = wait_for(m, outf, "quit", 90)
     print("log:\n" + (out or dos(m, "type %s" % outf)))
     time.sleep(2)
     st = dos(m, "status")
     left = "Riffwright" in st
     print("process gone:", not left)
-    return out is not None and not left
+    return out is not None and not left and ok_rx
 
 
-def bench(m, n):
+def bench(m, n, extra="", only=None):
     res = {}
     runs = [("native", "%s/Riffwright" % DIR),
             ("vm", "%s/boing run %s/Riffwright.bbp" % (DIR, DIR)),
             ("jit", "%s/boing run --jit %s/Riffwright.bbp" % (DIR, DIR))]
     for name, cmd in runs:
+        if only and name not in only:
+            continue
         outf = "RAM:riffwright_%s.out" % name
         dos(m, "delete %s QUIET" % outf)
-        dos(m, "run >NIL: %s %s --bench %d >%s *>%s.err" % (cmd, SONG, n, outf, outf))
-        out = wait_for(m, outf, "worst ms", 300)
+        dos(m, "run >NIL: %s %s --bench %d %s >%s *>%s.err" % (cmd, SONG, n, extra, outf, outf))
+        out = wait_for(m, outf, "worst ms", 150)
         print("==", name, "\n" + (out or dos(m, "type %s.err" % outf)))
         res[name] = out
         time.sleep(2)
     return res
+
+
+def bench_main():
+    n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
+    modes = sys.argv[3].split(",") if len(sys.argv) > 3 else ["native", "vm", "jit"]
+    extra = " ".join(sys.argv[4:])
+    m = g.MCP(g.URL)
+    for mode in modes:
+        with g.testing("Riffwright bench %s" % mode):
+            try:
+                bench(m, n, extra, [mode])
+            finally:
+                cleanup(m)
 
 
 def main():
@@ -156,14 +195,14 @@ def main():
               print("SMOKE", "PASS" if ok else "FAIL")
               rc = 0 if ok else 1
           elif what == "bench":
+              # one ticket for the push, then one ticket per mode (bench_main)
               push_all(m)
-              bench(m, int(sys.argv[2]) if len(sys.argv) > 2 else 500)
           elif what == "start":
               # the gentlest check: start, screenshot, let it quit by itself
               push_all(m)
               outf = "RAM:riffwright.log"
               dos(m, "delete %s QUIET" % outf)
-              dos(m, "run >NIL: %s/Riffwright %s --log --quit-after 15 >%s *>%s.err" % (DIR, SONG, outf, outf))
+              dos(m, "run >NIL: %s/Riffwright %s --play --log --quit-after 15 >%s *>%s.err" % (DIR, SONG, outf, outf))
               time.sleep(8)
               hmp_shot(os.path.join(tempfile.gettempdir(), "riffwright_start"))
               print("log:", wait_for(m, outf, "quit", 40))
@@ -174,6 +213,8 @@ def main():
         time.sleep(1)
         if cleanup(m):
             print("(had to stop leftover processes)")
+    if what == "bench" and rc == 0:
+        bench_main()
     sys.exit(rc)
 
 

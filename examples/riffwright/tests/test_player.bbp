@@ -1,0 +1,11 @@
+# Riffwright host test: the song mirrored into Boing.Audio, played and edited while playing
+Name=test_player
+Startup=Sub Main
+Module=../Song.bas
+Module=../Edit.bas
+Module=../Samples.bas
+Module=../Player.bas
+Module=../View.bas
+Module=../Tracker.bas
+Module=TestLib.bas
+Module=test_player.bas

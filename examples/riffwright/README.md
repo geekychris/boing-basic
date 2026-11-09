@@ -4,9 +4,15 @@ A ProTracker music editor for AmigaOS 4.1, written in Boing BASIC. It loads, edi
 and saves `.mod` files: a keyboard-driven pattern editor drawn on a Canvas, a sample editor,
 the order list and song settings, channel scopes and VU meters, 200 steps of undo.
 
-![Riffwright on the AmigaOS 4 guest](docs/guest_pattern.png)
+![Riffwright playing Harbour Lights on the AmigaOS 4 guest](docs/guest_pattern_playing.png)
 
-The editor is BASIC (about 2500 lines); the player is the runtime's MOD player in C. The
+| | | |
+|---|---|---|
+| ![editing](docs/guest_editing.png) | ![sample editor](docs/guest_samples.png) | ![song settings](docs/guest_song.png) |
+| edit mode: notes typed in | the sample editor | song settings and the order list |
+
+The editor is BASIC (about 3000 lines); the player is the runtime's `Boing.Audio` object (a
+ProTracker player and mixer in C, playing through AHI in a task of its own). The
 whole song model lives in BASIC and is mirrored into the player cell by cell, so every edit is
 heard at once while the song plays.
 
@@ -53,8 +59,25 @@ The full manual is the AmigaGuide [Riffwright.guide](Riffwright.guide) (Help key
 - **Files**: 31-sample ProTracker modules with 4 channels (M.K., M!K!, FLT4, 4CHN), 6 and 8
   channels (6CHN, 8CHN, FLT8, OCTA). A loaded file saves back byte for byte, including data
   after the last sample. Patterns not in the order list are kept when saving.
-- **Application**: undo/redo for every edit (200 steps), preferences in `ENV:Riffwright.prefs`
-  (octave, follow mode, edit step), AmigaGuide help, icons.
+- **Playing**: song, pattern loop, from the cursor row; edits are heard at once; jam notes on
+  the piano keys (also while the song plays), Return steps through rows; mute/solo; scopes
+  and VU meters for every channel; a play cursor in the waveform.
+- **Application**: undo/redo for every edit (200 steps), menus with shortcuts, asl requesters,
+  Save/Discard/Cancel on unsaved changes, an ARexx port, drag and drop (a module opens, a sample
+  file goes into the current sample), preferences in `ENV:Riffwright.prefs` (octave, follow
+  mode, edit step, last drawer), AmigaGuide help (Help key), icons, and a project icon on
+  newly saved songs that opens them in Riffwright.
+
+ARexx (port `RIFFWRIGHT`): `PLAY [position]`, `STOP`, `LOAD file`, `SAVE [file]`,
+`POSITION [n]` (returns the position playing), `TITLE`, `VERSION`.
+
+```rexx
+/* play a module from position 2 */
+options results
+address RIFFWRIGHT
+'LOAD Work:music/song.mod'
+'PLAY 2'
+```
 
 ## How it is built
 
@@ -63,7 +86,7 @@ The full manual is the AmigaGuide [Riffwright.guide](Riffwright.guide) (Help key
 | `Song.bas` | the song model and the .mod reader/writer |
 | `Edit.bas` | every edit, with undo/redo (swap-based steps for cells, samples, song settings) and the clipboard |
 | `Samples.bas` | 8SVX/WAV/raw load and save, sample operations, synthesised starter samples |
-| `Player.bas` | the link to the MOD player: mirrors edits, transport, scopes, VU |
+| `Player.bas` | the link to `Boing.Audio`: the song mirrored after a load (a temporary .mod through `LoadMusic`), each edit sent as it happens (`SetCell`, `CellPeriod` for odd periods, `SetSampleBytes`), transport, jam notes, scopes, VU |
 | `View.bas` | all drawing |
 | `Tracker.bas` | the editor: cursor, keys, views, what a frame shows |
 | `Prefs.bas` | preferences |
@@ -75,9 +98,26 @@ calls per frame whatever is in it. An edit redraws only its rows. While a song p
 next pattern in the order list is drawn into a second image, 8 rows per frame, so following
 the song into it costs nothing. The order and sample lists are cached the same way.
 
+### Measured on m1's guest
+
+`Riffwright demos/harbour_lights.mod --bench 300`: the song plays in follow mode and 300
+frames are drawn back to back with the pattern scrolling (a new pixel offset every frame), on
+the 640 x 480 Canvas in its window (QEMU sam460ex on m1.local, unloaded):
+
+| | fps | ms per frame (draw + blit) | worst frame, ms |
+|---|---:|---:|---:|
+| native (`boing build`) | 178 | 3.70 + 1.69 | 12.7 |
+| VM (`boing run`) | 128 | 5.93 + 1.62 | 15.6 |
+| VM `--jit` | 124 | 6.12 + 1.69 | 25.4 |
+
+The window's timer asks for a frame every 20 ms (50 fps), so the interpreter uses about 40%
+of the CPU time for a smoothly scrolling pattern, and the native build about 27%. The JIT
+doesn't help here: a frame is a few dozen late-bound Canvas calls, not loops. Before the
+frame drew only the regions that changed, the numbers were 136 / 95 / 94 fps.
+
 ## Tests
 
-`make test` runs `tests/run.sh`: each test through the VM, the VM with the JIT, and a native
+`make test` runs `tests/run.sh` (15 runs): each test through the VM, the VM with the JIT, and a native
 build, compared with its `.out` file.
 
 | Test | |
@@ -85,11 +125,13 @@ build, compared with its `.out` file.
 | `test_io` | .mod round trips byte-exact against reference files (`tests/ref`, written by an independent Python writer, `tools/mkref.py`: odd periods, sample numbers > 15, raw finetune bytes, data after the samples, 6 and 8 channels), the demo songs, bad files |
 | `test_edit` | every editing operation, undo/redo, clipboard, the order list, song settings, samples, saving patterns not in the order list, the undo limit |
 | `test_samples` | WAV (16-bit stereo 44.1 kHz, 8-bit mono), 8SVX (plain, Fibonacci-delta), raw: load, save, load back; reverse, normalise, crop |
+| `test_player` | the song mirrored into `Boing.Audio` (every cell compared), edits while it plays (cells, odd periods, new patterns, undo, samples, order list), the pattern loop, jam notes, the sample play cursor, start speed/tempo, a PCM hash of a second of music (the "manual" device: the same on every platform) |
 | `test_ui` | the editor driven by keys on an off-screen Canvas: jam and edit mode, hex entry, octave/sample keys, undo/redo, select/copy/paste/transpose, mute, the three views, frame drawing |
 
-On the guest: `BB_GUEST=m1 tools/guest.py smoke` plays a demo, switches views and enters notes
-by key (only while Riffwright's window is the active one), takes screenshots and checks that
-it quits and leaves no process; `tools/guest.py bench N` times N frames native, in the VM and
+On the guest: `BB_GUEST=m1b tools/guest.py smoke` plays a demo through AHI, switches views and
+enters notes by key (only while Riffwright's window is the active one), drives the ARexx port
+(VERSION, PLAY, POSITION, STOP, LOAD, SAVE), takes screenshots and checks that it quits and
+leaves no process (one lock ticket, under 5 minutes); `tools/guest.py bench N` times N frames native, in the VM and
 with the JIT.
 
 ## Demo songs

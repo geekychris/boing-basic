@@ -1,0 +1,23 @@
+ok   Boing.Audio
+ok   load
+player song: [Harbour Lights] 7 patterns, length 11 
+ok   every cell the same
+after 1.5 s: position 0 pattern 0 row 12  playing True
+ok   VU moves
+ok   scope has signal
+ok   scope of channel 2 moves
+edited cell: note 25 sample 6 
+odd period: 431 
+pattern 20 made:True note 18 
+undo reaches the player: note 0 
+sample 1 reversed in the player: 2400 bytes, first 2 = 2 
+sample 4: vol 40 fine-1 loop 0  16 
+orders in the player: 12  4  1 
+mute ch2:True
+pattern 3 looping: pattern 3 row 4  (position-1 )
+stopped: playing FalseFalse
+ok   jam note sounds
+ok   sample play cursor
+speed/tempo playing: 5  140 
+ok   second song exact
+PCM hash of 1 s of Boing Shuffle:-707672078 

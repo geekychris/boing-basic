@@ -193,6 +193,7 @@ Public Function Undo() As Boolean
     redoS(nRedo) = undoS(nUndo)
     nUndo = nUndo - 1
     songDirty = True
+    DeriveSpeedTempo
     Undo = True
 End Function
 
@@ -204,6 +205,7 @@ Public Function Redo() As Boolean
     undoS(nUndo) = redoS(nRedo)
     nRedo = nRedo - 1
     songDirty = True
+    DeriveSpeedTempo
     Redo = True
 End Function
 
@@ -486,16 +488,43 @@ Public Sub EdTitle(ByVal t As String)
     MirrorSong
 End Sub
 
-Public Sub EdSpeedTempo(ByVal speed As Long, ByVal tempo As Long)
+' The start speed and tempo: a .mod has no header field for them, so they are Fxx commands
+' in row 0 of the first pattern played (as ProTracker users write them). This updates those
+' commands, or puts them into free effect columns of that row. False if the row has no room.
+Public Function EdSpeedTempo(ByVal speed As Long, ByVal tempo As Long) As Boolean
+    Dim p As Long, c As Long, k As Long, ks As Long, kt As Long
     If speed < 1 Then speed = 1
     If speed > 31 Then speed = 31
     If tempo < 32 Then tempo = 32
     If tempo > 255 Then tempo = 255
-    UndoSong "speed/tempo"
+    p = orders(0)
+    ks = -1: kt = -1
+    For c = 0 To nch - 1
+        k = CellIdx(p, 0, c)
+        If cFx(k) = 15 And cPrm(k) > 0 And cPrm(k) < 32 Then ks = k
+        If cFx(k) = 15 And cPrm(k) >= 32 Then kt = k
+    Next c
+    ' free effect columns, from the last channel
+    For c = nch - 1 To 0 Step -1
+        k = CellIdx(p, 0, c)
+        If cFx(k) = 0 And cPrm(k) = 0 And k <> ks And k <> kt Then
+            If ks < 0 And speed <> 6 Then
+                ks = k
+            ElseIf kt < 0 And tempo <> 125 Then
+                kt = k
+            End If
+        End If
+    Next c
+    If (ks < 0 And speed <> 6) Or (kt < 0 And tempo <> 125) Then Exit Function
+    UndoCells "speed/tempo", p, 0, 0, 0, nch - 1
+    If ks >= 0 Then cFx(ks) = 15: cPrm(ks) = speed
+    If kt >= 0 Then cFx(kt) = 15: cPrm(kt) = tempo
     initSpeed = speed
     initTempo = tempo
-    MirrorSong
-End Sub
+    MirrorBlock p, 0, 0, 0, nch - 1
+    EdSpeedTempo = True
+End Function
+
 
 ' the first pattern number with nothing in it and not in the order list
 Public Function FreePattern() As Long
