@@ -12,7 +12,8 @@
 '   "paused tag", so a test can take a screenshot).
 Option Explicit
 
-Private stateFile As String           ' --state: "active"/"inactive" written here (guest tests)
+Private stateFile As String
+Private traceFile As String           ' --trace: progress lines (debugging start-up on the guest)           ' --state: "active"/"inactive" written here (guest tests)
 
 Private settingText As Boolean        ' formula.Text set by code: ignore its Change
 Private editing As Boolean            ' the formula bar holds an edit of the cursor cell
@@ -35,13 +36,21 @@ Private scriptActive As Boolean
 Private Sub Form_Load()
     Dim args As String, p As Long, f As String, scr As String
     LoadPrefs "Gridwise.prefs"
+    Trace "load 1: LoadPrefs Gridwise.prefs"
     NewSheet 1000, 26
+    Trace "load 2: NewSheet 1000, 26"
     ClearCharts
+    Trace "load 3: ClearCharts"
     ViewInit grid.Width, grid.Height
+    Trace "load 4: ViewInit grid.Width, grid.Height"
     ShowGridLines = PrefGridLines
+    Trace "load 5: ShowGridLines = PrefGridLines"
     mnuGridLines.Checked = PrefGridLines
+    Trace "load 6: mnuGridLines.Checked = PrefGridLines"
     mnuAutosave.Checked = PrefAutosave
+    Trace "load 7: mnuAutosave.Checked = PrefAutosave"
     args = Trim$(Command$)
+    Trace "load 8: args = Trim$(Command$)"
     Do While args <> ""
         If Left$(args, 1) = Chr$(34) Then
             p = InStr(2, args, Chr$(34))
@@ -54,7 +63,11 @@ Private Sub Form_Load()
             f = Left$(args, p - 1)
             args = Trim$(Mid$(args, p + 1))
         End If
-        If f = "--script" Or f = "--log" Or f = "--state" Then
+        If f = "--trace" Then
+            p = InStr(args & " ", " ")
+            traceFile = Left$(args, p - 1)
+            args = Trim$(Mid$(args, p))
+        ElseIf f = "--script" Or f = "--log" Or f = "--state" Then
             p = InStr(args & " ", " ")
             If f = "--script" Then
                 scr = Left$(args, p - 1)
@@ -70,8 +83,11 @@ Private Sub Form_Load()
         End If
     Loop
     UpdateRecent
+    Trace "load 9: UpdateRecent"
     UpdateTitle
+    Trace "load 10: UpdateTitle"
     Redraw
+    Trace "load 11: Redraw"
     If scr <> "" Then RunScriptFile scr
 End Sub
 
@@ -500,6 +516,9 @@ End Sub
 ' ---- autosave ------------------------------------------------------------------------------
 
 Private Sub tick_Timer()
+    Static ticks As Long
+    ticks = ticks + 1
+    If ticks <= 2 Then Trace "tick " & ticks
     If scriptActive Then
         If scriptWait > 0 Then
             scriptWait = scriptWait - 1
@@ -786,6 +805,7 @@ End Sub
 
 ' --state: tests send keys only while our window is the active one
 Private Sub Form_Activate()
+    Trace "activate"
     WriteState "active"
 End Sub
 
@@ -838,3 +858,13 @@ Private Function FormatChooserIndex(ByVal nf As Long) As Long
     Case NF_TIME: FormatChooserIndex = 10
     End Select
 End Function
+
+Private Sub Trace(ByVal s As String)
+    Dim fn As Integer
+    If traceFile = "" Then Exit Sub
+    On Error Resume Next
+    fn = FreeFile
+    Open traceFile For Append As #fn
+    Print #fn, s
+    Close #fn
+End Sub

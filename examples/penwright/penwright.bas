@@ -8,7 +8,8 @@
 ' "PAUSE n tag" waits n seconds with "paused tag" as the log's last line)
 Option Explicit
 
-Private stateFile As String           ' --state: "active"/"inactive" written here (guest tests)
+Private stateFile As String
+Private traceFile As String           ' --trace: progress lines (debugging start-up on the guest)           ' --state: "active"/"inactive" written here (guest tests)
 
 Private lastShift As Integer          ' qualifiers of the last KeyDown (KeyPress has none)
 Private lastStatus As String
@@ -31,22 +32,35 @@ Private Const AUTOSAVE_SECS As Long = 120
 Private Sub Form_Load()
     Dim args As String, p As Long, f As String, scr As String
     LoadPrefs "Penwright.prefs"
+    Trace "load 1: LoadPrefs Penwright.prefs"
     DefaultSize = PrefSize
+    Trace "load 2: DefaultSize = PrefSize"
     NewDoc
+    Trace "load 3: NewDoc"
     SlotsInit
+    Trace "load 4: SlotsInit"
     ViewInit page, page.Width, page.Height
+    Trace "load 5: ViewInit page, page.Width, page.Height"
     If Not LoadDictionary(App.Path & "/penwright.dict", App.Path & "/penwright.words") Then
         LoadDictionary "penwright.dict", "penwright.words"
     End If
     LiveSpell = SpellReady And PrefLiveSpell
+    Trace "load 6: LiveSpell = SpellReady And PrefLiveSpell"
     mnuLive.Checked = LiveSpell
+    Trace "load 7: mnuLive.Checked = LiveSpell"
     mnuAutosave.Checked = PrefAutosave
+    Trace "load 8: mnuAutosave.Checked = PrefAutosave"
     args = Trim$(Command$)
+    Trace "load 9: args = Trim$(Command$)"
     Do While args <> ""
         p = InStr(args & " ", " ")
         f = Left$(args, p - 1)
         args = Trim$(Mid$(args, p))
-        If f = "--script" Or f = "--log" Or f = "--state" Then
+        If f = "--trace" Then
+            p = InStr(args & " ", " ")
+            traceFile = Left$(args, p - 1)
+            args = Trim$(Mid$(args, p))
+        ElseIf f = "--script" Or f = "--log" Or f = "--state" Then
             p = InStr(args & " ", " ")
             If f = "--script" Then
                 scr = Left$(args, p - 1)
@@ -61,8 +75,12 @@ Private Sub Form_Load()
         End If
     Loop
     UpdateMenus
+    Trace "load 10: UpdateMenus"
     UpdateTitle
+    Trace "load 11: UpdateTitle"
     Redraw
+    Trace "load 12: Redraw"
+    If scr <> "" Then Trace "load 13: script " & scr
     If scr <> "" Then LoadScript scr
 End Sub
 
@@ -501,6 +519,9 @@ End Sub
 ' ---- timer: caret blink, scripts, autosave ---------------------------------------------------
 
 Private Sub tick_Timer()
+    Static ticks As Long
+    ticks = ticks + 1
+    If ticks <= 2 Then Trace "tick " & ticks
     If scriptActive Then
         If scriptWait > 0 Then
             scriptWait = scriptWait - 1
@@ -784,6 +805,7 @@ End Sub
 
 ' --state: tests send keys only while our window is the active one
 Private Sub Form_Activate()
+    Trace "activate"
     windowActive = True
     WriteState "active"
 End Sub
@@ -801,6 +823,16 @@ Private Sub WriteState(ByVal s As String)
     On Error Resume Next
     fn = FreeFile
     Open stateFile For Output As #fn
+    Print #fn, s
+    Close #fn
+End Sub
+
+Private Sub Trace(ByVal s As String)
+    Dim fn As Integer
+    If traceFile = "" Then Exit Sub
+    On Error Resume Next
+    fn = FreeFile
+    Open traceFile For Append As #fn
     Print #fn, s
     Close #fn
 End Sub
