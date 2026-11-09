@@ -4,7 +4,12 @@ A ProTracker music editor for AmigaOS 4.1, written in Boing BASIC. It loads, edi
 and saves `.mod` files: a keyboard-driven pattern editor drawn on a Canvas, a sample editor,
 the order list and song settings, channel scopes and VU meters, 200 steps of undo.
 
-![Riffwright on the AmigaOS 4 guest](docs/guest_pattern.png)
+![Riffwright playing Harbour Lights on the AmigaOS 4 guest](docs/guest_pattern_playing.png)
+
+| | | |
+|---|---|---|
+| ![editing](docs/guest_editing.png) | ![sample editor](docs/guest_samples.png) | ![song settings](docs/guest_song.png) |
+| edit mode: notes typed in | the sample editor | song settings and the order list |
 
 The editor is BASIC (about 3000 lines); the player is the runtime's `Boing.Audio` object (a
 ProTracker player and mixer in C, playing through AHI in a task of its own). The
@@ -123,9 +128,10 @@ build, compared with its `.out` file.
 | `test_player` | the song mirrored into `Boing.Audio` (every cell compared), edits while it plays (cells, odd periods, new patterns, undo, samples, order list), the pattern loop, jam notes, the sample play cursor, start speed/tempo, a PCM hash of a second of music (the "manual" device: the same on every platform) |
 | `test_ui` | the editor driven by keys on an off-screen Canvas: jam and edit mode, hex entry, octave/sample keys, undo/redo, select/copy/paste/transpose, mute, the three views, frame drawing |
 
-On the guest: `BB_GUEST=m1 tools/guest.py smoke` plays a demo, switches views and enters notes
-by key (only while Riffwright's window is the active one), takes screenshots and checks that
-it quits and leaves no process; `tools/guest.py bench N` times N frames native, in the VM and
+On the guest: `BB_GUEST=m1b tools/guest.py smoke` plays a demo through AHI, switches views and
+enters notes by key (only while Riffwright's window is the active one), drives the ARexx port
+(VERSION, PLAY, POSITION, STOP, LOAD, SAVE), takes screenshots and checks that it quits and
+leaves no process (one lock ticket, under 5 minutes); `tools/guest.py bench N` times N frames native, in the VM and
 with the JIT.
 
 ## Demo songs

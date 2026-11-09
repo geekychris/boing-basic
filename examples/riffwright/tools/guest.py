@@ -25,10 +25,13 @@ DIR = "DH1:riffwright"
 SONG = DIR + "/demos/harbour_lights.mod"
 
 
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448"}.get(g.GUEST, "2348")))
+
+
 def hmp_shot(path_local):
-    """QEMU screendump of the whole guest screen (HMP on the QEMU machine's 127.0.0.1:2348)."""
-    remote = "/tmp/riffwright_shot.ppm"
-    cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 2348 >/dev/null; sleep 1" % remote
+    """QEMU screendump of the whole guest screen (HMP on the QEMU machine's 127.0.0.1:2348, m1b 2448)."""
+    remote = "/tmp/riffwright_shot_%s.ppm" % g.GUEST
+    cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 %d >/dev/null; sleep 1" % (remote, HMP_PORT)
     if g.SSH:
         subprocess.run(["ssh", g.SSH, cmd], check=True, timeout=30)
         subprocess.run(["scp", "-q", "%s:%s" % (g.SSH, remote), path_local + ".ppm"], check=True, timeout=60)
@@ -120,8 +123,10 @@ def smoke(m, shots):
     time.sleep(1)
     hmp_shot(os.path.join(shots, "editing"))
     # the ARexx port
+    print(g.push(m, os.path.join(HERE, "rwcmd.rexx"), "RAM:rwcmd.rexx"))
+
     def rx(cmd):
-        r = dos(m, "rx \"options results; address RIFFWRIGHT '%s'; say 'RC=' || rc 'RESULT=' || result\"" % cmd)
+        r = dos(m, "rx RAM:rwcmd.rexx %s" % cmd)
         print("ARexx %-38s -> %s" % (cmd, r.strip().splitlines()[-1] if r.strip() else r))
         return r
     ok_rx = "Riffwright 1.0" in rx("VERSION")
@@ -134,7 +139,7 @@ def smoke(m, shots):
     size = dos(m, "list RAM:riffwright_rx.mod")
     print("saved by ARexx:", size.strip().splitlines()[0] if size.strip() else size)
     ok_rx &= "riffwright_rx.mod" in size
-    dos(m, "delete RAM:riffwright_rx.mod RAM:riffwright_rx.mod.info QUIET")
+    dos(m, "delete RAM:riffwright_rx.mod RAM:riffwright_rx.mod.info RAM:rwcmd.rexx QUIET")
     print("arexx ok:", ok_rx)
     out = wait_for(m, outf, "quit", 90)
     print("log:\n" + (out or dos(m, "type %s" % outf)))
