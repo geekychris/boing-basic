@@ -832,10 +832,16 @@ Public Function DataFile(ByVal name As String) As String
     If Len(dataDir) > 0 Then
         If Right$(dataDir, 1) = ":" Or Right$(dataDir, 1) = "/" Then DataFile = dataDir & name Else DataFile = dataDir & "/" & name
     Else
-        ' beside the program, or (boing run from the game's directory) the current directory
+        ' beside the program; under boing run, App.Path is the interpreter's directory: then the
+        ' game's own directory in the repo's layout beside it (as the guest tools push it), or the
+        ' current directory
         DataFile = HsPath(name)
         If Len(Dir$(DataFile)) = 0 Then
-            If Len(Dir$(name)) > 0 Then DataFile = name
+            If Len(Dir$(HsPath("examples/scairy_fun_bb/" & name))) > 0 Then
+                DataFile = HsPath("examples/scairy_fun_bb/" & name)
+            ElseIf Len(Dir$(name)) > 0 Then
+                DataFile = name
+            End If
         End If
     End If
 End Function
