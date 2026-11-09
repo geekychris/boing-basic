@@ -12,6 +12,15 @@ vlayout id=root
 menu id=mnuProject text="Project"
   menu id=mnuNew text="New" key=N
   menu id=mnuOpen text="Open..." key=O
+  menu id=mnuRecent text="Open recent"
+    menu id=mnuRecent0 text="(none)" disabled=1
+    menu id=mnuRecent1 text="-"
+    menu id=mnuRecent2 text="-"
+    menu id=mnuRecent3 text="-"
+    menu id=mnuRecent4 text="-"
+    menu id=mnuRecent5 text="-"
+    menu id=mnuRecent6 text="-"
+    menu id=mnuRecent7 text="-"
   menu id=mnuSave text="Save" key=S
   menu id=mnuSaveAs text="Save as..."
   menu text=-
@@ -74,6 +83,9 @@ menu id=mnuSheet text="Sheet"
   menu id=mnuRecalc text="Recalculate"
   menu id=mnuFormulas text="Show formulas" checkable=1 key=L
   menu id=mnuGridLines text="Grid lines" checkable=1 checked=1
+  menu text=-
+  menu id=mnuAutosave text="Autosave every 2 minutes" checkable=1 checked=1
+  menu id=mnuCurrency text="Currency symbol..."
 menu id=mnuChart text="Chart"
   menu id=mnuBar text="Bar chart of selection"
   menu id=mnuLine text="Line chart of selection"

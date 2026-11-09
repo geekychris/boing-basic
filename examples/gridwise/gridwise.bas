@@ -31,9 +31,13 @@ Private scriptActive As Boolean
 
 Private Sub Form_Load()
     Dim args As String, p As Long, f As String, scr As String
+    LoadPrefs "Gridwise.prefs"
     NewSheet 1000, 26
     ClearCharts
     ViewInit grid.Width, grid.Height
+    ShowGridLines = PrefGridLines
+    mnuGridLines.Checked = PrefGridLines
+    mnuAutosave.Checked = PrefAutosave
     args = Trim$(Command$)
     Do While args <> ""
         If Left$(args, 1) = Chr$(34) Then
@@ -53,9 +57,10 @@ Private Sub Form_Load()
             args = Trim$(Mid$(args, p))
         ElseIf f <> "" Then
             RunCommand "OPEN " & f
-            If ScriptRC <> 0 Then MsgBox "Can't open " & f & ": " & IOError, vbExclamation
+            If ScriptRC <> 0 Then MsgBox "Can't open " & f & ": " & IOError, vbExclamation Else AddRecent f
         End If
     Loop
+    UpdateRecent
     UpdateTitle
     Redraw
     If scr <> "" Then RunScriptFile scr
@@ -395,12 +400,32 @@ Private Sub CmdOpen()
     If Not ConfirmDiscard() Then Exit Sub
     f = AskFile("Open a sheet (.gws or .csv):", DocPath)
     If f = "" Then Exit Sub
+    OpenFile f
+End Sub
+
+Private Sub OpenFile(ByVal f As String)
     Exec "OPEN " & f
+    If ScriptRC = 0 Then AddRecent f: UpdateRecent
+End Sub
+
+Private Sub UpdateRecent()
+    Dim i As Long, m As Object
+    For i = 0 To 7
+        Set m = Me.Controls("mnuRecent" & i)
+        If i < NRecent Then
+            If m.Caption <> Recent(i) Then m.Caption = Recent(i)
+            If Not m.Enabled Then m.Enabled = True
+            If Not m.Visible Then m.Visible = True
+        ElseIf i > 0 Then
+            If m.Visible Then m.Visible = False
+        End If
+    Next i
 End Sub
 
 Private Sub CmdSave()
     If DocPath = "" Then CmdSaveAs: Exit Sub
     Exec "SAVE " & DocPath
+    If ScriptRC = 0 Then AddRecent DocPath: UpdateRecent
 End Sub
 
 Private Sub CmdSaveAs()
@@ -409,6 +434,7 @@ Private Sub CmdSaveAs()
     If f = "" Then Exit Sub
     If LCase$(Right$(f, 4)) <> ".gws" Then f = f & ".gws"
     Exec "SAVE " & f
+    If ScriptRC = 0 Then AddRecent f: UpdateRecent
 End Sub
 
 Private Sub CmdExportCsv()
@@ -473,7 +499,7 @@ Private Sub tick_Timer()
     autosaveTicks = autosaveTicks + 1
     If autosaveTicks >= AUTOSAVE_SECS * TICKS_PER_SEC Then
         autosaveTicks = 0
-        If Modified And DocPath <> "" Then
+        If Modified And DocPath <> "" And PrefAutosave Then
             SaveGws DocPath & ".autosave"
             Modified = True               ' the real file is still unsaved
         End If
@@ -548,7 +574,34 @@ Private Sub mnuRecalc_Click()
     ShowStatus RecalcCount & " formulas recalculated in " & Format$(TimerMs - t, "0") & " ms"
 End Sub
 Private Sub mnuFormulas_Click(): ShowFormulas = mnuFormulas.Checked: Redraw: End Sub
-Private Sub mnuGridLines_Click(): ShowGridLines = mnuGridLines.Checked: Redraw: End Sub
+Private Sub mnuGridLines_Click()
+    ShowGridLines = mnuGridLines.Checked
+    PrefGridLines = ShowGridLines
+    SavePrefs
+    Redraw
+End Sub
+Private Sub mnuAutosave_Click(): PrefAutosave = mnuAutosave.Checked: SavePrefs: End Sub
+Private Sub mnuCurrency_Click()
+    Dim v As String
+    v = Trim$(InputBox("Currency symbol (up to 4 characters) for the Currency format:", "Gridwise", CurrencySymbol))
+    If v = "" Or Len(v) > 4 Then Exit Sub
+    CurrencySymbol = v
+    SavePrefs
+    Redraw
+End Sub
+Private Sub mnuRecent0_Click(): OpenRecent 0: End Sub
+Private Sub mnuRecent1_Click(): OpenRecent 1: End Sub
+Private Sub mnuRecent2_Click(): OpenRecent 2: End Sub
+Private Sub mnuRecent3_Click(): OpenRecent 3: End Sub
+Private Sub mnuRecent4_Click(): OpenRecent 4: End Sub
+Private Sub mnuRecent5_Click(): OpenRecent 5: End Sub
+Private Sub mnuRecent6_Click(): OpenRecent 6: End Sub
+Private Sub mnuRecent7_Click(): OpenRecent 7: End Sub
+Private Sub OpenRecent(ByVal i As Long)
+    If i >= NRecent Then Exit Sub
+    If Not ConfirmDiscard() Then Exit Sub
+    OpenFile Recent(i)
+End Sub
 Private Sub mnuBar_Click(): CmdChartKind "BAR": End Sub
 Private Sub mnuLine_Click(): CmdChartKind "LINE": End Sub
 Private Sub mnuPie_Click(): CmdChartKind "PIE": End Sub

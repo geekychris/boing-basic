@@ -6,4 +6,5 @@ Module=../../../examples/penwright/DocIO.bas
 Module=../../../examples/penwright/Spell.bas
 Module=../../../examples/penwright/PwView.bas
 Module=../../../examples/penwright/PwScript.bas
+Module=../../../examples/penwright/DocSlots.bas
 Module=pvtest.bas

@@ -57,5 +57,19 @@ Sub Main()
     Run "REPLACEALL ""and"" ""&"" WORD" & vbLf & "GETPARA 3" & vbLf & "UNDO" & vbLf & "PARACOUNT" & vbLf & "STYLE nonsense" & vbLf & "FOO" & vbLf & "VERSION"
     Run "SAVE pw.pwd" & vbLf & "NEW" & vbLf & "PARACOUNT" & vbLf & "OPEN pw.pwd" & vbLf & "PARACOUNT" & vbLf & "GETPARA 0" & vbLf & "EXPORT HTML pw.html" & vbLf & "EXPORT RTF pw.rtf" & vbLf & "OPEN pw.rtf" & vbLf & "GETPARA 3"
     Print "html bytes "; Len(FileText("pw.html"))
+    ' several documents
+    SlotsInit
+    Run "NEW" & vbLf & "INSERTTEXT first document"
+    PwPath = "one.pwd"
+    Print "new slot: "; NewSlot(); " docs "; NDocs; " cur "; CurDoc; " paras "; NP
+    Run "INSERTTEXT second\nline two"
+    SwitchTo 0
+    Print "back to 0: ["; pText(0); "] path "; PwPath; " name "; DocName(0); " / "; DocName(1)
+    SwitchTo 1
+    Print "to 1: ["; pText(0); "|"; pText(1); "] cursor "; curP; curO; " slot of one.pwd "; SlotOf("ONE.PWD")
+    CloseCurrent
+    Print "closed: docs "; NDocs; " cur "; CurDoc; " ["; pText(0); "]"
+    AddRecent "a.pwd": AddRecent "b.pwd": AddRecent "a.pwd"
+    Print "recent: "; NRecent; " "; Recent(0); " "; Recent(1)
     Kill "pw.pwd": Kill "pw.html": Kill "pw.rtf"
 End Sub

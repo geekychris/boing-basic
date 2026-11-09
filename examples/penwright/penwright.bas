@@ -27,12 +27,17 @@ Private Const AUTOSAVE_SECS As Long = 120
 
 Private Sub Form_Load()
     Dim args As String, p As Long, f As String, scr As String
+    LoadPrefs "Penwright.prefs"
+    DefaultSize = PrefSize
     NewDoc
+    SlotsInit
     ViewInit page, page.Width, page.Height
     If Not LoadDictionary(App.Path & "/penwright.dict", App.Path & "/penwright.words") Then
         LoadDictionary "penwright.dict", "penwright.words"
     End If
-    LiveSpell = SpellReady
+    LiveSpell = SpellReady And PrefLiveSpell
+    mnuLive.Checked = LiveSpell
+    mnuAutosave.Checked = PrefAutosave
     args = Trim$(Command$)
     Do While args <> ""
         p = InStr(args & " ", " ")
@@ -43,10 +48,10 @@ Private Sub Form_Load()
             If f = "--script" Then scr = Left$(args, p - 1) Else scriptLog = Left$(args, p - 1)
             args = Trim$(Mid$(args, p))
         ElseIf f <> "" Then
-            RunCommand "OPEN " & f
-            If PwRC <> 0 Then MsgBox "Can't open " & f & ": " & DocIOError, vbExclamation
+            OpenFile f
         End If
     Loop
+    UpdateMenus
     UpdateTitle
     Redraw
     If scr <> "" Then LoadScript scr
@@ -121,6 +126,50 @@ Private Sub AfterCommand()
     If PwRedraw Then Redraw
     If PwShot <> "" Then page.SaveImage PwShot: PwShot = ""
     UpdateTitle
+    UpdateMenus
+End Sub
+
+' the Documents and Open recent menus
+Private Sub UpdateMenus()
+    Dim i As Long, m As Object
+    For i = 0 To MAXDOCS - 1
+        Set m = Me.Controls("mnuDoc" & i)
+        If i < NDocs Then
+            If m.Caption <> DocName(i) Then m.Caption = DocName(i)
+            If Not m.Visible Then m.Visible = True
+            If m.Checked <> (i = CurDoc) Then m.Checked = (i = CurDoc)
+        ElseIf m.Visible Then
+            m.Visible = False
+        End If
+    Next i
+    For i = 0 To 7
+        Set m = Me.Controls("mnuRecent" & i)
+        If i < NRecent Then
+            If m.Caption <> Recent(i) Then m.Caption = Recent(i)
+            If Not m.Enabled Then m.Enabled = True
+            If Not m.Visible Then m.Visible = True
+        ElseIf i > 0 Then
+            If m.Visible Then m.Visible = False
+        End If
+    Next i
+End Sub
+
+' open a file: switch to it if it is open, use this window's empty untitled document, or a new one
+Private Sub OpenFile(ByVal f As String)
+    Dim k As Long
+    k = SlotOf(f)
+    If k >= 0 Then SwitchTo k: Redraw: UpdateTitle: UpdateMenus: Exit Sub
+    If PwPath <> "" Or DocModified Or NP > 1 Or Len(pText(0)) > 0 Then
+        If Not NewSlot() Then MsgBox "Eight documents are open; close one first.", vbExclamation, "Penwright": Exit Sub
+    End If
+    RunCommand "OPEN " & f
+    If PwRC <> 0 Then
+        ShowStatus "Can't open " & f & ": " & DocIOError
+        Beep
+    Else
+        AddRecent f
+    End If
+    AfterCommand
 End Sub
 
 ' ---- keys ----------------------------------------------------------------------------------
@@ -326,20 +375,22 @@ Private Function AskFile(ByVal title As String, ByVal def As String) As String
 End Function
 
 Private Sub CmdNew()
-    If Not ConfirmDiscard() Then Exit Sub
-    Exec "NEW"
+    If Not NewSlot() Then MsgBox "Eight documents are open; close one first.", vbExclamation, "Penwright": Exit Sub
+    Redraw
+    UpdateTitle
+    UpdateMenus
 End Sub
 
 Private Sub CmdOpen()
     Dim f As String
-    If Not ConfirmDiscard() Then Exit Sub
     f = AskFile("Open a document (.pwd, .rtf or text):", PwPath)
-    If f <> "" Then Exec "OPEN " & f
+    If f <> "" Then OpenFile f
 End Sub
 
 Private Sub CmdSave()
     If PwPath = "" Then CmdSaveAs: Exit Sub
     Exec "SAVE " & PwPath
+    If PwRC = 0 Then AddRecent PwPath: UpdateMenus
 End Sub
 
 Private Sub CmdSaveAs()
@@ -348,6 +399,7 @@ Private Sub CmdSaveAs()
     If f = "" Then Exit Sub
     If LCase$(Right$(f, 4)) <> ".pwd" Then f = f & ".pwd"
     Exec "SAVE " & f
+    If PwRC = 0 Then AddRecent f: UpdateMenus
 End Sub
 
 Private Sub CmdExport()
@@ -458,7 +510,7 @@ Private Sub tick_Timer()
     autosaveTicks = autosaveTicks + 1
     If autosaveTicks >= AUTOSAVE_SECS * TICKS_PER_SEC Then
         autosaveTicks = 0
-        If DocModified And PwPath <> "" Then
+        If DocModified And PwPath <> "" And PrefAutosave Then
             WriteFile PwPath & ".autosave", DocToPwd()
         End If
     End If
@@ -523,8 +575,17 @@ Private Sub WriteLog(ByVal text As String, ByVal last As String)
 End Sub
 
 Private Sub Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)
+    Dim i As Long, n As Long
     If PwQuit Then Exit Sub
-    If Not ConfirmDiscard() Then Cancel = True
+    For i = 0 To NDocs - 1
+        If DocIsModified(i) Then n = n + 1
+    Next i
+    If n = 0 Then Exit Sub
+    If n = 1 And DocModified Then
+        If Not ConfirmDiscard() Then Cancel = True
+        Exit Sub
+    End If
+    If MsgBox(n & " documents have unsaved changes. Quit anyway?", vbYesNo Or vbExclamation, "Penwright") = vbNo Then Cancel = True
 End Sub
 
 ' ---- menus --------------------------------------------------------------------------------
@@ -577,7 +638,12 @@ Private Sub mnuAlCenter_Click(): Exec "ALIGN CENTER": End Sub
 Private Sub mnuAlRight_Click(): Exec "ALIGN RIGHT": End Sub
 Private Sub mnuAlJustify_Click(): Exec "ALIGN JUSTIFY": End Sub
 Private Sub mnuSpell_Click(): CmdSpell: End Sub
-Private Sub mnuLive_Click(): LiveSpell = mnuLive.Checked: Redraw: End Sub
+Private Sub mnuLive_Click()
+    LiveSpell = mnuLive.Checked
+    PrefLiveSpell = LiveSpell
+    SavePrefs
+    Redraw
+End Sub
 Private Sub mnuCount_Click(): CmdCount: End Sub
 Private Sub mnuMarks_Click(): ShowMarks = mnuMarks.Checked: Redraw: End Sub
 
@@ -653,3 +719,56 @@ Private Sub mnuXPaste_Click(): CmdPaste: End Sub
 Private Sub mnuXBold_Click(): Exec "BOLD": End Sub
 Private Sub mnuXItalic_Click(): Exec "ITALIC": End Sub
 Private Sub mnuXSpell_Click(): CmdSpell: End Sub
+
+Private Sub mnuRecent0_Click(): OpenRecent 0: End Sub
+Private Sub mnuRecent1_Click(): OpenRecent 1: End Sub
+Private Sub mnuRecent2_Click(): OpenRecent 2: End Sub
+Private Sub mnuRecent3_Click(): OpenRecent 3: End Sub
+Private Sub mnuRecent4_Click(): OpenRecent 4: End Sub
+Private Sub mnuRecent5_Click(): OpenRecent 5: End Sub
+Private Sub mnuRecent6_Click(): OpenRecent 6: End Sub
+Private Sub mnuRecent7_Click(): OpenRecent 7: End Sub
+
+Private Sub OpenRecent(ByVal i As Long)
+    If i < NRecent Then OpenFile Recent(i)
+End Sub
+
+Private Sub mnuDoc0_Click(): PickDoc 0: End Sub
+Private Sub mnuDoc1_Click(): PickDoc 1: End Sub
+Private Sub mnuDoc2_Click(): PickDoc 2: End Sub
+Private Sub mnuDoc3_Click(): PickDoc 3: End Sub
+Private Sub mnuDoc4_Click(): PickDoc 4: End Sub
+Private Sub mnuDoc5_Click(): PickDoc 5: End Sub
+Private Sub mnuDoc6_Click(): PickDoc 6: End Sub
+Private Sub mnuDoc7_Click(): PickDoc 7: End Sub
+
+Private Sub PickDoc(ByVal i As Long)
+    SwitchTo i
+    Redraw
+    UpdateTitle
+    UpdateMenus
+End Sub
+
+Private Sub mnuNewDoc_Click(): CmdNew: End Sub
+
+Private Sub mnuCloseDoc_Click()
+    If Not ConfirmDiscard() Then Exit Sub
+    CloseCurrent
+    Redraw
+    UpdateTitle
+    UpdateMenus
+End Sub
+
+Private Sub mnuAutosave_Click()
+    PrefAutosave = mnuAutosave.Checked
+    SavePrefs
+End Sub
+
+Private Sub mnuDefSize_Click()
+    Dim v As String
+    v = InputBox("Size of body text in new documents (points, 6 to 72):", "Penwright", CStr(PrefSize))
+    If Val(v) >= 6 And Val(v) <= 72 Then
+        PrefSize = Val(v)
+        SavePrefs
+    End If
+End Sub

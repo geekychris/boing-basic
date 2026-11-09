@@ -33,3 +33,8 @@ PARACOUNT -> 8
 GETPARA 0 -> Penwright
 GETPARA 3 -> Penwright keeps your text in paragraphs with styles: headings, quotes, lists and code. Inside a paragraph every letter can be bold, italic, underlined, struck through or coloured, and the spelling checker marks words it does not know, like thsi one.
 html bytes  1095 
+new slot: True docs  2  cur  1  paras  1 
+back to 0: [first document] path one.pwd name one.pwd * / Untitled *
+to 1: [second|line two] cursor  1  8  slot of one.pwd  0 
+closed: docs  1  cur  0  [first document]
+recent:  2  a.pwd b.pwd

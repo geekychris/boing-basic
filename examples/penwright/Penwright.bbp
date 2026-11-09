@@ -6,6 +6,7 @@ Module=DocIO.bas
 Module=Spell.bas
 Module=PwView.bas
 Module=PwScript.bas
+Module=DocSlots.bas
 Form=penwright.afg
 Stack=262144
 Icon=icons/Penwright.info
