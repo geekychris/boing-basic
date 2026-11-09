@@ -1,0 +1,8 @@
+# Riffwright host test: editing operations and undo/redo
+Name=test_edit
+Startup=Sub Main
+Module=../Song.bas
+Module=../Edit.bas
+Module=../Player.bas
+Module=TestLib.bas
+Module=test_edit.bas
