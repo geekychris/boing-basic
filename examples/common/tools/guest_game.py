@@ -92,6 +92,23 @@ def screendump(out_png):
     print("screenshot", out_png)
 
 
+def screendump(out_png):
+    """The guest's screen as a PNG (QEMU's HMP monitor on port 2348 of the machine QEMU runs on)."""
+    import tempfile
+    from PIL import Image
+    tmp = tempfile.mktemp(suffix=".ppm")
+    if g.SSH:
+        subprocess.run(["ssh", g.SSH, "printf 'screendump /tmp/bbg_shot.ppm\\n' | nc -w 3 127.0.0.1 2348 >/dev/null"], check=True)
+        time.sleep(1)
+        subprocess.run(["scp", "-q", g.SSH + ":/tmp/bbg_shot.ppm", tmp], check=True)
+    else:
+        subprocess.run("printf 'screendump %s\\n' | nc -w 3 127.0.0.1 2348 >/dev/null" % tmp, shell=True, check=True)
+        time.sleep(1)
+    Image.open(tmp).save(out_png)
+    os.unlink(tmp)
+    print("screenshot", out_png)
+
+
 def main():
     if len(sys.argv) < 3:
         print(__doc__)

@@ -55,6 +55,8 @@ Public a3NPolys As Long, a3Dropped As Long
 ' A3ModelDraw skips a model whose middle is this far behind the camera or outside
 ' the view (the C engine's 800 units; a game with small models can narrow it)
 Public a3ModelMargin As Long
+' added to A3QuadW's depth in mode -1 (the middle of corners 0 and 2)
+Public a3QuadBias As Long
 
 Private Const MAX_DPOLY As Long = 1500
 Private Const NBUCKET As Long = 512
@@ -157,9 +159,22 @@ Public Sub A3Poly(c As A3Cam, ByVal depth As Long, ByVal col As Long, ByVal n As
     Dim i As Long, j As Long, m As Long, nz As Long, ain As Boolean, bin As Boolean
     Dim p As Long, q As Long, t As Double, d As Double, b As Long, base As Long, k As Long
     Dim x1 As Long, y1 As Long, allIn As Boolean
-    ' near plane
+    ' near plane (most polygons are wholly in front: copied straight)
     nz = CamNear(c)
     m = 0
+    allIn = True
+    For i = 0 To n - 1
+        If pvz(i) < nz Then
+            allIn = False
+            Exit For
+        End If
+    Next i
+    If allIn Then
+        For i = 0 To n - 1
+            clx(i) = pvx(i): cly(i) = pvy(i): clz(i) = pvz(i)
+        Next i
+        m = n
+    Else
     For i = 0 To n - 1
         If i = n - 1 Then j = 0 Else j = i + 1
         ain = pvz(i) >= nz
@@ -182,6 +197,7 @@ Public Sub A3Poly(c As A3Cam, ByVal depth As Long, ByVal col As Long, ByVal n As
             m = m + 1
         End If
     Next i
+    End If
     If m < 3 Then Exit Sub
     ' project
     allIn = True
@@ -221,7 +237,7 @@ Public Sub A3Poly(c As A3Cam, ByVal depth As Long, ByVal col As Long, ByVal n As
     ElseIf depth >= farZ Then
         b = NBUCKET - 1
     Else
-        b = Int(CDbl(depth) * NBUCKET / farZ)
+        b = (depth * NBUCKET) \ farZ
     End If
     If bTail(b) >= 0 Then dpNext(bTail(b)) = k Else bHead(b) = k
     bTail(b) = k
@@ -299,19 +315,45 @@ Public Sub A3Quad(c As A3Cam, ByVal depth As Long, ByVal col As Long, _
     A3Poly c, depth, col, 4
 End Sub
 
-' a quad from four world points (each transformed by c)
+' a quad from four world points (CamXform written out four times: calls cost in the VM)
 Public Sub A3QuadW(c As A3Cam, ByVal depthMode As Long, ByVal col As Long, _
                    ByVal x0 As Long, ByVal y0 As Long, ByVal z0 As Long, ByVal x1 As Long, ByVal y1 As Long, ByVal z1 As Long, _
                    ByVal x2 As Long, ByVal y2 As Long, ByVal z2 As Long, ByVal x3 As Long, ByVal y3 As Long, ByVal z3 As Long)
-    Dim ax As Long, ay As Long, az As Long, bx As Long, by As Long, bz As Long
-    Dim dx As Long, dy As Long, dz As Long
-    CamXform c, x0, y0, z0: ax = ox: ay = oy: az = oz
-    CamXform c, x1, y1, z1: bx = ox: by = oy: bz = oz
-    CamXform c, x2, y2, z2: dx = ox: dy = oy: dz = oz
-    CamXform c, x3, y3, z3
-    ' depthMode >= 0: that depth; -1: the middle of the first and third corners
-    If depthMode = -1 Then depthMode = (az + dz) \ 2
-    A3Quad c, depthMode, col, ax, ay, az, bx, by, bz, dx, dy, dz, ox, oy, oz
+    Dim cu As Long, cy4 As Long, sy4 As Long, cp4 As Long, sp4 As Long, t As Long, rz As Long, k As Long
+    Dim dx As Long, dy As Long, dz As Long, nz As Long
+    If c.precise Then cu = 16 Else cu = 1
+    cy4 = c.cy4: sy4 = c.sy4: cp4 = c.cp4: sp4 = c.sp4
+    For k = 0 To 3
+        Select Case k
+            Case 0: dx = x0: dy = y0: dz = z0
+            Case 1: dx = x1: dy = y1: dz = z1
+            Case 2: dx = x2: dy = y2: dz = z2
+            Case Else: dx = x3: dy = y3: dz = z3
+        End Select
+        dx = (dx - c.x) * cu - c.qx
+        dy = (dy - c.y) * cu - c.qy
+        dz = (dz - c.z) * cu - c.qz
+        t = dx * cy4 - dz * sy4
+        pvx(k) = (t - (t And 4095)) \ 4096
+        t = dx * sy4 + dz * cy4
+        rz = (t - (t And 4095)) \ 4096
+        t = dy * cp4 + rz * sp4
+        pvy(k) = (t - (t And 4095)) \ 4096
+        t = rz * cp4 - dy * sp4
+        pvz(k) = (t - (t And 4095)) \ 4096
+    Next k
+    ' (A3Quad's early outs)
+    nz = CamNear(c)
+    If pvz(0) < nz And pvz(1) < nz And pvz(2) < nz And pvz(3) < nz Then Exit Sub
+    If pvx(0) > pvz(0) And pvx(1) > pvz(1) And pvx(2) > pvz(2) And pvx(3) > pvz(3) Then Exit Sub
+    If pvx(0) < -pvz(0) And pvx(1) < -pvz(1) And pvx(2) < -pvz(2) And pvx(3) < -pvz(3) Then Exit Sub
+    ' depthMode >= 0: that depth; -1: the middle of the first and third corners; -2: of all four
+    If depthMode = -1 Then
+        depthMode = (pvz(0) + pvz(2)) \ 2 + a3QuadBias
+    ElseIf depthMode = -2 Then
+        depthMode = (pvz(0) + pvz(1) + pvz(2) + pvz(3)) \ 4
+    End If
+    A3Poly c, depthMode, col, 4
 End Sub
 
 ' a line between two world points, drawn straight away: cut at the near plane

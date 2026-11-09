@@ -211,13 +211,15 @@ End Sub
 
 Private Sub RingAt(ByVal x As Long, ByVal z As Long, ByVal r As Long, ByVal col As Long)
     Dim k As Long, a0 As Long, a1 As Long, s0 As Long, c0 As Long, s1 As Long, c1 As Long
+    a3QuadBias = 30 * 16                  ' drawn over the floor round it
     For k = 0 To 11
         a0 = k * 5461
         a1 = a0 + 5461
         s0 = A3Sin(a0): c0 = A3Cos(a0): s1 = A3Sin(a1): c1 = A3Cos(a1)
-        A3QuadW cam, -2, col, x + ShrA(s0 * r, 16), 1, z + ShrA(c0 * r, 16), x + ShrA(s1 * r, 16), 1, z + ShrA(c1 * r, 16), _
+        A3QuadW cam, -1, col, x + ShrA(s0 * r, 16), 1, z + ShrA(c0 * r, 16), x + ShrA(s1 * r, 16), 1, z + ShrA(c1 * r, 16), _
                 x + ShrA(s1 * (r - 8), 16), 1, z + ShrA(c1 * (r - 8), 16), x + ShrA(s0 * (r - 8), 16), 1, z + ShrA(c0 * (r - 8), 16)
     Next k
+    a3QuadBias = 0
 End Sub
 
 ' the floor's grid: lines every 200 units (the original draws them as thin quads)
