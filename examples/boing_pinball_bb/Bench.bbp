@@ -1,0 +1,13 @@
+# Boing BASIC project: Boing Pinball console bench (the bot plays, every frame drawn on an off-screen Canvas)
+Name=PinballBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=PbCore.bas
+Module=PbTables.bas
+Module=PbFont.bas
+Module=PbDraw.bas
+Module=PbSound.bas
+Module=PbShell.bas
+Module=BenchMain.bas
+Stack=262144

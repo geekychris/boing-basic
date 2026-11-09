@@ -1,0 +1,14 @@
+# Boing BASIC project: Boing Pinball, three pinball tables (a port of amiga_mcp's examples/boing_pinball)
+Name=BoingPinball
+Startup=Form pinball
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=PbCore.bas
+Module=PbTables.bas
+Module=PbFont.bas
+Module=PbDraw.bas
+Module=PbSound.bas
+Module=PbShell.bas
+Form=pinball.afg
+Stack=262144
