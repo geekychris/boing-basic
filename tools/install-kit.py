@@ -274,7 +274,7 @@ def backdrop_entry(m):
 
 def install(m):
     lha_size = os.path.getsize(KIT)
-    need = lha_size + unpacked_size() + (8 << 20)
+    need = unpacked_size() + (8 << 20)      # the archive goes to RAM:; the old drawer goes after the swap
     hits = running_from_kit(m)
     if hits:
         raise RuntimeError("these run from the kit on the guest; quit them first: %s" % "; ".join(hits))

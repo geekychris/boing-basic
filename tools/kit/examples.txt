@@ -121,3 +121,82 @@ kind=game
 about=a self-driving car game: keep your trusting autopilot out of trouble on four routes
 keys=Left/Right steer, Down brake, Up accelerate (taking over); Space autopilot on/off, starts
 keys=V or C chase/cockpit view, P pause, Help/H rules, M/S music/effects, F9 timing, Esc title/quit
+
+[lander_3d_bb]
+title=Lander 3D
+kind=game
+bbp=Lander3D.bbp
+about=the lunar lander in three dimensions: tip, throttle and land softly on the pads
+keys=Space/J full thrust, Q/E throttle down/up, Up/W Down/S tip forward/back, Left/A Right/D tip left/right
+keys=P pause, B autopilot, Help/H rules, M/N music/effects, F1 timing, F2 high scores (title)
+keys=On the title Left/Right the world or tour, Up/Down the starting level; Esc title/quit
+
+[tank_duel]
+title=Tank Duel
+kind=game
+about=a tank fight in a walled arena, seen from the turret
+keys=Up/Down (W/S) forward/back, Left/Right (A/D) turn, Space fire
+keys=P pause, B autopilot, Help/H rules, F1 timing, Esc title/quit; on the title Up/Down the round
+
+[marble_tilt]
+title=Marble Tilt
+kind=game
+about=tilt a floating maze board to roll the marble to the exit
+keys=Cursor keys/WASD tilt (Up: the marble rolls away from you), Space start
+keys=P pause, B autopilot, Help/H rules, F1 timing, Esc title/quit; on the title the cursor keys pick the level
+
+[block_breaker_3d]
+title=Block Breaker 3D
+kind=game
+about=breakout down a tunnel
+keys=Cursor keys/WASD move the paddle, Space serve/start
+keys=P pause, B autopilot, Help/H rules, F1 timing, Esc title/quit; on the title the cursor keys pick the level
+
+[sphere_siege]
+title=Sphere Siege
+kind=game
+about=a shooter inside a hollow sphere
+keys=Cursor keys/WASD slide over the shell, Space fire (hold)/start, G the shell's grid
+keys=P pause, B autopilot, Help/H rules, F1 timing, Esc title/quit; on the title the cursor keys pick the wave
+
+[canyon_rail]
+title=Canyon Rail
+kind=game
+about=a rail shooter down a winding canyon
+keys=Cursor keys/WASD move the sight, Space fire (held: five shots a second)/start
+keys=P pause, B autopilot, Help/H rules, F1 timing, Esc title/quit; on the title the cursor keys pick the stage
+
+[ridge_runner]
+title=Ridge Runner
+kind=game
+about=a hover-bike race down a winding valley
+keys=Left/Right (A/D) steer, Up (W) throttle, Down (S) brake, Space boost/start
+keys=P pause, B autopilot, Help/H help, F1 timing, Esc title/quit; on the title Up picks the track
+
+[drone_courier]
+title=Drone Courier
+kind=game
+about=parcel deliveries by drone across a city of towers
+keys=Up/Down (W/S) forward/back, Left/Right (A/D) turn, Space climb (let go: sink)/start
+keys=P pause, B autopilot, Help/H help, F1 timing, Esc title/quit; on the title Up/Down the day
+
+[harbour_crane]
+title=Harbour Crane
+kind=game
+about=a gantry crane loading a ship that rolls in the swell
+keys=Left/Right (A/D) move the trolley, Up/Down (W/S) winch in/out, Space grab/let go/start
+keys=P pause, B autopilot, Help/H help, F1 timing, Esc title/quit; on the title Up/Down the level
+
+[gridwise]
+title=Gridwise
+kind=app
+about=a spreadsheet with charts: 60 functions, dependency-ordered recalc, bar/line/pie charts, CSV
+keys=Type to edit a cell, Return/Tab to move on, F2 edits in place; Shift+click selects
+keys=Menus with Amiga-key shortcuts: copy/cut/paste, fill, insert/delete, sort, find, undo/redo
+
+[penwright]
+title=Penwright
+kind=app
+about=a word processor: styles, find and replace, live spelling (225 000 words), RTF and HTML
+keys=Type; cursor keys by letter/word/line/page; Backspace/Del by word with Alt/Ctrl
+keys=Menus and toolbar with Amiga-key shortcuts for styles, find/replace, undo/redo, files
