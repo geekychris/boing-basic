@@ -100,4 +100,5 @@ menu id=mnuView text="View"
 menu id=mnuSettings text="Settings"
   menu id=mnuAutosave text="Autosave" checkable=1 checked=1
   menu id=mnuIcons text="Create Icons" checkable=1 checked=1
+  menu id=mnuAppIcon text="Icon on Workbench" checkable=1
   menu id=mnuSavePrefs text="Save Settings"

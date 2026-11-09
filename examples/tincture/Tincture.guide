@@ -147,7 +147,8 @@ it; Built-in Brush goes back to the round brush.
 Tincture reads IFF and PNG itself (the same everywhere), and other
 formats (JPEG, GIF, BMP, ...) through the datatypes.
 
-Drop picture icons on the window to open them. If the picture has
+Drop picture icons on the window, or on Tincture's icon on Workbench
+(Settings > Icon on Workbench), to open them. If the picture has
 changes or layers, the dropped picture is pasted as a floating
 selection instead.
 
@@ -180,7 +181,8 @@ pictures get an icon.
          (Off, Left and Right, Top and Bottom, Four Ways: Freehand,
          Airbrush and Eraser paint mirrored; the axes show dashed)
 
-@{u}Settings@{uu} Autosave, Create Icons, Save Settings
+@{u}Settings@{uu} Autosave, Create Icons, Icon on Workbench (an AppIcon:
+         drop pictures on it to open them), Save Settings
 @endnode
 
 @node keys "Keys"
@@ -260,7 +262,8 @@ grid and magnifier, dithering, icons and the last drawer in
 Tincture.prefs next to the program.
 
 @{b}Autosave@{ub}: while Settings > Autosave is on, Tincture saves the
-picture with all its layers every 30 seconds when it changed, into
+picture with all its layers every 30 seconds (the icon's tooltype
+AUTOSAVE=seconds changes it, 0 turns it off) when it changed, into
 Tincture.autosave.tinc next to the program. When Tincture ends
 normally the file is deleted. If Tincture (or the machine) crashed,
 the next start offers to bring the picture back.

@@ -6,6 +6,7 @@
                                                                   redo all, a screenshot; checks it quits cleanly
     BB_GUEST=m1 examples/tincture/tools/guest.py input [SHOTDIR]  real mouse input into its own active window:
                                                                   steer into the view, paint a stroke, check it
+    BB_GUEST=m1 examples/tincture/tools/guest.py arexx            drive a running Tincture from demo/arexx-test.rexx
     BB_GUEST=m1 examples/tincture/tools/guest.py demo [SHOTDIR]   paints demo/*.tsc scripts, screenshots each
     BB_GUEST=m1 examples/tincture/tools/guest.py bench [N]        --bench N strokes: native, VM, VM --jit
     BB_GUEST=m1 examples/tincture/tools/guest.py run 'ARGS'       run the VM build with ARGS, print its output
@@ -202,6 +203,26 @@ def input_test(m, shots, native=True):
     return ok and gone(m)
 
 
+def arexx_test(m):
+    """Start Tincture, drive it from an ARexx script through its TINCTURE port, check the replies."""
+    t = int(time.time())
+    outf, rxout = "RAM:tincture_rx_%d.log" % t, "RAM:tincture_rx_%d.out" % t
+    prog = ("%s/Tincture" % DIR) if os.path.exists(ROOT + "/build/Tincture") else vm_cmd()
+    launch(m, "%s --hold 60 --log >%s *>%s.err" % (prog, outf, outf))
+    if not wait_for(m, outf, "active", 120):
+        print(dos(m, "type %s.err" % outf))
+        return False
+    time.sleep(1)
+    dos(m, "rx %s/demo/arexx-test.rexx >%s" % (DIR, rxout))
+    out = dos(m, "type %s" % rxout)
+    print(out)
+    wait_for(m, outf, "quit", 30)
+    time.sleep(3)
+    ok = ("pixel #FF0000" in out and "info 64 48 2 2" in out and "rc 10" in out and "done" in out and gone(m))
+    print("process gone:", gone(m))
+    return ok
+
+
 def bench(m, n):
     runs = [("native", "%s/Tincture" % DIR), ("vm", vm_cmd()),
             ("jit", "%s/boing run --jit %s/Tincture.bbp" % (DIR, DIR))]
@@ -236,6 +257,11 @@ def main():
             push_all(m)
             ok = input_test(m, sys.argv[2] if len(sys.argv) > 2 else os.path.join(tempfile.gettempdir(), "tincture"))
             print("INPUT", "PASS" if ok else "FAIL")
+            sys.exit(0 if ok else 1)
+        elif what == "arexx":
+            push_all(m)
+            ok = arexx_test(m)
+            print("AREXX", "PASS" if ok else "FAIL")
             sys.exit(0 if ok else 1)
         elif what == "demo":
             push_all(m)

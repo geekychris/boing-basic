@@ -62,6 +62,17 @@ Private Sub Form_Load()
         End Select
         i = i + 1
     Loop
+    ' a picture icon double-clicked on Workbench (its default tool is Tincture)
+    If openPath = "" And WbArgCount() > 0 Then openPath = WbArg(0)
+    ' autosave every AUTOSAVE=seconds (tooltype; 0 = off), 30 by default
+    i = WbToolTypeNum("AUTOSAVE", 30)
+    autosaveOn = i > 0
+    If i > 0 Then autotimer.Interval = i * 1000
+    On Error Resume Next
+    mnuAutosave.Checked = autosaveOn
+    mnuIcons.Checked = createIcons
+    mnuDither.Checked = ditherOnReduce
+    On Error GoTo 0
     If docW = 0 Then DocNew 640, 512
     ZoomFit
     SyncBrushControls
@@ -995,6 +1006,13 @@ End Sub
 Private Sub mnuIcons_Click()
     On Error Resume Next
     createIcons = mnuIcons.Checked
+End Sub
+
+Private Sub mnuAppIcon_Click()
+    On Error Resume Next
+    WbShowAppIcon mnuAppIcon.Checked
+    If mnuAppIcon.Checked Then statusMsg = "Drop pictures on the Tincture icon on Workbench to open them"
+    UpdateAll
 End Sub
 
 Private Sub mnuSavePrefs_Click()

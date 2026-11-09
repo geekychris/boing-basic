@@ -1,102 +1,118 @@
 ' Tincture - the Workbench side, through this one module: ARexx port, AppWindow drops,
-' AppIcon, the clipboard, help, icons and settings.
-'
-' This version uses only what the runtime has today: settings in a file next to the program
-' (ENV:-style files once GetSetting/SaveSetting exist), help as a plain message, no ARexx port
-' (--script files run the same commands), no OS clipboard (the internal one works). When the
-' runtime's Workbench API (docs/ui.md sections 6 and 7) lands, the bodies below switch to it;
-' the rest of the program doesn't change.
+' AppIcon, the clipboard, help, icons and settings (docs/ui.md sections 6 and 7).
+' Every call is guarded: on the host (headless test runs) these are stubs or missing.
 Option Explicit
 
-Private settingKeys() As String, settingVals() As String, nSettings As Long, settingsRead As Boolean
+Private clipCv As Object          ' helper canvas for Clipboard.GetPicture (it fills a back buffer)
 
 Public Sub WbInit(ByVal portName As String)
+    On Error Resume Next
+    App.ARexxPort = portName
 End Sub
 
 Public Sub WbCleanup()
+    On Error Resume Next
+    App.HideAppIcon
 End Sub
 
 Public Function WbARexxName() As String
-    WbARexxName = "(not available in this build)"
+    On Error Resume Next
+    WbARexxName = App.ARexxPortName
+    If WbARexxName = "" Then WbARexxName = "(none)"
 End Function
 
 Public Sub WbSetRC(ByVal rc As Long)
+    On Error Resume Next
+    App.ARexxRC = rc
 End Sub
 
 Public Function WbDropFile(ByVal i As Long) As String
+    On Error Resume Next
+    WbDropFile = App.DropFile(i)
 End Function
 
-Public Sub WbClipboardPut(cv As Object, ByVal img As Long)
+' an AppIcon while the window is iconified (pictures dropped on it open)
+Public Sub WbShowAppIcon(ByVal show As Boolean)
+    On Error Resume Next
+    If show Then App.ShowAppIcon "Tincture", App.Path & "/Tincture" Else App.HideAppIcon
 End Sub
 
+' the image goes to the clipboard as IFF ILBM (the canvas's current target is what is copied)
+Public Sub WbClipboardPut(cv As Object, ByVal img As Long)
+    On Error Resume Next
+    cv.SetTarget img
+    Clipboard.SetPicture cv
+    cv.SetTarget 0
+End Sub
+
+' a picture on the clipboard as a new image of cv (0 if there is none)
 Public Function WbClipboardGet(cv As Object) As Long
+    Dim tmp As String
+    On Error GoTo none
+    If Not Clipboard.HasPicture Then Exit Function
+    If clipCv Is Nothing Then Set clipCv = CreateObject("Boing.Canvas")
+    Clipboard.GetPicture clipCv
+    tmp = "T:tincture-clip.ppm"
+    clipCv.SaveImage tmp
+    WbClipboardGet = cv.LoadImage(tmp)
+    Kill tmp
+    Exit Function
+none:
+    WbClipboardGet = 0
 End Function
 
 Public Function WbHelp(ByVal guide As String, ByVal node As String) As Boolean
-    MsgBox "Tincture help is in " & guide & " (open it with MultiView)." & vbLf & "Topic: " & node, vbInformation, "Tincture"
+    On Error GoTo noHelp
+    App.ShowHelp App.Path & "/" & guide, node
     WbHelp = True
+    Exit Function
+noHelp:
+    WbHelp = False
 End Function
 
+' a project icon for a saved picture: Icons/picture.info beside the program, default tool Tincture
 Public Sub WbSaveIcon(ByVal path As String)
-End Sub
-
-' ---------------------------------------------------------------- settings: Tincture.prefs next to the program
-
-Private Function PrefsFile() As String
-    Dim p As String
-    p = App.Path
-    If p <> "" And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
-    PrefsFile = p & "Tincture.prefs"
-End Function
-
-Private Sub ReadSettings()
-    Dim f As Integer, ln As String, q As Long
-    settingsRead = True
-    nSettings = 0
-    ReDim settingKeys(0 To 63): ReDim settingVals(0 To 63)
-    If Not FileExists(PrefsFile()) Then Exit Sub
-    On Error GoTo done
-    f = FreeFile
-    Open PrefsFile() For Input As #f
-    Do While Not EOF(f)
-        Line Input #f, ln
-        q = InStr(ln, "=")
-        If q > 1 And nSettings < 64 Then
-            settingKeys(nSettings) = Mid$(ln, 1, q - 1)
-            settingVals(nSettings) = Mid$(ln, q + 1)
-            nSettings = nSettings + 1
-        End If
-    Loop
-    Close #f
-done:
+    On Error Resume Next
+    If FileExists(path & ".info") Then Exit Sub           ' keep the user's own icon
+    App.SaveIcon path, App.Path & "/Tincture", App.Path & "/Icons/picture"
 End Sub
 
 Public Function WbGetSetting(ByVal key As String, ByVal def As String) As String
-    Dim i As Long
-    If Not settingsRead Then ReadSettings
+    On Error GoTo fallback
+    WbGetSetting = GetSetting("Tincture", "Prefs", key, def)
+    Exit Function
+fallback:
     WbGetSetting = def
-    For i = 0 To nSettings - 1
-        If LCase$(settingKeys(i)) = LCase$(key) Then WbGetSetting = settingVals(i): Exit Function
-    Next
 End Function
 
 Public Sub WbSaveSetting(ByVal key As String, ByVal v As String)
-    Dim i As Long, f As Integer
-    If Not settingsRead Then ReadSettings
-    For i = 0 To nSettings - 1
-        If LCase$(settingKeys(i)) = LCase$(key) Then Exit For
-    Next
-    If i = nSettings Then
-        If nSettings >= 64 Then Exit Sub
-        nSettings = nSettings + 1
-        settingKeys(i) = key
-    End If
-    settingVals(i) = v
     On Error Resume Next
-    f = FreeFile
-    Open PrefsFile() For Output As #f
-    For i = 0 To nSettings - 1
-        Print #f, settingKeys(i) & "=" & settingVals(i)
-    Next
-    Close #f
+    SaveSetting "Tincture", "Prefs", key, v
 End Sub
+
+' the tooltype AUTOSAVE=seconds (0 = off) of the program's icon, else the default
+Public Function WbToolTypeNum(ByVal name As String, ByVal def As Long) As Long
+    Dim s As String
+    On Error GoTo fallback
+    s = App.ToolType(name, CStr(def))
+    If IsNumeric(s) Then WbToolTypeNum = CLng(s) Else WbToolTypeNum = def
+    Exit Function
+fallback:
+    WbToolTypeNum = def
+End Function
+
+' files given on the command line or as Workbench project icons
+Public Function WbArgCount() As Long
+    On Error Resume Next
+    WbArgCount = App.ArgCount
+End Function
+
+Public Function WbArg(ByVal i As Long) As String
+    On Error Resume Next
+    WbArg = App.Arg(i)
+End Function
+
+Public Function WbFromWorkbench() As Boolean
+    On Error Resume Next
+    WbFromWorkbench = App.FromWorkbench
+End Function
