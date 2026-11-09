@@ -1,0 +1,10 @@
+title = "Penwright"
+category = "app"
+order = 6
+summary = "A word processor: paragraph styles and alignment, per-character bold/italic/underline/colour/size, bullets and quotes, a spelling checker with a 2.3 MB dictionary, RTF export."
+shows = ["Canvas (page layout and drawing in BASIC)", "Menus, toolbar, status bar", "Spelling checker in BASIC", "ASL requesters, clipboard, printing", "AmigaGuide help, icons", "Scripting (`--script`)"]
+perf = "Typing a character and redrawing takes 60 ms in the VM, 9 ms native; drawing a screen 30 ms VM, 6 ms native (m1 guest)."
+
+[[shot]]
+file = "docs/guest-letter.png"
+caption = "A styled document with headings, bullets, a quote and a spelling mark under \"thsi\""

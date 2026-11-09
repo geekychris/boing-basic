@@ -1,0 +1,10 @@
+title = "Gridwise"
+category = "app"
+order = 5
+summary = "A spreadsheet with charts: 1000 x 26 cells, 60 functions, recalculation in dependency order, bar/line/pie charts that follow the data, CSV, undo/redo."
+shows = ["Canvas (the grid and charts drawn in BASIC)", "A formula compiler in BASIC", "Menus, toolbar, status bar, context menu", "ASL requesters and Save/Discard/Cancel", "Clipboard, drag and drop, printing, iconify", "AmigaGuide help", "Scripting (`--script`)"]
+perf = "One keystroke (edit + recalculation + redraw) takes 111 ms in the VM, 85 ms with the JIT, 30 ms native; a full recalculation of 25 027 formulas 4.8 s VM, 0.17 s native (m1 guest)."
+
+[[shot]]
+file = "docs/guest-budget.png"
+caption = "A household budget with formulas, number formats, a bar chart and a pie chart"

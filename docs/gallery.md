@@ -4,7 +4,7 @@
 
 Boing BASIC is a Visual Basic 6 style language for AmigaOS 4.1 (PowerPC). A program runs in the interpreter (a bytecode VM, with an optional PowerPC JIT) for a quick edit-run cycle, or is compiled to C and built with GCC into a native executable. Forms are designed in the [AmiForge](https://github.com/geekychris/amiforge) IDE; the runtime brings a Canvas for 2D graphics, Engine3D for filled 3D, a ProTracker player and sound effects through AHI, menus, dialogs and ReAction gadgets, an ARexx port, and `Declare` for calling any AmigaOS library. See the [README](../README.md) and the [design](DESIGN.md).
 
-Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 6 games, 4 applications and 6 examples and tools.
+Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 6 games, 6 applications and 6 examples and tools.
 
 **Games**
 
@@ -16,7 +16,8 @@ Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screens
 **Applications**
 
 <table>
-<tr><td align="center" valign="bottom"><a href="#riffwright"><img src="../examples/riffwright/docs/guest_pattern_playing.png" width="200" alt="Riffwright"><br>Riffwright</a></td><td align="center" valign="bottom"><a href="#tincture"><img src="../examples/tincture/gallery/sunset.png" width="200" alt="Tincture"><br>Tincture</a></td><td align="center" valign="bottom"><a href="#boingpad"><img src="../examples/boingpad/gallery/boingpad.png" width="200" alt="BoingPad"><br>BoingPad</a></td><td align="center" valign="bottom"><a href="#minisheet"><img src="../examples/minisheet/gallery/minisheet.png" width="200" alt="MiniSheet"><br>MiniSheet</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#gridwise"><img src="../examples/gridwise/docs/guest-budget.png" width="200" alt="Gridwise"><br>Gridwise</a></td><td align="center" valign="bottom"><a href="#penwright"><img src="../examples/penwright/docs/guest-letter.png" width="200" alt="Penwright"><br>Penwright</a></td><td align="center" valign="bottom"><a href="#riffwright"><img src="../examples/riffwright/docs/guest_pattern_playing.png" width="200" alt="Riffwright"><br>Riffwright</a></td><td align="center" valign="bottom"><a href="#tincture"><img src="../examples/tincture/gallery/sunset.png" width="200" alt="Tincture"><br>Tincture</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#boingpad"><img src="../examples/boingpad/gallery/boingpad.png" width="200" alt="BoingPad"><br>BoingPad</a></td><td align="center" valign="bottom"><a href="#minisheet"><img src="../examples/minisheet/gallery/minisheet.png" width="200" alt="MiniSheet"><br>MiniSheet</a></td></tr>
 </table>
 
 **Examples and tools**
@@ -141,6 +142,34 @@ A self-driving car game: score while the autopilot drives, and grab the wheel ju
 [README](../examples/scairy_fun_bb/README.md) · [source](../examples/scairy_fun_bb/)
 
 ## Applications
+
+### Gridwise
+
+A spreadsheet with charts: 1000 x 26 cells, 60 functions, recalculation in dependency order, bar/line/pie charts that follow the data, CSV, undo/redo.
+
+**Shows off:** Canvas (the grid and charts drawn in BASIC), A formula compiler in BASIC, Menus, toolbar, status bar, context menu, ASL requesters and Save/Discard/Cancel, Clipboard, drag and drop, printing, iconify, AmigaGuide help, Scripting (`--script`)
+
+**Performance:** One keystroke (edit + recalculation + redraw) takes 111 ms in the VM, 85 ms with the JIT, 30 ms native; a full recalculation of 25 027 formulas 4.8 s VM, 0.17 s native (m1 guest).
+
+<img src="../examples/gridwise/docs/guest-budget.png" width="560" alt="A household budget with formulas, number formats, a bar chart and a pie chart">
+
+*A household budget with formulas, number formats, a bar chart and a pie chart*
+
+[README](../examples/gridwise/README.md) · [source](../examples/gridwise/)
+
+### Penwright
+
+A word processor: paragraph styles and alignment, per-character bold/italic/underline/colour/size, bullets and quotes, a spelling checker with a 2.3 MB dictionary, RTF export.
+
+**Shows off:** Canvas (page layout and drawing in BASIC), Menus, toolbar, status bar, Spelling checker in BASIC, ASL requesters, clipboard, printing, AmigaGuide help, icons, Scripting (`--script`)
+
+**Performance:** Typing a character and redrawing takes 60 ms in the VM, 9 ms native; drawing a screen 30 ms VM, 6 ms native (m1 guest).
+
+<img src="../examples/penwright/docs/guest-letter.png" width="560" alt="A styled document with headings, bullets, a quote and a spelling mark under "thsi"">
+
+*A styled document with headings, bullets, a quote and a spelling mark under "thsi"*
+
+[README](../examples/penwright/README.md) · [source](../examples/penwright/)
 
 ### Riffwright
 
