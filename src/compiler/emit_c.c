@@ -1742,7 +1742,7 @@ static void emit_proc(EC *e, Proc *pr)
         buf_puts(e->out, "    if (BB_SETJMP(bb_ef.jb)) {\n");
         buf_puts(e->out, "        bb_errtop = &bb_ef;\n");
         if (e->nsmem && e->stemp.n) buf_printf(e->out, "        cleanup%d_t(&bbL);\n", pr->index);
-        buf_puts(e->out, "        if (bb_mode == 0 || bb_inh) { bb_frame_pop(&bb_ef); bb_rethrow(); }\n");
+        buf_puts(e->out, "        if (bb_mode == 0 || bb_inh || (bb_mode == 2 && bb_err_from_break())) { bb_frame_pop(&bb_ef); bb_rethrow(); }\n");
         buf_puts(e->out, "        bb_estmt = bb_stmt;\n");
         if (e->resume) buf_puts(e->out, "        if (bb_mode == 2) { bb_rs = bb_estmt + 1; goto bb_resume; }\n");
         buf_puts(e->out, "        bb_inh = 1;\n        switch (bb_hlabel) {\n");

@@ -119,6 +119,14 @@ handler goes to the next handler up. `Exit Sub/Function` in a handler clears `Er
 Procedures unwound by an error release their locals (objects' `Class_Terminate` runs) in
 both back ends.
 
+Ctrl-C (break) raises error 18, "User interrupt occurred", at the next loop back-edge or call,
+in the VM, with the JIT and native. A handler can catch it, e.g. `On Error GoTo cleanup` to
+close a window or free memory opened through `Declare`, which the runtime doesn't track
+(see `examples/declare_gfx`). Without a handler the program prints `file:line: ***Break` on
+stderr and exits with code 20, as before; the runtime's own cleanup (forms, Audio, timers,
+files) runs either way. `On Error Resume Next` does not swallow a break (it goes on to an
+`On Error GoTo` handler further up, or ends the program), so such loops can still be stopped.
+
 ## Classes (`.cls`)
 
 - Instance variables (`Private`/`Public` – public ones are properties), methods, `Property

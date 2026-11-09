@@ -243,15 +243,21 @@ char *bb_stack_limit;
 void bb_stack_overflow(void) { bb_raise(28, NULL); }
 void bb_shift_range_error(void) { bb_raise(5, NULL); }
 void bb_muldiv_zero(void) { bb_raise(11, NULL); }
+static int g_from_break;     /* the current error 18 came from Ctrl-C */
+int bb_err_from_break(void) { return g_from_break && bb_err.number == 18; }
+static BB_NORETURN void raise_common(void);
+
 void bb_poll_slow(void)
 {
     bb_poll_count = 4096;
+    /* Ctrl-C: error 18, which On Error can catch (to close what the program opened through
+       Declare); without a handler the program ends with "***Break" as before (bb_fatal_error) */
     if (bb_plat_break()) {
-        char buf[512];
-        bb_console_flush();
-        snprintf(buf, sizeof buf, "%s:%ld: ***Break\n", bb_file ? bb_file : "?", (long)bb_line);
-        bb_plat_write_err(buf, strlen(buf));
-        bb_exit(20);
+        bb_err.number = 18;
+        bb_str_set(&bb_err.description, bb_str_from_c(bb_error_message(18)));
+        bb_str_set(&bb_err.source, NULL);
+        g_from_break = 1;
+        raise_common();
     }
 }
 
@@ -259,6 +265,11 @@ void bb_fatal_error(void)
 {
     char buf[1024];
     bb_console_flush();
+    if (bb_err.number == 18 && g_from_break) {
+        snprintf(buf, sizeof buf, "%s:%ld: ***Break\n", bb_err.file ? bb_err.file : "?", (long)bb_err.line);
+        bb_plat_write_err(buf, strlen(buf));
+        bb_exit(20);
+    }
     snprintf(buf, sizeof buf, "%s:%ld: runtime error %ld: %s\n",
              bb_err.file ? bb_err.file : "?", (long)bb_err.line, (long)bb_err.number,
              bb_str_len(bb_err.description) ? bb_str_ptr(bb_err.description)
@@ -294,6 +305,7 @@ static BB_NORETURN void raise_common(void)
 
 void bb_raise(int32_t num, const char *desc)
 {
+    g_from_break = 0;
     bb_err.number = num;
     bb_str_set(&bb_err.description, bb_str_from_c(desc ? desc : bb_error_message(num)));
     bb_str_set(&bb_err.source, NULL);
@@ -305,6 +317,7 @@ void bb_raise_str(int32_t num, bb_str *desc, bb_str *source)
     if (num <= 0 || num > 65535) {
         if (num == 0) bb_raise(5, NULL);
     }
+    g_from_break = 0;
     bb_err.number = num;
     if (bb_str_len(desc)) bb_str_assign(&bb_err.description, desc);
     else bb_str_set(&bb_err.description, bb_str_from_c(bb_error_message(num)));

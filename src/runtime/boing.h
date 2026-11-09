@@ -177,10 +177,11 @@ void *bb_small_alloc(size_t n);
 void bb_small_free(void *p);
 void *bb_small_realloc(void *p, size_t n);    /* keeps min(old, n) bytes */
 void bb_set_error_file(const char *path);    /* also write the runtime-error line here (IDE) */
-/* Ctrl-C: generated loops and the VM poll this cheaply; a break prints
- * "file:line: ***Break" and ends the program with 20 */
+/* Ctrl-C: generated loops and the VM poll this cheaply; a break raises error 18 (On Error can
+ * catch it); unhandled it prints "file:line: ***Break" and ends the program with 20 */
 extern int32_t bb_poll_count;
 void bb_poll_slow(void);
+int bb_err_from_break(void);    /* the current error is Ctrl-C's 18: On Error Resume Next lets it through */
 /* Dim x As New C: the object is created when x is first used */
 BB_INLINE bb_obj *bb_autonew(bb_obj **p, bb_obj *(*ctor)(void)) { if (!*p) *p = ctor(); return *p; }
 /* Shl / ShrA / ShrL: 32-bit shifts of a Long (Shl wraps, no overflow); count 0..31, else error 5 */

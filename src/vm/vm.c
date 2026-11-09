@@ -925,7 +925,7 @@ static void vm_exec(VM *vm, int entry)
         if (vm->nframes > entry) locate(vm, &vm->frames[vm->nframes - 1]);
         for (i = vm->nframes - 1; i >= entry && !handled; i--) {
             f = &vm->frames[i];
-            if (f->handler_mode != OE_NONE && !f->in_handler) {
+            if (f->handler_mode != OE_NONE && !f->in_handler && !(f->handler_mode == OE_RESUMENEXT && bb_err_from_break())) {
                 int li;
                 /* release what the failed statements left on the stack (vm->sp is kept
                  * exact: ops that take ownership of popped values sync it first) */

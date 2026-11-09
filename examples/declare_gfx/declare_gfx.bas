@@ -7,6 +7,8 @@
 '   boing run declare_gfx.bbp [--frames N] [--wait]
 '     --frames N   frames to draw (default 200)
 '     --wait       keep the window open until its close gadget is clicked
+' Ctrl-C raises error 18 (User interrupt): the handler closes the window, which the runtime
+' does not know about (it was opened through Declare).
 Option Explicit
 
 ' struct Window offsets (AmigaOS keeps the 68k layout, 2-byte packed)
@@ -72,6 +74,7 @@ Sub Main()
         Print "FAIL: OpenWindowTagList returned 0"
         Exit Sub
     End If
+    On Error GoTo closeit
     rp = PeekL(win + WIN_RPORT)
     bx = PeekB(win + WIN_BORDERLEFT)
     by = PeekB(win + WIN_BORDERTOP)
@@ -113,5 +116,11 @@ Sub Main()
         Sleep 50
     Loop
     CloseWindow win
+    win = 0
     Print "PASS"
+    Exit Sub
+closeit:
+    ' Ctrl-C (error 18) or any other error: close the window, then report it
+    If win <> 0 Then CloseWindow win: win = 0
+    If Err.Number = 18 Then Print "break: window closed" Else Print "error"; Err.Number; Err.Description
 End Sub
