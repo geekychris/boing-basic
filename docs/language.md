@@ -138,6 +138,9 @@ Engine3D` in `boing check`. Native builds call the member by its id. Assigning a
 another class to such a variable is error 13 (as with BASIC classes); `New Engine3D` and
 `TypeOf x Is Engine3D` are not supported (use `CreateObject` and `TypeName`). A class or module
 of the program with the same name takes precedence.
+`boing members [Engine3D|Canvas|Audio]` lists their members, one per line
+(`Class<TAB>Name<TAB>method|property`), for an editor's completion; the list is generated from
+the runtime's own tables (`tools/genmembers.py`, checked by `make test`).
 
 ## Classes (`.cls`)
 

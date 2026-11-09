@@ -41,6 +41,8 @@ $(B)/include/boing.h: $(wildcard src/runtime/*.h)
 test: all
 	@sh tools/stackcheck.sh
 	@sh tools/flags-check.sh
+	@python3 tools/genmembers.py --check
+	@$(B)/boing members > /dev/null || { echo 'boing members: a listed member does not resolve'; exit 1; }
 	@sh tools/os4-build-check.sh
 	@for f in tests/c/*.c; do $(CC) $(WARN) $(CFLAGS) -I$(B)/include -o $(B)/ctest_$$(basename $$f .c) $$f $(B)/libboing.a -lm && $(B)/ctest_$$(basename $$f .c) || exit 1; done
 	@sh tests/run.sh

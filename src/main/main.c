@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "../runtime/bb_sys.h"
+#include "../compiler/rtmembers.h"
 
 #ifndef BOING_VERSION
 #define BOING_VERSION "0.1"
@@ -23,7 +24,7 @@ static void usage(void)
             "  boing compile prog.bas -o prog.bbc               write a bytecode file\n"
             "  boing emit-c prog.bas [-o prog.c]                write the generated C\n"
             "  boing symbols file.bas|file.cls                  list declarations for an IDE\n"
-            "  boing disasm prog.bas                            show the bytecode\n");
+            "  boing disasm prog.bas                            show the bytecode\n  boing members [Engine3D|Canvas|Audio]            members of the runtime classes (completion)\n");
     exit(5);
 }
 
@@ -180,7 +181,27 @@ int main(int argc, char **argv)
     if (argc < 2) usage();
     cmd = argv[1];
     if (!strcmp(cmd, "--version") || !strcmp(cmd, "version")) { printf("Boing BASIC " BOING_VERSION "\n"); return 0; }
-    if (argc < 3) usage();
+    if (argc < 3 && strcmp(cmd, "members")) usage();
+    if (!strcmp(cmd, "members")) {
+        /* boing members [Class]: the members of the runtime classes (Engine3D, Canvas, Audio), one per
+           line "Class<TAB>Name<TAB>method|property", for AmiForge's completion; each name is checked
+           against the class's own find() (exit 1 if one does not resolve) */
+        size_t i;
+        int bad = 0;
+        const char *want = argc > 2 ? argv[2] : NULL;
+        if (want && !strncasecmp(want, "Boing.", 6)) want += 6;
+        for (i = 0; i < sizeof bb_rtmembers / sizeof bb_rtmembers[0]; i++) {
+            const bb_class *rc = bb_runtime_class(bb_rtmembers[i].cls);
+            if (want && strcasecmp(want, bb_rtmembers[i].cls)) continue;
+            if (!rc || rc->find(rc, bb_rtmembers[i].name) == BB_NOMEMBER) {
+                fprintf(stderr, "boing members: %s.%s does not resolve\n", bb_rtmembers[i].cls, bb_rtmembers[i].name);
+                bad = 1;
+                continue;
+            }
+            printf("%s\t%s\t%s\n", bb_rtmembers[i].cls, bb_rtmembers[i].name, bb_rtmembers[i].kind);
+        }
+        return bad;
+    }
     if (!strcmp(cmd, "check")) {
         Program *p = load(argv[2]);
         return p->nerrors ? 1 : 0;
