@@ -910,8 +910,14 @@ static Node *parse_open(P *p, Token *t)
         adv(p);
     }
     if (isid(p, "Access")) {
+        /* Access Read / Write / Read Write: in op's high byte (1 read, 2 write, 3 both) */
+        int acc = 0;
         adv(p);
-        while (iskw(p, KW_WRITE) || isid(p, "Read")) adv(p);
+        while (iskw(p, KW_WRITE) || isid(p, "Read")) {
+            acc |= iskw(p, KW_WRITE) ? 2 : 1;
+            adv(p);
+        }
+        n->op |= acc << 8;
     }
     while (isid(p, "Shared") || isid(p, "Lock") || isid(p, "Read") || iskw(p, KW_WRITE)) adv(p);
     expect_kw(p, KW_AS);

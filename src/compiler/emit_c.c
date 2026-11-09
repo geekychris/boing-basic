@@ -1500,7 +1500,7 @@ static void stmt(EC *e, Node *s)
     }
     case S_OPEN: {
         char *path = val(e, s->a), *fnx = val(e, s->b), *rl = s->c ? val(e, s->c) : xstrdup("0");
-        action(e, "bb_open(%s, %d, 0, %s, %s);", path, s->op, fnx, rl);
+        action(e, "bb_open(%s, %d, %d, %s, %s);", path, s->op & 0xff, s->op >> 8, fnx, rl);
         return;
     }
     case S_CLOSE:

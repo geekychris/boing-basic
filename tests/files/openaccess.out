@@ -1,0 +1,6 @@
+binary read: 53 False
+random read: 53 False
+input: 53 False
+binary write creates:True 1 
+binary read existing: 7 
+binary creates:True

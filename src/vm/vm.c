@@ -2014,7 +2014,7 @@ static void vm_exec(VM *vm, int entry)
             case I_OPEN: {
                 bb_value rl = POP(), fn = POP(), path = POP();
                 sp += 3; SYNC();
-                bb_open(path.u.s, pc[1], 0, fn.u.l, rl.u.l);
+                bb_open(path.u.s, pc[1] & 0xff, pc[1] >> 8, fn.u.l, rl.u.l);
                 sp -= 3;
                 release_slot(&path);
                 pc += 2;

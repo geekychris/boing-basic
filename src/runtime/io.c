@@ -337,7 +337,7 @@ void bb_open(bb_str *path, int mode, int access, bb_long fn, bb_long reclen)
     const char *m;
     FILE *fp;
     long sz;
-    (void)access;
+    /* access (Open ... Access): 0 none given, 1 Read, 2 Write, 3 Read Write */
     if (fn < 1 || fn >= MAXFILES) bb_raise(52, NULL);
     if (files[fn].fp) bb_raise(55, NULL);
     if (!bb_str_len(path)) bb_raise(75, NULL);
@@ -345,8 +345,12 @@ void bb_open(bb_str *path, int mode, int access, bb_long fn, bb_long reclen)
     case BB_FM_INPUT: m = "rb"; break;
     case BB_FM_OUTPUT: m = "wb"; break;
     case BB_FM_APPEND: m = "ab"; break;
-    default: /* binary / random: read-write, create if missing */
-        m = bb_plat_file_size(bb_str_ptr(path), &sz) == 0 ? "r+b" : "w+b";
+    default: /* binary / random: read-write, create if missing; Access Read: an existing file
+                only (error 53, as VB), read-only */
+        if (access == 1) {
+            if (bb_plat_file_size(bb_str_ptr(path), &sz) != 0) bb_raise(53, NULL);
+            m = "rb";
+        } else m = bb_plat_file_size(bb_str_ptr(path), &sz) == 0 ? "r+b" : "w+b";
         break;
     }
     fp = fopen(bb_str_ptr(path), m);
