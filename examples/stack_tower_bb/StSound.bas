@@ -64,10 +64,12 @@ Public Sub SoundCleanup()
 End Sub
 
 Public Sub ToggleMusic()
+    If au Is Nothing Then Exit Sub
     au.MusicEnabled = Not au.MusicEnabled
 End Sub
 
 Public Sub ToggleEffects()
+    If au Is Nothing Then Exit Sub
     au.SoundEnabled = Not au.SoundEnabled
 End Sub
 

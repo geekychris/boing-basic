@@ -173,8 +173,16 @@ End Function
 
 ' a data file of the game: beside the program (a native build: App.Path) or else in the
 ' current directory (boing run: App.Path is the interpreter's)
+Public dataDir As String               ' --data DIR: where the data files are (boing run on the guest)
+
 Public Function DataFile(ByVal name As String) As String
     Dim p As String
+    If Len(dataDir) > 0 Then
+        p = dataDir
+        If Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+        DataFile = p & name
+        Exit Function
+    End If
     p = HsPath("st_title.ppm")
     On Error Resume Next
     If Len(Dir$(p)) > 0 Then DataFile = HsPath(name) Else DataFile = name

@@ -7,13 +7,15 @@
 '   StackTower --mode M --level L the title's mode (0 marathon, 1 rising, 2 dig) and level
 '   StackTower --perf             timing overlay (also F9) and a log line a second
 '   StackTower --log              print each change of screen (tests)
-'   StackTower --nomusic          no music (M switches it, S the effects)
+'   StackTower --nomusic          no music (M switches it, S the effects); --nosound: no Audio at all
 '   StackTower --autoplay         start a game with the bot playing (screenshots)
 '   StackTower --help N           open on help page N;  --scores: on the high scores
 '   StackTower --smoke N          the bot plays N frames in real time (music and sound on),
 '                                 then a report and quit (the guest smoke test)
 '   StackTower --seed N           the first game's seed
 '   StackTower --blit N           the canvas's BlitMode
+'   StackTower --data DIR         where the pictures, music and scores are (default: beside
+'                                 the program, else the current directory)
 '
 ' Keys: Left/Right (A/D) turn the tower (held: repeats), Up/X rotate clockwise, Z
 ' anticlockwise, Down soft drop, Space hard drop, C hold, G ghost, P pause, B the bot
@@ -29,7 +31,7 @@ Private benchN As Long, benchDone As Long, logModes As Boolean
 Private lastMs As Double, accMs As Double
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
 Private lastState As Long
-Private noMusic As Boolean
+Private noMusic As Boolean, noSound As Boolean
 Private startPlaying As Boolean, startHelp As Long, startScores As Boolean, smokeN As Long, smokeDone As Long
 
 Private Sub ParseArgs()
@@ -48,6 +50,9 @@ Private Sub ParseArgs()
                 perfLog = True
             Case "--log": logModes = True
             Case "--nomusic": noMusic = True
+            Case "--nosound": noSound = True
+            Case "--data"
+                If i < UBound(args) Then dataDir = args(i + 1)
             Case "--autoplay": startPlaying = True
             Case "--scores": startScores = True
             Case "--help"
@@ -103,7 +108,7 @@ Private Sub Form_Load()
     nextSeed = 1
     lastState = -1
     ParseArgs
-    SoundInit benchN = 0 And Not noMusic
+    If Not noSound Then SoundInit benchN = 0 And Not noMusic
     LoadBests
     PerfReset
     ShellToTitle
@@ -171,7 +176,7 @@ Private Sub tick_Timer()
         If smokeDone >= smokeN Then
             Print "Stack Tower smoke: " & smokeN & " frames, " & stModeName(stMode) & " level " & stLevel & " score " & stScore & _
                   " rings " & stLines & " pieces " & stPieces & " fps " & Format$(perfFps, "0.0") & " (" & PerfText() & ")"
-            Print "audio: " & au.Device & ", music " & IIf(au.Playing, "playing", "stopped") & ", effects " & _
+            If Not au Is Nothing Then Print "audio: " & au.Device & ", music " & IIf(au.Playing, "playing", "stopped") & ", effects " & _
                   sfxCount(SFX_LOCK) & " locks " & sfxCount(SFX_DROP) & " drops"
             Print "picture hash " & view.Hash
             Unload Me

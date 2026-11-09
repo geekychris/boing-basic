@@ -61,7 +61,7 @@ def one(out, mode, name, args, secs):
             g.push(m, os.path.join(gg.ROOT, "build/os4/boing"), "RAM:bbg/boing")
         m.tool("amiga_dos_command", command="cd " + d)
         if True:
-            cmd = ("%s/StackTower %s" % (d, args)) if exe else ("RAM:bbg/boing run %s %s" % (gg.amiga(src), args))
+            cmd = ("%s/StackTower %s" % (d, args)) if exe else ("RAM:bbg/boing run %s %s --data %s" % (gg.amiga(src), args, d))
             m.tool("amiga_dos_command", command="run >NIL: %s >RAM:bbg/shot.out *>RAM:bbg/shot.err" % cmd)
             time.sleep(secs)
             hmp("mouse_move 1 0")
