@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """os4shot.py FORM.afg OUT.png [--full] - show a form on the AmigaOS 4 QEMU guest with
-build/os4/tests/form_show and save a screenshot of its window (QEMU's HMP screendump on
-127.0.0.1:2348; the bridge's screenshot garbles on OS4). Holds the emulator lock/banner.
+build/os4/tests/form_show and save a screenshot of its window (QEMU's HMP screendump on the
+selected guest (BB_GUEST, os4guest.shot); the bridge's screenshot garbles on OS4). Holds the emulator lock/banner.
 
     tools/os4shot.py examples/calculator/calc.afg docs/images/calculator.png
 """
@@ -17,15 +17,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import os4guest  # noqa: E402
 
-HMP = ("127.0.0.1", int(os.environ.get("OS4_HMP_PORT", "2348")))
-
-
 def hmp(cmd):
-    s = socket.create_connection(HMP, timeout=5)
-    s.recv(4096)
-    s.sendall((cmd + "\n").encode())
-    time.sleep(1.0)
-    s.close()
+    """the selected guest's QEMU monitor (os4guest.hmp: BB_GUEST's own port)"""
+    return os4guest.hmp(cmd)
 
 
 def main():
@@ -46,13 +40,8 @@ def main():
         time.sleep(5)
         box = m.tool("amiga_dos_command", command="type RAM:bbtest/box")
         mm = re.search(r"box (\d+) (\d+) (\d+) (\d+)", box)
-        ppm = tempfile.mktemp(suffix=".ppm")
-        hmp("screendump " + ppm)
-        for _ in range(20):
-            if os.path.exists(ppm) and os.path.getsize(ppm) > 0:
-                break
-            time.sleep(0.5)
-        time.sleep(1)
+        # the selected guest's own monitor (os4guest.shot: BB_GUEST's port, wakes the blanker)
+        ppm = os4guest.shot(m, tempfile.mktemp(suffix=".png"))
     from PIL import Image
     im = Image.open(ppm)
     if mm and not full:

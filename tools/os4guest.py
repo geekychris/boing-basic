@@ -5,7 +5,11 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
 
     tools/os4guest.py push LOCAL AMIGA_PATH [LOCAL AMIGA_PATH ...]
     tools/os4guest.py dos 'AmigaDOS command'
-    tools/os4guest.py shot OUT.png                     screenshot (wakes the blanker; shot(m, png) in scripts)
+    tools/os4guest.py shot OUT.png [--user-ok]         screenshot of the selected guest (wakes the blanker
+                                                      with a 1-pixel move; shot(m, png) in scripts)
+    tools/os4guest.py mouse DX DY [--user-ok]          move the selected guest's mouse (its QEMU monitor;
+                                                      hmp(cmd) in scripts). Both use BB_GUEST's own
+                                                      monitor port and refuse m1 (the user's) without --user-ok
     tools/os4guest.py test LOCAL_TEST_BINARY [args]   push to RAM:bbtest/ and run it, exit 1 on FAIL
     tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|jit|native|both|all]
                                                       run a BASIC test with build/os4/boing (VM)
@@ -146,18 +150,29 @@ def fifo_ticket():
             pass
 
 
+def _give_up(why):
+    """leave the process (which releases the emulator lock); tests replace this"""
+    sys.stderr.write("os4guest: giving up the guest: %s\n" % why)
+    sys.stderr.flush()
+    os._exit(3)
+
+
 def watchdog():
-    """Exit (which releases the emulator lock) if the bridge goes silent or we hold it too long."""
+    """Give up the guest if the bridge goes silent or this session holds it too long
+    (BB_SESSION_TIMEOUT, default 300 s). Timed from this session's lock: returns a
+    threading.Event that the session sets when it ends, which stops this watchdog, so every
+    testing() session in a process gets a deadline of its own."""
     import threading
     import time
     silent_max = float(os.environ.get("BB_SILENT", "90"))
-    session_max = float(os.environ.get("BB_SESSION_TIMEOUT", "600"))
+    session_max = float(os.environ.get("BB_SESSION_TIMEOUT", "300"))
+    poll = float(os.environ.get("BB_WATCHDOG_POLL", "10"))
     status_url = URL.rsplit("/mcp", 1)[0] + "/api/status"
     t0 = time.time()
+    done = threading.Event()
 
     def run():
-        while True:
-            time.sleep(10)
+        while not done.wait(poll):
             why = None
             if time.time() - t0 > session_max:
                 why = "session longer than %ds" % session_max
@@ -175,11 +190,11 @@ def watchdog():
                         why = "bridge silent (%s s) or disconnected" % (int(s) if s is not None else "?")
                 except Exception:
                     pass
-            if why:
-                sys.stderr.write("os4guest: giving up the guest: %s\n" % why)
-                sys.stderr.flush()
-                os._exit(3)
+            if why and not done.is_set():
+                _give_up(why)
+                return
     threading.Thread(target=run, daemon=True).start()
+    return done
 
 
 def bridge_alive(max_age=60):
@@ -206,11 +221,14 @@ def testing(message):
     from claude_busy import claude_testing
     with fifo_ticket():
         with claude_testing(URL, message):
-            watchdog()          # timed from getting the lock, not from queueing
-            if not bridge_alive():
-                sys.stderr.write("os4guest: the guest's bridge isn't answering (no heartbeat): not starting\n")
-                os._exit(3)
-            yield
+            done = watchdog()   # timed from getting this lock, not from queueing
+            try:
+                if not bridge_alive():
+                    sys.stderr.write("os4guest: the guest's bridge isn't answering (no heartbeat): not starting\n")
+                    os._exit(3)
+                yield
+            finally:
+                done.set()      # this session's deadline ends with it
 
 
 HTTP_MIN = int(os.environ.get("BB_HTTP_MIN", "16384"))
@@ -454,37 +472,62 @@ def bas(m, src, mode):
     return ok
 
 
-def shot(m, png):
-    """A screenshot of the guest's screen as PNG (or .ppm without Pillow): wakes the screen
-    blanker with a 1-pixel mouse move first (the guests' blankers stay as the user set them),
-    then QEMU's monitor `screendump` (127.0.0.1:<hmp> on the guest's machine, over ssh for
-    remote guests). Call it while holding the guest (inside testing())."""
+def _check_user_guest(user_ok=False):
+    """m1 is the user's own guest: monitor commands there only with --user-ok (BB_USER_OK=1)"""
+    if GUEST == "m1" and not (user_ok or os.environ.get("BB_USER_OK") == "1"):
+        raise SystemExit("os4guest: BB_GUEST=m1 is the user's guest: refusing (pass --user-ok if the user asked)")
+
+
+def hmp(cmd, user_ok=False, wait=1.0):
+    """Send a command to the selected guest's QEMU monitor (its own port: local 2348 here;
+    m1 2348, m1b 2448, m1c 2548 on m1.local over ssh). Returns the monitor's reply."""
     import socket
     import subprocess
     import time
+    _check_user_guest(user_ok)
     port = int(os.environ.get("OS4_HMP_PORT", _G.get("hmp", 2348)))
-    try:
-        m.tool("amiga_input_mouse_move", dx=1, dy=0)
-        m.tool("amiga_input_mouse_move", dx=-1, dy=0)
-    except Exception as e:
-        sys.stderr.write("os4guest: could not move the mouse (%s)\n" % e)
-    time.sleep(1.0)
-    remote = "/tmp/bb_shot_%d.ppm" % os.getpid()
-    tmp = tempfile.mktemp(suffix=".ppm")
     if SSH:
         py = ("import socket,time;s=socket.create_connection(('127.0.0.1',%d),10);time.sleep(0.5);s.recv(65536);"
-              "s.sendall(b'screendump %s\\n');time.sleep(2);s.recv(65536);s.close()" % (port, remote))
-        subprocess.run(["ssh", SSH, "python3", "-c", '"%s"' % py], check=True, timeout=60)
+              "s.sendall(%r);time.sleep(%s);print(s.recv(65536).decode('latin-1','replace'));s.close()"
+              % (port, (cmd + "\n").encode(), wait))
+        r = subprocess.run(["ssh", SSH, "python3", "-c", '"%s"' % py.replace('"', '\\"')],
+                           capture_output=True, text=True, timeout=60)
+        return r.stdout
+    sk = socket.create_connection(("127.0.0.1", port), timeout=10)
+    time.sleep(0.5)
+    sk.recv(65536)
+    sk.sendall((cmd + "\n").encode())
+    time.sleep(wait)
+    out = sk.recv(65536).decode("latin-1", "replace")
+    sk.close()
+    return out
+
+
+def mouse(dx, dy, user_ok=False):
+    """Move the selected guest's mouse by (dx, dy) through its QEMU monitor"""
+    return hmp("mouse_move %d %d" % (int(dx), int(dy)), user_ok)
+
+
+def shot(m, png, user_ok=False):
+    """A screenshot of the selected guest's screen as PNG (or .ppm without Pillow): wakes the
+    screen blanker with a 1-pixel mouse move (the guests' blankers stay as the user set them),
+    waits, then QEMU's `screendump` on that guest's monitor. Call it while holding the guest
+    (inside testing()). m is unused (kept for callers)."""
+    import subprocess
+    import time
+    _check_user_guest(user_ok)
+    mouse(1, 0, user_ok)
+    mouse(-1, 0, user_ok)
+    time.sleep(1.0)
+    if SSH:
+        remote = "/tmp/bb_shot_%d.ppm" % os.getpid()
+        hmp("screendump %s" % remote, user_ok, wait=2.0)
+        tmp = tempfile.mktemp(suffix=".ppm")
         subprocess.run(["scp", "-q", "%s:%s" % (SSH, remote), tmp], check=True, timeout=60)
         subprocess.run(["ssh", SSH, "rm", "-f", remote], timeout=30)
     else:
-        sk = socket.create_connection(("127.0.0.1", port), timeout=10)
-        time.sleep(0.5)
-        sk.recv(65536)
-        sk.sendall(("screendump %s\n" % tmp).encode())
-        time.sleep(2)
-        sk.recv(65536)
-        sk.close()
+        tmp = tempfile.mktemp(suffix=".ppm")
+        hmp("screendump %s" % tmp, user_ok, wait=2.0)
     try:
         from PIL import Image
         Image.open(tmp).save(png)
@@ -570,7 +613,9 @@ def main():
         elif cmd == "dos":
             print(m.tool("amiga_dos_command", command=args[0]))
         elif cmd == "shot":
-            print("screenshot", shot(m, args[0]))
+            print("screenshot", shot(m, args[0], "--user-ok" in args))
+        elif cmd == "mouse":
+            print(mouse(args[0], args[1], "--user-ok" in args).strip())
         elif cmd == "setup":
             setup(m)
         elif cmd == "reapers":

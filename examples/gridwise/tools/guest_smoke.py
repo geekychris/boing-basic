@@ -24,7 +24,6 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 sys.path.insert(0, ROOT + "/tools")
 import os4guest as g  # noqa: E402
 
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", "2348"))
 RAW = {"SPACE": 0x40, "BS": 0x41, "TAB": 0x42, "RETURN": 0x44, "ESC": 0x45, "DEL": 0x46,
        "UP": 0x4C, "DOWN": 0x4D, "RIGHT": 0x4E, "LEFT": 0x4F, ",": 0x38, ".": 0x39, "=": 0x0C, "-": 0x0B}
 for i, ch in enumerate("1234567890"):

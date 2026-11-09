@@ -35,6 +35,7 @@ test: all
 	@sh tools/os4-build-check.sh
 	@for f in tests/c/*.c; do $(CC) $(WARN) $(CFLAGS) -I$(B)/include -o $(B)/ctest_$$(basename $$f .c) $$f $(B)/libboing.a -lm && $(B)/ctest_$$(basename $$f .c) || exit 1; done
 	@sh tests/run.sh
+	@python3 tools/test_os4guest.py
 	@sh tests/break/run.sh $(CURDIR)/build/boing
 	@sh examples/riffwright/tests/run.sh $(CURDIR)/build/boing
 	@sh examples/stack_tower_bb/tools/test.sh
