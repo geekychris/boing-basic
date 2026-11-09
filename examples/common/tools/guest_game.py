@@ -12,6 +12,10 @@ FIFO ticket, emulator lock, "CLAUDE IS TESTING" banner; BB_GUEST=m1|spark|local)
            all     vm, jit and native one after the other
     e.g. guest_game.py examples/tank_duel/TankDuel.bbp all --bench 500
 
+With --bench N the run is also a smoke test: the game state hash the guest prints must equal
+the one the console bench (Bench.bbp beside the project, --frames N) gives on the Mac
+("SMOKE PASS" / "SMOKE FAIL"; the exit code is 1 on a failure).
+
 Files go to RAM:bbg/<path in the repo> (the project's own files and its Module=/Form= files),
 so ../common paths work there. Waits for a line with "picture hash" (the end of a --bench
 report) or a runtime error, prints the output, and checks no Grim Reaper was left.
@@ -131,6 +135,16 @@ def main():
     if "native" in modes:
         exe = os.path.join(ROOT, "build/os4", os.path.splitext(os.path.basename(src))[0] + ".exe")
         subprocess.check_call([os.path.join(ROOT, "build/boing"), "build", src, "--target", "os4", "-o", exe])
+    want = None
+    mm = re.search(r"--bench (\d+)", args)
+    bench = os.path.join(os.path.dirname(src), "Bench.bbp")
+    if mm and os.path.exists(bench) and not shot and not shotlist:
+        extra = re.sub(r"--bench \d+", "", args)
+        out = subprocess.run([os.path.join(ROOT, "build/boing"), "run", bench, "--frames", mm.group(1)] + extra.split(),
+                             cwd=os.path.dirname(bench), capture_output=True, text=True).stdout
+        h = re.search(r"hash ([0-9A-F]{8})", out)
+        want = h.group(1) if h else None
+        print("Mac console bench: state hash %s" % want)
     m = g.MCP(g.URL)
     ok = True
     fl = files_of(src)
@@ -176,6 +190,10 @@ def main():
             out = run(m, cmd, "RAM:bbg/%s.out" % md, limit)
             print("== %s: %s\n%s" % (md, cmd, out.strip()))
             ok &= "FAIL" not in out
+            if want:
+                good = ("hash " + want) in out
+                print("SMOKE %s (%s: state hash %s on the Mac)" % ("PASS" if good else "FAIL", md, want))
+                ok &= good
             n = g.reapers(m)
             if n:
                 print("Grim Reapers on the guest: %d" % n)
