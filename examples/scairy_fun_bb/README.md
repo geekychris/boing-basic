@@ -120,10 +120,8 @@ Canvas) and shown. On **m1c** (QEMU sam460ex on an unloaded Mac), ms per frame:
 | native (`boing build --target os4`) | 0.74 | 6.88 | 3.21 | 11.03 | **90.7** |
 
 All three end in the same state hash (1B758A86). Played in real time (`--smoke 400`: the form's
-timer, the music, the effects and the voice through AHI) the VM shows **20.5 fps** on m1b with
-the current OS4 build (logic 6.6, draw 29.8, blit 9.3 ms a frame; built with -Os since 8fc9e2f,
-which made the blit about three times slower than the 3.3 ms in the table above, measured with
--O2). With the -O2 build it showed 30.2 fps on m1c.
+timer, the music, the effects and the voice through AHI) the VM shows **29.0 fps** on m1b (logic
+4.5, draw 23.4, blit 3.4 ms a frame).
 
 Getting there: the first port drew each segment in its own engine pass and worked out every
 strip, tree and lane dot each frame: 16.3 fps in the VM. Now each segment's strips and scenery
