@@ -8,7 +8,10 @@ lets the hook up and down, and whatever hangs on the hook swings like a pendulum
 trolley's starts and stops and by the wind. Lift each container off the quay and land it on the
 deck: in one of six slots, stacked up to four high.
 
-@SHOTS@
+![Harbour Crane on the AmigaOS 4 guest: title, play, help and high scores](docs/guest.png)
+
+*Frames saved by the game itself on the AmigaOS 4 guest (`--saveshot`), at the 320 x 256
+it draws; the window shows them at twice the size.*
 
 ## The game
 
@@ -67,4 +70,15 @@ input), in the VM, with the JIT and native.
 
 ## Performance
 
-@PERF@
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
+guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
+as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
+300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
+(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
+normally; logic and draw are the game's own work.
+
+| build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
+|---|---:|---:|---:|---:|---:|
+| VM | **32** | 2.140 | 25.681 | 3.499 | 13546 fps |
+| VM `--jit` | **26** | 2.335 | 28.144 | 6.945 | - |
+| native (`boing build --target os4`) | **74** | 0.186 | 3.632 | 9.437 | 32383 fps |

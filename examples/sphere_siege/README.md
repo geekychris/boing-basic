@@ -9,7 +9,10 @@ side. Enemies come out of the centre in spiralling trains, circle, swoop out at 
 back; orbiters run along the shell itself. Every fourth wave is a siege wave of armoured
 wardens.
 
-@SHOTS@
+![Sphere Siege on the AmigaOS 4 guest: title, play, help and high scores](docs/guest.png)
+
+*Frames saved by the game itself on the AmigaOS 4 guest (`--saveshot`), at the 320 x 256
+it draws; the window shows them at twice the size.*
 
 ## The game
 
@@ -66,4 +69,35 @@ struct as 32-bit words; `SsStateHash` hashes the same fields in the same order.
 
 ## Performance
 
-@PERF@
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
+guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
+as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
+300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
+(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
+normally; logic and draw are the game's own work.
+
+| build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
+|---|---:|---:|---:|---:|---:|
+| VM | **26** | 8.228 | 22.252 | 7.121 | 4814 fps |
+| VM `--jit` | **15** | 9.461 | 47.943 | 7.072 | - |
+| native (`boing build --target os4`) | **86** | 0.315 | 4.194 | 6.911 | 23253 fps |
+
+Grid detail adapts to the frame time: when frames take over 38 ms for a second (the timer is
+40 ms, the original's 25 fps), the shell's grid is drawn with every other dot; it goes back
+to every dot under 25 ms, changing at most once in 3 seconds. The VM and JIT runs above
+settled on every other dot ("grid detail 1"); the native build keeps every dot. `--grid N`
+(0 none, 1 half, 2 all) or the G key fix it.
+
+On the QEMU guest the interpreted frame time also depends on where the code happens to lie
+in memory: the PPC 460's small TLB is refilled in software, slowly, under QEMU
+(`docs/performance.md`). Byte-for-byte the same grid loop took 11, 19 or 36 ms a frame
+depending only on the size of code earlier in the module. Real AmigaOS 4 machines refill
+their TLBs in hardware and should not show it.
+
+## Tests
+
+- `make test` runs `tests/programs/sphere_siege` (autopilot waves checked against the C
+  original's state hashes, in the VM, with the JIT and natively) and the form headless.
+- On an OS4 guest: `examples/common/tools/guest_game.py examples/sphere_siege/SphereSiege.bbp
+  all --bench 300` runs the form game in the VM, with the JIT and natively and checks the state
+  hash against the Mac's.
