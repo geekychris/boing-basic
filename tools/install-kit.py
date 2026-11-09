@@ -5,17 +5,18 @@ AmigaOS 4 guest as DH1:BoingBASIC, put the AmiForge icon on the Workbench deskto
     tools/install-kit.py BB_GUEST=m1                      install build/kit/BoingBASIC.lha, verify
     tools/install-kit.py BB_GUEST=m1 --verify-only        only the checks and the screenshot
     tools/install-kit.py BB_GUEST=m1 --icon-only          only the desktop icon (then the checks)
-    options: --kit PATH.lha   --shot OUT.png   --no-icon   --keep-previous
+    options: --kit PATH.lha   --shot OUT.png   --no-icon
 
 Install (one guest session, FIFO ticket + emulator lock + banner, at most BB_SESSION_TIMEOUT s,
 300 by default):
-  - refuses while AmiForge or a program from DH1:BoingBASIC runs; checks DH1's free space
+  - refuses on a guest with a Grim Reaper or a Workbench that doesn't answer ARexx, and while
+    AmiForge or a program from DH1:BoingBASIC runs; deletes leftovers of an interrupted install
+    (DH1:BoingBASIC-previous, DH1:BBkit-new); checks DH1's free space
   - pushes the archive to RAM: over HTTP (os4guest.py; never the serial bridge), unpacks it to
-    DH1:BBkit-new with xadUnFile, then swaps it in: the old drawer becomes DH1:BoingBASIC-previous
-    (deleted unless --keep-previous; a still older one is always deleted), and the old drawer's
-    MyProjects (the user's own projects) moves into the new one
-  - the desktop icon: Workbench ARexx (put the left-out AmiForge away before the swap, leave the
-    new one out and snapshot it after); without a usable WORKBENCH port it writes the entry
+    DH1:BBkit-new with xadUnFile, then replaces the contents of DH1:BoingBASIC (the drawer itself
+    stays: a left-out icon holds a lock on it), keeping the user's MyProjects
+  - the desktop icon: left out through Workbench ARexx (or, re-installing, still out), then placed
+    at the right edge and snapshotted; without a usable WORKBENCH port it writes the entry
     ":BoingBASIC/AmiForge" into DH1:.backdrop itself (Workbench shows it after a reboot)
 Verify (a second, short session): AmiForge's version string, `boing --version`, `boing check` of
 one example, the KIT-MANIFEST revisions, the .backdrop entry, Grim Reapers, and a screenshot of the
@@ -164,21 +165,6 @@ def backdrop(m):
     return out if "not found" not in out.lower() and "object not found" not in out.lower() else ""
 
 
-def put_away(m):
-    """The left-out AmiForge icon goes back into its drawer (Workbench drops the .backdrop entry and
-    its lock on the old drawer, so the drawer can be swapped)."""
-    if ENTRY.lower() not in backdrop(m).lower():
-        return True
-    if not wb_alive(m):
-        return False
-    r1 = rexx(m, "ICON WINDOW ROOT NAMES AmiForge SELECT")
-    r2 = rexx(m, "MENU WINDOW ROOT INVOKE ICONS.PUTAWAY")
-    time.sleep(2)
-    ok = ENTRY.lower() not in backdrop(m).lower()
-    log("put away the old desktop icon: %s (%s / %s)" % ("ok" if ok else "NOT done", r1, r2))
-    return ok
-
-
 def wb_alive(m):
     r = rexx(m, "HELP")
     if "ICON" not in r:
@@ -318,6 +304,15 @@ def install(m):
     hits = running_from_kit(m)
     if hits:
         raise RuntimeError("these run from the kit on the guest; quit them first: %s" % "; ".join(hits))
+    # leftovers of an interrupted install (the old drawer kept as -previous, a half-unpacked
+    # BBkit-new) are deleted first: they can hold most of the space the install needs
+    out = script(m, "leftovers", ['If EXISTS DH1:BoingBASIC-previous', '  Delete DH1:BoingBASIC-previous ALL QUIET FORCE',
+                                  '  Echo "LEFTOVER BoingBASIC-previous"', 'EndIf',
+                                  'If EXISTS DH1:BBkit-new', '  Delete DH1:BBkit-new ALL QUIET FORCE',
+                                  '  Echo "LEFTOVER BBkit-new"', 'EndIf'], limit=180)
+    if "LEFTOVER" in out:
+        log("leftovers of an earlier install: %s%s" % (" ".join(out.split())[:160],
+            " (still locked: Workbench lets go at its next start; the next install deletes it)" if "in use" in out else ""))
     info = dos(m, "info DH1:")
     free = free_bytes(info)
     log("DH1: free %s, the install needs about %d MB" % ("%.0f MB" % (free / 2**20) if free else "?", need >> 20))
@@ -329,45 +324,52 @@ def install(m):
     t0 = time.time()
     log(g.push(m, KIT, "RAM:bbkit/BoingBASIC.lha"))
     log("pushed in %.0f s" % (time.time() - t0))
-    if "--no-icon" not in args:
-        put_away(m)
-        rexx(m, "WINDOW \"%s\" CLOSE" % DEST)
-    keep_prev = "--keep-previous" in args
+    # The drawer itself stays (Workbench's left-out icon holds a lock on it, so it can't be
+    # renamed away and deleted): its contents are replaced, MyProjects moved aside and back.
     lines = [
         'If EXISTS DH1:BBkit-new', '  Delete DH1:BBkit-new ALL QUIET FORCE', 'EndIf',
         'MakeDir DH1:BBkit-new',
         'xadUnFile RAM:bbkit/BoingBASIC.lha DEST=DH1:BBkit-new QUIET',
         'If NOT EXISTS DH1:BBkit-new/BoingBASIC/AmiForge', '  Echo "INSTALL-FAIL unpack"', '  Quit 20', 'EndIf',
         'If NOT EXISTS DH1:BBkit-new/BoingBASIC/KIT-MANIFEST.txt', '  Echo "INSTALL-FAIL unpack"', '  Quit 20', 'EndIf',
-        'If EXISTS DH1:BoingBASIC-previous', '  Delete DH1:BoingBASIC-previous ALL QUIET FORCE', 'EndIf',
-        'If EXISTS DH1:BoingBASIC', '  Rename DH1:BoingBASIC DH1:BoingBASIC-previous', 'EndIf',
-        'If EXISTS DH1:BoingBASIC', '  Echo "INSTALL-FAIL the old drawer is in use (Rename failed)"', '  Quit 20', 'EndIf',
-        'Rename DH1:BBkit-new/BoingBASIC DH1:BoingBASIC',
-        'Copy DH1:BBkit-new/BoingBASIC.info DH1:BoingBASIC.info CLONE QUIET',
-        'If EXISTS DH1:BoingBASIC-previous/MyProjects',
-        '  Rename DH1:BoingBASIC-previous/MyProjects DH1:BoingBASIC/MyProjects',
-        '  If EXISTS DH1:BoingBASIC-previous/MyProjects.info',
-        '    Rename DH1:BoingBASIC-previous/MyProjects.info DH1:BoingBASIC/MyProjects.info',
+        'If EXISTS DH1:BoingBASIC',
+        '  If EXISTS DH1:BoingBASIC/MyProjects',
+        '    Rename DH1:BoingBASIC/MyProjects DH1:BBkit-new/MyProjects',
+        '    Echo "kept MyProjects"',
         '  EndIf',
-        '  Echo "kept MyProjects"',
+        '  If EXISTS DH1:BoingBASIC/MyProjects.info',
+        '    Rename DH1:BoingBASIC/MyProjects.info DH1:BBkit-new/MyProjects.info',
+        '  EndIf',
+        '  Delete DH1:BoingBASIC/#? ALL QUIET FORCE',
+        '  Copy DH1:BBkit-new/BoingBASIC/#? DH1:BoingBASIC ALL CLONE QUIET',
+        'Else',
+        '  Rename DH1:BBkit-new/BoingBASIC DH1:BoingBASIC',
+        'EndIf',
+        'If NOT EXISTS DH1:BoingBASIC/KIT-MANIFEST.txt', '  Echo "INSTALL-FAIL copy"', '  Quit 20', 'EndIf',
+        'Copy DH1:BBkit-new/BoingBASIC.info DH1:BoingBASIC.info CLONE QUIET',
+        'If EXISTS DH1:BBkit-new/MyProjects',
+        '  Rename DH1:BBkit-new/MyProjects DH1:BoingBASIC/MyProjects',
         'Else',
         '  MakeDir DH1:BoingBASIC/MyProjects',
+        'EndIf',
+        'If EXISTS DH1:BBkit-new/MyProjects.info',
+        '  Rename DH1:BBkit-new/MyProjects.info DH1:BoingBASIC/MyProjects.info',
         'EndIf',
         'If NOT EXISTS DH1:BoingBASIC/MyProjects.info',
         '  Copy DH1:BoingBASIC/Templates.info DH1:BoingBASIC/MyProjects.info CLONE QUIET',
         'EndIf',
         'Delete DH1:BBkit-new ALL QUIET FORCE',
-    ]
-    if not keep_prev:
-        lines += ['If EXISTS DH1:BoingBASIC-previous', '  Delete DH1:BoingBASIC-previous ALL QUIET FORCE', 'EndIf']
-    lines += ['Delete RAM:bbkit/BoingBASIC.lha QUIET', 'Echo "INSTALL-OK"']
+        'Delete RAM:bbkit/BoingBASIC.lha QUIET', 'Echo "INSTALL-OK"']
     t0 = time.time()
-    out = script(m, "install", lines, limit=240)
+    out = script(m, "install", lines, limit=260)
     log("unpacked and swapped in %.0f s: %s" % (time.time() - t0, " ".join(out.split())[-300:]))
     if "INSTALL-OK" not in out:
         raise RuntimeError("install failed: %s" % out[-500:])
     if "--no-icon" not in args:
-        how = leave_out(m) or backdrop_entry(m)
+        if ENTRY.lower() in backdrop(m).lower() and wb_alive(m):
+            how = "placed" if place(m) else None     # still left out: its .info is new, so place it again
+        else:
+            how = leave_out(m) or backdrop_entry(m)
         if how == "backdrop":
             log("wrote %s into DH1:.backdrop (the icon shows after the next Workbench start)" % ENTRY)
         elif not how:
