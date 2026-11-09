@@ -3,5 +3,5 @@ Name=Micro
 Startup=Sub Main
 Module=../A3Fix.bas
 Module=../A3Scene.bas
-Module=../Gfx2D.bas
+Module=../Draw2D.bas
 Module=MicroMain.bas
