@@ -53,6 +53,7 @@ Public stScore As Long, stTimeMs As Long
 Public stFallMs As Long, stLockMs As Long, stResets As Long, stSoft As Long
 Public stOver As Long, stWon As Long
 Public stRiseMs As Long, stGarbageLeft As Long, stLastCol As Long
+Public stBoardVer As Long                      ' counts board changes (for the renderer; not in the hash)
 Public evType(0 To 15) As Long, evA(0 To 15) As Long, evB(0 To 15) As Long, stNEv As Long
 
 ' the pieces' cells after rot quarter turns clockwise, about the pivot, y up:
@@ -321,6 +322,7 @@ Public Sub StNewGame(ByVal mode As Long, ByVal seed As Long, ByVal lv As Long, B
         Next r
         stGarbageLeft = ST_DIG_ROWS
     End If
+    stBoardVer = stBoardVer + 1
     Refill
     Spawn -1, col
 End Sub
@@ -428,6 +430,7 @@ Private Sub LockPiece()
         If cellR(i) < ST_ROWS Then allHidden = False
     Next i
     stPieces = stPieces + 1
+    stBoardVer = stBoardVer + 1
     PushEv STE_LOCK, pType, 0
     If allHidden Then
         stOver = 1
@@ -502,6 +505,7 @@ Public Sub StAddGarbage(ByVal gaps As Long)
     Next c
     For i = ST_CELLS - 1 To 16 Step -1: stBoard(i) = stBoard(i - 16): Next i
     For c = 0 To 15: stBoard(c) = row(c): Next c
+    stBoardVer = stBoardVer + 1
     If spilled Then
         stOver = 1
         PushEv STE_OVER, 2, 0

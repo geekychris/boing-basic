@@ -1,0 +1,16 @@
+# Boing BASIC project: Stack Tower console bench (logic + drawing on an off-screen Canvas)
+Name=StackTowerBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Scene.bas
+Module=../common/Gfx2D.bas
+Module=StCore.bas
+Module=StBot.bas
+Module=StMesh.bas
+Module=StDraw.bas
+Module=StSound.bas
+Module=StShell.bas
+Module=BenchMain.bas
+Stack=262144
