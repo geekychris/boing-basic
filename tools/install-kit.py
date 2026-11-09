@@ -115,7 +115,12 @@ def script(m, name, lines, limit=240):
     outf = "RAM:bbkit/%s.log" % name
     control = {"if", "else", "endif", "quit", "failat", "stack", "cd", "skip", "lab", "set"}
     body = []
-    for line in lines + ['Echo "SCRIPT-END"']:
+    ended = []
+    for line in lines:
+        if line.strip().lower().startswith("quit"):      # a failure path still says it ended
+            ended.append(line[:len(line) - len(line.lstrip())] + 'Echo "SCRIPT-END"')
+        ended.append(line)
+    for line in ended + ['Echo "SCRIPT-END"']:
         # output of a script started with run goes to NIL:: every command appends to the log itself
         # (AmigaDOS wants the redirection right after the command name)
         ind = line[:len(line) - len(line.lstrip())]
@@ -145,7 +150,7 @@ def new_entries():
     """The new drawer's top-level entries: from KIT-MANIFEST (entry=), else the local stage."""
     e = manifest().get("entries")
     if e:
-        return e
+        return sorted(set(e) | {"KIT-MANIFEST.txt"})
     top = os.path.join(os.path.dirname(KIT), "stage", "BoingBASIC")
     if os.path.isdir(top):
         return sorted(os.listdir(top))
@@ -177,13 +182,13 @@ def swap_lines(old, new):
     D, O, N = "DH1:BoingBASIC/", "DH1:BBkit-old/", "DH1:BBkit-new/BoingBASIC/"
     back_old = sum((['  If EXISTS %s' % q(O + e), '    Rename %s %s' % (q(O + e), q(D + e)), '  EndIf'] for e in old), [])
     back_new = sum((['  If EXISTS %s' % q(D + e), '    Rename %s %s' % (q(D + e), q(N + e)), '  EndIf'] for e in new), [])
-    L = ['Set kitbad 0', 'If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf', 'MakeDir DH1:BBkit-old']
+    L = ['Delete RAM:bbkit/kitbad QUIET', 'If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf', 'MakeDir DH1:BBkit-old']
     L += ['Rename %s %s' % (q(D + e), q(O + e)) for e in old]
-    L += sum((['If EXISTS %s' % q(D + e), '  Set kitbad 1', 'EndIf'] for e in old), [])
-    L += ['If "$kitbad" EQ "1"'] + back_old + ['  Echo "INSTALL-FAIL an old file is in use: rolled back"', '  Quit 20', 'EndIf']
+    L += sum((['If EXISTS %s' % q(D + e), '  Echo >RAM:bbkit/kitbad "1"', 'EndIf'] for e in old), [])
+    L += ['If EXISTS RAM:bbkit/kitbad'] + back_old + ['  Echo "INSTALL-FAIL an old file is in use: rolled back"', '  Quit 20', 'EndIf']
     L += ['Rename %s %s' % (q(N + e), q(D + e)) for e in new]
-    L += sum((['If NOT EXISTS %s' % q(D + e), '  Set kitbad 1', 'EndIf'] for e in new), [])
-    L += ['If "$kitbad" EQ "1"'] + back_new + back_old + ['  Echo "INSTALL-FAIL a new file didn\'t move in: rolled back"',
+    L += sum((['If NOT EXISTS %s' % q(D + e), '  Echo >RAM:bbkit/kitbad "1"', 'EndIf'] for e in new), [])
+    L += ['If EXISTS RAM:bbkit/kitbad'] + back_new + back_old + ['  Echo "INSTALL-FAIL a new file didn\'t move in: rolled back"',
                                                          '  Quit 20', 'EndIf']
     return L
 

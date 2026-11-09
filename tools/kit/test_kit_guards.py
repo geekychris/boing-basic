@@ -45,7 +45,7 @@ check(r.stdout.strip() == "True", "install-kit: screenshots allowed on m1c (%s)"
 kit = tempfile.mkdtemp()
 open(os.path.join(kit, "BoingBASIC.lha"), "wb").write(b"x")
 open(os.path.join(kit, "KIT-MANIFEST.txt"), "w").write(
-    "bb=1111111111\naf=2222222222\nexample=glimmerfield|Glimmerfield|game|Glimmerfield.afp|Glimmerfield.bbp|-\n")
+    "bb=1111111111\naf=2222222222\nentry=AmiForge\nexample=glimmerfield|Glimmerfield|game|Glimmerfield.afp|Glimmerfield.bbp|-\n")
 sys.argv = ["install-kit.py", "BB_GUEST=m1", "--kit", os.path.join(kit, "BoingBASIC.lha")]
 import importlib.util  # noqa: E402
 spec = importlib.util.spec_from_file_location("ik", os.path.join(TOOLS, "install-kit.py"))
@@ -179,6 +179,8 @@ def run_dos(lines, fs, locked=(), stuck=()):
             continue
         if cmd == "set":
             env[w[1]] = w[2]
+        elif cmd == "echo" and len(w) > 1 and w[1].startswith(">"):
+            fs.add(w[1].lstrip(">"))
         elif cmd == "echo":
             out.append(t[5:].strip('"'))
         elif cmd == "quit":
@@ -187,6 +189,8 @@ def run_dos(lines, fs, locked=(), stuck=()):
             fs.add(w[1])
         elif cmd == "delete":
             d = w[1]
+            if d == "RAM:bbkit/kitbad":
+                fs.discard(d)
             for x in [x for x in fs if x == d or x.startswith(d + "/")]:
                 fs.discard(x)
         elif cmd == "rename":
@@ -201,6 +205,7 @@ def run_dos(lines, fs, locked=(), stuck=()):
 
 OLD = ["AmiForge", "AmiForge.info", "Examples", "boing", "MyProjects"]
 NEW = ["AmiForge", "AmiForge.info", "Examples", "boing", "lib", "KIT-MANIFEST.txt"]
+check("KIT-MANIFEST.txt" in ik.new_entries(), "install-kit: the manifest is one of the entries it moves in")
 
 
 def disk():
