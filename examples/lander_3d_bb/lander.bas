@@ -12,6 +12,7 @@
 '   Lander3D --quiet            no music or sound
 '   Lander3D --dir PATH         where the pictures, module and scores are (boing run: App.Path
 '                               is boing's own folder)
+'   Lander3D --start WORLD      the autopilot flies moon|mars|asteroid|tour at once (screenshots)
 '   Lander3D --ships N          ships a game (default 3; tests)
 '   Lander3D --place            the first level starts 6 m over the x1 pad, still, with the
 '                               autopilot on (tests: a quick landing)
@@ -30,7 +31,7 @@ Private startLevel As Long
 Private lastMs As Double, accMs As Double
 Private entryName As String
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
-Private shipsArg As Long, lastState As Long, placeArg As Boolean, frameNo As Long
+Private shipsArg As Long, lastState As Long, placeArg As Boolean, frameNo As Long, startArg As Long
 
 Private Sub ParseArgs()
     Dim args() As String, i As Long, a As String
@@ -52,6 +53,15 @@ Private Sub ParseArgs()
             Case "--level"
                 If i < UBound(args) Then startLevel = CLng(args(i + 1))
             Case "--place": placeArg = True
+            Case "--start"
+                If i < UBound(args) Then
+                    Select Case LCase$(args(i + 1))
+                        Case "moon": startArg = 1
+                        Case "mars": startArg = 2
+                        Case "asteroid": startArg = 3
+                        Case Else: startArg = 4
+                    End Select
+                End If
             Case "--ships"
                 If i < UBound(args) Then shipsArg = CLng(args(i + 1))
             Case "--win"
@@ -77,6 +87,10 @@ Private Sub Form_Load()
     SoundInit Not quiet And benchN = 0
     If gLog Then Print sndStatus
     PerfReset
+    If startArg > 0 And benchN = 0 Then
+        StartGame startArg - 1, startLevel
+        gDemo = True
+    End If
     If benchN > 0 Then
         showPerf = True
         StartGame MODE_TOUR, startLevel

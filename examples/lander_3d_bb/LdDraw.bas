@@ -303,7 +303,6 @@ End Sub
 Private Sub Sky()
     Dim hz As Long, im As Long, w As Long, h As Long, top As Long, y0 As Long, y1 As Long
     Dim sx As Long, sy As Long, rows As Long, x As Long, n As Long, py As Long, p1 As Long, t As Long
-    Dim cf As Long, cn As Long, rr As Long, gg As Long, bb As Long
     hz = e.Horizon
     If hz < 0 Then hz = 0
     If hz > VIEW_H Then hz = VIEW_H
@@ -334,18 +333,8 @@ Private Sub Sky()
     ElseIf hz > 0 Then
         e.FillRect 0, 0, 319, hz - 1, IIf(ld.world = W_MARS, PEN_SKY, 0)
     End If
-    ' beyond the terrain drawn: a plain to the horizon (g_fill_grad, in 4-pixel bands)
-    cf = plainFar(ld.world)
-    cn = plainNear(ld.world)
-    p1 = VIEW_H * 2 - 1
-    n = p1 - hz * 2
-    For py = hz * 2 To p1 Step 4
-        If n > 0 Then t = ((py - hz * 2) * 256) \ n Else t = 0
-        rr = (cf And 255) + (((cn And 255) - (cf And 255)) * t) \ 256
-        gg = ((cf \ 256) And 255) + ((((cn \ 256) And 255) - ((cf \ 256) And 255)) * t) \ 256
-        bb = ((cf \ 65536) And 255) + ((((cn \ 65536) And 255) - ((cf \ 65536) And 255)) * t) \ 256
-        cvw.Box 0, py, 640, 4, RGB(rr, gg, bb)
-    Next py
+    ' beyond the terrain drawn: a plain to the horizon, fading into the distance
+    e.FillGradient hz, VIEW_H - 1, plainFar(ld.world), plainNear(ld.world)
 End Sub
 
 Private Sub Camera()
