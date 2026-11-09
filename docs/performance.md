@@ -150,6 +150,20 @@ On m1's unloaded guest (bb-game, ms/frame): bench logic native 0.152, VM 0.879, 
 (whole loops only, now the default); canvas draw native 1.47, VM 7.95, VM+JIT 8.73; form game
 native 354-365 fps, VM 88.4, VM+JIT 78.7. Real PowerPC hardware: untested.
 
+Why some VM calls cost 20-60 us on the QEMU guest (bb-g-more: a late-bound call inside a
+procedure, or any call into a BASIC class method): the sam460ex's PowerPC 460 has a small TLB
+that the guest OS refills in software, and under QEMU each refill is very slow. Measured on the
+guest with a C test: cycling through 16 distinct 4 KB pages costs 0.002 us per access, 32 or more
+pages about 1.5 us per access. A VM call touches many pages per iteration (handler code spread
+through vm_exec, runtime functions, bytecode, VM stack, frames, globals, constants, call-site
+caches, the object), native code few: built natively, the same calls take 0.2-0.6 us on the guest.
+It depends on what ran before (TLB contents), on code layout (threaded vs switch dispatch moved
+one case from 56 to 0.9 us) and does not happen on the Mac. Real X5000 (e5500) and A1222 (e500)
+machines have much larger, hardware-reloaded TLBs, so this should matter far less there
+(untested). On the guest, build games natively for speed; the VM is for development. Also:
+newlib's setjmp on OS4 costs 1.5 us (512-byte jmp_buf with every FP register), so error frames
+now use GCC's __builtin_setjmp there (0.13 us), which every call from C into the VM pays.
+
 VM superinstructions for the commonest pairs (Glimmerfield): field-test-and-branch (`R_JF1Z`,
 `R_JCMPF1_LI`) and the skip loop `R_FORSKIPF` (`For i ...: If arr(i).flag Then ... : Next` steps
 past entries with flag 0 without dispatching): 31 % fewer dispatches (28.8M -> 19.8M for 3000

@@ -21,6 +21,13 @@
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #define BB_SETJMP(jb) _setjmp(jb)
 #define BB_LONGJMP(jb, v) _longjmp(jb, v)
+#elif defined(__amigaos4__) && defined(__GNUC__) && !defined(__clang__)
+/* newlib's setjmp on OS4 fills a 512-byte jmp_buf with every FP register: about 1.5 us under
+   QEMU, paid on every call from C into the VM and every native On Error procedure. GCC's
+   builtins keep only frame, stack and resume address (GCC saves live registers itself), in
+   the first words of the same jmp_buf; the longjmp value is always 1. */
+#define BB_SETJMP(jb) __builtin_setjmp((void **)(void *)(jb))
+#define BB_LONGJMP(jb, v) __builtin_longjmp((void **)(void *)(jb), 1)
 #else
 #define BB_SETJMP(jb) setjmp(jb)
 #define BB_LONGJMP(jb, v) longjmp(jb, v)

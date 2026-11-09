@@ -86,6 +86,31 @@ static void *raw(bb_value *slot, int vt)
 
 static bb_obj *new_object(VM *vm, int cls);
 
+#ifdef BB_OPTIME
+/* build with -DBB_OPTIME -DBB_NO_THREADED: time spent per opcode on stderr at exit */
+#if defined(__PPC__) || defined(__powerpc__)
+static inline uint32_t bb_optime_now(void) { uint32_t t; __asm__ volatile("mftb %0" : "=r"(t)); return t; }
+#else
+#include <time.h>
+static inline uint32_t bb_optime_now(void) { struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts); return (uint32_t)(ts.tv_sec * 1000000000ull + ts.tv_nsec); }
+#endif
+static unsigned long long vm_optime[I__COUNT], vm_optime_cnt[I__COUNT];
+static int vm_optime_prev;
+static uint32_t vm_optime_t;
+static void vm_optime_dump(void)
+{
+    int i, j, idx[I__COUNT];
+    unsigned long long tot = 0;
+    for (i = 0; i < I__COUNT; i++) { idx[i] = i; tot += vm_optime[i]; }
+    for (i = 0; i < I__COUNT; i++)
+        for (j = i + 1; j < I__COUNT; j++)
+            if (vm_optime[idx[j]] > vm_optime[idx[i]]) { int t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+    for (i = 0; i < 25 && vm_optime[idx[i]]; i++)
+        fprintf(stderr, "time %-12s %12llu ticks %5.1f%%  n=%llu  %.1f/op\n", bb_opnames[idx[i]], vm_optime[idx[i]],
+                100.0 * (double)vm_optime[idx[i]] / (double)tot, vm_optime_cnt[idx[i]], (double)vm_optime[idx[i]] / (double)(vm_optime_cnt[idx[i]] ? vm_optime_cnt[idx[i]] : 1));
+}
+#endif
+
 #ifdef BB_OPSTATS
 /* build with -DBB_OPSTATS -DBB_NO_THREADED: dynamic opcode counts on stderr at exit */
 static unsigned long long vm_opstats[I__COUNT];
@@ -872,6 +897,16 @@ static void vm_exec(VM *vm, int entry)
 #define RELOAD() (fr = &vm->frames[vm->nframes - 1], pc = fr->pc, sp = vm->sp, L = fr->base)
         for (;;) {
             int32_t op = *pc;
+#ifdef BB_OPTIME
+            {
+                /* time per op (PPC timebase / host clock), charged to the previous op */
+                uint32_t now_ = bb_optime_now();
+                vm_optime[vm_optime_prev] += now_ - vm_optime_t;
+                vm_optime_cnt[op]++;
+                vm_optime_prev = op;
+                vm_optime_t = now_;
+            }
+#endif
 #ifdef BB_OPSTATS
             vm_opstats[op]++;
             if (vm_pcstats) vm_pcstats[pc - code]++;
@@ -2140,6 +2175,9 @@ int vm_run(VMImage *img, int argc, char **argv)
     memset(&vm, 0, sizeof vm);
     vm.img = img;
     g_vm = &vm;
+#ifdef BB_OPTIME
+    atexit(vm_optime_dump);
+#endif
 #ifdef BB_OPSTATS
     atexit(vm_opstats_dump);
     vm_pcstats = (unsigned long long *)xcalloc((size_t)img->ncode + 1, sizeof(unsigned long long));
