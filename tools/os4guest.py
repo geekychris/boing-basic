@@ -5,11 +5,11 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
 
     tools/os4guest.py push LOCAL AMIGA_PATH [LOCAL AMIGA_PATH ...]
     tools/os4guest.py dos 'AmigaDOS command'
-    tools/os4guest.py shot OUT.png [--user-ok]         screenshot of the selected guest (wakes the blanker
+    tools/os4guest.py shot OUT.png                     screenshot of the selected guest (wakes the blanker
                                                       with a 1-pixel move; shot(m, png) in scripts)
-    tools/os4guest.py mouse DX DY [--user-ok]          move the selected guest's mouse (its QEMU monitor;
+    tools/os4guest.py mouse DX DY                      move the selected guest's mouse (its QEMU monitor;
                                                       hmp(cmd) in scripts). Both use BB_GUEST's own
-                                                      monitor port and refuse m1 (the user's) without --user-ok
+                                                      monitor port and always refuse m1 (the user's guest)
     tools/os4guest.py test LOCAL_TEST_BINARY [args]   push to RAM:bbtest/ and run it, exit 1 on FAIL
     tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|jit|native|both|all]
                                                       run a BASIC test with build/os4/boing (VM)
@@ -61,7 +61,7 @@ GUESTS = {
     "local": {"url": "http://localhost:3010/mcp", "lock": "/tmp/amiga-emu.lock",
               "queue": "/tmp/amiga-emu.queue", "ssh": None, "hmp": 2348},
     "m1": {"url": "http://localhost:3020/mcp", "lock": "/tmp/amiga-emu-m1.lock",
-           "queue": "/tmp/amiga-emu-m1.queue", "ssh": "chriscollins@m1.local", "hmp": 2348},
+           "queue": "/tmp/amiga-emu-m1.queue", "ssh": "chriscollins@m1.local"},   # the USER's guest: no "hmp" (no screenshots/input)
     # the second guest on m1 (~/retro/os4b.sh there, devbench :3003; tunnel localhost:3030 -> m1:3003)
     "m1b": {"url": "http://localhost:3030/mcp", "lock": "/tmp/amiga-emu-m1b.lock",
             "queue": "/tmp/amiga-emu-m1b.queue", "ssh": "chriscollins@m1.local", "http_port": 18781,
@@ -71,7 +71,7 @@ GUESTS = {
             "queue": "/tmp/amiga-emu-m1c.queue", "ssh": "chriscollins@m1.local", "http_port": 18782,
             "hmp": 2548},
     "spark": {"url": "http://127.0.0.1:3032/mcp", "lock": "/tmp/amiga-emu-spark.lock",
-              "queue": "/tmp/amiga-emu-spark.queue", "ssh": "chris@spark.local"},
+              "queue": "/tmp/amiga-emu-spark.queue", "ssh": "chris@spark.local", "hmp": 2348},
 }
 GUEST = os.environ.get("BB_GUEST", "local")
 if GUEST not in GUESTS:
@@ -473,19 +473,26 @@ def bas(m, src, mode):
 
 
 def _check_user_guest(user_ok=False):
-    """m1 is the user's own guest: monitor commands there only with --user-ok (BB_USER_OK=1)"""
-    if GUEST == "m1" and not (user_ok or os.environ.get("BB_USER_OK") == "1"):
-        raise SystemExit("os4guest: BB_GUEST=m1 is the user's guest: refusing (pass --user-ok if the user asked)")
+    """m1 is the user's own guest: no screenshots or monitor input there, ever (user_ok is
+    ignored; it is kept so old callers still work). The kit install on m1 uses Workbench ARexx."""
+    if GUEST == "m1":
+        sys.exit("os4guest: no screenshots/input on BB_GUEST=m1 (the user's guest)")
+
+
+def _hmp_port():
+    if "hmp" not in _G:
+        sys.exit("os4guest: guest %r has no QEMU monitor port (\"hmp\") in its profile" % GUEST)
+    return int(os.environ.get("OS4_HMP_PORT", _G["hmp"]))
 
 
 def hmp(cmd, user_ok=False, wait=1.0):
-    """Send a command to the selected guest's QEMU monitor (its own port: local 2348 here;
-    m1 2348, m1b 2448, m1c 2548 on m1.local over ssh). Returns the monitor's reply."""
+    """Send a command to the selected guest's QEMU monitor (its profile's port: local 2348
+    here; m1b 2448, m1c 2548 on m1.local over ssh; never m1, the user's). Returns the reply."""
     import socket
     import subprocess
     import time
     _check_user_guest(user_ok)
-    port = int(os.environ.get("OS4_HMP_PORT", _G.get("hmp", 2348)))
+    port = _hmp_port()
     if SSH:
         py = ("import socket,time;s=socket.create_connection(('127.0.0.1',%d),10);time.sleep(0.5);s.recv(65536);"
               "s.sendall(%r);time.sleep(%s);print(s.recv(65536).decode('latin-1','replace'));s.close()"
@@ -613,9 +620,9 @@ def main():
         elif cmd == "dos":
             print(m.tool("amiga_dos_command", command=args[0]))
         elif cmd == "shot":
-            print("screenshot", shot(m, args[0], "--user-ok" in args))
+            print("screenshot", shot(m, args[0]))
         elif cmd == "mouse":
-            print(mouse(args[0], args[1], "--user-ok" in args).strip())
+            print(mouse(args[0], args[1]).strip())
         elif cmd == "setup":
             setup(m)
         elif cmd == "reapers":
