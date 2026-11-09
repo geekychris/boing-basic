@@ -7,4 +7,4 @@ shows = ["Declare ... Lib \"exec.library\" (calling AmigaOS libraries)", "The ge
 [[shot]]
 file = "gallery/sysinfo.png"
 caption = "`boing run sysinfo.bas` in a Shell"
-run = { shell = true, type = "RAM:bbdoc/boing run sysinfo.bas", secs = 10 }
+run = { project = "sysinfo.bas", shell = true, window = "80/60/640/220", type = "RAM:bbdoc/boing run sysinfo.bas", secs = 10 }

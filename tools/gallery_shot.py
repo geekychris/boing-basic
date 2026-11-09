@@ -166,16 +166,17 @@ def shoot(ex, shot, keep_full):
                 fh.write("stack 1048576\ncd %s\npath RAM:bbdoc ADD\n" % d)
             else:
                 fh.write("stack 1048576\ncd %s\n%s >RAM:bbdoc/shot.out *>RAM:bbdoc/shot.err\n" % (d, cmd))
-        g.push(m, script, DEST + "go.script")
+        gos = DEST + "go%d.script" % os.getpid()
+        g.push(m, script, gos)
         os.unlink(script)
         m.tool("amiga_dos_command", command="delete RAM:bbdoc/shot.out RAM:bbdoc/shot.err QUIET")
         if run.get("shell"):
-            m.tool("amiga_dos_command", command='run >NIL: NewShell "CON:%s/Boing BASIC/CLOSE" FROM RAM:bbdoc/go.script'
-                   % run.get("window", "80/60/760/320"))
+            m.tool("amiga_dos_command", command='run >NIL: NewShell "CON:%s/Boing BASIC/CLOSE" FROM %s'
+                   % (run.get("window", "80/60/760/320"), gos))
             time.sleep(3)
             sendtext(run.get("type", "") + "\n")
         else:
-            m.tool("amiga_dos_command", command="run >NIL: execute RAM:bbdoc/go.script")
+            m.tool("amiga_dos_command", command="run >NIL: execute " + gos)
         time.sleep(run.get("secs", 6))
         for k in run.get("keys", []):
             if k.startswith("sleep:"):
@@ -185,6 +186,17 @@ def shoot(ex, shot, keep_full):
                 time.sleep(0.15)
         wake()
         after = screendump()
+        # a single-buffered animation can be caught between clearing and drawing: with
+        # run.dumps = N take N dumps and keep the one with the most colours where it changed
+        alts = [after] + [screendump() for _ in range(run.get("dumps", 1) - 1)]
+        if len(alts) > 1:
+            box0 = autocrop(before, after) or (0, 0, after.width, after.height)
+            after = max(alts, key=lambda im: len(im.crop(box0).getcolors(1 << 20) or ()))
+        # run.wait_exit = N: let the program end by itself (up to N s) before any Ctrl-C; for
+        # programs that own OS resources a Break would leave behind (declare_gfx's window)
+        t_end = time.time() + run.get("wait_exit", 0)
+        while time.time() < t_end and ours(m):
+            time.sleep(3)
         for num in ours(m):
             m.tool("amiga_dos_command", command="break %s C" % num)
         for _ in range(5):
@@ -196,7 +208,10 @@ def shoot(ex, shot, keep_full):
             time.sleep(2)
         left = ours(m)
         err = str(m.tool("amiga_dos_command", command="type RAM:bbdoc/shot.err")).strip()
+        outp = str(m.tool("amiga_dos_command", command="type RAM:bbdoc/shot.out")).strip()
         reap = g.reapers(m)
+    if outp and "no output" not in outp and "TYPE:" not in outp:
+        print("stdout:", outp[-400:])
     if err and "no output" not in err:
         print("stderr:", err[:400])
     if left:
@@ -204,6 +219,9 @@ def shoot(ex, shot, keep_full):
     if reap:
         print("WARNING: Grim Reapers on the guest:", reap)
     crop = run.get("crop", "auto")
+    if run.get("shell") and crop == "auto":     # the Shell window's own box
+        crop = [int(v) for v in run.get("window", "80/60/760/320").split("/")]
+    os.makedirs(os.path.dirname(out_png), exist_ok=True)
     if keep_full:
         after.save(out_png.replace(".png", ".full.png"))
     if crop == "auto":

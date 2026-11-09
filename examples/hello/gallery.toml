@@ -7,4 +7,4 @@ shows = ["Console output", "InputBox and MsgBox requesters"]
 [[shot]]
 file = "gallery/inputbox.png"
 caption = "`boing run hello.bas` in a Shell, asking for a name"
-run = { shell = true, type = "RAM:bbdoc/boing run hello.bas", secs = 10 }
+run = { project = "hello.bas", shell = true, type = "RAM:bbdoc/boing run hello.bas", secs = 10, crop = [80, 64, 726, 352] }
