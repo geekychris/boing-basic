@@ -95,4 +95,15 @@ beside the program.
 
 ### Numbers
 
-(filled in below from the host and guest runs)
+`bench/PwBench.bbp` (300 paragraphs, 12 900 words), milliseconds, macOS (Apple M-series):
+
+| | VM | VM + JIT | native |
+|---|---:|---:|---:|
+| load the dictionary (2.3 MB) | 9 | 9 | 9 |
+| lay out the whole document | 0.2 | 0.3 | 0.0 |
+| draw a screen (with spelling marks) | 1.9 | 2.0 | 0.8 |
+| type a character + redraw | 0.8 | 0.8 | 0.3 |
+| spell-check all 12 900 words | 63 | 64 | 27 |
+| RTF export | 23 | 23 | 9 |
+
+AmigaOS 4 guest (m1): see below.

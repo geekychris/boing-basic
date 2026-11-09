@@ -96,4 +96,19 @@ See [the numbers](#numbers) below; the benchmark is `bench/SheetBench.bbp` (1000
 
 ### Numbers
 
-(filled in below from the host and guest runs)
+`bench/SheetBench.bbp`, milliseconds (macOS, Apple M-series; `boing run`, `boing run --jit`,
+`boing build`):
+
+| | VM | VM + JIT | native |
+|---|---:|---:|---:|
+| enter 26 027 cells (parse + compile) | 143 | 132 | 26 |
+| full recalculation (25 027 formulas) | 19 | 11 | 4 |
+| edit A1, recalculating its row (52 formulas) | 0.8 | 0.3 | 0.1 |
+| draw the grid, 40 rows x 9 columns | 0.2 | 0.2 | 0.1 |
+| edit + recalculation + redraw (one keystroke) | 1.1 | 0.5 | 0.3 |
+
+Before the range dependencies were bucketed by 32-row blocks (each column had one list of
+every range over it), a full recalculation took 180 ms in the VM and 113 ms native: marking
+the dependents scanned each column's whole list for every changed cell.
+
+AmigaOS 4 guest (m1): see below.
