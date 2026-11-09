@@ -90,6 +90,7 @@ Private Const PT_KNOB As Long = 190
 Private Const PT_SHADOW As Long = 191
 Private Const PT_BALL As Long = 192             ' + frame
 Private flipLo(0 To 2) As Long, flipHi(0 To 2) As Long
+Private flipKey(0 To 2) As String                ' the geometry the flipper's sprites were made for
 Private ballPhase(0 To 7) As Long
 Private ballPX(0 To 7) As Long, ballPY(0 To 7) As Long
 Private glyphImg(0 To 6079) As Long              ' ((pen * 2) + sc - 1) * 95 + char - 32
@@ -872,21 +873,13 @@ End Sub
 ' (transparent) outside the ellipse: the patch can be drawn over other things that move
 Private Sub GlowPatch(ByVal k As Long, ByVal cx As Long, ByVal cy As Long, ByVal rx As Long, ByVal ry As Long, _
                       ByVal pen As Long, ByVal alpha As Long)
-    Dim w As Long, h As Long, dy As Long, ww As Long, yy As Long
-    w = CV.ImageWidth(patchImg(k)): h = CV.ImageHeight(patchImg(k))
-    CV.DrawImagePart picImg, patchX(k), patchY(k), w, h, 0, 0, True
+    Dim dy As Long, ww As Long
+    For dy = -ry To ry
+        ww = (rx * ISq((ry * ry - dy * dy) * 256) + ry * 8) \ (ry * 16)
+        CV.DrawImagePart picImg, cx - ww, cy + dy, 2 * ww + 1, 1, cx - ww - patchX(k), cy + dy - patchY(k), True
+    Next dy
     BlendEllipse picImg, cx, cy, rx, ry, pen, alpha
     CV.SetTarget patchImg(k)
-    For yy = 0 To h - 1
-        dy = yy + patchY(k) - cy
-        If dy < -ry Or dy > ry Then
-            CV.ClearRect 0, yy, w, 1
-        Else
-            ww = (rx * ISq((ry * ry - dy * dy) * 256) + ry * 8) \ (ry * 16)
-            CV.ClearRect 0, yy, cx - ww - patchX(k), 1
-            CV.ClearRect cx + ww + 1 - patchX(k), yy, w, 1
-        End If
-    Next yy
 End Sub
 
 Private Sub FreePatch(ByVal k As Long)
@@ -972,23 +965,34 @@ Private Sub BuildPatches()
         NewPatch PT_DROP + i, x0, y0, x1, y1
         Wall3d sg(j).ax, sg(j).ay, sg(j).bx, sg(j).by, 196608, 26, P_YEL_D, P_ORANGE
     Next i
+    ' the flippers: NFRAMES sprites from the low angle to the high one (kept while a flipper
+    ' stays the same: the lower two are the same on every table)
     DbgMark "drop patches"
-    ' the flippers: NFRAMES sprites from the low angle to the high one
-    For i = 0 To 2 * NFRAMES * 3 \ 2 - 1
-        If PT_FLIP + i < PT_KNOB Then FreePatch PT_FLIP + i
+    For i = 0 To 2
+        Dim key As String
+        If i < tNflip Then
+            key = fl(i).px & "," & fl(i).py & "," & fl(i).ln & "," & fl(i).r1 & "," & fl(i).r2 & "," & fl(i).rest & "," & fl(i).up
+        Else
+            key = ""
+        End If
+        If key <> flipKey(i) Then
+            For k = 0 To NFRAMES - 1
+                FreePatch PT_FLIP + i * NFRAMES + k
+            Next k
+            flipKey(i) = key
+            If i < tNflip Then
+                If fl(i).rest < fl(i).up Then flipLo(i) = fl(i).rest: flipHi(i) = fl(i).up Else flipLo(i) = fl(i).up: flipHi(i) = fl(i).rest
+                reach = fl(i).ln + fl(i).r1 + 196608
+                x0 = PXf(fl(i).px - reach) - 2: x1 = PXf(fl(i).px + reach) + 2
+                y0 = PYf(fl(i).py + reach, 1441792) - 2: y1 = PYf(fl(i).py - reach, 0) + 2
+                For k = 0 To NFRAMES - 1
+                    ang = flipLo(i) + ((flipHi(i) - flipLo(i)) * CDbl(k)) / (NFRAMES - 1)
+                    NewPatch PT_FLIP + i * NFRAMES + k, x0, y0, x1, y1
+                    FlipperSprite i, ang
+                Next k
+            End If
+        End If
     Next i
-    For i = 0 To tNflip - 1
-        If fl(i).rest < fl(i).up Then flipLo(i) = fl(i).rest: flipHi(i) = fl(i).up Else flipLo(i) = fl(i).up: flipHi(i) = fl(i).rest
-        reach = fl(i).ln + fl(i).r1 + 196608
-        x0 = PXf(fl(i).px - reach) - 2: x1 = PXf(fl(i).px + reach) + 2
-        y0 = PYf(fl(i).py + reach, 1441792) - 2: y1 = PYf(fl(i).py - reach, 0) + 2
-        For k = 0 To NFRAMES - 1
-            ang = flipLo(i) + ((flipHi(i) - flipLo(i)) * CDbl(k)) / (NFRAMES - 1)
-            NewPatch PT_FLIP + i * NFRAMES + k, x0, y0, x1, y1
-            FlipperSprite i, ang
-        Next k
-    Next i
-    DbgMark "flippers"
     ' the plunger's knob
     NewPatch PT_KNOB, -10, -6, 10, 6
     Ellipse 0, 0, 10, 6, P_METAL_L

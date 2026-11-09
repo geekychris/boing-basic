@@ -113,7 +113,31 @@ picture, so a frame stays at about 40 Canvas calls:
 
 ## Speed
 
-@SPEED@
+The game in its window, the bot playing Comet Tour, `BoingPinball --bench 1500` (frames back to
+back, 20 ms of game time each: 2.4 physics steps a frame, 640 x 512 shown every frame), on the
+m1b guest (QEMU sam460ex on an unloaded Mac mini M1), 2026-11-08:
+
+| | fps | logic | draw | blit (ms per frame) |
+|---|---:|---:|---:|---:|
+| VM (`boing run`) | **84.5** | 4.89 | 4.80 | 1.77 |
+| VM + JIT (`boing run --jit`) | 76.2 | 5.74 | 5.31 | 1.72 |
+| native (`boing build --target os4`) | 217.3 | 0.43 | 2.47 | 1.61 |
+
+All three give the same state hash (F9AFA545) and picture hash (2032836992) as the Mac, so the
+game is the same on PPC in every build. The game needs 50 fps; the interpreter has 70 % to
+spare. As in the other game ports, the JIT doesn't help under QEMU (docs/performance.md): the
+logic is call-heavy fixed-point code.
+
+The console bench (`Bench.bbp --frames 600`, off-screen, no blit): VM 106.9 fps (logic 4.41,
+draw 4.89 ms), native 367.2 fps (0.32, 2.39). On the Mac's VM: 22000 fps.
+
+Building a table's picture, patches and sprites: VM 2.0-2.4 s the first time (fonts, the ball
+and both lower flippers' sprites are kept after that), native 0.3 s; loading the painting takes
+0.15 s of it.
+
+The physics: one 1/120 s step costs ~2 ms in the guest's VM (the Mac's VM: 5.5 us; the bot's
+games in `tools/check_trace.sh`, 260 000 steps, take 1.4 s there). Drawing is ~40 Canvas calls
+a frame whatever happens on the table.
 
 ## Changes from the C
 

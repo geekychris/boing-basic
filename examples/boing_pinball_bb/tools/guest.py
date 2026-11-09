@@ -41,6 +41,12 @@ def push_project(m, bbp):
 MYDIR = "RAM:bbg/examples/boing_pinball_bb"
 
 
+def ptr_reaper(m):
+    """close the front Grim Reaper (Kill) with ptr from our own RAM: directory (no disk install)"""
+    g.push(m, os.path.join(ROOT, "build/os4/ptr"), MYDIR + "/ptr")
+    return str(m.tool("amiga_dos_command", command=MYDIR + "/ptr reaper"))
+
+
 def stop_mine(m):
     """Ctrl-C to our own processes only (loaded from our directory: other agents use RAM:bbg/ too)."""
     st = str(m.tool("amiga_dos_command", command="status"))
@@ -135,8 +141,7 @@ def main():
             print(st)
             if "GrimReaper" in st and MYDIR in st:
                 screendump_full(out)
-                print("ptr:", m.tool("amiga_dos_command", command="list DH1:bbtools"),
-                      m.tool("amiga_dos_command", command="DH1:bbtools/ptr reaper"))
+                print("ptr reaper:", ptr_reaper(m))
             stop_mine(m)
             time.sleep(3)
             print(m.tool("amiga_dos_command", command="status"))
@@ -146,7 +151,8 @@ def main():
         exe = build_native(bbp)
         with g.testing("Boing Pinball: native probe"):
             push_project(m, os.path.join(PROJ, "Pinball.bbp"))
-            print("reaper before:", m.tool("amiga_dos_command", command="DH1:bbtools/ptr reaper"))
+            if "GrimReaper" in str(m.tool("amiga_dos_command", command="status")):
+                print("a Grim Reaper is up already: not starting"); return 1
             g.push(m, exe, MYDIR + "/probe")
             m.tool("amiga_dos_command", command="delete RAM:pb_probe.log QUIET")
             m.tool("amiga_dos_command", command="cd " + MYDIR)
@@ -158,7 +164,7 @@ def main():
             print(st)
             if "GrimReaper" in st:
                 screendump_full(os.environ.get("PB_SHOT", "/tmp/pb_reaper.png"))
-                print("reaper after:", m.tool("amiga_dos_command", command="DH1:bbtools/ptr reaper"))
+                print("ptr reaper:", ptr_reaper(m))
             stop_mine(m)
             m.tool("amiga_dos_command", command="delete RAM:pb_probe.log RAM:pb_probe.out RAM:pb_probe.err QUIET")
         return 0
