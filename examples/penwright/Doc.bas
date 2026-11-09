@@ -203,24 +203,39 @@ Public Sub ParaFromLine(ByVal p As Long, ByVal l As String)
     If UBound(f) >= 3 Then RunsInto p, f(3) Else RunsInto p, ""
 End Sub
 
+' The end (exclusive, 0-based) of the run of equal attribute and size that starts at
+' offset i of paragraph p, at most lim. Compares growing chunks instead of characters
+' (runs are long; per-character Mid$ is the slow way in the interpreter).
+Public Function RunEnd(ByVal p As Long, ByVal i As Long, ByVal lim As Long) As Long
+    Dim a As String, z As String, j As Long, k As Long
+    a = Mid$(pAttr(p), i + 1, 1): z = Mid$(pSize(p), i + 1, 1)
+    j = i + 1
+    k = 8
+    Do While j < lim
+        If j + k > lim Then k = lim - j
+        If Mid$(pAttr(p), j + 1, k) = String$(k, a) And Mid$(pSize(p), j + 1, k) = String$(k, z) Then
+            j = j + k
+            k = k * 2
+        ElseIf k > 1 Then
+            k = k \ 2
+        Else
+            Exit Do
+        End If
+    Loop
+    RunEnd = j
+End Function
+
 ' the attribute and size runs of a paragraph: "len:attr:size,len:attr:size"
 Public Function RunsOf(ByVal p As Long) As String
-    Dim i As Long, n As Long, a As String, z As String, st As Long, s As String
+    Dim i As Long, n As Long, e As Long, s As String
     n = Len(pText(p))
-    If n = 0 Then Exit Function
-    st = 1
-    For i = 2 To n + 1
-        If i > n Then
-            a = "": z = ""
-        Else
-            a = Mid$(pAttr(p), i, 1): z = Mid$(pSize(p), i, 1)
-        End If
-        If i > n Or a <> Mid$(pAttr(p), st, 1) Or z <> Mid$(pSize(p), st, 1) Then
-            If s <> "" Then s = s & ","
-            s = s & (i - st) & ":" & Asc(Mid$(pAttr(p), st, 1)) & ":" & Asc(Mid$(pSize(p), st, 1))
-            st = i
-        End If
-    Next i
+    i = 0
+    Do While i < n
+        e = RunEnd(p, i, n)
+        If s <> "" Then s = s & ","
+        s = s & (e - i) & ":" & Asc(Mid$(pAttr(p), i + 1, 1)) & ":" & Asc(Mid$(pSize(p), i + 1, 1))
+        i = e
+    Loop
     RunsOf = s
 End Function
 

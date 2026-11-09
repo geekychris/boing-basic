@@ -310,8 +310,7 @@ Public Sub DrawGrid(cv As Object)
                         cv.Box xs(c - leftCol + 1) - 1, y, span - w, rowH(r) - 1, colBack
                     End If
                 End If
-                s = Clip(cv, s, span)
-                tw = Len(s) * cw
+                If tw > span Then s = Left$(s, span \ cw): tw = Len(s) * cw
                 Select Case a
                 Case AL_RIGHT: tx = xs(c - leftCol) + colW(c) - 3 - tw
                 Case AL_CENTER: tx = xs(c - leftCol) + (colW(c) - tw) \ 2

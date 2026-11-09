@@ -21,6 +21,7 @@ Private lastStatus As String
 Private lastCellName As String
 Private lastFind As String
 Private settingFormat As Boolean
+Private lastShift As Integer          ' qualifiers of the last KeyDown (KeyPress has none)
 Private clipText As String
 Private dragMode As Long              ' 1 cells, 2 column width, 3 move chart, 4 size chart, 5 columns, 6 rows, 7 row height
 Private dragX As Long, dragY As Long, dragW As Long, dragH As Long, dragCol As Long
@@ -251,12 +252,14 @@ End Sub
 ' (the Change for text set by code can arrive after settingText is reset: only a text
 ' that differs from the cell's is an edit)
 Private Sub formula_Change()
+    Trace "change [" & formula.Text & "] setting=" & settingText & " editing=" & editing
     If settingText Then Exit Sub
     If formula.Text = GetSrc(curR, curC) Then Exit Sub
     If Not editing Then editing = True: UpdateBars
 End Sub
 
 Private Sub formula_KeyPress(KeyAscii As Integer)
+    Trace "formula keypress " & KeyAscii
     If KeyAscii = 13 Then
         CommitEdit 1, 0
     ElseIf KeyAscii = 9 Then
@@ -271,7 +274,31 @@ End Sub
 ' ---- keys ----------------------------------------------------------------------------------
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
+    Trace "keydown " & KeyCode & " " & Shift & " editing=" & editing
     Dim ext As Boolean, page As Long, amiga As Boolean
+    lastShift = Shift
+    If editing And (Shift And 8) = 0 Then
+        ' an edit in progress whose keys still reach the window (see Form_KeyPress)
+        Select Case KeyCode
+        Case vbKeyReturn: CommitEdit 1, 0: Exit Sub
+        Case vbKeyTab: CommitEdit 0, 1: Exit Sub
+        Case vbKeyEscape
+            editing = False
+            Redraw
+            Exit Sub
+        Case vbKeyBack
+            If Len(formula.Text) > 0 Then
+                settingText = True
+                formula.Text = Left$(formula.Text, Len(formula.Text) - 1)
+                settingText = False
+            End If
+            Exit Sub
+        Case vbKeyLeft, vbKeyRight, vbKeyUp, vbKeyDown
+            CommitEdit 0, 0
+        Case Else
+            Exit Sub
+        End Select
+    End If
     ext = (Shift And 1) <> 0
     amiga = (Shift And 8) <> 0
     page = VisibleRows() - 1
@@ -344,9 +371,19 @@ Private Function LastUsedCol(ByVal r As Long) As Long
 End Function
 
 Private Sub Form_KeyPress(KeyAscii As Integer)
-    ' a character typed on the grid starts an edit with it
-    If editing Then Exit Sub
-    If KeyAscii >= 32 And KeyAscii <> 127 Then
+    Trace "keypress " & KeyAscii & " editing=" & editing
+    If KeyAscii < 32 Or KeyAscii = 127 Then Exit Sub
+    If (lastShift And 8) <> 0 Then Exit Sub             ' Amiga combinations are commands
+    If editing Then
+        ' typed faster than the formula bar became active: the keys still come to the
+        ' window, so they go into the edit here
+        settingText = True
+        formula.Text = formula.Text & Chr$(KeyAscii)
+        settingText = False
+        formula.SetFocus
+        formula.SelStart = Len(formula.Text)
+    Else
+        ' a character typed on the grid starts an edit with it
         StartEdit Chr$(KeyAscii)
     End If
 End Sub
@@ -620,6 +657,7 @@ Private Sub mnuCurrency_Click()
     v = Trim$(InputBox("Currency symbol (up to 4 characters) for the Currency format:", "Gridwise", CurrencySymbol))
     If v = "" Or Len(v) > 4 Then Exit Sub
     CurrencySymbol = v
+    InvalidateDisplay
     SavePrefs
     Redraw
 End Sub

@@ -45,6 +45,7 @@ Private Sub Form_Load()
         LoadDictionary "penwright.dict", "penwright.words"
     End If
     LiveSpell = SpellReady And PrefLiveSpell
+    SpellLazy = True
     Trace "load 6: LiveSpell = SpellReady And PrefLiveSpell"
     mnuLive.Checked = LiveSpell
     Trace "load 7: mnuLive.Checked = LiveSpell"
@@ -293,6 +294,7 @@ End Sub
 Private Sub Form_KeyPress(KeyAscii As Integer)
     If (lastShift And (8 Or 2)) <> 0 Then Exit Sub          ' Amiga/Ctrl combinations are commands
     If KeyAscii < 32 Or KeyAscii = 127 Then Exit Sub         ' Return, Backspace... come as KeyDown
+    SpellHoldP = curP
     TypeText Chr$(KeyAscii), True
     CaretOn = True: blink = 0
     Redraw
@@ -530,10 +532,12 @@ Private Sub tick_Timer()
             If PwQuit Then Exit Sub        ' unloaded: touching the form would load it again
         End If
     End If
+    ' the caret does not blink (a blink redraws the page: costly in the interpreter on a
+    ' shared guest); the spelling of the paragraph being typed in is checked after a second
+    ' without typing
     blink = blink + 1
-    If blink >= 2 And windowActive Then
-        blink = 0
-        CaretOn = Not CaretOn
+    If SpellHoldP >= 0 And blink >= TICKS_PER_SEC Then SpellHoldP = -1
+    If SpellCatchUp(3) Then
         DrawDoc page
         page.Refresh
     End If

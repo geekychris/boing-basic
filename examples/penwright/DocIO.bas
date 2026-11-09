@@ -226,15 +226,9 @@ Private Function RunsHtml(ByVal p As Long) As String
     n = Len(pText(p))
     base = StyleSize(pStyle(p))
     st = 1
-    For i = 2 To n + 1
-        If i > n Then
-            t = "x"
-        ElseIf Mid$(pAttr(p), i, 1) <> Mid$(pAttr(p), st, 1) Or Mid$(pSize(p), i, 1) <> Mid$(pSize(p), st, 1) Then
-            t = "x"
-        Else
-            t = ""
-        End If
-        If t <> "" Then
+    Do While st <= n
+        i = RunEnd(p, st - 1, n) + 1
+        If True Then
             a = Asc(Mid$(pAttr(p), st, 1)): z = Asc(Mid$(pSize(p), st, 1))
             t = HtmlEsc(Mid$(pText(p), st, i - st))
             If (a And A_BOLD) And Not (pStyle(p) >= PS_H1 And pStyle(p) <= PS_H3) Then t = "<b>" & t & "</b>"
@@ -248,7 +242,7 @@ Private Function RunsHtml(ByVal p As Long) As String
             s = s & t
             st = i
         End If
-    Next i
+    Loop
     RunsHtml = s
 End Function
 
@@ -346,15 +340,9 @@ Public Function DocToRtf() As String
         s = s & " "
         n = Len(pText(p))
         st = 1
-        For i = 2 To n + 1
-            If i > n Then
-                t = "x"
-            ElseIf Mid$(pAttr(p), i, 1) <> Mid$(pAttr(p), st, 1) Or Mid$(pSize(p), i, 1) <> Mid$(pSize(p), st, 1) Then
-                t = "x"
-            Else
-                t = ""
-            End If
-            If t <> "" Then
+        Do While st <= n
+            i = RunEnd(p, st - 1, n) + 1
+            If True Then
                 a = Asc(Mid$(pAttr(p), st, 1)): z = Asc(Mid$(pSize(p), st, 1))
                 s = s & "{\fs" & (z * 2)
                 If a And A_BOLD Then s = s & "\b"
@@ -365,7 +353,7 @@ Public Function DocToRtf() As String
                 s = s & " " & RtfEsc(Mid$(pText(p), st, i - st)) & "}"
                 st = i
             End If
-        Next i
+        Loop
         s = s & "\par" & vbLf
     Next p
     DocToRtf = s & "}" & vbLf

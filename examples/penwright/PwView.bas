@@ -20,6 +20,8 @@ Public Const MARGIN As Long = 36
 Public Const TOPPAD As Long = 24
 Public DrawCount As Long
 Public ShowMarks As Boolean                ' show paragraph ends
+Public SpellHoldP As Long                  ' the paragraph being typed in: its spelling marks wait (-1 none)
+Public SpellLazy As Boolean                ' draw without checking; SpellCatchUp checks later (the form's timer)
 
 Private ph() As Long                       ' paragraph heights (-1 = not laid out)
 Private spellOk() As Boolean               ' spell marks of the paragraph are valid
@@ -47,6 +49,7 @@ Public Sub ViewInit(cv As Object, ByVal w As Long, ByVal h As Long)
     PageW = w - 40
     If PageW > 640 Then PageW = 640
     scrollY = 0: curP = 0: curO = 0: ancP = 0: ancO = 0: wantX = -1
+    SpellHoldP = -1
     CaretOn = True
     colDesk = RGB(148, 154, 168)
     colPage = RGB(255, 255, 255)
@@ -471,6 +474,8 @@ End Sub
 
 Private Function SpellMarksOf(ByVal p As Long) As String
     Dim o As Long, wl As Long, pp As Long, s As String
+    If p = SpellHoldP Then SpellMarksOf = "": Exit Function
+    If SpellLazy And Not spellOk(p) Then SpellMarksOf = "": Exit Function
     If Not spellOk(p) Then
         s = ""
         If SpellReady And pStyle(p) <> PS_CODE Then
@@ -561,13 +566,17 @@ Public Sub DrawDoc(cv As Object)
             tx = x
             Do While i < lnE(k)
                 a = Asc(Mid$(pAttr(p), i + 1, 1)): z = Asc(Mid$(pSize(p), i + 1, 1))
-                j = i + 1
-                Do While j < lnE(k)
-                    If Asc(Mid$(pAttr(p), j + 1, 1)) <> a Or Asc(Mid$(pSize(p), j + 1, 1)) <> z Then Exit Do
-                    If extra > 0 And Mid$(pText(p), j + 1, 1) = " " Then Exit Do
-                    j = j + 1
-                Loop
-                If extra > 0 And Mid$(pText(p), i + 1, 1) = " " Then j = i + 1
+                j = RunEnd(p, i, lnE(k))
+                If extra > 0 Then
+                    ' justified: words are drawn one by one, spaces stretched
+                    If Mid$(pText(p), i + 1, 1) = " " Then
+                        j = i + 1
+                    Else
+                        Dim sp As Long
+                        sp = InStr(i + 1, pText(p), " ")
+                        If sp > 0 And sp - 1 < j Then j = sp - 1
+                    End If
+                End If
                 seg = Mid$(pText(p), i + 1, j - i)
                 colr = PaletteColor((a And A_COLMASK) \ 16)
                 If st = PS_QUOTE And (a And A_COLMASK) = 0 Then colr = RGB(70, 70, 90)
@@ -592,7 +601,7 @@ Public Sub DrawDoc(cv As Object)
             Loop
             ' spelling squiggles
             If marks <> "" Then
-                mk = Split(marks, ",")
+                If k = 0 Then mk = Split(marks, ",")
                 For j = 0 To UBound(mk) - 1
                     mo = Val(mk(j)): ml = Val(Mid$(mk(j), InStr(mk(j), ":") + 1))
                     If mo >= lnS(k) And mo < lnE(k) Then
@@ -626,6 +635,32 @@ End Sub
 
 Private Function HasSpell() As Boolean
     HasSpell = LiveSpell And SpellReady
+End Function
+
+' Check the spelling of up to maxParas visible paragraphs that have no marks yet; True if
+' any were checked (then the page needs drawing again)
+Public Function SpellCatchUp(ByVal maxParas As Long) As Boolean
+    Dim p As Long, top As Long, n As Long, lazy As Boolean, m As String
+    If Not HasSpell() Then Exit Function
+    top = TOPPAD - scrollY
+    p = 0
+    Do While p < NP
+        If top + ParaH(p) >= 0 Then Exit Do
+        top = top + ParaH(p)
+        p = p + 1
+    Loop
+    lazy = SpellLazy
+    SpellLazy = False
+    Do While p < NP And top < vh And n < maxParas
+        If Not spellOk(p) And p <> SpellHoldP Then
+            m = SpellMarksOf(p)
+            n = n + 1
+            SpellCatchUp = True
+        End If
+        top = top + ParaH(p)
+        p = p + 1
+    Loop
+    SpellLazy = lazy
 End Function
 
 ' after the dictionary changed: recheck every paragraph

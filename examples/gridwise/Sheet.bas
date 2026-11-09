@@ -51,6 +51,13 @@ Public cFmt() As Long
 Public cCode() As Long                ' start in pCode, -1 = not a formula
 Public cCodeLen() As Long
 Public colW() As Long                 ' column widths in pixels (the UI's, saved with the sheet)
+' the text each cell shows, cached (formatting numbers is the costly part of drawing):
+' valid while cDispOk, the format is cDispFmt and the epoch is DispEpoch
+Private cDisp() As String
+Private cDispOk() As Boolean
+Private cDispFmt() As Long
+Private cDispEp() As Long
+Private DispEpoch As Long
 Public rowH() As Long                 ' row heights in pixels
 Public Modified As Boolean
 Public CurrencySymbol As String
@@ -90,6 +97,8 @@ Private mark() As Long                ' = gen: dirty in this recalculation
 Private vis() As Long                 ' = gen: on the DFS path or done
 Private done() As Long                ' = gen: evaluated
 Private circ() As Long                ' = gen: part of a cycle
+Private dcGen() As Long               ' per column: = gen when it holds dirty formulas,
+Private dcMin() As Long, dcMax() As Long  ' between these rows (so range walks skip the rest)
 Private wl() As Long                  ' work list
 Private dl() As Long                  ' dirty formula list
 Private fsCell() As Long, fsPc() As Long, fsR() As Long, fsC() As Long  ' DFS frames
@@ -131,6 +140,11 @@ Public Sub NewSheet(ByVal rows As Long, ByVal cols As Long)
     ReDim cFmt(0 To NCELLS - 1)
     ReDim cCode(0 To NCELLS - 1)
     ReDim cCodeLen(0 To NCELLS - 1)
+    ReDim cDisp(0 To NCELLS - 1)
+    ReDim cDispOk(0 To NCELLS - 1)
+    ReDim cDispFmt(0 To NCELLS - 1)
+    ReDim cDispEp(0 To NCELLS - 1)
+    DispEpoch = DispEpoch + 1
     ReDim dHead(0 To NCELLS - 1)
     ReDim mark(0 To NCELLS - 1)
     ReDim vis(0 To NCELLS - 1)
@@ -138,6 +152,7 @@ Public Sub NewSheet(ByVal rows As Long, ByVal cols As Long)
     ReDim circ(0 To NCELLS - 1)
     NB = (rows + 31) \ 32
     ReDim rHead(0 To cols * NB - 1)
+    ReDim dcGen(0 To cols - 1): ReDim dcMin(0 To cols - 1): ReDim dcMax(0 To cols - 1)
     ReDim colW(0 To cols - 1)
     ReDim rowH(0 To rows - 1)
     For i = 0 To rows - 1: rowH(i) = 15: Next i
@@ -240,6 +255,7 @@ Private Sub SetRaw(ByVal id As Long, ByVal src As String)
     cSrc(id) = src
     cTxt(id) = ""
     cNum(id) = 0
+    cDispOk(id) = False
     If src = "" Then cKind(id) = KEMPTY: Exit Sub
     If Left$(src, 1) = "=" And Len(src) > 1 Then
         FormulaCount = FormulaCount + 1
@@ -581,6 +597,17 @@ Private Sub Recalc()
     Loop
     RecalcCount = ndl
     For i = 0 To ndl - 1
+        x = dl(i)
+        r = x \ NC
+        c = x - r * NC
+        If dcGen(c) <> gen Then
+            dcGen(c) = gen: dcMin(c) = r: dcMax(c) = r
+        Else
+            If r < dcMin(c) Then dcMin(c) = r
+            If r > dcMax(c) Then dcMax(c) = r
+        End If
+    Next i
+    For i = 0 To ndl - 1
         If vis(dl(i)) <> gen Then Visit dl(i)
     Next i
 End Sub
@@ -588,7 +615,7 @@ End Sub
 ' depth-first over the dirty precedents of cell x, evaluating each cell after its precedents
 Private Sub Visit(ByVal x As Long)
     Dim sp As Long, cell As Long, pc As Long, e As Long, op As Long, y As Long, r As Long, c As Long
-    Dim r2 As Long, c2 As Long, pushed As Boolean
+    Dim r2 As Long, c2 As Long, pushed As Boolean, rr As Long
     sp = 0
     fsCell(0) = x: fsPc(0) = cCode(x): fsR(0) = -1
     vis(x) = gen
@@ -616,33 +643,42 @@ Private Sub Visit(ByVal x As Long)
                     End If
                 End If
             ElseIf op = OP_RANGE Then
-                ' walk the range's cells; fsR/fsC remember where we are
-                If fsR(sp) < 0 Then
-                    r = pCode(pc + 1): c = pCode(pc + 2)
-                Else
-                    r = fsR(sp): c = fsC(sp)
-                End If
+                ' walk the range's dirty formula cells, column by column, only between the
+                ' rows where that column has dirty formulas; fsC/fsR remember where we are
                 r2 = pCode(pc + 3): c2 = pCode(pc + 4)
                 If r2 >= NR Then r2 = NR - 1
                 If c2 >= NC Then c2 = NC - 1
-                Do While r <= r2 And Not pushed
-                    Do While c <= c2
-                        y = r * NC + c
-                        c = c + 1
-                        If mark(y) = gen Then
-                            If cCode(y) >= 0 And done(y) <> gen Then
-                                If vis(y) = gen Then
-                                    circ(cell) = gen
-                                Else
-                                    pushed = True
-                                    Exit Do
+                If fsR(sp) < 0 Then
+                    c = pCode(pc + 2): r = -1
+                Else
+                    c = fsC(sp): r = fsR(sp)
+                End If
+                Do While c <= c2 And Not pushed
+                    If dcGen(c) = gen Then
+                        If r < 0 Then
+                            r = pCode(pc + 1)
+                            If dcMin(c) > r Then r = dcMin(c)
+                        End If
+                        rr = r2
+                        If dcMax(c) < rr Then rr = dcMax(c)
+                        Do While r <= rr
+                            y = r * NC + c
+                            r = r + 1
+                            If mark(y) = gen Then
+                                If cCode(y) >= 0 And done(y) <> gen Then
+                                    If vis(y) = gen Then
+                                        circ(cell) = gen
+                                    Else
+                                        pushed = True
+                                        Exit Do
+                                    End If
                                 End If
                             End If
-                        End If
-                    Loop
+                        Loop
+                    End If
                     If Not pushed Then
-                        r = r + 1
-                        c = pCode(pc + 2)
+                        c = c + 1
+                        r = -1
                     End If
                 Loop
                 If pushed Then
@@ -681,6 +717,7 @@ End Sub
 Private Sub EvalCell(ByVal id As Long)
     Dim pc As Long, base As Long, e As Long, op As Long, sp As Long, r As Long, c As Long, y As Long
     Dim a As Double, b As Double, k As Long
+    cDispOk(id) = False
     If circ(id) = gen Then cKind(id) = KERR: cNum(id) = E_CIRC: cTxt(id) = "": Exit Sub
     base = cCode(id)
     pc = base
@@ -1504,36 +1541,55 @@ Public Function NumFormatName(ByVal nf As Long) As String
     End Select
 End Function
 
-' The text a cell shows
+' after a change that affects every cell's text (the currency symbol)
+Public Sub InvalidateDisplay()
+    DispEpoch = DispEpoch + 1
+End Sub
+
+' The text a cell shows (cached)
 Public Function CellText(ByVal r As Long, ByVal c As Long) As String
-    Dim id As Long, nf As Long, d As Double
+    Dim id As Long
     If r < 0 Or c < 0 Or r >= NR Or c >= NC Then Exit Function
     id = r * NC + c
+    If cDispOk(id) Then
+        If cDispFmt(id) = cFmt(id) Then
+            If cDispEp(id) = DispEpoch Then CellText = cDisp(id): Exit Function
+        End If
+    End If
+    CellText = MakeCellText(id)
+    cDisp(id) = CellText
+    cDispOk(id) = True
+    cDispFmt(id) = cFmt(id)
+    cDispEp(id) = DispEpoch
+End Function
+
+Private Function MakeCellText(ByVal id As Long) As String
+    Dim nf As Long, d As Double
     Select Case cKind(id)
     Case KEMPTY
-        CellText = ""
+        MakeCellText = ""
     Case KTEXT
-        CellText = cTxt(id)
+        MakeCellText = cTxt(id)
     Case KNUM
         d = cNum(id)
         nf = cFmt(id) And 255
         If nf = NF_GENERAL Then
-            CellText = GeneralText(d)
+            MakeCellText = GeneralText(d)
         ElseIf nf = NF_CURRENCY Then
             If d < 0 Then
-                CellText = "-" & CurrencySymbol & Format$(-d, "#,##0.00")
+                MakeCellText = "-" & CurrencySymbol & Format$(-d, "#,##0.00")
             Else
-                CellText = CurrencySymbol & Format$(d, "#,##0.00")
+                MakeCellText = CurrencySymbol & Format$(d, "#,##0.00")
             End If
         ElseIf nf = NF_DATE Or nf = NF_TIME Then
-            If d < -657434 Or d > 2958465 Then CellText = "#####" Else CellText = Format$(CDate(d), NumFormatPattern(nf))
+            If d < -657434 Or d > 2958465 Then MakeCellText = "#####" Else MakeCellText = Format$(CDate(d), NumFormatPattern(nf))
         Else
-            CellText = FormatWith(d, NumFormatPattern(nf))
+            MakeCellText = FormatWith(d, NumFormatPattern(nf))
         End If
     Case KBOOL
-        If cNum(id) <> 0 Then CellText = "TRUE" Else CellText = "FALSE"
+        If cNum(id) <> 0 Then MakeCellText = "TRUE" Else MakeCellText = "FALSE"
     Case KERR
-        CellText = ErrName(cNum(id))
+        MakeCellText = ErrName(cNum(id))
     End Select
 End Function
 
@@ -1896,7 +1952,7 @@ Private Sub ClearAll()
     Dim i As Long
     For i = 0 To NCELLS - 1
         If cCode(i) >= 0 Then cCode(i) = -1: cCodeLen(i) = 0
-        cSrc(i) = "": cTxt(i) = "": cKind(i) = KEMPTY: cNum(i) = 0: cFmt(i) = 0
+        cSrc(i) = "": cTxt(i) = "": cKind(i) = KEMPTY: cNum(i) = 0: cFmt(i) = 0: cDispOk(i) = False
         dHead(i) = -1
     Next i
     For i = 0 To NC * NB - 1: rHead(i) = -1: Next i

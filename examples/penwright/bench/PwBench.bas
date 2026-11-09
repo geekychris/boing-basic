@@ -39,6 +39,15 @@ Sub Main()
         DrawDoc cv
     Next i
     Print "draw a screen (scrolled, with spelling marks): "; Format$((TimerMs - t0) / 20, "0.0"); " ms"
+    SpellLazy = True
+    t0 = TimerMs
+    For i = 1 To 20
+        scrollY = 9000 + i * 400
+        DrawDoc cv
+    Next i
+    Print "draw a screen (spelling checked later, when idle): "; Format$((TimerMs - t0) / 20, "0.0"); " ms"
+    SpellLazy = False
+    SpellHoldP = 150
     SetCursor 150, 40, False
     EnsureCaretVisible
     t0 = TimerMs
@@ -46,7 +55,7 @@ Sub Main()
         TypeText "x", True
         DrawDoc cv
     Next i
-    Print "type a character + redraw: "; Format$((TimerMs - t0) / 50, "0.0"); " ms"
+    Print "type a character + redraw (spelling of that paragraph after a pause): "; Format$((TimerMs - t0) / 50, "0.0"); " ms"
     t0 = TimerMs
     p = 0: o = 0
     Do While NextMisspelt(p, o, wl)
