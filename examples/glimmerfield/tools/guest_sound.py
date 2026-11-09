@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Glimmerfield's sound on the AmigaOS 4 guest: is sound produced, and what does it cost?
 
-    BB_GUEST=m1 examples/glimmerfield/tools/guest_sound.py [FRAMES]
+    BB_GUEST=m1b OS4_HMP_PORT=<that QEMU's monitor port> examples/glimmerfield/tools/guest_sound.py [FRAMES]
+
+(m1 is the user's own guest: agents use m1b or local.)
 
 Runs the native build (build/os4/Glimmerfield, made here with `boing build --target os4`)
 from RAM:glimsnd/ with `--bench FRAMES` twice: without sound and with `--sound` (music and the
 bot's effects at moderate volume, the effects heard only in play, so in the bench: music).
 During the sound run the guest's audio output is recorded with QEMU's HMP `wavcapture` (on
-the machine running QEMU, over ssh for m1) and its level is reported. Holds the emulator lock
+the machine running QEMU, over ssh for a remote guest) and its level is reported. Holds the emulator lock
 and banner (tools/os4guest.py), leaves nothing running and deletes RAM:glimsnd afterwards.
 """
 import os, re, struct, subprocess, sys, time
