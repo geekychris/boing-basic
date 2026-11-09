@@ -970,7 +970,7 @@ static void au_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         return;
     }
     if (id == M_CLOSE) { if (dev != DEV_CLOSED) dev_close(); return; }
-    if (dev == DEV_CLOSED) dev_open("", 22050);
+    if (dev == DEV_CLOSED && id != P_DEVICE) dev_open("", 22050);
     if (id == M_RENDERTOWAV) {
         bba_song *s = song(argl(argc, argv, 0));
         const char *path = argstr(argc, argv, 1, buf, sizeof buf);

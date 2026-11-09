@@ -13,9 +13,9 @@ boom = au.LoadSound("PROGDIR:boom.wav")  ' 8SVX, WAV, or raw
 au.PlaySound boom, 48, -20               ' volume 0..64, pan -64 (left) .. 64 (right)
 ```
 
-Status: **draft API (2026-11-08)**, implementation in progress on branch `sound`. Names
-may still be added; the ones below will not change meaning without a note to the users
-(bb-app-tracker, the game agents, bb-3d).
+Status (2026-11-08): implemented as described here, on the Mac (null/wav/manual devices) and
+AmigaOS 4 (AHI). Names may still be added; the ones below will not change meaning without a
+note to their users (bb-app-tracker, the game agents, bb-3d).
 
 ## How it works
 
@@ -63,7 +63,7 @@ arguments.
 | `ResetHash` | |
 | `RenderToWav song, path [, maxSeconds]` | render a song from its start into a WAV file, without playing it, until it ends (or maxSeconds, default 600): the tracker's export |
 | `Volume` | Long 0..64: master volume (default 64) |
-| `CpuLoad` | Long, R/O: the mixer's share of the CPU in 1/10 percent, measured over the last second (OS4) |
+| `CpuLoad` | Long, R/O: the time the mixer task spent mixing over the last second, in 1/10 percent (AHI on OS4; -1 elsewhere) |
 
 ## Music
 
@@ -87,7 +87,7 @@ arguments.
 | `Row` | Long: the row playing (0..63); setting it jumps to that row of the current position |
 | `Pattern` | Long, R/O: the pattern number at the current position |
 | `Tick` | Long, R/O: tick within the row |
-| `JumpTo position [, row]` | jump (takes effect at the next row) |
+| `JumpTo position [, row]` | jump there now (the row is played from its start); `Position = p` is `JumpTo p, 0`, `Row = r` jumps within the current position |
 | `Speed` | Long: ticks per row (1..31, set by Fxx too) |
 | `Tempo` | Long: BPM (32..255) |
 | `Mute(channel)` | Boolean, read/write |
@@ -96,7 +96,7 @@ arguments.
 | `ChannelVU(channel)` | Long 0..64, R/O: the channel's peak level over the last chunk mixed (VU meter) |
 | `ChannelNote(channel)` | Long, R/O: the last note triggered on the channel (1..36, 0 none) |
 | `ChannelSample(channel)` | Long, R/O: its sample (1..31) |
-| `Scope(channel, buf(), n)` | fill `buf(0..n-1)` (Long or Integer array) with the channel's last n output samples, -128..127, n up to 1024. Channel -1 = the mixed left+right output, -32768..32767 |
+| `Scope(channel, n)` | a Long array `(0 To n-1)` of the channel's last n output samples (oldest first), -128..127, n up to 1024: `Dim sc() As Long: sc = au.Scope(0, 256)`. Channel -1 = the mixed output ((left + right) / 2), -32768..32767. (A function, not a buffer to fill: arrays reach late-bound calls as copies) |
 
 ## Live playing (tracker keyboard, jingles)
 
@@ -187,9 +187,40 @@ interpolated, as on Paula.
 
 ## Examples
 
-Glimmerfield (`examples/glimmerfield`) has music and effects, with M (music) and S (sound)
-switches. `tests/audio/` renders test modules and compares PCM hashes.
+Glimmerfield (`examples/glimmerfield`, `Sound.bas`) has music and effects, with M (music)
+and S (sound) switches: the music is `glimmer.mod`, made for the game by
+`tools/modgen/glimmerfield.py`; the effects are made at start-up with `SynthTone` and
+`SynthNoise`.
+
+```basic
+' a jingle without a file: play row 0 of pattern 3 of a song
+au.PlayRow song, 3, 0
+' an engine: a looped noise whose pitch follows the speed
+eng = au.PlaySound(hiss, 20, 0, 8000, True)
+au.VoiceRate(eng) = 8000 + speed * 40
+```
+
+## Files and tests
+
+| | |
+|---|---|
+| `src/runtime/audio/bbmod.c` | the ProTracker player and song data (from amiga3d's `modplay.c`) |
+| `src/runtime/audio/bbmix.c` | the mixer: music + 8 effect voices, master volume, PCM hash, WAV header |
+| `src/runtime/audio/bbsound.c` | 8SVX / WAV / raw loaders, `SynthTone` / `SynthNoise` |
+| `src/runtime/audio.c` | the `Audio` object, the null / wav / manual devices |
+| `src/runtime/os4/audio_os4.c` | AHI output from a mixer process |
+| `tools/modgen/` | `modlib.py` (from amiga_mcp's `examples/tools/modgen`), the test module and Glimmerfield's tune |
+
+`make test` runs `tests/audio/*.bas` (VM, JIT and native): `modplay` renders `fx.mod`, which
+uses every supported effect, and hashes the PCM; `sfx` covers the loaders, synthesis, voices,
+priorities and switches; `edit` builds an 8-channel song from BASIC, saves, reloads and plays
+it, edits it while it plays, and plays live notes and rows. `tests-os4/audio/audio.bas`
+(`tools/os4guest.py bas`) renders the same PCM on AmigaOS 4 (the hashes must match the Mac's)
+and plays through AHI.
+
+The player was checked against the original `modplay.c` on the amiga3d games' modules: the
+same samples within 1 LSB (rounding).
 
 ## CPU cost
 
-(to be measured on the m1 guest)
+(being measured on the m1 guest)

@@ -7,9 +7,10 @@
 '   Glimmerfield --blit M        how frames reach the window (Canvas.BlitMode 0-3)
 '   Glimmerfield --perf          timing overlay on screen and in the log
 '   Glimmerfield --lives N --log tests: N lives, and print each change of screen
+'   Glimmerfield --nosound       music and effects off (with --bench: off unless --sound)
 '
-' Keys: Left/Right turn, Up thrust, Space fire, P pause, F1 timing overlay,
-' Esc back to the title (or quit from the title).
+' Keys: Left/Right turn, Up thrust, Space fire, P pause, M music on/off, S effects on/off,
+' F1 timing overlay, Esc back to the title (or quit from the title).
 Option Explicit
 
 Private Const MODE_TITLE As Long = 0
@@ -34,6 +35,8 @@ Private keyDown(0 To 255) As Boolean
 Private firePressed As Boolean
 Private startLives As Long          ' --lives N (tests): lives at the start of a game
 Private logModes As Boolean         ' --log: print each change of screen
+Private noSound As Boolean          ' --nosound
+Private benchSound As Boolean       ' --sound (with --bench)
 
 ' totals for the --bench report
 Private benchLogic As Double
@@ -46,6 +49,13 @@ Private Function ScorePath() As String
     p = App.Path
     If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
     ScorePath = p & "glimmerfield.scores"
+End Function
+
+Private Function AppDir() As String
+    Dim p As String
+    p = App.Path
+    If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+    AppDir = p
 End Function
 
 Private Sub ParseArgs()
@@ -74,6 +84,10 @@ Private Sub ParseArgs()
                 End If
             Case "--log"
                 logModes = True
+            Case "--nosound"
+                noSound = True
+            Case "--sound"
+                benchSound = True
             Case "--blit"
                 If i < UBound(args) Then
                     i = i + 1
@@ -109,6 +123,7 @@ Private Sub Form_Load()
     InitRender
     HsLoad ScorePath()
     ParseArgs
+    SoundInit AppDir(), Not noSound And (benchN = 0 Or benchSound)
     PerfReset
     StartAttract
     If benchN > 0 Then
@@ -230,6 +245,7 @@ Private Sub DrawOverlay()
             If Not attractOnly And (modeTimer And 32) = 0 Then
                 DrawCentred view, 230, "PRESS SPACE TO PLAY", pal(7)
             End If
+            DrawCentred view, 200, SoundStatus(), pal(6)
         Case MODE_PLAY
             If state = ST_GAMEOVER Then DrawCentred view, 130, "GAME OVER", pal(28)
             If paused Then DrawCentred view, 150, "PAUSED", pal(7)
@@ -258,7 +274,8 @@ Private Function IIfS(ByVal cond As Boolean, ByVal a As String, ByVal b As Strin
 End Function
 
 Private Sub PlaySounds()
-    ' no sound API yet; sfx holds this frame's events (Game.bas SFX_*)
+    ' sfx holds this frame's events (Game.bas SFX_*); effects only while a person plays
+    SoundFrame sfx, ship.thrust And ship.alive, mode = MODE_PLAY And Not paused
 End Sub
 
 Private Sub BenchReport(ByVal totalMs As Double)
@@ -274,6 +291,7 @@ Private Sub BenchReport(ByVal totalMs As Double)
           "  blit " & Format$(benchBlit / n, "0.000") & " ms/frame, worst 1 s window frame " & _
           Format$(benchWorst, "0.0") & " ms"
     Print "blit: " & view.BlitInfo
+    If benchSound Then Print "sound: " & SoundStatus() & ", mixer cpu " & Format$(SoundCpu() / 10#, "0.0") & " %"
 End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
@@ -284,7 +302,11 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
         Case vbKeyF1
             showPerf = Not showPerf
         Case vbKeyP
-            If mode = MODE_PLAY Then paused = Not paused
+            If mode = MODE_PLAY Then paused = Not paused: SoundPause paused
+        Case vbKeyM
+            If mode <> MODE_ENTRY Then SoundToggleMusic
+        Case vbKeyS
+            If mode <> MODE_ENTRY Then SoundToggleEffects
         Case vbKeyEscape
             Select Case mode
                 Case MODE_TITLE
