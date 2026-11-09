@@ -1,0 +1,13 @@
+; Gridwise keyboard test (guest_smoke.py --keys typing "...", see README): the tool types
+; while the script waits in PAUSE; then the script checks what the keys did.
+NEW
+SETCELL A1 10
+SETCELL A2 20
+SETCELL A3 =A1+A2
+SELECT A1
+PAUSE 25 typing
+GETFORMAT A1
+GETCELL A2
+GETCELL A3
+GETCELL B1
+QUIT

@@ -12,6 +12,8 @@
 '   "paused tag", so a test can take a screenshot).
 Option Explicit
 
+Private stateFile As String           ' --state: "active"/"inactive" written here (guest tests)
+
 Private settingText As Boolean        ' formula.Text set by code: ignore its Change
 Private editing As Boolean            ' the formula bar holds an edit of the cursor cell
 Private lastStatus As String
@@ -51,9 +53,15 @@ Private Sub Form_Load()
             f = Left$(args, p - 1)
             args = Trim$(Mid$(args, p + 1))
         End If
-        If f = "--script" Or f = "--log" Then
+        If f = "--script" Or f = "--log" Or f = "--state" Then
             p = InStr(args & " ", " ")
-            If f = "--script" Then scr = Left$(args, p - 1) Else scriptLog = Left$(args, p - 1)
+            If f = "--script" Then
+                scr = Left$(args, p - 1)
+            ElseIf f = "--log" Then
+                scriptLog = Left$(args, p - 1)
+            Else
+                stateFile = Left$(args, p - 1)
+            End If
             args = Trim$(Mid$(args, p))
         ElseIf f <> "" Then
             RunCommand "OPEN " & f
@@ -770,4 +778,23 @@ Private Sub grid_MouseWheel(Delta As Integer)
     If topRow < 0 Then topRow = 0
     If topRow > NR - VisibleRows() Then topRow = NR - VisibleRows()
     Redraw
+End Sub
+
+' --state: tests send keys only while our window is the active one
+Private Sub Form_Activate()
+    WriteState "active"
+End Sub
+
+Private Sub Form_Deactivate()
+    WriteState "inactive"
+End Sub
+
+Private Sub WriteState(ByVal s As String)
+    Dim fn As Integer
+    If stateFile = "" Then Exit Sub
+    On Error Resume Next
+    fn = FreeFile
+    Open stateFile For Output As #fn
+    Print #fn, s
+    Close #fn
 End Sub

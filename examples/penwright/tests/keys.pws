@@ -1,0 +1,9 @@
+; Penwright keyboard test: typed text, Return, Backspace, Amiga-B (menu shortcut), Amiga-Z
+NEW
+PAUSE 30 typing
+GETPARA 0
+GETPARA 1
+PARACOUNT
+GETATTR 0 0
+GETATTR 1 0
+QUIT

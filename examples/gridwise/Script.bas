@@ -97,6 +97,13 @@ Public Function RunCommand(ByVal line As String) As String
         Case Else
             If CellKind(r, c) = KNUM Then RunCommand = CStr(CellNum(r, c)) Else RunCommand = CellText(r, c)
         End Select
+    Case "GETFORMAT"
+        If a1 = "" Then
+            r = curR: c = curC
+        ElseIf Not ParseCellName(a1, r, c) Then
+            RunCommand = Bad("bad cell " & a1): Exit Function
+        End If
+        RunCommand = CStr(GetFormat(r, c)): WantRedraw = False
     Case "SETCELL"
         If Not ParseCellName(a1, r, c) Then RunCommand = Bad("bad cell " & a1): Exit Function
         SetCell r, c, RestAfter(line, 2)

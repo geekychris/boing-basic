@@ -10,6 +10,10 @@ The binary and script go to DH1:office/ on the guest; the app runs as
 "paused <tag>" as the log's last line while it waits in a PAUSE: this tool then saves a
 screendump (QEMU HMP, over ssh for a remote guest) as PREFIX_<tag>.png. At the end the
 log must end with "ok", contain every --expect text and no "[rc 10]".
+--keys TAG "A-B DOWN 3 0 RETURN" types keys while the app waits in "PAUSE n TAG", and only
+while the app's window is the active one (the app writes "active"/"inactive" to
+DH1:office/state, --state): A-x = Amiga+x, S-x = Shift+x, letters, digits, SPACE, RETURN,
+TAB, BS, DEL, ESC, UP, DOWN, LEFT, RIGHT.
 `guest_smoke.py --shot OUT.png` only takes a screenshot.
 Holds the guest's lock and the "CLAUDE IS TESTING" banner (tools/os4guest.py).
 """
@@ -19,6 +23,38 @@ sys.path.insert(0, ROOT + "/tools")
 import os4guest as g  # noqa: E402
 
 HMP_PORT = int(os.environ.get("OS4_HMP_PORT", "2348"))
+RAW = {"SPACE": 0x40, "BS": 0x41, "TAB": 0x42, "RETURN": 0x44, "ESC": 0x45, "DEL": 0x46,
+       "UP": 0x4C, "DOWN": 0x4D, "RIGHT": 0x4E, "LEFT": 0x4F, ",": 0x38, ".": 0x39, "=": 0x0C, "-": 0x0B}
+for i, ch in enumerate("1234567890"):
+    RAW[ch] = 0x01 + i
+for row, base in (("QWERTYUIOP", 0x10), ("ASDFGHJKL", 0x20), ("ZXCVBNM", 0x31)):
+    for i, ch in enumerate(row):
+        RAW[ch] = base + i
+LSHIFT, RAMIGA = 0x60, 0x67
+
+
+def send_keys(m, seq):
+    """type a key sequence (see --keys)"""
+    def key(code, d):
+        m.tool("amiga_input_key", rawkey="%02x" % code, direction=d)
+        time.sleep(0.08)
+    for tok in seq.split():
+        quals = []
+        while len(tok) > 2 and tok[1] == "-" and tok[0] in "AS":
+            quals.append(RAMIGA if tok[0] == "A" else LSHIFT)
+            tok = tok[2:]
+        code = RAW.get(tok.upper())
+        if code is None:
+            raise SystemExit("unknown key " + tok)
+        if tok.isalpha() and len(tok) == 1 and tok.isupper() and not quals:
+            quals.append(LSHIFT)          # a capital letter
+        for q in quals:
+            key(q, "down")
+        key(code, "down")
+        key(code, "up")
+        for q in reversed(quals):
+            key(q, "up")
+        time.sleep(0.25)
 
 
 def screendump(local_png):
@@ -50,7 +86,7 @@ def main():
     if len(a) < 2:
         sys.exit(__doc__)
     binary, script = a[0], a[1]
-    pushes, expects, shots, extra = [], [], os.path.join(tempfile.gettempdir(), "office"), ""
+    pushes, expects, shots, extra, keys = [], [], os.path.join(tempfile.gettempdir(), "office"), "", {}
     i = 2
     while i < len(a):
         if a[i] == "--push":
@@ -61,6 +97,8 @@ def main():
             shots = a[i + 1]; i += 2
         elif a[i] == "--args":
             extra = a[i + 1]; i += 2
+        elif a[i] == "--keys":
+            keys[a[i + 1]] = a[i + 2]; i += 3
         else:
             sys.exit("unknown option " + a[i])
     name = os.path.basename(binary)
@@ -72,10 +110,10 @@ def main():
         print(g.push(m, script, "DH1:office/" + os.path.basename(script)))
         for loc, dest in pushes:
             print(g.push(m, loc, dest))
-        dos("delete DH1:office/smoke.log QUIET")
-        dos("run >NIL: DH1:office/%s %s --script DH1:office/%s --log DH1:office/smoke.log"
+        dos("delete DH1:office/smoke.log DH1:office/state QUIET")
+        dos("run >NIL: DH1:office/%s %s --script DH1:office/%s --log DH1:office/smoke.log --state DH1:office/state"
             % (name, extra, os.path.basename(script)))
-        seen, t0, log = set(), time.time(), ""
+        seen, t0, log, ok_keys = set(), time.time(), "", True
         while time.time() - t0 < float(os.environ.get("BB_TEST_TIMEOUT", "240")):
             time.sleep(1.5)
             log = dos("type DH1:office/smoke.log")
@@ -85,11 +123,19 @@ def main():
                 tag = last[7:].strip() or "shot%d" % len(seen)
                 if tag not in seen:
                     seen.add(tag)
+                    if tag in keys:
+                        st = dos("type DH1:office/state").strip()
+                        if st.splitlines()[-1:] != ["active"]:
+                            print("our window is not the active one (%r): not sending keys" % st)
+                            ok_keys = False
+                        else:
+                            send_keys(m, keys[tag])
+                            time.sleep(1)
                     screendump("%s_%s.png" % (shots, tag))
             elif last == "ok":
                 break
         print(log)
-        ok = log.rstrip().endswith("ok") and "[rc 10]" not in log and all(e in log for e in expects)
+        ok = ok_keys and log.rstrip().endswith("ok") and "[rc 10]" not in log and all(e in log for e in expects)
         missing = [e for e in expects if e not in log]
         if missing:
             print("missing:", missing)

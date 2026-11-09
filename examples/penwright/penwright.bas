@@ -8,6 +8,8 @@
 ' "PAUSE n tag" waits n seconds with "paused tag" as the log's last line)
 Option Explicit
 
+Private stateFile As String           ' --state: "active"/"inactive" written here (guest tests)
+
 Private lastShift As Integer          ' qualifiers of the last KeyDown (KeyPress has none)
 Private lastStatus As String
 Private settingBars As Boolean        ' toolbar values set by code: ignore their Click
@@ -43,9 +45,15 @@ Private Sub Form_Load()
         p = InStr(args & " ", " ")
         f = Left$(args, p - 1)
         args = Trim$(Mid$(args, p))
-        If f = "--script" Or f = "--log" Then
+        If f = "--script" Or f = "--log" Or f = "--state" Then
             p = InStr(args & " ", " ")
-            If f = "--script" Then scr = Left$(args, p - 1) Else scriptLog = Left$(args, p - 1)
+            If f = "--script" Then
+                scr = Left$(args, p - 1)
+            ElseIf f = "--log" Then
+                scriptLog = Left$(args, p - 1)
+            Else
+                stateFile = Left$(args, p - 1)
+            End If
             args = Trim$(Mid$(args, p))
         ElseIf f <> "" Then
             OpenFile f
@@ -771,4 +779,23 @@ Private Sub mnuDefSize_Click()
         PrefSize = Val(v)
         SavePrefs
     End If
+End Sub
+
+' --state: tests send keys only while our window is the active one
+Private Sub Form_Activate()
+    WriteState "active"
+End Sub
+
+Private Sub Form_Deactivate()
+    WriteState "inactive"
+End Sub
+
+Private Sub WriteState(ByVal s As String)
+    Dim fn As Integer
+    If stateFile = "" Then Exit Sub
+    On Error Resume Next
+    fn = FreeFile
+    Open stateFile For Output As #fn
+    Print #fn, s
+    Close #fn
 End Sub

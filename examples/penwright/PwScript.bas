@@ -129,6 +129,11 @@ Public Function RunCommand(ByVal line As String) As String
         k = Val(a1)
         If k < 0 Or k >= NP Then RunCommand = Fail("no paragraph " & k): Exit Function
         RunCommand = pText(k): PwRedraw = False
+    Case "GETATTR"
+        ' GETATTR para offset: the attribute bits and size of that character
+        k = Val(a1)
+        If k < 0 Or k >= NP Then RunCommand = Fail("no paragraph " & k): Exit Function
+        RunCommand = AttrAt(k, Val(Word(line, 3))) & " " & SizeAt(k, Val(Word(line, 3))): PwRedraw = False
     Case "PARACOUNT"
         RunCommand = CStr(NP): PwRedraw = False
     Case "GETCURSOR"
