@@ -94,7 +94,18 @@ Sub Main()
     fn(0) = 3: fi(0) = 0: fi(1) = 1: fi(2) = 2: fc(0) = 4
     fn(1) = 3: fi(4) = 2: fi(5) = 1: fi(6) = 3: fc(1) = Not RGB(255, 128, 0)
     k = e.ModelFromArrays(vx, vy, vz, 4, fn, fi, fc, 2)
+    ' a model file (written here, so the test needs no other files)
+    Open "e3crate.mdl" For Output As #1
+    Print #1, "# a crate with a lid, for engine3d.bas"
+    Print #1, "box body shade -20 20 0 30 -20 20"
+    Print #1, "v -10 30 -10      # 8"
+    Print #1, "v  10 30 -10"
+    Print #1, "v  10 40 -10"
+    Print #1, "v -10 40 -10"
+    Print #1, "f 5 8 11 10 9     # a fin, as given"
+    Close #1
     i = e.ModelLoad("e3crate.mdl")
+    Kill "e3crate.mdl"
     Print "arrays"; k; e.ModelFaces(k); " file"; i; e.ModelVerts(i); e.ModelFaces(i)
     cv.Cls 0
     e.Begin 3000

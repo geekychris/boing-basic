@@ -14,7 +14,6 @@
 #include <string.h>
 #include <strings.h>
 #include <ctype.h>
-#include <math.h>
 
 #define ARGB(vb) (0xFF000000u | (((uint32_t)(vb) & 0xFFu) << 16) | ((uint32_t)(vb) & 0xFF00u) | \
                   (((uint32_t)(vb) >> 16) & 0xFFu))
@@ -67,7 +66,7 @@ typedef struct bb_e3d {
     int32_t sky_pen, sky_rows;
     uint32_t sky[1024];
     int32_t shading, amb;
-    double lx, ly, lz;
+    int32_t lix, liy, liz;               /* the light direction, 16.16 unit vector */
     int32_t fog_on;
     uint32_t fog_col;
     int32_t fog_near, fog_far;
@@ -279,16 +278,22 @@ static uint32_t mix_col(uint32_t a, uint32_t b, int32_t t)   /* t 0..256 towards
     return 0xFF000000u | r << 16 | g << 8 | bl;
 }
 
-/* Lambert: 0..256 for a face normal (world space, any length) */
-static int32_t lambert(const bb_e3d *e, double nx, double ny, double nz)
+/* Lambert: 0..256 for a face normal (world space, any length). Integer only, so every
+ * platform shades alike (GCC fuses floating multiply-adds on PPC). */
+static int32_t lambert(const bb_e3d *e, double fx, double fy, double fz)
 {
-    double m = nx * nx + ny * ny + nz * nz, d;
+    int64_t nx = (int64_t)fx, ny = (int64_t)fy, nz = (int64_t)fz, d;
+    uint32_t len;
     int32_t k;
-    if (m <= 0) return 256;
-    d = (nx * e->lx + ny * e->ly + nz * e->lz);
+    while (nx > 16383 || nx < -16383 || ny > 16383 || ny < -16383 || nz > 16383 || nz < -16383) {
+        nx /= 2; ny /= 2; nz /= 2;
+    }
+    len = a3_isqrt((uint32_t)(nx * nx + ny * ny + nz * nz));
+    if (!len) return 256;
+    d = nx * e->lix + ny * e->liy + nz * e->liz;        /* light: 16.16 unit vector */
     if (d < 0) d = 0;
-    d /= sqrt(m);
-    k = e->amb + (int32_t)((256 - e->amb) * d);
+    d /= len;                                           /* cos, 16.16 */
+    k = e->amb + (int32_t)(((int64_t)(256 - e->amb) * d) >> 16);
     return k < 0 ? 0 : k > 256 ? 256 : k;
 }
 
@@ -1197,6 +1202,17 @@ static void palette(bb_e3d *e, int argc, bb_value *argv, int twelve)
     }
 }
 
+static void set_light(bb_e3d *e, int32_t x, int32_t y, int32_t z)
+{
+    uint32_t len;
+    while (x > 16383 || x < -16383 || y > 16383 || y < -16383 || z > 16383 || z < -16383) { x /= 2; y /= 2; z /= 2; }
+    len = a3_isqrt((uint32_t)(x * x + y * y + z * z));
+    if (!len) bb_raise(5, NULL);
+    e->lix = (int32_t)(((int64_t)x << 16) / len);
+    e->liy = (int32_t)(((int64_t)y << 16) / len);
+    e->liz = (int32_t)(((int64_t)z << 16) / len);
+}
+
 static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
 {
     bb_e3d *e = (bb_e3d *)self;
@@ -1630,12 +1646,7 @@ static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         if (setting) e->shading = argl(argc, argv, argc - 1) != 0; else *ret = bb_v_long(e->shading);
         return;
     case M_LIGHT:
-        e->lx = argl(argc, argv, 0); e->ly = argl(argc, argv, 1); e->lz = argl(argc, argv, 2);
-        {
-            double m = sqrt(e->lx * e->lx + e->ly * e->ly + e->lz * e->lz);
-            if (m <= 0) bb_raise(5, NULL);
-            e->lx /= m; e->ly /= m; e->lz /= m;
-        }
+        set_light(e, argl(argc, argv, 0), argl(argc, argv, 1), argl(argc, argv, 2));
         e->amb = argl_opt(argc, argv, 3, 64);
         return;
     case M_FOG: {
@@ -1826,7 +1837,7 @@ bb_obj *bb_engine3d_new(void)
     e->sub = 1;
     e->sky_pen = -1;
     e->amb = 64;
-    e->lx = -1 / 2.449489742783178; e->ly = 2 / 2.449489742783178; e->lz = 1 / 2.449489742783178;
+    set_light(e, -1, 2, 1);
     cam_view(&e->cam.c, 320, 256, 160, 128, 256);
     cam_trig(&e->cam);
     e_begin(e, 4096);
