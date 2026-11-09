@@ -14,7 +14,8 @@ handlers), [a stroke painted with real mouse input](docs/input.png).
 
 - **Tools** (key): Freehand `d`, Line `v`, Rectangle `r` / filled `R`, Ellipse `o` / filled `O`,
   Flood fill `f` (with tolerance), Airbrush `a`, Text `t`, Select `s`, Pick colour `i`, Eraser `e`,
-  Gradient `G`. Shift constrains shapes (squares, circles, 45° lines). Brush size 1–64, round
+  Gradient `G`. The left button paints with the foreground colour, the right button (or
+  Alt+click) with the background colour. Shift constrains shapes (squares, circles, 45° lines). Brush size 1–64, round
   or square (`[` `]`), with an outline under the pointer.
 - **Selections**: cut, copy, paste as a floating selection you drag into place, move (Ctrl:
   copy), clear, crop, and **custom brushes** from a selection (flip, rotate, double/half size,
@@ -129,10 +130,6 @@ mouse move costs 0.04 ms in both the VM and native builds.
 
 ## Known limits
 
-- The picture view is a fixed 640 x 480 canvas (form canvases don't resize with the window
-  yet); zoom and scrolling cover larger pictures.
-- The right mouse button opens the menus (as in every OS4 window), so painting with the
-  background colour is Alt+click; a canvas option to take the right button is requested.
 - Text uses the built-in 6 x 9 font, scaled; no OS fonts yet.
 - Selections are rectangles (no lasso or magic wand); flood fill works on the current layer.
 - Iconify isn't available in forms yet; "Icon on Workbench" gives the AppIcon for drops.

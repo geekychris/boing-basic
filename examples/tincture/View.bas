@@ -19,6 +19,8 @@ Public viewBack As Long                      ' the colour around the picture
 Private mainW As Long                        ' width of the main pane (all of it without magnifier)
 
 Public Sub ViewInit(ByVal w As Long, ByVal h As Long)
+    If w < 16 Then w = 16
+    If h < 16 Then h = 16
     viewW = w: viewH = h
     If zoomPct = 0 Then zoomPct = 100
     If magZoom = 0 Then magZoom = 6

@@ -119,6 +119,13 @@ Private Sub Form_Deactivate()
     If logActive Then Debug.Print "inactive"
 End Sub
 
+' the view follows the window (fill=1): new view size, same picture place
+Private Sub view_Resize()
+    Tr "view resize " & view.Width & "x" & view.Height
+    ViewInit view.Width, view.Height
+    needView = True
+End Sub
+
 Private Sub Form_Resize()
     Tr "resize"
     needView = True          ' drawn by the next tick (a relayout must not recurse into drawing)
@@ -306,7 +313,7 @@ Private Sub view_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As 
         Exit Sub
     End If
     ViewToDoc X, Y, dx, dy
-    ' Alt+click paints with the background colour (the right button opens the menus)
+    ' the right button (rmb=1) or Alt+click paints with the background colour
     If (Shift And 4) <> 0 And (Button And 1) <> 0 Then Button = 2
     ToolDown dx, dy, Button, Shift
     AfterToolEvent

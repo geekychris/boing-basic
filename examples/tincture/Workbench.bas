@@ -3,7 +3,6 @@
 ' Every call is guarded: on the host (headless test runs) these are stubs or missing.
 Option Explicit
 
-Private clipCv As Object          ' helper canvas for Clipboard.GetPicture (it fills a back buffer)
 
 Public Sub WbInit(ByVal portName As String)
     On Error Resume Next
@@ -47,15 +46,8 @@ End Sub
 
 ' a picture on the clipboard as a new image of cv (0 if there is none)
 Public Function WbClipboardGet(cv As Object) As Long
-    Dim tmp As String
     On Error GoTo none
-    If Not Clipboard.HasPicture Then Exit Function
-    If clipCv Is Nothing Then Set clipCv = CreateObject("Boing.Canvas")
-    Clipboard.GetPicture clipCv
-    tmp = "T:tincture-clip.ppm"
-    clipCv.SaveImage tmp
-    WbClipboardGet = cv.LoadImage(tmp)
-    Kill tmp
+    WbClipboardGet = Clipboard.GetImage(cv)
     Exit Function
 none:
     WbClipboardGet = 0

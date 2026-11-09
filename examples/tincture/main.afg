@@ -1,11 +1,11 @@
 # AmiForge GUI (edit with Tools > GUI Designer)
-window name=main title="Tincture" width=920 height=560 resizable=1 dropfiles=1 iconify=1 remember=1
+window name=main title="Tincture" width=920 height=600 resizable=1 dropfiles=1 iconify=1 remember=1
 vlayout id=root
   hlayout id=body
     vlayout id=left weight=0
       canvas id=tools width=62 height=238
       space id=leftfill
-    canvas id=view width=640 height=480 mousemove=1
+    canvas id=view width=480 height=360 mousemove=1 rmb=1 fill=1
     vlayout id=side weight=0
       canvas id=colours width=168 height=362
       hlayout id=sizerow weight=0

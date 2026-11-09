@@ -32,7 +32,8 @@ DIR = "DH1:tincture"
 def hmp_shot(path_local):
     """QEMU screendump of the whole guest screen (HMP on the QEMU machine's 127.0.0.1:2348)."""
     remote = "/tmp/tincture_shot.ppm"
-    cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 2348 >/dev/null; sleep 1" % remote
+    port = int(os.environ.get("OS4_HMP_PORT", g._G.get("hmp", 2348)))      # each guest's own QEMU
+    cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 %d >/dev/null; sleep 1" % (remote, port)
     if g.SSH:
         subprocess.run(["ssh", g.SSH, cmd], check=True, timeout=30)
         subprocess.run(["scp", "-q", "%s:%s" % (g.SSH, remote), path_local + ".ppm"], check=True, timeout=60)

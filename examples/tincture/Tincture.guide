@@ -31,8 +31,9 @@ ARexx. It is written in Boing BASIC.
 @{u}Tool box@{uu} (left): the twelve tools, then Undo and Redo. The tool in use
 has an amber frame.
 
-@{u}Picture@{uu} (middle): paint with the left mouse button in the foreground
-colour, with the right button in the background colour. Drag with the
+@{u}Picture@{uu} (middle, it grows with the window): paint with the left mouse button in the foreground
+colour, with the right button (or Alt and the left button) in the
+background colour. The menus open with the right button anywhere else. Drag with the
 middle button, or hold Space and drag, to move the picture around.
 The mouse wheel scrolls; with Ctrl, or when zoomed in, it zooms around
 the pointer. The outline under the pointer shows the brush.
