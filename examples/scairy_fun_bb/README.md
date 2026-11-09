@@ -9,6 +9,8 @@ multiplied by how long it has stayed on (up to x8). The autopilot is good, but i
 spots: take the wheel just before it gets something wrong, then hand it back. Take over when it
 was right all along and it tells you "I had that."
 
+![Levee Road on autopilot, on the guest](screenshots/os4-levee.png)
+
 
 | Key | |
 |---|---|
@@ -28,6 +30,11 @@ lines), **Rush Hour** to the office (v2.0: overpass shadows, a coned-off lane, a
 debris), **Mountain Pass** to the ski lodge (v3.0: the low sun, fallen rocks, old lines) and
 **Flooded Town** home (v4.0: flooded streets, a detour through the oncoming lane, an ambulance,
 a phantom shadow). Damage comes off your insurance cover; at 0 the policy is cancelled.
+
+| | |
+|---|---|
+| ![Mountain Pass: the low sun blinds the autopilot](screenshots/os4-mountain.png) | ![Flooded Town from the cockpit](screenshots/os4-town.png) |
+| ![The title](screenshots/os4-title.png) | ![The rules, page 3](screenshots/os4-help.png) |
 
 
 ## What is the same, what changed
@@ -95,13 +102,34 @@ Changed:
   autopilot along each route to the destination, the shipped autopilot hands-off along each
   route (failing its hazards: the river, the policy cancelled), and random hands on each route
   (takeovers, needless grabs, crashes). The state hash is compared every 1000 frames.
-- **Guest smoke run**: `BB_GUEST=m1b examples/common/tools/guest_game.py
-  examples/scairy_fun_bb/ScairyFun.bbp vm --smoke 400 --data RAM:bbg/examples/scairy_fun_bb`.
+- **Guest smoke run**: `BB_GUEST=m1c examples/common/tools/guest_game.py
+  examples/scairy_fun_bb/ScairyFun.bbp vm --smoke 400` (real time with the music, the effects and
+  the voice through AHI). **Screenshots**: `tools/guest_shots.py OUTDIR [vm] [names]` (one lock
+  ticket each; the ones here are from m1b).
 
 ## Performance
 
-On the Mac (Apple M-series), `Bench.bbp --frames 3000 --route 1` (the autopilot, every frame drawn on an off-screen
-canvas): VM `logic 0.024 draw 0.187 ms/frame, 4736.3 fps;  polys/frame 388.5`; native `logic 0.003 draw 0.077 ms/frame, 12522.6 fps;  polys/frame 388.5`. The VM and native
-builds give the same state and picture hashes.
+`ScairyFun --bench 500`: the perfect autopilot drives route 1 in the form's window, frames back
+to back, every frame drawn (the road through Engine3D, about 400 polygons, the HUD through the
+Canvas) and shown. On **m1c** (QEMU sam460ex on an unloaded Mac), ms per frame:
 
-The guest numbers (m1b: VM, JIT, native) and the guest screenshots follow in the next update.
+| | logic | draw | blit | frame | fps |
+|---|---:|---:|---:|---:|---:|
+| VM (`boing run`) | 7.61 | 24.74 | 3.39 | 36.09 | **27.7** |
+| VM `--jit` | 9.47 | 27.54 | 3.31 | 40.75 | **24.5** |
+| native (`boing build --target os4`) | 0.74 | 6.88 | 3.21 | 11.03 | **90.7** |
+
+All three end in the same state hash (1B758A86). Played in real time (`--smoke 400`: the form's
+timer, the music, the effects and the voice through AHI) the VM shows **30.2 fps** on m1c.
+
+Getting there: the first port drew each segment in its own engine pass and worked out every
+strip, tree and lane dot each frame: 16.3 fps in the VM. Now each segment's strips and scenery
+are made once and kept (one engine pass a frame), the AI view's dots are one `PSetMany`, and the
+object loops test for an empty slot first; the picture and the hashes are unchanged. The form's
+timer starts its 20 ms again only when the frame is done, so the game takes the frame's own time
+off the next wait (that took the real-time run from 16.9 to 30.2 fps). The JIT doesn't help
+under QEMU (see docs/performance.md); the plain VM is the one to use.
+
+On the Mac (Apple M-series), `Bench.bbp --frames 3000 --route 1`: VM `logic 0.019 draw 0.102
+ms/frame, 8285.8 fps`; native `logic 0.002 draw 0.065 ms/frame, 14793.8 fps` (388.5 polys a
+frame); the same state and picture hashes (8F4A00E0, 1942729246).
