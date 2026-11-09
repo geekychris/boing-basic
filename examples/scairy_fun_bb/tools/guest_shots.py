@@ -5,7 +5,7 @@ README: the game is started with each set of arguments, left to run, the screen 
 
     guest_shots.py OUTDIR [vm|native] [name ...]
 One lock ticket per screenshot (the 5-minute rule). Writes OUTDIR/<name>.png (the whole guest screen). Uses examples/common/tools/guest_game.py's
-helpers (FIFO ticket, emulator lock, banner, RAM:bbg/).
+helpers (FIFO ticket, emulator lock, banner, its own RAM:bbg-<pid>/, deleted after each shot).
 """
 import os, subprocess, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -50,7 +50,7 @@ def one(out, mode, name, args, secs):
     with g.testing("Boing BASIC: ScAIry Fun screenshot " + name):
         fl = gg.files_of(src)
         dirs = sorted({os.path.dirname(gg.amiga(p)) for p in fl})
-        m.tool("amiga_dos_command", command="makedir RAM:bbg " + " ".join(
+        m.tool("amiga_dos_command", command="makedir " + gg.RUN + " " + " ".join(
             sorted({"/".join(x.split("/")[:i]) for x in dirs for i in range(2, x.count("/") + 2)})) + " QUIET")
         for f in fl:
             g.push(m, f, gg.amiga(f))
@@ -58,11 +58,11 @@ def one(out, mode, name, args, secs):
         if exe:
             g.push(m, exe, d + "/ScairyFun")
         else:
-            g.push(m, os.path.join(gg.ROOT, "build/os4/boing"), "RAM:bbg/boing")
+            g.push(m, os.path.join(gg.ROOT, "build/os4/boing"), gg.RUN + "/boing")
         m.tool("amiga_dos_command", command="cd " + d)
         if True:
-            cmd = ("%s/ScairyFun %s" % (d, args)) if exe else ("RAM:bbg/boing run %s %s --data %s" % (gg.amiga(src), args, d))
-            m.tool("amiga_dos_command", command="run >NIL: %s >RAM:bbg/shot.out *>RAM:bbg/shot.err" % cmd)
+            cmd = ("%s/ScairyFun %s" % (d, args)) if exe else ("%s/boing run %s %s --data %s" % (gg.RUN, gg.amiga(src), args, d))
+            m.tool("amiga_dos_command", command="run >NIL: %s >%s/shot.out *>%s/shot.err" % (cmd, gg.RUN, gg.RUN))
             time.sleep(secs)
             hmp("mouse_move 1 0")
             time.sleep(1)
@@ -71,7 +71,9 @@ def one(out, mode, name, args, secs):
             gg.screendump(os.path.join(out, name + ".png"))
             gg.stop_ours(m)
             time.sleep(4)
-            print(name, str(m.tool("amiga_dos_command", command="type RAM:bbg/shot.err")).strip()[:300])
+            print(name, str(m.tool("amiga_dos_command", command="type " + gg.RUN + "/shot.err")).strip()[:300])
+        m.tool("amiga_dos_command", command="cd RAM:")
+        m.tool("amiga_dos_command", command="delete %s ALL QUIET FORCE" % gg.RUN)
         n = g.reapers(m)
         print("Grim Reapers:", n)
 
