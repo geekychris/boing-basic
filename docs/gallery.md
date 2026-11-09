@@ -465,9 +465,9 @@ An animation in a window opened and painted entirely through Declare'd intuition
 
 **Shows off:** Declare and the generated bindings, TagLists, PeekL/PeekB into OS structures, graphics.library drawing, an IDCMP message loop in BASIC
 
-<img src="../examples/declare_gfx/gallery/declare_gfx.png" width="560" alt="The window, drawn with RectFillColor, Move/Draw, WritePixelColor and Text">
+<img src="../examples/declare_gfx/gallery/declare_gfx.png" width="560" alt="The bouncing box, the cross and the frame counter, drawn with RectFillColor, Move/Draw, WritePixelColor and Text">
 
-*The window, drawn with RectFillColor, Move/Draw, WritePixelColor and Text*
+*The bouncing box, the cross and the frame counter, drawn with RectFillColor, Move/Draw, WritePixelColor and Text*
 
 [source](../examples/declare_gfx/)
 

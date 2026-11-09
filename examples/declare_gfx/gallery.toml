@@ -6,5 +6,5 @@ shows = ["Declare and the generated bindings", "TagLists, PeekL/PeekB into OS st
 
 [[shot]]
 file = "gallery/declare_gfx.png"
-caption = "The window, drawn with RectFillColor, Move/Draw, WritePixelColor and Text"
-run = { project = "declare_gfx.bbp", args = "--frames 3000", secs = 3, dumps = 4, wait_exit = 150 }
+caption = "The bouncing box, the cross and the frame counter, drawn with RectFillColor, Move/Draw, WritePixelColor and Text"
+run = { project = "declare_gfx.bbp", args = "--frames 2500", secs = 3, dumps = 6, wait_exit = 90 }
