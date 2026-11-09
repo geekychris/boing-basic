@@ -14,13 +14,23 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 sys.path.insert(0, ROOT + "/tools")
 import os4guest as g
 SHOTS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(tempfile.gettempdir(), "glimmerfield_flow")
-HMP = ("127.0.0.1", int(os.environ.get("OS4_HMP_PORT", "2348")))
+# the guest's QEMU monitor: on this Mac (local) or, for a guest on m1, on m1.local over ssh
+HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))
+if g.GUEST == "m1":
+    raise SystemExit("m1 is the user's own guest: run this on BB_GUEST=m1b, m1c or local")
 
 def shot(name):
+    import subprocess
     path = "%s_%s.ppm" % (SHOTS, name)
-    s = socket.create_connection(HMP, timeout=10)
-    time.sleep(0.5); s.recv(65536)
-    s.sendall(("screendump %s\n" % path).encode()); time.sleep(2); s.recv(65536); s.close()
+    remote = "/tmp/glimflow_%d_%s.ppm" % (os.getpid(), name) if g.SSH else path
+    py = ("import socket,time;s=socket.create_connection(('127.0.0.1',%d),10);time.sleep(0.5);s.recv(65536);"
+          "s.sendall(b'screendump %s\\n');time.sleep(2);s.recv(65536);s.close()" % (HMP_PORT, remote))
+    if g.SSH:
+        g._ssh("python3 -c \"%s\"" % py)
+        subprocess.run(["scp", "-q", "%s:%s" % (g.SSH, remote), path])
+        g._ssh("rm -f " + remote)
+    else:
+        subprocess.run(["python3", "-c", py])
     print("screenshot", path)
 
 def main():
@@ -82,4 +92,5 @@ def main():
         print("end:", wait_for("bye", 20))
         dos("delete DH1:glim/glimmerfield.scores DH1:glim/flow.txt QUIET")
 
-main()
+if __name__ == "__main__":
+    main()

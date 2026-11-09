@@ -20,6 +20,8 @@ import os4guest as g
 FRAMES = int(sys.argv[1]) if len(sys.argv) > 1 else 1500
 HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448", "m1c": "2548"}.get(g.GUEST, "2348")))   # QEMU monitors on m1
 CAP = "/tmp/bb_glim_sound.wav"
+if g.GUEST == "m1":
+    raise SystemExit("m1 is the user's own guest: run this on BB_GUEST=m1b, m1c or local")
 
 
 def hmp(cmd):
