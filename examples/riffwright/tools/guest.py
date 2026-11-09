@@ -26,11 +26,18 @@ DIR = "DH1:riffwright"
 SONG = DIR + "/demos/harbour_lights.mod"
 
 
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": "2448"}.get(g.GUEST, "2348")))
+# QEMU's HMP monitor port of each guest, on the machine its QEMU runs on. Each guest has its
+# own: a wrong port would screenshot (or move the mouse of) someone else's guest, the user's
+# m1 guest among them. Unknown guests get no screenshots unless OS4_HMP_PORT says which port.
+HMP_PORTS = {"local": 2348, "m1": 2348, "m1b": 2448, "m1c": 2548, "spark": 2348}
+HMP_PORT = int(os.environ["OS4_HMP_PORT"]) if os.environ.get("OS4_HMP_PORT") else HMP_PORTS.get(g.GUEST)
 
 
 def hmp_shot(path_local):
     """QEMU screendump of the whole guest screen (HMP on the QEMU machine's 127.0.0.1:2348, m1b 2448)."""
+    if not HMP_PORT:
+        print("no screenshot: HMP port of guest %r unknown (set OS4_HMP_PORT)" % g.GUEST)
+        return
     remote = "/tmp/riffwright_shot_%s.ppm" % g.GUEST
     cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 %d >/dev/null; sleep 1" % (remote, HMP_PORT)
     if g.SSH:
