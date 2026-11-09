@@ -832,7 +832,11 @@ Public Function DataFile(ByVal name As String) As String
     If Len(dataDir) > 0 Then
         If Right$(dataDir, 1) = ":" Or Right$(dataDir, 1) = "/" Then DataFile = dataDir & name Else DataFile = dataDir & "/" & name
     Else
+        ' beside the program, or (boing run from the game's directory) the current directory
         DataFile = HsPath(name)
+        If Len(Dir$(DataFile)) = 0 Then
+            If Len(Dir$(name)) > 0 Then DataFile = name
+        End If
     End If
 End Function
 
