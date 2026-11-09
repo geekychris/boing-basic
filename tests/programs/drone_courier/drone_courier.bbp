@@ -1,0 +1,6 @@
+# Drone Courier's rules (examples/drone_courier): flights with hashes equal to the C original's
+Name=DcTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/drone_courier/DcCore.bas
+Module=dctest.bas
