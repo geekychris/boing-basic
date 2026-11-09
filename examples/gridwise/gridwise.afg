@@ -29,13 +29,13 @@ menu id=mnuProject text="Project"
   menu id=mnuOpen text="Open..." key=O
   menu id=mnuRecent text="Open recent"
     menu id=mnuRecent0 text="(none)" disabled=1
-    menu id=mnuRecent1 text="-"
-    menu id=mnuRecent2 text="-"
-    menu id=mnuRecent3 text="-"
-    menu id=mnuRecent4 text="-"
-    menu id=mnuRecent5 text="-"
-    menu id=mnuRecent6 text="-"
-    menu id=mnuRecent7 text="-"
+    menu id=mnuRecent1 text="(empty)" hidden=1
+    menu id=mnuRecent2 text="(empty)" hidden=1
+    menu id=mnuRecent3 text="(empty)" hidden=1
+    menu id=mnuRecent4 text="(empty)" hidden=1
+    menu id=mnuRecent5 text="(empty)" hidden=1
+    menu id=mnuRecent6 text="(empty)" hidden=1
+    menu id=mnuRecent7 text="(empty)" hidden=1
   menu id=mnuSave text="Save" key=S
   menu id=mnuSaveAs text="Save as..."
   menu text=-
