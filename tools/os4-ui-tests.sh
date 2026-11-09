@@ -21,5 +21,13 @@ for t in $tests; do
         echo "$t: still running (CLI $c): sending Ctrl-C"
         timeout 60 tools/os4guest.py dos "break $c C" >/dev/null 2>&1
     done
+    if [ -n "$cli" ]; then
+        sleep 5
+        if timeout 60 tools/os4guest.py dos status 2>/dev/null | grep -q "bbtest/$t"; then
+            # blocked inside the OS (e.g. a crashed task holds Intuition's lock): Ctrl-C can't reach it
+            echo "$t: STUCK after Ctrl-C - the guest needs a restart (ask the lead); stopping here"
+            exit 3
+        fi
+    fi
 done
 exit $fail
