@@ -35,6 +35,11 @@ Sub Main()
     Print "hit (5,5) "; HitTest(5, 5, r, c, e); r; c; e
     Print "hit edge "; HitTest(RHDR_W + 96 - 1, 5, r, c, e); r; c; e
     Print "chart at "; ChartAt(ColX(chCol(0)) + 10, RowY(chRow(0)) + 10, k); k
+    ' AutoSum
+    LogLines = ""
+    RunScript "NEW" & vbLf & "SETCELL B2 1" & vbLf & "SETCELL B3 2" & vbLf & "SETCELL B4 3" & vbLf & "SELECT B5" & vbLf & "AUTOSUM" & vbLf & "GETCELL B5" & vbLf & _
+        "SETCELL C2 5" & vbLf & "SETCELL D2 6" & vbLf & "SELECT E2" & vbLf & "AUTOSUM" & vbLf & "SELECT B2:D4" & vbLf & "AUTOSUM" & vbLf & "GETFORMULA D5" & vbLf & "SELECT H9" & vbLf & "AUTOSUM", True
+    Print LogLines;
     ' row heights
     LogLines = ""
     RunScript "ROWHEIGHT 3 30" & vbLf & "ROWHEIGHT 3" & vbLf & "ROWHEIGHT 0 9" & vbLf & "SELECT A1", True

@@ -104,6 +104,9 @@ Public Function RunCommand(ByVal line As String) As String
             RunCommand = Bad("bad cell " & a1): Exit Function
         End If
         RunCommand = CStr(GetFormat(r, c)): WantRedraw = False
+    Case "AUTOSUM"
+        RunCommand = AutoSum()
+        If RunCommand = "" Then ScriptRC = 5: RunCommand = "nothing to sum"
     Case "SETCELL"
         If Not ParseCellName(a1, r, c) Then RunCommand = Bad("bad cell " & a1): Exit Function
         SetCell r, c, RestAfter(line, 2)
@@ -268,6 +271,47 @@ Public Function RunCommand(ByVal line As String) As String
         RunCommand = Bad("unknown command " & cmd)
         WantRedraw = False
     End Select
+End Function
+
+' AutoSum: a SUM of the numbers above the cursor (or to its left); with a range selected,
+' sums under each of its columns. Returns the formula entered ("" if there was nothing).
+Public Function AutoSum() As String
+    Dim r1 As Long, c1 As Long, r2 As Long, c2 As Long, r As Long, c As Long, top As Long, f As String
+    SelBounds r1, c1, r2, c2
+    If r1 <> r2 Or c1 <> c2 Then
+        If r2 + 1 >= NR Then Exit Function
+        BeginAction
+        BeginBatch
+        For c = c1 To c2
+            f = "=SUM(" & RangeName(r1, c, r2, c) & ")"
+            SetCell r2 + 1, c, f
+        Next c
+        EndBatch
+        EndAction
+        MoveCursor r2 + 1, c1, False
+        AutoSum = f
+        Exit Function
+    End If
+    r = curR: c = curC
+    ' numbers above?
+    top = r - 1
+    Do While top >= 0
+        If CellKind(top, c) <> KNUM Then Exit Do
+        top = top - 1
+    Loop
+    If top < r - 1 Then
+        f = "=SUM(" & RangeName(top + 1, c, r - 1, c) & ")"
+    Else
+        top = c - 1
+        Do While top >= 0
+            If CellKind(r, top) <> KNUM Then Exit Do
+            top = top - 1
+        Loop
+        If top = c - 1 Then Exit Function
+        f = "=SUM(" & RangeName(r, top + 1, r, c - 1) & ")"
+    End If
+    SetCell r, c, f
+    AutoSum = f
 End Function
 
 ' put a new chart right of the used cells, below any chart already there

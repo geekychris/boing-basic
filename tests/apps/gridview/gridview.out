@@ -57,11 +57,27 @@ hit (45,20) True 0  0 False
 hit (5,5) True-1 -1 False
 hit edge True-1  0 True
 chart at  0 False
+NEW -> 
+SETCELL B2 1 -> 
+SETCELL B3 2 -> 
+SETCELL B4 3 -> 
+SELECT B5 -> B5
+AUTOSUM -> =SUM(B2:B4)
+GETCELL B5 -> 6
+SETCELL C2 5 -> 
+SETCELL D2 6 -> 
+SELECT E2 -> E2
+AUTOSUM -> =SUM(B2:D2)
+SELECT B2:D4 -> B2:D4
+AUTOSUM -> =SUM(D2:D4)
+GETFORMULA D5 -> =SUM(D2:D4)
+SELECT H9 -> H9
+AUTOSUM -> nothing to sum [rc 5]
 ROWHEIGHT 3 30 -> 
 ROWHEIGHT 3 -> 30
 ROWHEIGHT 0 9 -> ROWHEIGHT row [pixels] [rc 10]
 SELECT A1 -> A1
-tall row hash B052290 RowY(4)  91  visible  25 
+tall row hash 6D4C376E RowY(4)  91  visible  25 
 hit in row 3: True 2  0 
 row edge at row 3 bottom:  2  none: -1 
 saved: True
@@ -71,7 +87,7 @@ SELECT ZZ -> bad range ZZ [rc 10]
 FORMAT weird -> unknown format weird [rc 10]
 GETFORMULA A1 -> =SUM(
 UNDO -> 
-GETCELL A1 -> Household budget 2026
-FIND transport -> A6
+GETCELL A1 -> 
+FIND transport ->  [rc 5]
 SORT B DESC -> 
 VERSION -> Gridwise 1.0

@@ -2,6 +2,21 @@
 window name=gridwise title="Gridwise" width=660 height=470 resizable=1
 vlayout id=root
   hlayout weight=0
+    button id=tbNew text="New" weight=0 hint="New sheet (Amiga-N)"
+    button id=tbOpen text="Open" weight=0 hint="Open a sheet or CSV file (Amiga-O)"
+    button id=tbSave text="Save" weight=0 hint="Save (Amiga-S)"
+    space weight=0 width=8
+    button id=tbUndo text="Undo" weight=0 hint="Undo (Amiga-Z)"
+    button id=tbRedo text="Redo" weight=0 hint="Redo (Amiga-Y)"
+    space weight=0 width=8
+    button id=tbBold text="B" weight=0 hint="Bold (Amiga-B)"
+    button id=tbItalic text="I" weight=0 hint="Italic (Amiga-I)"
+    chooser id=tbFormat items="General|Integer|Fixed|Thousands|Thousands .00|Percent|Percent .00|Currency|Scientific|Date|Time" selected=0 weight=0 hint="Number format"
+    space weight=0 width=8
+    button id=tbSum text="Sum" weight=0 hint="AutoSum: a SUM of the numbers above (Amiga-U)"
+    button id=tbChart text="Chart" weight=0 hint="Bar chart of the selection"
+    space
+  hlayout weight=0
     label id=cellname text="A1      "
     string id=formula text=""
     button id=enter text="_Enter" weight=0
@@ -42,6 +57,7 @@ menu id=mnuEdit text="Edit"
   menu text=-
   menu id=mnuFillDown text="Fill down" key=D
   menu id=mnuFillRight text="Fill right" key=R
+  menu id=mnuAutoSum text="AutoSum" key=U
   menu text=-
   menu id=mnuSelAll text="Select all" key=A
   menu id=mnuFind text="Find..." key=F

@@ -19,6 +19,7 @@ Private editing As Boolean            ' the formula bar holds an edit of the cur
 Private lastStatus As String
 Private lastCellName As String
 Private lastFind As String
+Private settingFormat As Boolean
 Private clipText As String
 Private dragMode As Long              ' 1 cells, 2 column width, 3 move chart, 4 size chart, 5 columns, 6 rows, 7 row height
 Private dragX As Long, dragY As Long, dragW As Long, dragH As Long, dragCol As Long
@@ -177,6 +178,9 @@ Private Sub UpdateBars()
             settingText = False
         End If
     End If
+    Dim nf As Long
+    nf = FormatChooserIndex(GetFormat(curR, curC) And 255)
+    If tbFormat.ListIndex <> nf Then settingFormat = True: tbFormat.ListIndex = nf: settingFormat = False
     SelBounds r1, c1, r2, c2
     If r1 <> r2 Or c1 <> c2 Then
         If (r2 - r1 + 1) * (c2 - c1 + 1) <= 20000 Then
@@ -798,3 +802,39 @@ Private Sub WriteState(ByVal s As String)
     Print #fn, s
     Close #fn
 End Sub
+
+' ---- button bar ---------------------------------------------------------------------------
+
+Private Sub tbNew_Click(): CmdNew: End Sub
+Private Sub tbOpen_Click(): CmdOpen: End Sub
+Private Sub tbSave_Click(): CmdSave: End Sub
+Private Sub tbUndo_Click(): Exec "UNDO": End Sub
+Private Sub tbRedo_Click(): Exec "REDO": End Sub
+Private Sub tbBold_Click(): Exec "BOLD": End Sub
+Private Sub tbItalic_Click(): Exec "ITALIC": End Sub
+Private Sub tbSum_Click(): Exec "AUTOSUM": End Sub
+Private Sub mnuAutoSum_Click(): Exec "AUTOSUM": End Sub
+Private Sub tbChart_Click(): CmdChartKind "BAR": End Sub
+
+Private Sub tbFormat_Click()
+    If settingFormat Then Exit Sub
+    Exec "FORMAT " & Choose(tbFormat.ListIndex + 1, "GENERAL", "INTEGER", "FIXED", "THOUSANDS", "THOUSANDS2", _
+        "PERCENT", "PERCENT2", "CURRENCY", "SCIENTIFIC", "DATE", "TIME")
+End Sub
+
+' the chooser's order differs from the NF_ numbers
+Private Function FormatChooserIndex(ByVal nf As Long) As Long
+    Select Case nf
+    Case NF_GENERAL: FormatChooserIndex = 0
+    Case NF_INT: FormatChooserIndex = 1
+    Case NF_FIX2: FormatChooserIndex = 2
+    Case NF_THOUS: FormatChooserIndex = 3
+    Case NF_THOUS2: FormatChooserIndex = 4
+    Case NF_PCT: FormatChooserIndex = 5
+    Case NF_PCT2: FormatChooserIndex = 6
+    Case NF_CURRENCY: FormatChooserIndex = 7
+    Case NF_SCI: FormatChooserIndex = 8
+    Case NF_DATE: FormatChooserIndex = 9
+    Case NF_TIME: FormatChooserIndex = 10
+    End Select
+End Function
