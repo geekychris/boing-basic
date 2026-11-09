@@ -82,6 +82,10 @@ normally; logic and draw are the game's own work.
 | VM `--jit` | **15** | 9.461 | 47.943 | 7.072 | - |
 | native (`boing build --target os4`) | **86** | 0.315 | 4.194 | 6.911 | 23253 fps |
 
+Played in real time (`--demo --perf`, the form's 40 ms timer, the original's 25 fps), the VM
+build ran at 21-23 fps on the same guest, while the host's display made each blit about 9 ms. Sphere Siege's frames there were 1 to 5 ms over the 40 ms tick (with a 3.4 ms
+blit it keeps up).
+
 Grid detail adapts to the frame time: when frames take over 38 ms for a second (the timer is
 40 ms, the original's 25 fps), the shell's grid is drawn with every other dot; it goes back
 to every dot under 25 ms, changing at most once in 3 seconds. The VM and JIT runs above

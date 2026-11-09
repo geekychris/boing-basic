@@ -75,3 +75,6 @@ normally; logic and draw are the game's own work.
 | VM | **43** | 0.893 | 18.513 | 3.293 | 17691 fps |
 | VM `--jit` | **40** | 1.079 | 20.108 | 3.299 | - |
 | native (`boing build --target os4`) | **141** | 0.125 | 3.535 | 3.225 | 30643 fps |
+
+Played in real time (`--demo --perf`, the form's 40 ms timer, the original's 25 fps), the VM
+build ran at 24-25 fps on the same guest, while the host's display made each blit about 9 ms.
