@@ -15,8 +15,8 @@ g = gg.g
 
 SHOTS = [  # name, arguments, seconds
     ("playing", "--autoplay --nomusic --seed 3", 40),
-    ("title", "--nomusic", 14),
-    ("demo", "--nomusic", 22),
+    ("title", "--nomusic", 6),
+    ("demo", "--nomusic", 20),
     ("help", "--nomusic --help 1", 12),
     ("scores", "--nomusic --scores", 12),
 ]

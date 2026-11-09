@@ -199,7 +199,7 @@ Private Sub Sky(cv As Object)
 End Sub
 
 Public Sub TitleRestart()
-    titleFrames = 0
+    titleFrames = svTicks                ' the painting, then the demo, from now (in 40 ms ticks)
 End Sub
 
 Public Sub DrawGame(cv As Object)
@@ -229,15 +229,13 @@ Public Sub DrawTitle(cv As Object)
     Dim p As Long
     LoadArt cv
     If (svTicks \ 12) And 1 Then p = PEN_YELLOW Else p = 1
-    If titleImg <> 0 And titleFrames Mod 625 < 250 Then
-        titleFrames = titleFrames + 1
+    If titleImg <> 0 And (svTicks - titleFrames) Mod 625 < 250 Then        ' 10 s of the painting, 15 s of the demo
         cv.DrawImage titleImg, 0, 0, True
         GTextCentre cv, 214, PEN_GREEN, "< " & ModeTitle(svMode) & " >   LEVEL " & svStartLevel & " (UP/DOWN)"
         GTextCentre cv, 230, p, "PRESS FIRE TO START"
         GTextCentre cv, 246, 3, "BEST " & svBest(svMode) & "    HELP: RULES"
         Exit Sub
     End If
-    titleFrames = titleFrames + 1
     Sky cv
     DrawTower cv                        ' the demo game behind
     cv.Box 200, 0, 120, G_H, pen(2)

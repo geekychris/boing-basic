@@ -51,10 +51,10 @@ Sub Main()
     Print "picture hash " & cv.Hash
     If Len(shots) > 0 Then
         ShellToTitle
-        For i = 1 To 300: ShellTick: Next i
+        For i = 1 To 100: ShellTick: Next i
         DrawTitle cv
         cv.SaveImage shots & "/st_title_art.ppm"
-        For i = 1 To 260: DrawTitle cv: Next i
+        For i = 1 To 200: ShellTick: Next i
         DrawTitle cv
         cv.SaveImage shots & "/st_title_demo.ppm"
         DrawHelp cv, 1
