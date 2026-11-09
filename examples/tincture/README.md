@@ -5,7 +5,10 @@ with multi-level undo, custom brushes, a magnifier and an ARexx-style command la
 application logic is BASIC; the per-pixel work (fills, brushes, scaled views, codecs) is done
 by Canvas members in the runtime's C.
 
-![Tincture on the AmigaOS 4 guest: the --smoke run (every tool through the event handlers)](docs/smoke.png)
+![Tincture on the AmigaOS 4 guest: demo/sunset.tsc in three layers, the magnifier on](docs/tincture.png)
+
+More guest screenshots: [the --smoke run](docs/smoke.png) (every tool through the event
+handlers), [a stroke painted with real mouse input](docs/input.png).
 
 ## Features
 
@@ -83,7 +86,29 @@ event whatever the brush size.
 
 ## Performance
 
-PERFORMANCE_TABLE
+Measured with `tools/guest.py bench 20` on the m1 guest (QEMU sam460ex, 640 x 512 picture
+shown at 50 % in the 640 x 480 view, a 6-pixel round brush). "Per mouse move" is one
+`view_MouseMove` through the real handler: the brush segment, the undo bookkeeping, the
+composite of the changed rectangle, the scaled redraw of the whole view and the blit to the
+window.
+
+| | VM | VM + JIT | native |
+|---|---|---|---|
+| per mouse move (stroke + view redraw) | 5.46 ms | 5.73 ms | 4.59 ms |
+| full view redraw (RenderView + Refresh) | 3.83 ms | 3.98 ms | 3.57 ms |
+| of which drawing the view (RenderView) | 2.32 ms | 2.42 ms | 2.05 ms |
+| a status bar panel update | 1.02 ms | 1.05 ms | 0.98 ms |
+| draw + undo a 300 x 200 box | | | 5.6 ms |
+| flood fill of the whole picture (+ undo record) | | | 10.0 ms |
+
+So the interpreter paints at about 180 mouse moves a second, within 20 % of native code: the
+work per event is a handful of Canvas calls into C (`BrushLine`, `DrawImagePart`,
+`DrawImageScaled`), so the BASIC around them hardly counts, and the JIT has no loops to
+compile (it is on par). The biggest win came from the GUI, not the code: the first version
+set a label's text on every mouse move, and ReAction relaid the window out each time —
+45 ms per move. A status bar (its panels are plain gadgets, set only when they change and
+at most every 150 ms while dragging) brought it to 4.6 ms. On the host (Apple M-series) a
+mouse move costs 0.04 ms in both the VM and native builds.
 
 ## Tests
 

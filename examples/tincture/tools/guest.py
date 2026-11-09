@@ -237,9 +237,8 @@ def bench(m, n):
         outf = "RAM:tincture_%s_%d.out" % (name, int(time.time()))
         dos(m, "delete %s QUIET" % outf)
         launch(m, "%s --bench %d >%s *>%s.err" % (cmd, n, outf, outf))
-        out = wait_for(m, outf, "BENCH full view", 600)
-        print("==", name, "\n" + (out or dos(m, "type %s.err" % outf)))
-        wait_for(m, outf, "BENCH undo", 60)
+        out = wait_for(m, outf, "BENCH flood fill", 900)
+        print("==", name, "\n" + (out or dos(m, "type %s" % outf) + dos(m, "type %s.err" % outf)))
         time.sleep(3)
         print("gone:", gone(m))
 

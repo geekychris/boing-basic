@@ -203,6 +203,7 @@ Public Function RunCommand(ByVal cmdline As String) As String
             If Arg(w, 4) <> "" Then textScale = NArg(w, 4)
             Stroke2 T_TEXT, NArg(w, 1), NArg(w, 2), NArg(w, 1), NArg(w, 2), Btn(w)
             DropFloat
+            SelectNone
             Recomposite
         Case "GETPIXEL", "PIXEL"
             Recomposite
