@@ -15,6 +15,7 @@ Option Explicit
 Private settingText As Boolean        ' formula.Text set by code: ignore its Change
 Private editing As Boolean            ' the formula bar holds an edit of the cursor cell
 Private lastStatus As String
+Private lastCellName As String
 Private scriptLog As String
 Private autosaveTicks As Long
 Private Const AUTOSAVE_SECS As Long = 120
@@ -135,20 +136,29 @@ Private Sub UpdateTitle()
     If Me.Caption <> t Then Me.Caption = t
 End Sub
 
+' (labels first: setting a label's text re-lays the window out, which wipes the canvas)
 Private Sub Redraw()
+    UpdateBars
     DrawGrid grid
     grid.Refresh
-    UpdateBars
+End Sub
+
+Private Sub ShowStatus(ByVal s As String)
+    status.Caption = s
+    lastStatus = s
+    grid.Refresh
 End Sub
 
 ' the cell name, the formula bar and the status line
 Private Sub UpdateBars()
     Dim r1 As Long, c1 As Long, r2 As Long, c2 As Long, s As String, sum As Double, cnt As Long, r As Long, c As Long
-    cellname.Caption = SelName()
+    If SelName() <> lastCellName Then lastCellName = SelName(): cellname.Caption = lastCellName
     If Not editing Then
-        settingText = True
-        formula.Text = GetSrc(curR, curC)
-        settingText = False
+        If formula.Text <> GetSrc(curR, curC) Then
+            settingText = True
+            formula.Text = GetSrc(curR, curC)
+            settingText = False
+        End If
     End If
     SelBounds r1, c1, r2, c2
     If r1 <> r2 Or c1 <> c2 Then
@@ -174,6 +184,7 @@ Private Sub UpdateBars()
     End If
     If editing Then s = "Editing " & CellName(curR, curC) & " - Return enters, Tab enters and moves right"
     If s <> lastStatus Then status.Caption = s: lastStatus = s
+    If editing Then grid.Refresh
 End Sub
 
 ' ---- editing -------------------------------------------------------------------------------
@@ -340,7 +351,7 @@ End Sub
 Private Sub Exec(ByVal cmd As String)
     Dim res As String
     res = RunCommand(cmd)
-    If ScriptRC >= 10 Then status.Caption = res: lastStatus = res: Beep
+    If ScriptRC >= 10 Then ShowStatus res: Beep
     AfterCommand
 End Sub
 
@@ -411,8 +422,8 @@ Private Sub CmdFind()
     Dim f As String
     f = InputBox("Find text in the cells:", "Gridwise")
     If f = "" Then Exit Sub
-    If FindNext(f, False) = "" Then status.Caption = "Not found: " & f: lastStatus = status.Caption
     Redraw
+    If FindNext(f, False) = "" Then ShowStatus "Not found: " & f Else Redraw
 End Sub
 
 Private Sub CmdGoto()

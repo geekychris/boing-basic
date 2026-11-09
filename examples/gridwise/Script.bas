@@ -186,8 +186,7 @@ Public Function RunCommand(ByVal line As String) As String
         If a2 = "" Then a2 = SelName()
         If Not ParseRange(a2, r1, c1, r2, c2) Then RunCommand = Bad("bad range " & a2): Exit Function
         n = AddChart(k, RangeName(r1, c1, r2, c2), RestAfter(line, 3))
-        chRow(n) = r1: chCol(n) = c2 + 2
-        If chCol(n) >= NC Then chCol(n) = 0
+        PlaceChart n, r1
         RunCommand = CStr(n)
     Case "DELCHART"
         If a1 = "" Then n = selChart Else n = Val(a1)
@@ -251,6 +250,27 @@ Public Function RunCommand(ByVal line As String) As String
         WantRedraw = False
     End Select
 End Function
+
+' put a new chart right of the used cells, below any chart already there
+Public Sub PlaceChart(ByVal n As Long, ByVal r As Long)
+    Dim mr As Long, mc As Long, i As Long, moved As Boolean, rows As Long
+    UsedArea mr, mc
+    chCol(n) = mc + 1
+    If chCol(n) >= NC - 1 Then chCol(n) = 0
+    chRow(n) = r
+    rows = (chH(n) + ROW_H - 1) \ ROW_H + 1
+    Do
+        moved = False
+        For i = 0 To NCharts - 1
+            If i <> n Then
+                If chCol(i) = chCol(n) And chRow(n) < chRow(i) + (chH(i) + ROW_H - 1) \ ROW_H + 1 And chRow(n) + rows > chRow(i) Then
+                    chRow(n) = chRow(i) + (chH(i) + ROW_H - 1) \ ROW_H + 1
+                    moved = True
+                End If
+            End If
+        Next i
+    Loop While moved
+End Sub
 
 ' Find the next cell (after the cursor, row by row) whose shown text contains what
 ' (case-insensitive); moves the cursor there and returns its name, "" if none

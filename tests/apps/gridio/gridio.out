@@ -21,8 +21,8 @@ C	C5	0	11
 C	A6	0	Total
 C	B6	1026	=SUM(B2:B5)
 C	C6	0	=SUM(C2:C5)
-CHART	bar	A1:C5	Fruit sold	E2	320	200
-CHART	pie	A1:B4	Apples	E2	320	200
+CHART	bar	A1:C5	Fruit sold	E2	300	190
+CHART	pie	A1:B4	Apples	E2	300	190
 loaded True  100 x 26  B6=35.00 C6=41 charts  2  A1:C5 Apples w  90 
 modified False
 Month,Apples,Pears,"Note, with ""quotes"""

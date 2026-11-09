@@ -44,7 +44,7 @@ Public Function AddChart(ByVal kind As Long, ByVal rng As String, ByVal title As
         ReDim Preserve chW(0 To NCharts * 2): ReDim Preserve chH(0 To NCharts * 2)
     End If
     chType(NCharts) = kind: chRange(NCharts) = UCase$(rng): chTitle(NCharts) = title
-    chRow(NCharts) = 1: chCol(NCharts) = 4: chW(NCharts) = 320: chH(NCharts) = 200
+    chRow(NCharts) = 1: chCol(NCharts) = 4: chW(NCharts) = 300: chH(NCharts) = 190
     NCharts = NCharts + 1
     AddChart = NCharts - 1
     Modified = True
@@ -132,13 +132,15 @@ Public Function ChartData(ByVal rng As String) As Boolean
     Dim byCols As Boolean, i As Long, j As Long, r As Long, c As Long, k As Long, any As Boolean
     If Not ParseRange(rng, r1, c1, r2, c2) Then Exit Function
     ' a header row: text in the first row (beyond the corner)
-    For c = c1 To c2
-        k = CellKind(r1, c)
-        If k = KTEXT Then hasColLbl = True
+    ' labels: text in the first row (after the corner) / the first column (below it)
+    For c = c1 + 1 To c2
+        If CellKind(r1, c) = KTEXT Then hasColLbl = True
     Next c
-    For r = r1 To r2
+    For r = r1 + 1 To r2
         If CellKind(r, c1) = KTEXT Then hasRowLbl = True
     Next r
+    If c1 = c2 And CellKind(r1, c1) = KTEXT Then hasColLbl = True
+    If r1 = r2 And CellKind(r1, c1) = KTEXT Then hasRowLbl = True
     If hasColLbl And r1 = r2 Then hasColLbl = False
     If hasRowLbl And c1 = c2 Then hasRowLbl = False
     Dim dr1 As Long, dc1 As Long
