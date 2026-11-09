@@ -55,7 +55,7 @@ typedef struct {
     int shade;
 } E3Grid;
 
-typedef struct { Cam c; int32_t roll, cr, sr; } E3Cam;
+typedef struct { Cam c; int32_t roll, cr, sr, rolled; } E3Cam;
 
 typedef struct bb_e3d {
     bb_obj hdr;
@@ -242,12 +242,13 @@ static void cam_trig(E3Cam *k)
     cam_setup(&k->c);
     k->cr = a3_cos(k->roll) >> 4;
     k->sr = a3_sin(k->roll) >> 4;
+    k->rolled = (k->roll & 0xFFFF) != 0;
 }
 
 static inline void xform(const E3Cam *k, const Cam *c, int32_t wx, int32_t wy, int32_t wz, V3 *o)
 {
     cam_xform(c, wx, wy, wz, o);
-    if (k->roll & 0xFFFF) {
+    if (k->rolled) {
         int64_t x = o->x, y = o->y;
         o->x = (int32_t)((x * k->cr + y * k->sr) >> 12);
         o->y = (int32_t)((y * k->cr - x * k->sr) >> 12);
@@ -1134,7 +1135,7 @@ enum {
     P_SHADING, M_LIGHT, M_FOG,
     M_TEXT, M_TEXTSHADOW, M_TEXTCENTRE, M_TEXTWIDTH, M_SPAN, M_FILLRECT, M_POLYFILL, M_BLEND,
     M_SIN, M_COS, M_ATAN2, M_ISQRT, M_HYPOT, M_HASH, M_RAND, M_FMUL, M_FDIV, M_FSQRT, M_ROTYPR, M_ROTYAW, M_MATMUL,
-    M_MATAPPLY, M_SINTABLE, M_COSTABLE, M_CAMSET, P_MODELMARGIN, P_QUADBIAS, M_DRAWLINE3D, M_FILLGRADIENT
+    M_MATAPPLY, M_SINTABLE, M_COSTABLE, M_CAMSET, P_MODELMARGIN, P_QUADBIAS, M_DRAWLINE3D, M_FILLGRADIENT, M_DRAWMODELMF, M_CAMBANK
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -1166,7 +1167,8 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"Rand", M_RAND}, {"FMul", M_FMUL}, {"FDiv", M_FDIV}, {"FSqrt", M_FSQRT}, {"RotYPR", M_ROTYPR},
     {"RotYaw", M_ROTYAW}, {"MatMul", M_MATMUL}, {"MatApply", M_MATAPPLY}, {"SinTable", M_SINTABLE},
     {"CosTable", M_COSTABLE}, {"CamSet", M_CAMSET}, {"ModelMargin", P_MODELMARGIN}, {"QuadBias", P_QUADBIAS},
-    {"DrawLine3D", M_DRAWLINE3D}, {"FillGradient", M_FILLGRADIENT},
+    {"DrawLine3D", M_DRAWLINE3D}, {"FillGradient", M_FILLGRADIENT}, {"DrawModelMF", M_DRAWMODELMF},
+    {"CamBank", M_CAMBANK},
 };
 
 static int32_t e3_find(const bb_class *cls, const char *name)
@@ -1315,6 +1317,16 @@ static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         k->roll = argl_opt(argc, argv, 8, 0) & 0xFFFF;
         cam_trig(k);
         return;
+    case M_CAMBANK: {
+        /* the camera's bank from its 16.16 cosine and sine, turning camera space as
+         * x' = x cos - y sin, y' = x sin + y cos (ace_pilot2's render.c xf); sin 0 = no bank */
+        int32_t cs = argl(argc, argv, 0), sn = argl(argc, argv, 1);
+        k->cr = cs >> 4;
+        k->sr = -(sn >> 4);
+        k->rolled = sn != 0;
+        k->roll = 0;
+        return;
+    }
     case P_MODELMARGIN: case P_QUADBIAS: {
         int32_t *p = id == P_MODELMARGIN ? &e->margin : &e->quad_bias;
         if (setting) *p = argl(argc, argv, argc - 1); else *ret = bb_v_long(*p);
@@ -1439,11 +1451,13 @@ static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         int32_t n = argl(argc, argv, 0), depth = argl(argc, argv, 1), i, j;
         many pens = arg_many(argc, argv, 2, 1);
         bb_array *co = arg_array(argc, argv, 3);
-        if (n < 0 || n * 12 > co->count) bb_raise(9, NULL);
+        int32_t first = argl_opt(argc, argv, 4, 0), q;
+        if (n < 0 || first < 0 || (int64_t)(first + n) * 12 > co->count) bb_raise(9, NULL);
         for (i = 0; i < n; i++) {
-            if (co->etype == BB_LONG) memcpy(w, (const bb_long *)co->data + i * 12, 48);
-            else for (j = 0; j < 12; j++) w[j] = elem_l(co, i * 12 + j);
-            e_poly_world(e, depth, many_at(&pens, i), w, 4, 1);
+            q = first + i;
+            if (co->etype == BB_LONG) memcpy(w, (const bb_long *)co->data + q * 12, 48);
+            else for (j = 0; j < 12; j++) w[j] = elem_l(co, q * 12 + j);
+            e_poly_world(e, depth, many_at(&pens, q), w, 4, 1);
         }
         return;
     }
@@ -1594,11 +1608,12 @@ static void e3_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
                    argl_opt(argc, argv, 9, 1), argl_opt(argc, argv, 10, 0));
         return;
     }
-    case M_DRAWMODELM: {
+    case M_DRAWMODELM: case M_DRAWMODELMF: {
         int32_t rot[9];
         int has_body = !missing(argc, argv, 5);
         read_arr(arg_array(argc, argv, 4), 9, rot);
-        draw_model(e, argl(argc, argv, 0), argl(argc, argv, 1), argl(argc, argv, 2), argl(argc, argv, 3), 0, 0, 0, 0, rot,
+        draw_model(e, argl(argc, argv, 0), argl(argc, argv, 1), argl(argc, argv, 2), argl(argc, argv, 3),
+                   id == M_DRAWMODELMF, 0, 0, 0, rot,
                    argl_opt(argc, argv, 5, 3), argl_opt(argc, argv, 6, argl_opt(argc, argv, 5, 3)), has_body,
                    argl_opt(argc, argv, 7, 1), argl_opt(argc, argv, 8, 0));
         return;

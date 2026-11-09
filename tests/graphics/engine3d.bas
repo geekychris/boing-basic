@@ -207,6 +207,28 @@ Sub Main()
     Shot "instances"
     g = 0
 
+    ' QuadsW from quad `first`; DrawModelMF; CamBank
+    cv.Cls 0
+    e.Begin 3000
+    e.QuadsW 1, -1, pens, co, 1
+    e.RotYPR rot, 3000, -2000, 4000
+    For k = 0 To 8: rot(k) = rot(k) \ 4: Next k
+    e.DrawModelMF m, 30 * 65536 + 12345, 10 * 65536, 200 * 65536 + 40000, rot, 3, 4
+    e.Flush
+    Shot "first+MF"
+    e.CamAngles 0, 2000
+    e.CamBank e.Cos(3000), e.Sin(3000)
+    e.Xform 100, 50, 300, ox, oy, oz
+    Print "bank"; ox; oy; oz;
+    e.CamBank 65536, 0
+    e.Xform 100, 50, 300, ox, oy, oz
+    Print " flat"; ox; oy; oz
+    On Error Resume Next
+    e.QuadsW 2, -1, pens, co, 1
+    Print " first too far"; Err.Number
+    Err.Clear
+    On Error GoTo 0
+
     ' ---- terrain
     g = e.GridNew(33, 33, 40, -640, 0)
     e.GridGenerate g, 7, 140, 120

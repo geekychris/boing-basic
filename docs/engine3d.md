@@ -100,7 +100,10 @@ view, a radar, a mirror).
 | `Visible(wx, wy, wz, radius)` | False when a sphere is certainly off screen (for game-side culling) |
 
 Roll is the turn of camera space's x and y about the line of sight after the transform
-(orbit_docking's `cam_roll`); with roll 0 everything is bit-exact with amiga3d.
+(orbit_docking's `cam_roll`): x' = x cos + y sin, y' = y cos - x sin. With roll 0 everything is
+bit-exact with amiga3d. `CamBank cos16, sin16` sets the turn from a 16.16 cosine and sine
+instead, as x' = x cos - y sin, y' = x sin + y cos (ace_pilot2's `xf`, bit-exact; sin 0 = no
+bank); call it after `CamAngles`/`CamSet`, which reset it.
 
 ## The draw list
 
@@ -115,7 +118,7 @@ counted in `Dropped`.
 | `Quad depth, pen, ax, ay, az, bx, by, bz, cx, cy, cz, dx, dy, dz` | camera space (`a3_quad`) |
 | `PolyW depth, pen, xs(), ys(), zs(), n` | a polygon of world points |
 | `QuadW depth, pen, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3` | a quad of world points (A3Scene's `A3QuadW`) |
-| `QuadsW n, depth, pens, coords()` | n world quads: `coords` holds 12 values a quad; `pens` an array or one pen |
+| `QuadsW n, depth, pens, coords() [, first]` | n world quads from quad `first` (default 0): `coords` holds 12 values a quad (from `first * 12`), `pens` an array (from `first`) or one pen; no back-face culling. Static ground sorted into blocks once can be drawn a block a call |
 | `Spot x, y, z, r, pen [, bias]` | a square of half size r facing the camera at a world point (shells, particles) |
 | `Star x, y, z, r, pen, points, turn [, bias]` | a ragged star facing the camera (explosions): `points` is the number of tips (2..5; the polygon has 2 x points vertices, the inner ones at r/2) |
 | `Line3D x1, y1, z1, x2, y2, z2, pen [, bias]` | a world line, z-sorted with the polygons |
@@ -157,7 +160,8 @@ Models live in the engine and are numbered from 1. Up to 256 vertices and 192 fa
 |---|---|
 | `DrawModel m, x, y, z [, yaw [, pitch [, roll [, bodyLit [, bodyShade [, flash [, bias]]]]]]]` | at a whole-unit world position; rotation roll, pitch, yaw (`a3_rot_ypr`); with all angles 0 the model is unrotated (`rot` NULL) |
 | `DrawModelF m, x16, y16, z16 [, same as above]` | at a 16.16 position: does amiga3d's `cam_for` (a model drawn where it is, not on whole units) |
-| `DrawModelM m, x, y, z, rot() [, bodyLit, bodyShade, flash, bias]` | with your own 3x3 16.16 matrix (row-major, world = M * model) |
+| `DrawModelM m, x, y, z, rot() [, bodyLit, bodyShade, flash, bias]` | with your own 3x3 16.16 matrix (row-major, world = M * model); scale the matrix to draw a model built in smaller units (entries \\ 4 for quarter units) |
+| `DrawModelMF m, x16, y16, z16, rot() [, ...]` | the same at a 16.16 position (`cam_for`, as `DrawModelF`) |
 | `DrawModels n, ids, xs(), ys(), zs(), yaws [, f16 [, bodyLit [, bodyShade [, bias]]]]` | n models in one call; `ids`, `yaws`, `bodyLit`, `bodyShade` and `bias` each an array (one a model) or one value; f16 True: positions are 16.16; bodyShade defaults to bodyLit |
 
 The model's faces that face the camera are sorted far to near and go into the list at the

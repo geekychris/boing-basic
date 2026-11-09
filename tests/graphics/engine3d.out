@@ -29,6 +29,9 @@ bias polys 5  dropped 0  hash 5EB5AC12
 bias5 polys 6  dropped 0  hash 3DBE3285
 notop 8  16 
 instances polys 10  dropped 0  hash 642A8B1E
+first+MF polys 4  dropped 0  hash 64B7AFDA
+bank 66  128  590  flat 100  104  590 
+ first too far 9 
 grid 1  h 4  192512 -11 
 terrain polys 1281  dropped 0  hash 5CF27200
 window polys 144  dropped 0  hash 4AB76C92
