@@ -183,6 +183,29 @@ void bb_shift_range_error(void) BB_NORETURN;
 BB_INLINE bb_long bb_shl(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return (bb_long)((uint32_t)x << n); }
 BB_INLINE bb_long bb_shra(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return x < 0 ? (bb_long)~(~(uint32_t)x >> n) : (bb_long)((uint32_t)x >> n); }
 BB_INLINE bb_long bb_shrl(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return (bb_long)((uint32_t)x >> n); }
+/* MulShr(a, b, k) = (a * b) >> k and MulDiv(a, b, c) = a * b \ c with a 64-bit product (fixed point
+   in one op): k 0..31 else error 5, c = 0 error 11, a result outside Long error 6 */
+void bb_overflow(void) BB_NORETURN;
+void bb_muldiv_zero(void) BB_NORETURN;
+BB_INLINE bb_long bb_mulshr(bb_long a, bb_long b, bb_long k)
+{
+    int64_t p;
+    if (BB_UNLIKELY((uint32_t)k > 31)) bb_shift_range_error();
+    p = ((int64_t)a * b) >> k;
+    if (BB_UNLIKELY(p != (int32_t)p)) bb_overflow();
+    return (bb_long)p;
+}
+BB_INLINE bb_long bb_muldiv(bb_long a, bb_long b, bb_long c)
+{
+    int64_t q;
+    if (BB_UNLIKELY(c == 0)) bb_muldiv_zero();
+    q = ((int64_t)a * b) / c;
+    if (BB_UNLIKELY(q != (int32_t)q)) bb_overflow();
+    return (bb_long)q;
+}
+/* Int / Fix of a Double (typed: no Variant); never -0 */
+BB_INLINE double bb_int_d(double x) { return __builtin_floor(x) + 0.0; }
+BB_INLINE double bb_fix_d(double x) { return __builtin_trunc(x) + 0.0; }
 BB_INLINE void bb_poll(void) { if (BB_UNLIKELY(--bb_poll_count < 0)) bb_poll_slow(); }
 /* Native procedures call bb_enter on entry: error 28 "Out of stack space" when the
    stack is nearly exhausted (bb_stack_limit is set by bb_rt_init; NULL = unknown). */

@@ -150,6 +150,11 @@ On m1's unloaded guest (bb-game, ms/frame): bench logic native 0.152, VM 0.879, 
 (whole loops only, now the default); canvas draw native 1.47, VM 7.95, VM+JIT 8.73; form game
 native 354-365 fps, VM 88.4, VM+JIT 78.7. Real PowerPC hardware: untested.
 
+Typed `Int`/`Fix` and Double to Long (bb-g-lander2): `x = Int(CDbl(i) * 54321# * 1.52587890625E-05)`
+went through a Variant builtin call and compiled to stack ops: 25.8 us per iteration on the m1
+guest, now 0.33 us (VM) and 0.26 us (JIT); `x = Int(d)` 24.3 -> 0.24 us. For fixed point use
+`MulShr(a, b, 16)` / `MulDiv(a, 65536, b)`: 0.10 / 0.07 us in the VM, 0.02 / 0.13 us with the JIT.
+
 Why some VM calls cost 20-60 us on the QEMU guest (bb-g-more: a late-bound call inside a
 procedure, or any call into a BASIC class method): the sam460ex's PowerPC 460 has a small TLB
 that the guest OS refills in software, and under QEMU each refill is very slow. Measured on the

@@ -21,6 +21,9 @@ typedef struct bb_jitctx {
     double zero;                /* 0.0 */
     double magic;               /* PPC: 2^52 + 2^31 (0x4330000080000000) */
     double fmax;                /* largest Single (3.402823466e38): Single range checks */
+    double two52, two53, one;   /* 2^52 (rounding to an integer), 2^53 (exact products), 1.0 */
+    double l_lo, l_hi, i_lo, i_hi;   /* Long / Integer range as doubles */
+    double q_lo, q_hi;          /* -2^31 - 1, 2^31: a quotient that truncates into a Long */
 } bb_jitctx;
 
 typedef int32_t (*bb_jitfn)(bb_jitctx *ctx);
@@ -88,6 +91,8 @@ typedef struct JBackend {
     void (*ldfs)(JA *a, int f, int base, int32_t off);   /* load a Single, as a double */
     void (*stfs)(JA *a, int f, int base, int32_t off);   /* store a double as a Single (round to nearest) */
     void (*shift)(JA *a, int kind, int d, int x, int y); /* 0 shl, 1 arithmetic shr, 2 logical shr; y in 0..31 */
+    void (*mulhs)(JA *a, int d, int x, int y);   /* d = high 32 bits of the signed 64-bit x * y */
+    void (*ftoi)(JA *a, int r, int f);           /* r = (int32)f, truncating; f in Long range */
 } JBackend;
 
 #define JMAXLAB 4096

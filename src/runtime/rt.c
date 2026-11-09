@@ -163,6 +163,7 @@ int32_t bb_poll_count = 4096;
 char *bb_stack_limit;
 void bb_stack_overflow(void) { bb_raise(28, NULL); }
 void bb_shift_range_error(void) { bb_raise(5, NULL); }
+void bb_muldiv_zero(void) { bb_raise(11, NULL); }
 void bb_poll_slow(void)
 {
     bb_poll_count = 4096;

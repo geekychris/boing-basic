@@ -63,7 +63,9 @@
     OP(R_LDREF, 3) OP(R_STREF, 3) OP(R_JMP, 1) OP(R_SQRT_D, 2) OP(R_CALLS, 11) OP(R_RET, 0) OP(R_LDMF, 3) OP(R_STMF, 3) OP(R_LDG, 3) OP(R_STG, 3) OP(R_JF1Z, 5) OP(R_JCMPF1_LI, 6) OP(R_FORSKIPF, 7) OP(R_SHL_LRR, 3) OP(R_SHRA_LRR, 3) OP(R_SHRL_LRR, 3) \
     /* Single (computed in double, rounded with a range check, as VB and the C back end do); the JIT stops at these */ \
     OP(R_ADD_FRR, 3) OP(R_SUB_FRR, 3) OP(R_MUL_FRR, 3) OP(R_DIV_FRR, 3) OP(R_NEG_F, 2) \
-    OP(R_CVT_IF, 2) OP(R_CVT_LF, 2) OP(R_CVT_DF, 2) OP(R_CVT_FD, 2) OP(R_JCMP_FRR, 4)
+    OP(R_CVT_IF, 2) OP(R_CVT_LF, 2) OP(R_CVT_DF, 2) OP(R_CVT_FD, 2) OP(R_JCMP_FRR, 4) \
+    /* typed Int / Fix of a Double, Double -> Long / Integer (VB rounding), MulShr (count immediate), MulDiv */ \
+    OP(R_INT_D, 2) OP(R_FIX_D, 2) OP(R_CVT_DL, 2) OP(R_CVT_DI, 2) OP(R_MULSHR_LRRI, 4) OP(R_MULDIV_LRRR, 4)
 
 enum {
 #define OP_ENUM(n, k) I_##n,

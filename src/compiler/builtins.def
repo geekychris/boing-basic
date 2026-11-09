@@ -152,3 +152,8 @@ BI(SAVESETTING, "SaveSetting", T_VOID, 4, 4, "ssss", ",,,", "bb_savesetting", BI
 BI(DELETESETTING, "DeleteSetting", T_VOID, 1, 3, "sss", ",,", "bb_deletesetting", BIF_SUB, RN(bb_deletesetting(S(0), S(1), S(2))))
 BI(LOADF, "Load", T_VOID, 1, 1, "v", "", "bb_form_load_obj", BIF_SUB, RN(bb_form_load_obj(V(0))))
 BI(UNLOADF, "Unload", T_VOID, 1, 1, "v", "", "bb_form_unload_obj", BIF_SUB, RN(bb_form_unload_obj(V(0))))
+/* fixed point in one op (64-bit product); typed Int / Fix of a Double (the compiler picks these) */
+BI(MULSHR, "MulShr", T_LONG, 3, 3, "lll", ",,", "bb_mulshr", 0, RL(bb_mulshr(L(0), L(1), L(2))))
+BI(MULDIV, "MulDiv", T_LONG, 3, 3, "lll", ",,", "bb_muldiv", 0, RL(bb_muldiv(L(0), L(1), L(2))))
+BI(INTD, "__intd", T_DOUBLE, 1, 1, "d", "", "bb_int_d", 0, RD(bb_int_d(D(0))))
+BI(FIXD, "__fixd", T_DOUBLE, 1, 1, "d", "", "bb_fix_d", 0, RD(bb_fix_d(D(0))))

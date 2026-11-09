@@ -892,7 +892,7 @@ static void vm_exec(VM *vm, int entry)
         bb_value *G = vm->globals;
         int jit_on = jit_enabled() && img->jitno && img->jitcode && img->jitend;
         bb_jitctx jc;
-        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; } jc.fmax = 3.402823466e38;
+        jc.L = L; jc.G = G; jc.K = img->consts; jc.poll = &bb_poll_count; jc.udts = img->udts; jc.scratch = 0; jc.zero = 0.0; { union { double d; uint64_t u; } m_; m_.u = 0x4330000080000000ULL; jc.magic = m_.d; } jc.fmax = 3.402823466e38; jc.two52 = 4503599627370496.0; jc.two53 = 9007199254740992.0; jc.one = 1.0; jc.l_lo = -2147483648.0; jc.l_hi = 2147483647.0; jc.i_lo = -32768.0; jc.i_hi = 32767.0; jc.q_lo = -2147483649.0; jc.q_hi = 2147483648.0;
 #define SYNC() (vm->sp = sp)
 #define RELOAD() (fr = &vm->frames[vm->nframes - 1], pc = fr->pc, sp = vm->sp, L = fr->base)
         for (;;) {
@@ -1021,7 +1021,13 @@ static void vm_exec(VM *vm, int entry)
         [I_R_CVT_LF] = &&L_R_CVT_LF,
         [I_R_CVT_DF] = &&L_R_CVT_DF,
         [I_R_CVT_FD] = &&L_R_CVT_FD,
-        [I_R_JCMP_FRR] = &&L_R_JCMP_FRR
+        [I_R_JCMP_FRR] = &&L_R_JCMP_FRR,
+        [I_R_INT_D] = &&L_R_INT_D,
+        [I_R_FIX_D] = &&L_R_FIX_D,
+        [I_R_CVT_DL] = &&L_R_CVT_DL,
+        [I_R_CVT_DI] = &&L_R_CVT_DI,
+        [I_R_MULSHR_LRRI] = &&L_R_MULSHR_LRRI,
+        [I_R_MULDIV_LRRR] = &&L_R_MULDIV_LRRR
                 };
                 goto *rtab[op];
 #else
@@ -1217,6 +1223,22 @@ static void vm_exec(VM *vm, int entry)
                 RCASE(R_CVT_DF) { double x_ = RSL(2).u.d; if (BB_UNLIKELY(x_ > 3.402823466e38 || x_ < -3.402823466e38)) RERR(bb_overflow()); SETF(pc[1], (bb_single)x_); pc += 3; RNEXT(); }
                 RCASE(R_CVT_FD) SETD(pc[1], (double)RSL(2).u.f); pc += 3; RNEXT();
                 JCMP(R_JCMP_FRR, double, RSL(2).u.f, RSL(3).u.f)
+                RCASE(R_INT_D) SETD(pc[1], bb_int_d(RSL(2).u.d)); pc += 3; RNEXT();
+                RCASE(R_FIX_D) SETD(pc[1], bb_fix_d(RSL(2).u.d)); pc += 3; RNEXT();
+                RCASE(R_CVT_DL) { double x_ = RSL(2).u.d, r_ = bb_round_even(x_);
+                    if (BB_UNLIKELY(!(r_ >= -2147483648.0 && r_ <= 2147483647.0))) RERR(bb_overflow());
+                    SETL(pc[1], (int32_t)r_); pc += 3; RNEXT(); }
+                RCASE(R_CVT_DI) { double x_ = RSL(2).u.d, r_ = bb_round_even(x_);
+                    if (BB_UNLIKELY(!(r_ >= -32768.0 && r_ <= 32767.0))) RERR(bb_overflow());
+                    SETI(pc[1], (int32_t)r_); pc += 3; RNEXT(); }
+                RCASE(R_MULSHR_LRRI) { int64_t p_ = ((int64_t)RSL(2).u.l * RSL(3).u.l) >> pc[4];
+                    if (BB_UNLIKELY(p_ != (int32_t)p_)) RERR(bb_overflow());
+                    SETL(pc[1], (int32_t)p_); pc += 5; RNEXT(); }
+                RCASE(R_MULDIV_LRRR) { int32_t c_ = RSL(4).u.l; int64_t q_;
+                    if (BB_UNLIKELY(c_ == 0)) RERR(bb_muldiv_zero());
+                    q_ = ((int64_t)RSL(2).u.l * RSL(3).u.l) / c_;
+                    if (BB_UNLIKELY(q_ != (int32_t)q_)) RERR(bb_overflow());
+                    SETL(pc[1], (int32_t)q_); pc += 5; RNEXT(); }
                 RCASE(R_LDMF) L[pc[2]] = ((VMObj *)L[0].u.o)->f[pc[3]]; pc += 4; RNEXT();
                 RCASE(R_STMF) ((VMObj *)L[0].u.o)->f[pc[2]].u = L[pc[3]].u; pc += 4; RNEXT();
                 RCASE(R_LDG) L[pc[2]] = G[pc[3]]; pc += 4; RNEXT();

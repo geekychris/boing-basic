@@ -188,6 +188,13 @@ static void a_stfs(JA *a, int f, int b, int32_t off)
     E(0x1e624000u | ((uint32_t)fr(f) << 5) | 4);                    /* fcvt s4, d_f */
     ldst(a, 0xbd000000u, 0xbc206800u, 4, 4, b, off);                /* str s4 */
 }
+static void a_mulhs(JA *a, int d, int x, int y)
+{
+    E(0x9b207c00u | ((uint32_t)ir(y) << 16) | ((uint32_t)ir(x) << 5) | (uint32_t)ir(d));   /* smull xd, wx, wy */
+    E(0x9360fc00u | ((uint32_t)ir(d) << 5) | (uint32_t)ir(d));                             /* asr xd, xd, #32 */
+}
+static void a_ftoi(JA *a, int r, int f) { E(0x1e780000u | ((uint32_t)fr(f) << 5) | (uint32_t)ir(r)); }   /* fcvtzs wr, df */
+
 static void a_shift(JA *a, int kind, int d, int x, int y)
 {
     static const uint32_t o[] = {0x1ac02000u, 0x1ac02800u, 0x1ac02400u};   /* lslv, asrv, lsrv (w) */
@@ -215,5 +222,5 @@ const JBackend jit_arm64 = {
     "arm64", a_entry, a_ret_pc, a_ld16s, a_ld16u, a_st16, a_ld32, a_st32, a_ldp, a_ldf, a_stf, a_copy16, a_li,
     a_add_ovf, a_sub_ovf, a_mul_ovf, a_add, a_sub, a_mul, a_and, a_or, a_xor, a_neg, a_sdiv, a_srem, a_fit16,
     a_cmp, a_cmpi, a_cmp, a_cmpi, a_bcond, a_b, a_bnullp, a_addp_idx, a_addp_off, a_fop, a_fneg, a_fcvt, a_fchk, a_fbzero,
-    a_fcmp_b, a_poll, a_bind, a_finish, a_fsqrt, a_ldfs, a_stfs, a_shift
+    a_fcmp_b, a_poll, a_bind, a_finish, a_fsqrt, a_ldfs, a_stfs, a_shift, a_mulhs, a_ftoi
 };

@@ -1460,6 +1460,26 @@ static Node *special_builtin(Ctx *c, Node *at, const char *name, NodeList *args,
         if (n->list.n < 1) return n;
         at0 = n->list.v[0]->kind == E_CONV ? n->list.v[0]->a->ty : n->list.v[0]->ty;
         if (name_eq(name, "Sgn")) { n->ty = &ty_variant; return coerce(c, n, &ty_integer); }
+        if ((name_eq(name, "Int") || name_eq(name, "Fix")) && n->list.n == 1) {
+            /* typed: Int / Fix of a Byte, Integer or Long is the value; of a Double or Single a
+               Double op (register form in the VM and JIT, no Variant) */
+            Node *x = n->list.v[0]->kind == E_CONV ? n->list.v[0]->a : n->list.v[0];
+            if (at0->kind == T_BYTE || at0->kind == T_INTEGER || at0->kind == T_LONG) {
+                if (x->kind == E_VAR || x->kind == E_INDEX || x->kind == E_FIELD || x->kind == E_MFIELD) {
+                    Node *k = node_new(E_CONV, at->file, at->line, at->col);     /* a value, not the variable */
+                    k->a = x;
+                    k->ty = x->ty;
+                    k->flags |= NF_PARENARG;
+                    return k;
+                }
+                return x;
+            }
+            if (at0->kind == T_DOUBLE || at0->kind == T_SINGLE) {
+                Node *m = bare_builtin(c, at, builtin_find(name_eq(name, "Fix") ? "__fixd" : "__intd"));
+                nl_push(&m->list, coerce(c, x, &ty_double));
+                return at0->kind == T_SINGLE ? coerce(c, m, &ty_single) : m;
+            }
+        }
         if (type_is_numeric(at0) && at0->kind != T_BOOLEAN) {
             n->ty = &ty_variant;
             if (name_eq(name, "Round") && type_is_integral(at0)) return coerce(c, n, at0);
