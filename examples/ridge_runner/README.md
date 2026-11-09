@@ -7,7 +7,10 @@ Race three rivals down a valley track over rolling hills, with bumps that throw 
 the air over their crests. Pass between each gate's pylons to add time to the clock, and finish
 in the first three to go on to the next track.
 
-@SHOTS@
+![Ridge Runner on the AmigaOS 4 guest: title, play, help and high scores](docs/guest.png)
+
+*Frames saved by the game itself on the AmigaOS 4 guest (`--saveshot`), at the 320 x 256
+it draws; the window shows them at twice the size.*
 
 ## The game
 
@@ -63,4 +66,15 @@ random input), in the VM, with the JIT and native.
 
 ## Performance
 
-@PERF@
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
+guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
+as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
+300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
+(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
+normally; logic and draw are the game's own work.
+
+| build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
+|---|---:|---:|---:|---:|---:|
+| VM | **28** | 2.374 | 29.264 | 3.326 | 9235 fps |
+| VM `--jit` | **23** | 4.376 | 35.509 | 3.475 | - |
+| native (`boing build --target os4`) | **117** | 0.203 | 4.844 | 3.350 | 17729 fps |

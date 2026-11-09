@@ -8,7 +8,10 @@ ball flies down the tunnel to a block of bricks at the far end (6 across, 4 high
 back. Where the ball meets the paddle steers it, and a green ring on the walls shows how far
 away it is.
 
-@SHOTS@
+![Block Breaker 3D on the AmigaOS 4 guest: title, play, help and high scores](docs/guest.png)
+
+*Frames saved by the game itself on the AmigaOS 4 guest (`--saveshot`), at the 320 x 256
+it draws; the window shows them at twice the size.*
 
 ## The game
 
@@ -61,4 +64,15 @@ native; the first is the original's own vector (`D2B5D3AA`).
 
 ## Performance
 
-@PERF@
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
+guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
+as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
+300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
+(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
+normally; logic and draw are the game's own work.
+
+| build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
+|---|---:|---:|---:|---:|---:|
+| VM | **35** | 0.776 | 23.624 | 3.422 | 14708 fps |
+| VM `--jit` | **34** | 1.420 | 24.596 | 3.349 | - |
+| native (`boing build --target os4`) | **128** | 0.109 | 4.285 | 3.227 | 27282 fps |

@@ -7,7 +7,10 @@ The ride takes you down the canyon at a steady speed; you move the sight and fir
 the walls and drones swooping across fire bolts at you: shoot those down too, or your shield
 takes them. At the end of each stage the ride stops before a guardian.
 
-@SHOTS@
+![Canyon Rail on the AmigaOS 4 guest: title, play, help and high scores](docs/guest.png)
+
+*Frames saved by the game itself on the AmigaOS 4 guest (`--saveshot`), at the 320 x 256
+it draws; the window shows them at twice the size.*
 
 ## The game
 
@@ -65,4 +68,15 @@ the whole autopilot game from stage 1 ends with the original's own vector (`137A
 
 ## Performance
 
-@PERF@
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
+guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
+as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
+300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
+(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
+normally; logic and draw are the game's own work.
+
+| build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
+|---|---:|---:|---:|---:|---:|
+| VM | **38** | 0.580 | 22.138 | 3.378 | 13175 fps |
+| VM `--jit` | **33** | 1.273 | 25.059 | 3.426 | - |
+| native (`boing build --target os4`) | **123** | 0.067 | 4.487 | 3.422 | 26010 fps |

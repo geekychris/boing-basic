@@ -6,7 +6,10 @@ game in amiga_mcp's `examples/marble_tilt` (C, for the classic Amiga and AmigaOS
 The marble keeps rolling, so you tilt back to slow it. Eight levels mix holes, gates that open
 and shut, bumpers, sand and checkpoints, each against the clock.
 
-@SHOTS@
+![Marble Tilt on the AmigaOS 4 guest: title, play, help and high scores](docs/guest.png)
+
+*Frames saved by the game itself on the AmigaOS 4 guest (`--saveshot`), at the 320 x 256
+it draws; the window shows them at twice the size.*
 
 ## The game
 
@@ -69,4 +72,15 @@ from level 1 ends with the original's own vector, `07C7AF51`.
 
 ## Performance
 
-@PERF@
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
+guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
+as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
+300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
+(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
+normally; logic and draw are the game's own work.
+
+| build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
+|---|---:|---:|---:|---:|---:|
+| VM | **39** | 2.357 | 19.513 | 3.401 | 13062 fps |
+| VM `--jit` | **36** | 2.316 | 21.254 | 3.418 | - |
+| native (`boing build --target os4`) | **126** | 0.276 | 4.152 | 3.330 | 31005 fps |

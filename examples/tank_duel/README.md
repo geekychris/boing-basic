@@ -12,7 +12,10 @@ shot round cover, and crates break. Each enemy needs different handling:
 - **Bulwark**: a heavy tank with a shield across its front, and shots there glance off
   (sometimes back at you). It turns slowly, so get round to its side.
 
-@SHOTS@
+![Tank Duel on the AmigaOS 4 guest: title, play, help and high scores](docs/guest.png)
+
+*Frames saved by the game itself on the AmigaOS 4 guest (`--saveshot`), at the 320 x 256
+it draws; the window shows them at twice the size.*
 
 ## The game
 
@@ -83,7 +86,18 @@ including the original's own long-fight vector (seed 1234, 9000 ticks: `7CFAB335
 
 ## Performance
 
-@PERF@
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
+guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
+as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
+300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
+(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
+normally; logic and draw are the game's own work.
+
+| build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
+|---|---:|---:|---:|---:|---:|
+| VM | **35** | 8.155 | 16.539 | 3.411 | 6673 fps |
+| VM `--jit` | **31** | 10.071 | 18.680 | 3.351 | - |
+| native (`boing build --target os4`) | **143** | 0.322 | 3.289 | 3.208 | 8270 fps |
 
 ## Tests
 
