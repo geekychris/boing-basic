@@ -106,4 +106,21 @@ beside the program.
 | spell-check all 12 900 words | 63 | 64 | 27 |
 | RTF export | 23 | 23 | 9 |
 
-AmigaOS 4 guest (m1): see below.
+On the AmigaOS 4 guest (m1's QEMU sam460ex, `../gridwise/tools/guest_bench.py pw`), milliseconds:
+
+| | VM | VM + JIT | native |
+|---|---:|---:|---:|
+| load the dictionary | 267 | 270 | 260 |
+| lay out the whole document | 169 | 197 | 18 |
+| draw a screen, spelling checked when idle | 30 | 32 | 6 |
+| draw a screen, checking the spelling of every new paragraph at once | 564 | 604 | 54 |
+| type a character + redraw | 60 | 64 | 9 |
+| spell-check all 12 900 words | 24 869 | 24 728 | 2 036 |
+| save (.pwd text) | 426 | 403 | 73 |
+| RTF export | 4 931 | 5 222 | 460 |
+
+Typing costs 60 ms in the interpreter on the guest (it was 478 ms): the page draws without
+spelling marks for paragraphs not yet checked, and the timer checks a few visible
+paragraphs at a time while you pause; the paragraph you type in is checked a second after
+you stop; style runs are found by comparing growing chunks instead of characters; and the
+caret does not blink (each blink redrew the page).

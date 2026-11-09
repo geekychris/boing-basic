@@ -111,4 +111,25 @@ Before the range dependencies were bucketed by 32-row blocks (each column had on
 every range over it), a full recalculation took 180 ms in the VM and 113 ms native: marking
 the dependents scanned each column's whole list for every changed cell.
 
-AmigaOS 4 guest (m1): see below.
+On the AmigaOS 4 guest (m1's QEMU sam460ex, `tools/guest_bench.py`), milliseconds:
+
+| | VM | VM + JIT | native |
+|---|---:|---:|---:|
+| enter 26 027 cells | 38 962 | 55 301 | 4 374 |
+| full recalculation (25 027 formulas) | 4 847 | 7 184 | 170 |
+| edit A1, recalculating its row and the 26 column sums of 1000 cells | 54 | 27 | 12 |
+| draw the grid (a screen of cells formatted for the first time) | 51 | 54 | 17 |
+| edit + recalculation + redraw (one keystroke) | 111 | 85 | 30 |
+
+So in the interpreter an edit, its recalculation and the redraw take about a tenth of a
+second even with every column summed over 1000 rows, and scrolling redraws at 15-20
+frames per second (cells already shown are cached and cost less). Native builds are 3-4x
+faster. Under QEMU the VM:native ratio is 15-30x (docs/performance.md explains why), and
+the JIT helps the recalculation loops of an edit (2x) but not the big batch jobs.
+
+What made the guest fast enough: caching each cell's shown text (formatting numbers was
+most of the drawing time), walking ranges in the dependency walk only between the rows that
+hold dirty formulas, and cutting string allocations (a formula's characters are read into a
+Long array once; numbers are checked without building strings). Allocating a string costs
+far more under QEMU than on real hardware: entering the cells was 76 s in the VM before
+that (5.2 s native).
