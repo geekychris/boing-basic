@@ -9,6 +9,9 @@
 '   BoingPinball --perf            timing overlay (also F1) and a log line a second
 '   BoingPinball --log             print each change of screen (tests)
 '   BoingPinball --blit M          the Canvas's BlitMode
+'   BoingPinball --script          a fixed sequence of keys through the form's key handlers
+'                                  (start, plunger, flippers, nudge, pause, help, tables, quit),
+'                                  logged: the input test (tests/run.sh, headless)
 '   BoingPinball --screen S        start on a screen (for screenshots): title, demo (the
 '                                  title's backglass or demo, held), help1, help2, scores, play (the bot plays a game)
 '
@@ -21,6 +24,7 @@ Option Explicit
 Private Const KEY_HELP As Long = 47
 Private Const KEY_SLASH As Long = 314               ' 256 + raw key 0x3A
 
+Private scriptOn As Boolean, scriptFrame As Long
 Private benchN As Long, benchDone As Long, attractOnly As Boolean, tableArg As Long, screenArg As String
 Private lastMs As Double
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
@@ -42,6 +46,7 @@ Private Sub ParseArgs()
                 If i < UBound(args) Then tableArg = CLng(args(i + 1)) Mod TB_COUNT
             Case "--blit"
                 If i < UBound(args) Then view.BlitMode = CLng(args(i + 1))
+            Case "--script": scriptOn = True: logStates = True
             Case "--screen"
                 If i < UBound(args) Then screenArg = LCase$(args(i + 1))
         End Select
@@ -122,6 +127,10 @@ Private Sub tick_Timer()
     dt = now - lastMs
     lastMs = now
     If dt < 0 Or dt > 100 Then dt = 20
+    If scriptOn Then
+        dt = 20
+        RunScript
+    End If
     PerfBegin
     If attractOnly And pState <> PS_TITLE Then ToTitle
     ShellFrame dt
@@ -136,6 +145,46 @@ Private Sub tick_Timer()
     view.Refresh
     PerfAdd PH_BLIT
     PerfEnd
+End Sub
+
+Private Sub Key(ByVal k As Integer, ByVal down As Boolean)
+    Dim sh As Integer
+    If down Then Form_KeyDown k, sh Else Form_KeyUp k, sh
+End Sub
+
+' --script: one step of the input test, at 50 frames a second of game time
+Private Sub RunScript()
+    Dim i As Long
+    scriptFrame = scriptFrame + 1
+    Select Case scriptFrame
+        Case 300: Key vbKeySpace, True                  ' (the title's backglass shows for a while)
+        Case 302: Key vbKeySpace, False
+        Case 320: Print "ball in lane: " & (bl(0).st = BS_LANE) & " pull " & gPull
+                  Key vbKeySpace, True                  ' pull the plunger back for a second
+        Case 370: Print "pulled: " & (gPull > 50000)
+                  Key vbKeySpace, False                 ' and let go
+        Case 372: Print "launched: " & (bl(0).st = BS_PLAY And bl(0).vy > 0)
+        Case 400: Key vbKeyZ, True: Key KEY_SLASH, True
+        Case 410: Print "flippers up: " & (fl(0).ang = fl(0).up And fl(1).ang = fl(1).up)
+                  Key vbKeyZ, False: Key KEY_SLASH, False
+        Case 412: Key vbKeyUp, True
+        Case 413: Key vbKeyUp, False
+        Case 416: Print "nudged: tilt meter " & (gTiltMeter > 0)
+        Case 420: Key vbKeyP, True: Key vbKeyP, False
+        Case 430: i = gTime
+        Case 440: Print "paused: " & (pPaused = 1): Key vbKeyP, True: Key vbKeyP, False
+        Case 450: Key vbKeyH, True: Key vbKeyH, False
+        Case 452: Print "help: " & pHelp: Key vbKeyH, True: Key vbKeyH, False
+        Case 454: Print "help: " & pHelp: Key vbKeySpace, True: Key vbKeySpace, False
+        Case 456: Print "help: " & pHelp
+        Case 470: Key vbKeyEscape, True: Key vbKeyEscape, False
+        Case 480: Key vbKeyRight, True: Key vbKeyRight, False
+        Case 482: Print "table: " & tName
+        Case 490: Key vbKeyS, True: Key vbKeyS, False
+        Case 495: Print "scores of " & tName & ": " & (pState = PS_SCORES) & " best " & bestScore
+                  Key vbKeySpace, True: Key vbKeySpace, False
+        Case 500: Key vbKeyEscape, True: Key vbKeyEscape, False
+    End Select
 End Sub
 
 Private Function KeyBits(ByVal k As Long) As Long

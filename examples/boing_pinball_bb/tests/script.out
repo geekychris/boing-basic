@@ -1,0 +1,17 @@
+state title COMET TOUR score 0
+state play COMET TOUR score 0
+ball in lane: True pull 0
+pulled: True
+launched: True
+flippers up: True
+nudged: tilt meter True
+paused: True
+help: 1
+help: 2
+help: 0
+state title COMET TOUR score 0
+table: DEEP DIVE
+state scores DEEP DIVE score 0
+scores of DEEP DIVE: True best 40000
+state title DEEP DIVE score 0
+bye
