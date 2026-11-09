@@ -79,6 +79,7 @@ itself.
 | native (`boing build --target os4`) | **124** | 0.152 | 4.409 | 3.337 | 17729 fps |
 
 Played in real time (`--demo --perf`: the form's 40 ms timer, the original's 25 fps), the
-VM build runs at 23-25 fps on the same guest. The JIT is slower than the VM on the QEMU guest
-for now (its code and tables crowd the guest's small TLB; `docs/performance.md`), so run
-without `--jit` there.
+VM build runs at 23-25 fps on the same guest. The `VM --jit` row was measured with the JIT on; it
+is slower than the VM on the QEMU guest (its code and tables crowd the guest's small TLB,
+`docs/performance.md`), so since 46ffc8d `--jit` checks the TLB at start-up and stays off
+there, running at VM speed (`--jit-force` keeps it on).
