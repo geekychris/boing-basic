@@ -136,6 +136,7 @@ error ends the wait.
 | `tests-os4/formbas/` (`tools/os4-form-test.sh`) | the same from BASIC: a .bbp with form + code-behind, properties, AddItem, `form.control` access, TypeName, a real click on OK (`tools/os4/ptr`) calling `ok_Click` | 13/13 with `boing run` and 13/13 natively built (2026-11-08) |
 | `tests-os4/declare/` (`tools/os4guest.py bas`) | Declare from BASIC: generated bindings (slots), Declares by name, Interface/Version, a String argument, a Space(n) buffer filled by GetVar | 8/8 VM and native (2026-11-08) |
 | `tests-os4/bindings/` | exec, dos, utility, intuition/graphics, locale and error paths through the generated bindings ([bindings.md](bindings.md)) | 42/42 VM and native, output == libs.out |
+| `tests-os4/audio/` (`tools/os4guest.py bas`) | the Audio object: fx.mod and effects rendered off-line give the Mac's PCM hashes, then music + effects through AHI from the mixer task ([audio.md](audio.md)) | PASS VM and native, mixer 0.9 % CPU on m1 (2026-11-08) |
 | `tests/os4/sys_test.c` | Command, App.Path, Shell, Environ, Dir with patterns and vbDirectory, Kill, MkDir/RmDir, FileCopy, Name, clipboard (restored afterwards) | 30/30 |
 
 Input injection uses input.device (`IND_WRITEEVENT`) from inside the test, at the control's

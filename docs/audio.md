@@ -223,4 +223,15 @@ same samples within 1 LSB (rounding).
 
 ## CPU cost
 
-(being measured on the m1 guest)
+Measured on the m1 guest (QEMU sam460ex on a Mac mini M1, AHI on the emulated ES1370,
+2026-11-08) with `examples/glimmerfield/tools/guest_sound.py`: Glimmerfield `--bench 1500`
+(native build), once silent and once with the music playing (4 channels, 22050 Hz):
+
+| | ms/frame | mixer task |
+|---|---|---|
+| no sound | 2.023 | |
+| music on | 2.035 (+0.012 ms, +0.6 %) | `CpuLoad` 0.9 % |
+
+The guest's audio output was recorded during the run with QEMU's HMP `wavcapture` on the
+`snd0` audiodev: 3.1 s, RMS 583, peak 2621 (MusicVolume 40, master 64), so sound is produced.
+Each extra effect voice costs about as much as a music channel.
