@@ -10,6 +10,7 @@
 '   DroneCourier --log              print each change of screen (tests)
 '   --demo                      start a game with the autopilot on (screenshots)
 '   --help N / --scores         start on a help page / the high scores
+'   --front                     move the window to the top left and to the front (screenshots)
 '   DroneCourier --seed N           the first game's seed
 '
 ' Keys: cursor keys / WASD fly and turn, Space climbs, P pause, B autopilot, Help/H the
@@ -28,7 +29,7 @@ Private edgeFire As Boolean, edgeUp As Boolean, edgeDown As Boolean
 Private fireLock As Boolean
 Private benchN As Long, benchDone As Long, attractOnly As Boolean, logModes As Boolean
 Private nextSeed As Long
-Private demoStart As Boolean, scoresStart As Boolean
+Private demoStart As Boolean, scoresStart As Boolean, frontReq As Boolean
 Private lastMs As Double, accMs As Double
 Private entryName As String
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
@@ -50,6 +51,7 @@ Private Sub ParseArgs()
                 perfLog = True
             Case "--log": logModes = True
             Case "--demo": demoStart = True
+            Case "--front": frontReq = True
             Case "--scores": scoresStart = True
             Case "--help"
                 duHelp = 1
@@ -142,6 +144,11 @@ End Sub
 
 Private Sub tick_Timer()
     Dim now As Double, steps As Long
+    If frontReq Then                        ' --front: our window to the front (screenshots)
+        frontReq = False
+        Me.Move 0, 0
+        Me.SetFocus
+    End If
     If benchN > 0 Then
         If benchDone = 0 Then RunBench
         Exit Sub
