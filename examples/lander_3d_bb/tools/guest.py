@@ -73,11 +73,26 @@ def run(m, cmd, outf, limit):
     return out + "\nFAIL (timed out after %ds)" % limit
 
 
+# QEMU HMP monitor port per guest. On m1.local, 2348 is the USER's own guest (m1): never
+# touched. Agent guests: m1b 2448, m1c 2548. OS4_HMP_PORT overrides.
+HMP_PORT = {"local": 2348, "spark": 2348, "m1b": 2448, "m1c": 2548}
+
+
+def hmp_port():
+    if os.environ.get("OS4_HMP_PORT"):
+        return int(os.environ["OS4_HMP_PORT"])
+    guest = os.environ.get("BB_GUEST", "local")
+    if guest not in HMP_PORT:
+        raise SystemExit("guest.py: no screenshots or mouse on guest %r (m1 is the user's)" % guest)
+    return HMP_PORT[guest]
+
+
 def hmp(cmd):
+    port = hmp_port()
     if g.SSH:
-        subprocess.run(["ssh", g.SSH, "printf '%s\\n' | nc -w 2 127.0.0.1 2348 >/dev/null" % cmd], check=True)
+        subprocess.run(["ssh", g.SSH, "printf '%s\\n' | nc -w 2 127.0.0.1 %d >/dev/null" % (cmd, port)], check=True)
     else:
-        subprocess.run("printf '%s\\n' | nc -w 2 127.0.0.1 2348 >/dev/null" % cmd, shell=True, check=True)
+        subprocess.run("printf '%s\\n' | nc -w 2 127.0.0.1 %d >/dev/null" % (cmd, port), shell=True, check=True)
 
 
 def screendump(out_png):
