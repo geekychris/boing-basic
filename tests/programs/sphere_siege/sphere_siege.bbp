@@ -1,0 +1,6 @@
+# Sphere Siege's rules (examples/sphere_siege): autopilot games, hashes equal to the C original's
+Name=SsTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/sphere_siege/SsCore.bas
+Module=sstest.bas
