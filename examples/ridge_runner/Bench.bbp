@@ -1,0 +1,13 @@
+# Boing BASIC project: Ridge Runner console bench (logic + drawing on an off-screen Canvas)
+Name=RidgeRunnerBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Engine.bas
+Module=../common/Draw2D.bas
+Module=RrCore.bas
+Module=RrDraw.bas
+Module=RrSound.bas
+Module=BenchMain.bas
+Stack=262144
