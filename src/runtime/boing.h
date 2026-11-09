@@ -167,6 +167,7 @@ BB_INLINE void bb_frame_pop(bb_errframe *f) { bb_errtop = f->prev; }
 /* ------------------------------------------------------------------ */
 
 void bb_rt_init(int argc, char **argv);
+void bb_rt_set_app_dir(const char *dir);   /* App.Path for the VM: the program's directory */
 void bb_rt_shutdown(void);                   /* flush/close files */
 void bb_end(void) BB_NORETURN;               /* the End statement: exit(0) */
 void bb_exit(int code) BB_NORETURN;

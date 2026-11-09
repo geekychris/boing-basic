@@ -37,6 +37,7 @@ test: all
 	@sh tests/run.sh
 	@python3 tools/test_os4guest.py
 	@sh tests/break/run.sh $(CURDIR)/build/boing
+	@sh tests/cli/run.sh $(CURDIR)/build/boing
 	@sh examples/riffwright/tests/run.sh $(CURDIR)/build/boing
 	@sh examples/stack_tower_bb/tools/test.sh
 	@sh examples/orbit_docking_bb/tools/test.sh

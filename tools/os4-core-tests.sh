@@ -9,7 +9,7 @@ g="python3 $root/tools/os4guest.py"
 [ -f "$root/build/os4/boing" ] || { echo "build/os4/boing missing: run tools/build-os4.sh" >&2; exit 10; }
 $g push "$root/build/os4/boing" RAM:bbcore/boing || exit 20
 pass=0 fail=0
-for f in $(cd "$root/tests" && ls */*.bas | grep -v '^errors/\|^break/' | grep -e "${1:-}"); do
+for f in $(cd "$root/tests" && ls */*.bas | grep -v '^errors/\|^break/\|^cli/' | grep -e "${1:-}"); do
     d=$(dirname "$f"); b=$(basename "$f" .bas)
     ls "$root/tests/$d"/*.bbp >/dev/null 2>&1 && continue
     files="$root/tests/$f RAM:bbcore/$b.bas"

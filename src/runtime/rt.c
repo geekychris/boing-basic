@@ -112,6 +112,11 @@ void *bb_small_realloc(void *p, size_t n)
 
 void bb_set_args_(int argc, char **argv);
 
+/* App.Path for programs the VM runs: the program file's directory (set by `boing run` before
+   bb_rt_init); NULL = the executable's own directory (native programs) */
+static const char *g_app_dir;
+void bb_rt_set_app_dir(const char *dir) { g_app_dir = dir; }
+
 void bb_rt_init(int argc, char **argv)
 {
     bb_set_args_(argc, argv);
@@ -120,7 +125,7 @@ void bb_rt_init(int argc, char **argv)
         char here;
         bb_stack_limit = bb_plat_stack_limit(&here);
     }
-    bb_sys_init(argc, argv, NULL);
+    bb_sys_init(argc, argv, g_app_dir);
     if (getenv("BOING_ERROR_FILE")) bb_set_error_file(getenv("BOING_ERROR_FILE"));
 }
 

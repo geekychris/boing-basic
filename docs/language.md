@@ -210,6 +210,12 @@ colours, key codes. `vbNewLine` is a single LF (AmigaOS and Unix convention).
   `Close [#n, …]`, `Get`/`Put #n, [rec], var` (scalars, strings, UDTs and arrays; little-endian
   like VB files), `Seek #n, pos` / `Seek(n)`, `EOF LOF Loc FreeFile FileLen Dir Kill Name MkDir
   RmDir ChDir CurDir FileCopy`.
+- `App.Path` is the program's directory: under `boing run prog.bbp|prog.bas|prog.bbc` the
+  directory of that file (an absolute path, e.g. `DH1:Games/Tank`), in a native build the
+  executable's. Load files that sit beside the program with `App.Path & "/name"` (on AmigaOS,
+  leave out the `/` when App.Path ends in `:`). The current directory stays where the program
+  was started from (the shell's, or AmiForge's project directory), so relative paths in
+  arguments keep working; relative file names in `Open` are relative to it, not to App.Path.
 - `MsgBox` and `InputBox` prompt on the console on the host (`(y/n)` for vbYesNo). On AmigaOS
   they are requesters.
 

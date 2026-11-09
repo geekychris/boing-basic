@@ -158,6 +158,22 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
 static const char __attribute__((used)) boing_stack_cookie[] = "$STACK:1048576";
 #endif
 
+/* the directory of the program file (App.Path under `boing run`): "DH1:a/b.bbp" -> "DH1:a",
+   "DH1:b.bbp" -> "DH1:", "b.bbp" -> the current directory */
+static char *program_dir(const char *path)
+{
+    char *d = strdup(path), *s = strrchr(d, '/'), *c = strrchr(d, ':');
+    if (c && (!s || c > s)) c[1] = 0;
+    else if (s && s == d) s[1] = 0;
+    else if (s) *s = 0;
+#ifdef __amigaos4__
+    else d[0] = 0;              /* "" locks the current directory */
+#else
+    else strcpy(d, ".");
+#endif
+    return d;
+}
+
 int main(int argc, char **argv)
 {
     const char *cmd;
@@ -201,6 +217,7 @@ int main(int argc, char **argv)
             if (!img) return 20;
         }
         if (!strcmp(cmd, "disasm")) { vm_disasm(img, stdout); return 0; }
+        bb_rt_set_app_dir(program_dir(argv[2]));
         return vm_run(img, argc - 2, argv + 2);
     }
     if (!strcmp(cmd, "jitdump")) {

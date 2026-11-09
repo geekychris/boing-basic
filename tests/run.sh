@@ -16,7 +16,7 @@ mkdir -p "$TMP"; rm -f "$TMP"/*.result "$TMP"/*.diff
 # tests: every .bbp, and every .bas that is not part of a project directory
 { find "$ROOT/tests" -name '*.bbp'
   find "$ROOT/tests" -name '*.bas' | while read -r f; do ls "$(dirname "$f")"/*.bbp >/dev/null 2>&1 || echo "$f"; done
-} | grep -v '/tests/break/' | sort | grep -e "${1:-}" | xargs -P "${JOBS:-4}" -n 1 sh "$ROOT/tests/run1.sh"
+} | grep -v '/tests/break/\|/tests/cli/' | sort | grep -e "${1:-}" | xargs -P "${JOBS:-4}" -n 1 sh "$ROOT/tests/run1.sh"
 pass=$(cat "$TMP"/*.result 2>/dev/null | grep -c '^PASS')
 fail=$(cat "$TMP"/*.result 2>/dev/null | grep -c '^FAIL')
 cat "$TMP"/*.result 2>/dev/null | grep '^FAIL' | sort
