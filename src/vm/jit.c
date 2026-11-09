@@ -1068,6 +1068,32 @@ void jit_log(const char *fmt, ...)
     fflush(jit_logf);
 }
 
+static const char *jit_decision = "off";
+static char jit_reason[160];
+
+#if defined(__amigaos4__)
+#include "../runtime/platform.h"
+/* nanoseconds per access when cycling through 48 distinct 4 KB pages (more than the 460's TLB
+   holds): ~1200 under QEMU, a few on real hardware */
+static double tlb_refill_ns(void)
+{
+    enum { PAGES = 48, ROUNDS = 40 };
+    volatile unsigned char *b = (volatile unsigned char *)malloc((size_t)(PAGES + 1) * 4096);
+    unsigned s = 0;
+    double t;
+    int r, p;
+    if (!b) return 0;
+    for (p = 0; p < PAGES; p++) b[p * 4096] = (unsigned char)p;
+    t = bb_plat_seconds();
+    for (r = 0; r < ROUNDS; r++)
+        for (p = 0; p < PAGES; p++) s += b[p * 4096 + ((p * 64) & 4095)];
+    t = bb_plat_seconds() - t;
+    free((void *)b);
+    (void)s;
+    return t * 1e9 / (PAGES * ROUNDS);
+}
+#endif
+
 void jit_init(void)
 {
     if (getenv("BOING_JIT_LOG") && !jit_logf) {
@@ -1079,8 +1105,28 @@ void jit_init(void)
     const char *th = getenv("BOING_JIT_THRESHOLD");
     if (getenv("BOING_JIT_MINOPS")) jit_min_ops = atoi(getenv("BOING_JIT_MINOPS"));
     if (getenv("BOING_JIT_NOSQRT")) jit_no_fsqrt = atoi(getenv("BOING_JIT_NOSQRT")) != 0;
-    if (e) g_enabled = atoi(e) != 0;
+    if (e) g_enabled = !strcmp(e, "force") || atoi(e) != 0;
     if (th) jit_threshold = atoi(th);
+#if defined(__amigaos4__)
+    /* Under QEMU (the sam460ex guests) a TLB refill costs ~1.2 us, and compiled code plus its
+       per-pc tables add pages to every loop: the JIT measured slower than the VM in all eight
+       amiga3d ports. Real machines refill in nanoseconds. So --jit first times a walk over 48
+       pages (~3 ms there) and declines when refills are slow; BOING_JIT=force skips the test. */
+    if (g_enabled && e && strcmp(e, "force")) {
+        double ns = tlb_refill_ns();
+        if (ns > 200.0) {
+            g_enabled = 0;
+            jit_decision = "off";
+            snprintf(jit_reason, sizeof jit_reason, "TLB refills cost %.0f ns (an emulator such as QEMU); BOING_JIT=force uses it anyway", ns);
+        } else snprintf(jit_reason, sizeof jit_reason, "TLB refills cost %.0f ns", ns);
+    }
+#endif
+    if (e && getenv("BOING_VERBOSE")) {
+        if (!strcmp(e, "force") && JIT_HOST_BACKEND) fprintf(stderr, "jit: on (%s, forced)\n", JIT_HOST_BACKEND->name);
+        else if (!g_enabled) fprintf(stderr, "jit: %s%s%s\n", jit_decision, jit_reason[0] ? ": " : "", jit_reason);
+        else if (!JIT_HOST_BACKEND) fprintf(stderr, "jit: off: no backend for this CPU\n");
+        else fprintf(stderr, "jit: on (%s%s%s)\n", JIT_HOST_BACKEND->name, jit_reason[0] ? "; " : "", jit_reason);
+    }
 }
 
 bb_jitfn jit_get(VMImage *img, VMProc *p, int32_t start)

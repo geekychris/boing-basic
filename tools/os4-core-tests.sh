@@ -3,7 +3,7 @@
 # through the cross-built boing (build/os4/boing, from tools/build-os4.sh) in the VM on the
 # QEMU OS4 guest, via tools/os4guest.py (emulator lock + banner). Compares the output with
 # the .out file. Skips projects (*.bbp dirs), compile-error tests, and tests that write files
-# outside their directory. RUNFLAGS=--jit runs them with the PowerPC JIT.
+# outside their directory. RUNFLAGS=--jit-force runs them with the PowerPC JIT (plain --jit declines under QEMU).
 root=$(cd "$(dirname "$0")/.." && pwd)
 g="python3 $root/tools/os4guest.py"
 [ -f "$root/build/os4/boing" ] || { echo "build/os4/boing missing: run tools/build-os4.sh" >&2; exit 10; }

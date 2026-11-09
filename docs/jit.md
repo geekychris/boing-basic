@@ -73,6 +73,15 @@ with either backend, for checking the encodings on any host:
 
 ## On the QEMU guest
 
+`--jit` on AmigaOS 4 first times a walk over 48 memory pages (~3 ms). Under QEMU's sam460ex a
+TLB refill costs ~1.2 us and the JIT measured slower than the VM in every amiga3d port
+(bb-g-more: Sphere Siege 17.7 -> 9.8 fps), so when refills cost more than 200 ns the JIT stays
+off for the whole program; real machines refill in nanoseconds and keep it.
+`boing run --jit -v` prints the decision once on stderr (`jit: off: TLB refills cost 1180 ns
+(an emulator such as QEMU); BOING_JIT=force uses it anyway`). `--jit-force` or `BOING_JIT=force`
+skips the test (tools/os4-core-tests.sh uses it to test the PPC backend on the guest).
+
+
 The PPC JIT passes the test suite on the guest (every loop compiled) and speeds up arithmetic
 loops 2-3x there. On field-heavy game code (Glimmerfield) it compiles almost everything and is
 2x faster on the Mac, but about 40 % slower than the interpreter under QEMU's TCG, which charges

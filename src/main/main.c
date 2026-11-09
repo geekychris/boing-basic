@@ -218,13 +218,19 @@ int main(int argc, char **argv)
     if (!strcmp(cmd, "run") || !strcmp(cmd, "disasm")) {
         VMImage *img;
         /* options before the program: --error-file FILE */
-        while (argc > 3 && argv[2][0] == '-' && argv[2][1] == '-') {
+        while (argc > 3 && argv[2][0] == '-') {
             if (!strcmp(argv[2], "--error-file") && argc > 4) {
                 setenv("BOING_ERROR_FILE", argv[3], 1);
                 remove(argv[3]);
                 argv += 2; argc -= 2;
             } else if (!strcmp(argv[2], "--jit") || !strcmp(argv[2], "--no-jit")) {
                 setenv("BOING_JIT", argv[2][2] == 'j' ? "1" : "0", 1);
+                argv += 1; argc -= 1;
+            } else if (!strcmp(argv[2], "--jit-force")) {
+                setenv("BOING_JIT", "force", 1);
+                argv += 1; argc -= 1;
+            } else if (!strcmp(argv[2], "-v") || !strcmp(argv[2], "--verbose")) {
+                setenv("BOING_VERBOSE", "1", 1);
                 argv += 1; argc -= 1;
             } else { fprintf(stderr, "boing: unknown option %s\n", argv[2]); return 5; }
         }

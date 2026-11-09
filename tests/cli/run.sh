@@ -20,6 +20,13 @@ for mode in vm nat; do
     else "$B" build "$d/timer/timer.bbp" -o "$tmp/timer" >/dev/null 2>&1 && got=$(cd "$d/timer" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=5 "$tmp/timer" 2>&1); fi
     [ "$got" = "ticks ok" ] || { echo "FAIL cli timer ($mode): $got"; fail=1; }
 done
+# the JIT's decision is logged once with -v (on, off with the reason, or forced), never without
+n=$(cd "$d/apppath" && "$B" run --jit -v apppath.bas 2>&1 >/dev/null | grep -c '^jit: ')
+[ "$n" = 1 ] || { echo "FAIL cli jit -v: $n decision lines"; fail=1; }
+n=$(cd "$d/apppath" && "$B" run --jit-force -v apppath.bas 2>&1 >/dev/null | grep -c '^jit: on (.*forced)')
+[ "$n" = 1 ] || { echo "FAIL cli jit-force -v: $n lines"; fail=1; }
+n=$(cd "$d/apppath" && "$B" run --jit apppath.bas 2>&1 >/dev/null | grep -c '^jit: ')
+[ "$n" = 0 ] || { echo "FAIL cli jit without -v logged"; fail=1; }
 rm -rf "$tmp"
 echo "cli tests: $([ $fail = 0 ] && echo all passed || echo FAILURES)"
 exit $fail
