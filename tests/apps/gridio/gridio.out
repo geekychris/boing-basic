@@ -1,0 +1,42 @@
+saved True
+GRIDWISE	1
+SIZE	100	26
+W	A	90
+C	A1	0	Month
+C	B1	0	Apples
+C	C1	0	Pears
+C	D1	0	Note, with "quotes"
+C	A2	0	Jan
+C	B2	0	12
+C	C2	0	7
+C	A3	0	Feb
+C	B3	0	18
+C	C3	0	9
+C	A4	0	Mar
+C	B4	0	9
+C	C4	0	14
+C	A5	0	Apr
+C	B5	0	-4
+C	C5	0	11
+C	A6	0	Total
+C	B6	1026	=SUM(B2:B5)
+C	C6	0	=SUM(C2:C5)
+CHART	bar	A1:C5	Fruit sold
+CHART	pie	A1:B4	Apples
+loaded True  100 x 26  B6=35.00 C6=41 charts  2  A1:C5 Apples w  90 
+modified False
+Month,Apples,Pears,"Note, with ""quotes"""
+Jan,12,7,
+Feb,18,9,
+Mar,9,14,
+Apr,-4,11,
+Total,35.00,41,
+csv back: B6=35 D1=Note, with "quotes" A6=Total
+rows  3  A2=1 B2=2;3 A3=multi|line B3==1+1
+sep tab True
+tsv: x|y
+1|2;3
+chart  0  bar hash 30B04BF2
+chart  1  pie hash 15F8B579
+line hash 443B95C8
+empty hash 401E3C83

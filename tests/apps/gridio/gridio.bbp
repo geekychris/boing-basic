@@ -1,0 +1,8 @@
+# Gridwise (examples/gridwise): .gws and CSV round trips, charts drawn off-screen
+Name=GridIOTest
+Startup=Sub Main
+Module=../../../examples/gridwise/Formula.bas
+Module=../../../examples/gridwise/Sheet.bas
+Module=../../../examples/gridwise/SheetIO.bas
+Module=../../../examples/gridwise/Charts.bas
+Module=giotest.bas
