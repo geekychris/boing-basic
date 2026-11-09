@@ -229,11 +229,11 @@ def arexx_test(m):
     return ok
 
 
-def idle_test(m):
+def idle_test(m, vm=False):
     """Start Tincture, leave it idle 30 s, and check the bridge answers quickly all along."""
     t = int(time.time())
     outf = "RAM:tincture_idle_%d.log" % t
-    prog = ("%s/Tincture" % DIR) if os.path.exists(ROOT + "/build/Tincture") else vm_cmd()
+    prog = vm_cmd() if vm or not os.path.exists(ROOT + "/build/Tincture") else ("%s/Tincture" % DIR)
     launch(m, "%s --hold 45 --log >%s *>%s.err" % (prog, outf, outf))
     if not wait_for(m, outf, "active", 90):
         print(dos(m, "type %s.err" % outf))
@@ -287,7 +287,7 @@ def main():
             sys.exit(0 if ok else 1)
         elif what == "idle":
             push_all(m)
-            ok = idle_test(m)
+            ok = idle_test(m, len(sys.argv) > 2 and sys.argv[2] == "vm")
             print("IDLE", "PASS" if ok else "FAIL")
             sys.exit(0 if ok else 1)
         elif what == "arexx":
