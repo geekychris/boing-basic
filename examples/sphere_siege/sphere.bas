@@ -8,6 +8,8 @@
 '   SphereSiege --attract          the title's autopilot only, forever
 '   SphereSiege --perf             timing overlay (also F1) and a log line a second
 '   SphereSiege --log              print each change of screen (tests)
+'   --demo                      start a game with the autopilot on (screenshots)
+'   --help N / --scores         start on a help page / the high scores
 '   SphereSiege --seed N           the first game's seed
 '
 ' Keys: cursor keys / WASD slide, Space fires (hold), G the grid, P pause, B autopilot, Help/H the
@@ -26,6 +28,7 @@ Private edgeFire As Boolean, edgeUp As Boolean, edgeDown As Boolean
 Private fireLock As Boolean
 Private benchN As Long, benchDone As Long, attractOnly As Boolean, logModes As Boolean
 Private nextSeed As Long
+Private demoStart As Boolean, scoresStart As Boolean
 Private lastMs As Double, accMs As Double
 Private entryName As String
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
@@ -46,6 +49,13 @@ Private Sub ParseArgs()
                 showPerf = True
                 perfLog = True
             Case "--log": logModes = True
+            Case "--demo": demoStart = True
+            Case "--scores": scoresStart = True
+            Case "--help"
+                duHelp = 1
+                If i < UBound(args) Then
+                    If IsNumeric(args(i + 1)) Then duHelp = CLng(args(i + 1))
+                End If
             Case "--wave"
                 If i < UBound(args) Then startWave = CLng(args(i + 1))
             Case "--seed"
@@ -94,6 +104,14 @@ Private Sub Form_Load()
     ParseArgs
     PerfReset
     ToTitle
+    If demoStart Then
+        StartGame
+        duAutoplay = True
+    ElseIf scoresStart Then
+        entryRank = -1
+        duStateTimer = 30000
+        SetState DS_SCORES
+    End If
     If benchN > 0 Then
         showPerf = True
         duAutoplay = True
