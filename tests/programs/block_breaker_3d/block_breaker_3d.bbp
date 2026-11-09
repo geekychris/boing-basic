@@ -1,0 +1,6 @@
+# Block Breaker 3D's rules (examples/block_breaker_3d): autopilot games, hashes equal to the C original's
+Name=BbTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/block_breaker_3d/BbCore.bas
+Module=bbtest.bas
