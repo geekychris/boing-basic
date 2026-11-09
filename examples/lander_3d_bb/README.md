@@ -86,9 +86,10 @@ Changed:
 - **Keys** (new): B hands the lander to the autopilot and back (the original does that
   through its AmigaBridge hook), M and N switch the music and effects, Up/Down on the title
   choose the starting level, F1 shows the timing. The help's second page lists them.
-- **The level check runs 25 autopilot steps a frame**, not 150: in the interpreter a step
+- **The level check runs 10 autopilot steps a frame**, not 150: in the interpreter a step
   costs more than on a 68k. Its result (and the tank top-up) is the same, it just arrives
-  a few seconds into the level instead of one.
+  later into the level (a typical check is 3000-5000 steps: 12-20 s) instead of within a second or two.
+- The plain to the horizon is drawn in bands of 4 pixels (2 of the game's rows), not per row.
 - **The ground**: the engine draws a grid of the map with 32 mirrored cells round it
   (the original mirrors without end), the cells within 30 cells of the camera that are in
   view (the original: a 41 x 41 window ahead of the craft). Past that, the plain, as in

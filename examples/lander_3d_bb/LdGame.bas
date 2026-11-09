@@ -38,7 +38,7 @@ Public gProbeSlice As Long                 ' autopilot steps of the level check 
 Public Sub GameInit()
     LdInit
     gNextSeed = 2026
-    gProbeSlice = 25
+    gProbeSlice = 10
     ToTitle
 End Sub
 
