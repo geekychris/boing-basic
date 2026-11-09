@@ -686,7 +686,10 @@ void bb_forms_main(const char *module);       /* Startup=Form x */
 void bb_form_load_obj(const bb_value *form);  /* Load x */
 void bb_form_unload_obj(const bb_value *form);/* Unload x */
 void bb_forms_shutdown_(void);
-bb_obj *bb_forms_create_object(const char *progid);  /* CreateObject names of the forms layer, or NULL */
+bb_obj *bb_forms_create_object(const char *progid);
+/* a control's member by name (canvas.c: the canvas control's ContextMenu, Visible, ...) */
+struct bb_ctl;
+void bb_ctl_invoke_named(struct bb_ctl *c, const char *name, int kind, int argc, bb_value *argv, bb_value *ret);  /* CreateObject names of the forms layer, or NULL */
 
 /* ------------------------------------------------------------------ */
 /* Console and Print                                                    */

@@ -24,6 +24,13 @@
 #include <proto/locale.h>
 #include <proto/amigaguide.h>
 #include <proto/datatypes.h>
+#include <proto/iffparse.h>
+#include <libraries/iffparse.h>
+#include <devices/clipboard.h>
+
+static int app_debug = -1;
+#define DBG(...) do { if (app_debug < 0) app_debug = getenv("BB_DEBUG_APP") != NULL; \
+                      if (app_debug) { fprintf(stderr, "# app: " __VA_ARGS__); fflush(stderr); } } while (0)
 
 static struct Library *WbLib, *IconLib, *RexxLib, *LocaleLib, *GuideLib, *DtLib;
 static struct WorkbenchIFace *IWB;
@@ -156,8 +163,11 @@ static struct AppMenuItem *menuitems[16];
 static char *menutexts[16];
 static int nmenuitems;
 
+static bb_int app_doevents(void);
+
 static struct MsgPort *port(void)
 {
+    bb_set_doevents(app_doevents);
     if (!app_port) app_port = IExec->AllocSysObjectTags(ASOT_PORT, TAG_DONE);
     return app_port;
 }
@@ -328,6 +338,7 @@ static int32 rexx_rc;
 static void rexx_close(void)
 {
     if (!rexx_port) return;
+    IExec->Forbid();
     IExec->RemPort(rexx_port);
     struct Message *m;
     while ((m = IExec->GetMsg(rexx_port))) {
@@ -336,13 +347,23 @@ static void rexx_close(void)
         rm->rm_Result2 = 0;
         IExec->ReplyMsg(m);
     }
+    IExec->Permit();
+    rexx_port->mp_Node.ln_Name = NULL;
     IExec->FreeSysObject(ASOT_PORT, rexx_port);
     rexx_port = NULL;
     rexx_name[0] = 0;
 }
 
+/* DoEvents in a program without forms handles the ARexx port and Workbench messages too */
+static bb_int app_doevents(void)
+{
+    bb_forms_doevents();
+    return 0;
+}
+
 static int rexx_open(const char *name)
 {
+    bb_set_doevents(app_doevents);
     rexx_close();
     if (!name || !*name) return 0;
     char want[56], buf[64];
@@ -350,12 +371,17 @@ static int rexx_open(const char *name)
     for (char *p = want; *p; p++)
         if (*p >= 'a' && *p <= 'z') *p -= 32;        /* ARexx port names are upper case */
     snprintf(buf, sizeof buf, "%s", want);
+    /* a private port made public by hand: its name is our static rexx_name, and closing it
+       is RemPort + drain + FreeSysObject */
+    rexx_port = IExec->AllocSysObjectTags(ASOT_PORT, TAG_DONE);
+    if (!rexx_port) return 7;
     IExec->Forbid();
     for (int i = 1; IExec->FindPort(buf) && i < 100; i++) snprintf(buf, sizeof buf, "%s.%d", want, i);
-    rexx_port = IExec->AllocSysObjectTags(ASOT_PORT, ASOPORT_Name, (uint32)buf, ASOPORT_Public, TRUE, TAG_DONE);
-    IExec->Permit();
-    if (!rexx_port) return 7;
     snprintf(rexx_name, sizeof rexx_name, "%s", buf);
+    rexx_port->mp_Node.ln_Name = rexx_name;
+    rexx_port->mp_Node.ln_Pri = 0;
+    IExec->AddPort(rexx_port);
+    IExec->Permit();
     return 0;
 }
 
@@ -373,7 +399,9 @@ static void rexx_command(struct RexxMsg *rm)
     bb_str *result = NULL;
     bb_value v[3] = { bb_v_str(bb_str_from_c(cmd)), bb_v_str(bb_str_from_c(sp)), bb_v_ref(BB_STRING, &result) };
     rexx_rc = 0;
+    DBG("ARexx_Command %s / %s\n", cmd, sp);
     int had = bb_app_event("ARexx_Command", 3, v);
+    DBG("handler %d result %s\n", had, result ? bb_str_ptr(result) : "-");
     bb_v_release(&v[0]);
     bb_v_release(&v[1]);
     rm->rm_Result1 = had ? rexx_rc : 30;      /* no handler: "unknown command" */
@@ -387,13 +415,16 @@ static void rexx_command(struct RexxMsg *rm)
 static void rexx_messages(void)
 {
     struct RexxMsg *rm;
+    DBG("rexx signal\n");
     while (rexx_port && (rm = (struct RexxMsg *)IExec->GetMsg(rexx_port))) {
+        DBG("rexx msg action %lx arg0 %s\n", (unsigned long)rm->rm_Action, rm->rm_Args[0] ? (char *)rm->rm_Args[0] : "-");
         if (rm->rm_Node.mn_Node.ln_Type == NT_REPLYMSG) continue;
         if ((rm->rm_Action & RXCODEMASK) == RXCOMM) rexx_command(rm);
         else {
             rm->rm_Result1 = 20;
             rm->rm_Result2 = 0;
         }
+        DBG("rexx reply rc %ld\n", (long)rm->rm_Result1);
         IExec->ReplyMsg(&rm->rm_Node);
     }
 }
@@ -548,40 +579,63 @@ int bbf_app_help_key(bb_form *f)
 
 /* --- clipboard pictures (datatypes: IFF ILBM on clipboard unit 0) -------------------------- */
 
+/* Clipboard.SetPicture: a 24-bit IFF ILBM written with iffparse to clipboard unit 0 (what
+   every OS4 picture program and the picture datatype read) */
 static int clip_set_picture(bb_obj *canvas)
 {
     const uint32_t *px;
     int32_t w, h;
     if (!canvas || !(px = bb_canvas_pixels(canvas, &w, &h))) return 13;
-    if (!dt()) return 5;
-    Object *o = IDT->NewDTObject(NULL, DTA_SourceType, DTST_RAM, DTA_GroupID, GID_PICTURE, PDTA_DestMode, PMODE_V43,
-                                 TAG_DONE);
-    if (!o) return 7;
-    struct BitMapHeader *bmh = NULL;
-    IDT->GetDTAttrs(o, PDTA_BitMapHeader, (uint32)&bmh, TAG_DONE);
-    if (bmh) {
-        bmh->bmh_Width = bmh->bmh_PageWidth = w;
-        bmh->bmh_Height = bmh->bmh_PageHeight = h;
-        bmh->bmh_Depth = 24;
+    struct Library *lib = IExec->OpenLibrary("iffparse.library", 39);
+    struct IFFParseIFace *iff = lib ? (void *)IExec->GetInterface(lib, "main", 1, NULL) : NULL;
+    if (!iff) {
+        if (lib) IExec->CloseLibrary(lib);
+        return 5;
     }
-    IDT->SetDTAttrs(o, NULL, NULL, DTA_NominalHoriz, w, DTA_NominalVert, h, TAG_DONE);
-    struct pdtBlitPixelArray bpa;
-    memset(&bpa, 0, sizeof bpa);
-    bpa.MethodID = PDTM_WRITEPIXELARRAY;
-    bpa.pbpa_PixelData = (APTR)px;
-    bpa.pbpa_PixelFormat = PBPAFMT_ARGB;
-    bpa.pbpa_PixelArrayMod = w * 4;
-    bpa.pbpa_Left = 0;
-    bpa.pbpa_Top = 0;
-    bpa.pbpa_Width = w;
-    bpa.pbpa_Height = h;
-    IIntuition->IDoMethodA(o, (Msg)&bpa);
-    struct dtGeneral dg;
-    memset(&dg, 0, sizeof dg);
-    dg.MethodID = DTM_COPY;
-    uint32 ok = IDT->DoDTMethodA(o, NULL, NULL, (Msg)&dg);
-    IDT->DisposeDTObject(o);
-    return ok ? 0 : 5;
+    int err = 7;
+    struct IFFHandle *h_ = iff->AllocIFF();
+    struct ClipboardHandle *ch = h_ ? iff->OpenClipboard(PRIMARY_CLIP) : NULL;
+    int rowbytes = ((w + 15) / 16) * 2;
+    uint8 *row = malloc(rowbytes);
+    if (h_ && ch && row) {
+        h_->iff_Stream = (uint32)ch;
+        iff->InitIFFasClip(h_);
+        if (!iff->OpenIFF(h_, IFFF_WRITE)) {
+            struct BitMapHeader bmh;
+            memset(&bmh, 0, sizeof bmh);
+            bmh.bmh_Width = w;
+            bmh.bmh_Height = h;
+            bmh.bmh_Depth = 24;
+            bmh.bmh_XAspect = 1;
+            bmh.bmh_YAspect = 1;
+            bmh.bmh_PageWidth = w;
+            bmh.bmh_PageHeight = h;
+            if (!iff->PushChunk(h_, ID_ILBM, ID_FORM, IFFSIZE_UNKNOWN) &&
+                !iff->PushChunk(h_, ID_ILBM, ID_BMHD, sizeof bmh) && iff->WriteChunkBytes(h_, &bmh, sizeof bmh) == sizeof bmh &&
+                !iff->PopChunk(h_) && !iff->PushChunk(h_, ID_ILBM, ID_BODY, IFFSIZE_UNKNOWN)) {
+                err = 0;
+                for (int32 y = 0; y < h && !err; y++)
+                    for (int plane = 0; plane < 24 && !err; plane++) {
+                        /* planes 0-7: red bits 0-7, 8-15 green, 16-23 blue */
+                        int shift = plane < 8 ? 16 + plane : plane < 16 ? plane : plane - 16;
+                        memset(row, 0, rowbytes);
+                        for (int32 x = 0; x < w; x++)
+                            if ((px[y * w + x] >> shift) & 1) row[x >> 3] |= 0x80 >> (x & 7);
+                        if (iff->WriteChunkBytes(h_, row, rowbytes) != rowbytes) err = 5;
+                    }
+                iff->PopChunk(h_);          /* BODY */
+                iff->PopChunk(h_);          /* FORM */
+            } else
+                err = 5;
+            iff->CloseIFF(h_);
+        }
+    }
+    free(row);
+    if (ch) iff->CloseClipboard(ch);
+    if (h_) iff->FreeIFF(h_);
+    IExec->DropInterface((struct Interface *)iff);
+    IExec->CloseLibrary(lib);
+    return err;
 }
 
 static int clip_get_picture(bb_obj *canvas, bb_fval *ret)

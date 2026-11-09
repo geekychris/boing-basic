@@ -1,0 +1,5 @@
+# Boing BASIC project: docs/ui.md from BASIC (tools/os4guest.py bas tests-os4/uibas/uibas.bbp both)
+Name=UiBas
+Startup=Form uibas
+Form=uibas.afg
+Stack=262144

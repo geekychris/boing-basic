@@ -427,6 +427,10 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"Name", P_NAME}, {"BlitMode", P_BLITMODE}, {"BlitInfo", P_BLITINFO}, {"Scale", P_SCALE},
 };
 
+#define CV_CTL_MEMBER 10000
+static char *ctl_names[64];
+static int n_ctl_names;
+
 static int32_t cv_find(const bb_class *cls, const char *name)
 {
     size_t i;
@@ -434,6 +438,14 @@ static int32_t cv_find(const bb_class *cls, const char *name)
     if (!name || !*name) return BB_NOMEMBER;
     for (i = 0; i < sizeof members / sizeof members[0]; i++)
         if (strcasecmp(members[i].name, name) == 0) return members[i].id;
+    /* other names go to the form control the canvas shows in (ContextMenu, Visible,
+       ToolTipText, Left/Top...; docs/ui.md), when it has one */
+    for (i = 0; i < (size_t)n_ctl_names; i++)
+        if (strcasecmp(ctl_names[i], name) == 0) return CV_CTL_MEMBER + (int32_t)i;
+    if (n_ctl_names < 64) {
+        ctl_names[n_ctl_names] = strdup(name);
+        return CV_CTL_MEMBER + n_ctl_names++;
+    }
     return BB_NOMEMBER;
 }
 
@@ -491,6 +503,11 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
     const char *s;
     int setting = (kind & (BB_INV_LET | BB_INV_SET)) != 0;
 
+    if (id >= CV_CTL_MEMBER) {
+        if (!c->ctl) bb_raise(438, NULL);
+        bb_ctl_invoke_named(c->ctl, ctl_names[id - CV_CTL_MEMBER], kind, argc, argv, ret);
+        return;
+    }
     switch (id) {
     case M_CLS: {
         int32_t i, n = c->tw * c->th;
