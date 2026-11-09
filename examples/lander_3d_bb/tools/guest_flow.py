@@ -76,7 +76,7 @@ def main():
                 cmd = d + "/Lander3D"
             else:
                 g.push(m, os.path.join(gg.BROOT, "build/os4/boing"), gg.TOP + "/boing")
-                cmd = gg.TOP + "/boing run " + gg.amiga(SRC) + " --dir " + d + "/"
+                cmd = gg.TOP + "/boing run " + gg.amiga(SRC)
             dos("cd " + d)
             dos("stack 1048576")
             dos("run >NIL: %s --log --ships 1 --place --quiet >%s *>%s.err" % (cmd, flow, flow))

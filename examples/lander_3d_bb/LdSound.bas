@@ -142,26 +142,11 @@ Public Sub SoundPause(ByVal held As Boolean)
     If held Then au.Pause Else au.Resume
 End Sub
 
-' the folder with the game's files: beside the program (a native build), else the current
-' directory (boing run: App.Path is boing's own folder), or --dir PATH
+' the folder with the game's files: beside the program (App.Path)
 Public Function GameDir() As String
-    Dim p As String, a() As String, i As Long
-    a = Split(Trim$(Command$), " ")              ' --dir PATH (boing run on the guest)
-    For i = 0 To UBound(a) - 1
-        If LCase$(a(i)) = "--dir" Then
-            p = a(i + 1)
-            If Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
-            GameDir = p
-            Exit Function
-        End If
-    Next i
+    Dim p As String
     p = App.Path
     If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
-    On Error Resume Next
-    If Len(Dir$(p & "lander_3d.mod")) = 0 Then
-        p = CurDir$
-        If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
-    End If
     GameDir = p
 End Function
 

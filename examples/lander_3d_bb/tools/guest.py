@@ -164,7 +164,7 @@ def main():
                     cmd = "%s/Lander3D %s" % (d, args)
                 else:
                     g.push(m, os.path.join(BROOT, "build/os4/boing"), TOP + "/boing")
-                    cmd = "%s/boing run %s%s --dir %s/ %s" % (TOP, "--jit " if md == "jit" else "", amiga(src), d, args)
+                    cmd = "%s/boing run %s%s %s" % (TOP, "--jit " if md == "jit" else "", amiga(src), args)
                 dos(m, "cd " + d)
                 if shot:
                     dos(m, "stack 1048576")

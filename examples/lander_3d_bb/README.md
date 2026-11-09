@@ -37,7 +37,7 @@ tank gets 30 % more than that flight used.
 | Esc | title / quit |
 
 Options: `--bench N`, `--attract`, `--perf`, `--log`, `--level N`, `--start WORLD`, `--ships N`,
-`--place`, `--win N`, `--quiet`, `--dir PATH` (see the top of `lander.bas`).
+`--place`, `--win N`, `--quiet` (see the top of `lander.bas`).
 
 ## Screenshots
 
