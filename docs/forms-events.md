@@ -354,6 +354,100 @@ The form's methods and properties for menus: `Me.PopupMenu menu [, x, y]`,
 hidden menu the right mouse button opens over it; `Me.ContextControl` (String, R/O) is the
 control the last context menu was opened over.
 
+## Toolbar (`toolbar`) — VB `Toolbar` — **new .afg kind**
+
+A row of buttons (speedbar.gadget) holding `tool` objects; it reports no events itself (each
+tool has its own `Click`). [ui.md](ui.md#2-toolbars-and-status-bars)
+
+```
+toolbar id=tb
+  tool id=tbOpen text="Open" image="TBImages:open" hint="Open a file" menu=mnuOpen
+  tool separator=1
+  tool id=tbGrid text="Grid" toggle=1 checked=1
+```
+
+| Property | Type | Design-time key | Notes |
+|---|---|---|---|
+| `ButtonCount` | Long, R/O | — | tools, separators included |
+| | | `textonly` | only the texts |
+| | | `imagesonly` | only the pictures |
+| | | `vertical` | a vertical bar |
+
+## Tool (`tool`) — VB `Button` of a Toolbar — **new .afg kind**
+
+Only inside a `toolbar`.
+
+| Property | Type | Design-time key | Notes |
+|---|---|---|---|
+| `Caption` / `Text` | String | `text` | |
+| `Picture` | String | `image` | a picture file (datatypes); `selimage` = the pressed picture |
+| `ToolTipText` | String | `hint` | |
+| `Enabled` | Boolean | `disabled` (inverted) | follows the `menu=` item's `Enabled` |
+| `Value` | Integer | `checked` | toggle tools (`toggle=1`): 0 / 1 |
+| | | `separator` | a separator instead of a button |
+| | | `menu` | the menu item it stands for: its `Click` also calls `<menu>_Click` |
+
+| Event | Signature |
+|---|---|
+| `Click` | `<id>_Click()` |
+
+## Status bar (`statusbar`) — VB `StatusBar` — **new .afg kind**
+
+```
+statusbar id=sb panels="Ready|Ln 1|100%" widths="0|60|50"
+```
+
+| Property | Type | Design-time key | Notes |
+|---|---|---|---|
+| `Text` / `SimpleText` | String | first of `panels` | panel 0 |
+| `Panel(i)` | String | `panels` | panel i |
+| `PanelCount` | Long, R/O | | |
+| | | `widths` | pixel widths, 0 = takes the rest |
+
+No events.
+
+## Image (`image`) — VB `Image` — **new .afg kind**
+
+| Property | Type | Design-time key | Notes |
+|---|---|---|---|
+| `Picture` | String | `file` | a picture file (datatypes) |
+| | | `frame` | a recessed frame around it |
+
+No events.
+
+## Common dialog (`commondialog`) — VB `CommonDialog` — **new .afg kind**
+
+Not a gadget: takes no space (like `timer`). Also `CreateObject("Boing.CommonDialog")`.
+[ui.md](ui.md#3-standard-dialogs-commondialog-vb-commondialog)
+
+```
+commondialog id=dlg title="Open a picture" filter="Pictures|#?.(png|iff|jpg)"
+```
+
+| Property | Type | Design-time key | Notes |
+|---|---|---|---|
+| `DialogTitle` | String | `title` | |
+| `Filter` | String | `filter` | AmigaDOS pattern, or VB's `"Text\|*.txt;*.doc"` |
+| `InitDir` | String | `initdir` | |
+| `Flags` | Long | `flags` | `cdlOFNAllowMultiselect` &H200, `cdlOFNOverwritePrompt` &H2, `cdlOFNFileMustExist` &H1000 |
+| `FileName` | String | — | full path |
+| `FileTitle` | String, R/O | — | |
+| `FileCount` | Long, R/O | — | |
+| `Files(i)` | String, R/O | — | multi-select |
+| `CancelError` | Boolean | — | cancelling raises error 32755 |
+| `Cancelled` | Boolean, R/O | — | |
+| `FontName`, `FontSize`, `FontBold`, `FontItalic`, `FontUnderline` | | — | ShowFont |
+| `Color` | Long | — | ShowColor |
+| `ScreenModeID`, `ScreenWidth`, `ScreenHeight`, `ScreenDepth` | Long | — | ShowScreenMode |
+| `ShowOpen` | method | | |
+| `ShowSave` | method | | |
+| `ShowFont` | method | | |
+| `ShowColor` | method | | |
+| `ShowScreenMode` | method | | |
+| `ShowMessage(prompt, buttons [, title [, icon]])` | method | | returns the button number, 1 = leftmost |
+
+No events.
+
 ## Requesters
 
 - `MsgBox(prompt [, buttons [, title]])` — an Intuition requester (requester.class) with the
@@ -363,6 +457,20 @@ control the last context menu was opened over.
 - `InputBox(prompt [, title [, default]])` — a requester with a string gadget; returns "" when
   cancelled.
 - The title defaults to the program name (`App.Title`).
+- `App.Request(prompt, "_Save|_Discard|_Cancel" [, title [, icon]])` — your own buttons;
+  returns 1 for the leftmost ... n for the last (Esc). See [ui.md](ui.md) for the rest of the
+  App object (ToolType, ARexxPort, SaveIcon, ShowHelp...).
+
+## Drag and drop from Workbench
+
+A form with `dropfiles=1` (or `Me.OLEDropMode = 1`) is an AppWindow. Files dropped on it fire
+`Form_OLEDragDrop(Count As Integer, X As Integer, Y As Integer)`, or over a control with
+`dropfiles=1` `<id>_OLEDragDrop(Count As Integer, X As Integer, Y As Integer)` (X, Y inside the
+control); the files are `App.DropFile(0)` .. `App.DropFile(Count - 1)`.
+
+| Event | Signature | When |
+|---|---|---|
+| `OLEDragDrop` | `<id>_OLEDragDrop(Count As Integer, X As Integer, Y As Integer)` / `Form_OLEDragDrop(...)` | icons dropped from Workbench |
 
 ## Event order
 

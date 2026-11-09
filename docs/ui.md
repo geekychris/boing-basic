@@ -112,7 +112,11 @@ its `Enabled`.
 | `Panel(i)` | String | panel i's text (get/set) |
 | `PanelCount` | Long, R/O | |
 
-Status: **planned**.
+`toolbar` has `ButtonCount` (R/O, separators included) and the common properties
+(`Enabled`, `Visible`, ...). Tools can't be hidden (speedbar.gadget has no hidden buttons):
+`Visible` on a tool is only remembered.
+
+Status: **done** (tests/os4/ui_bars_test.c 25/25 on the local guest; tests-os4/uibas).
 
 ## 3. Standard dialogs: `commondialog` (VB `CommonDialog`)
 
@@ -149,7 +153,13 @@ one in code: `Set dlg = CreateObject("Boing.CommonDialog")`.
 Requesters open on the form's screen, centred on the active window, and block the form's
 windows (busy pointer) while open.
 
-Status: **planned**.
+Also on the App object: `App.Request(prompt, "_Save|_Discard|_Cancel" [, title [, icon]])`, the
+same requester without a CommonDialog.
+
+Status: **done**: ShowOpen/ShowSave (multi-select, patterns, overwrite prompt, CancelError),
+ShowFont, ShowScreenMode, ShowColor, ShowMessage, CreateObject("Boing.CommonDialog")
+(tests/os4/ui_bars_test.c, tests-os4/uibas). `ShowPalette` is **not done** (the
+`Colors(i)`/`ColorCount` properties exist).
 
 ## 4. Richer controls
 
@@ -304,9 +314,13 @@ Status: **planned**.
 | `App.SaveIcon path [, defaultTool [, template]]` | writes `path.info`: a project icon (the template's image, else the default project icon) whose default tool is this program (or `defaultTool`) |
 
 Workbench event subs (`AppIcon_*`, `AppMenu_*`, `ARexx_*`) can be in any module; the startup
-form's code-behind is looked at first.
+form's code-behind is looked at first. The ports are served by the forms event loop, and by
+`DoEvents` in programs without forms.
 
-Status: **planned**.
+Status: **done** for ToolType/ToolTypes/ToolTypeCount, FromWorkbench, ArgCount/Arg, SaveIcon,
+Clipboard.SetPicture/GetPicture/HasPicture (tested in tests-os4/uibas); AppWindow drops,
+AppIcon and AppMenuItem are implemented but not yet tested on the guest (they need a
+Workbench drag, which the tests can't do yet).
 
 ## 7. ARexx, preferences, locale, help
 
@@ -324,7 +338,9 @@ Sub ARexx_Command(Cmd As String, Args As String, Result As String)
 End Sub
 ```
 
-`Cmd` is the first word, `Args` the rest of the line. `Result` goes back as `RESULT` (with
+`Cmd` is the first word, `Args` the rest of the line. Don't start an ARexx script that talks
+to your own port with `Shell` (it waits for `rx`, and `rx` waits for your program): use
+`App.RunARexx`. `Result` goes back as `RESULT` (with
 `OPTIONS RESULTS`), `App.ARexxRC` (default 0) as `RC`. `App.ARexxPortName` is the name actually
 used. Sending: `r = App.SendARexx("PORT", "command args")` (returns `RESULT`, `App.ARexxRC` the
 RC; error 5 if there is no such port); `App.RunARexx "script.rexx"` runs a script (async).
@@ -347,18 +363,22 @@ default. Menus and controls can use `$id:default` texts in the `.afg` (e.g.
 ### AmigaGuide help
 
 `App.ShowHelp "PROGDIR:Paint.guide" [, "node"]` opens the help (amigaguide.library,
-asynchronously); `App.HelpFile = "..."` makes the Help key open it at the node named by the
-active control's `HelpContextID` (or `main`).
+asynchronously); `App.HelpFile = "..."` makes the Help key open it at its `main` node.
 
-Status: **planned**.
+Status: **done**: the ARexx port and SendARexx/RunARexx, GetSetting/SaveSetting/DeleteSetting
+(tests/runtime/settings.bas on the host; ENV: on the guest in tests-os4/uibas), App.Str and
+`$id:` texts without a catalog. OpenCatalog with a real catalog and ShowHelp are implemented
+but not yet tested on the guest.
 
 ## 8. Printing (if time permits)
 
-`Printer.Print text`, `Printer.NewPage`, `Printer.EndDoc` (printer.device, text through the
-printer driver), `Printer.PaintPicture canvas [, x, y, w, h]` (a graphic dump of a canvas),
-`Printer.ShowSetup` (the print requester).
+`Printer.Print text`, `Printer.Write text` (no new line), `Printer.NewPage`, `Printer.EndDoc`,
+`Printer.KillDoc` (printer.device, text through the printer driver),
+`Printer.PaintPicture canvas [, x, y, w, h]` (a graphic dump of a canvas through
+`DRPA_SourceHook`), `Printer.ShowSetup` (printer.device's preferences requester),
+`Printer.Page`.
 
-Status: **planned**.
+Status: implemented, **not tested** (no printer on the guests).
 
 ## How it is built
 
