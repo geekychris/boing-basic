@@ -1,0 +1,17 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=penwright title="Penwright" width=660 height=500 resizable=1
+vlayout id=root
+  hlayout weight=0
+    chooser id=style items="Body|Heading 1|Heading 2|Heading 3|Quote|Bullet|Code" selected=0 weight=0 hint="Paragraph style"
+    chooser id=size items="8|9|10|11|12|14|16|18|20|24|28|32|36|48" selected=4 weight=0 hint="Text size (points)"
+    button id=bold text="B" weight=0 hint="Bold (Amiga-B)"
+    button id=italic text="I" weight=0 hint="Italic (Amiga-I)"
+    button id=under text="U" weight=0 hint="Underline (Amiga-U)"
+    chooser id=colour items="Automatic|Red|Orange|Ochre|Green|Teal|Blue|Violet|Magenta|Grey|Brown|Sea green|Indigo|Pink|Slate|White" selected=0 weight=0 hint="Text colour"
+    chooser id=align items="Left|Centre|Right|Justify" selected=0 weight=0 hint="Alignment"
+    button id=findbtn text="_Find" weight=0 hint="Find and replace (Amiga-F)"
+    button id=spellbtn text="_Spell" weight=0 hint="Next misspelt word (Amiga-K)"
+  canvas id=page width=660 height=430
+  hlayout weight=0
+    label id=status text="Ready"
+  timer id=tick interval=250 enabled=1

@@ -1,0 +1,11 @@
+# Boing BASIC project: Penwright, a word processor
+Name=Penwright
+Startup=Form penwright
+Module=Doc.bas
+Module=DocIO.bas
+Module=Spell.bas
+Module=PwView.bas
+Module=PwScript.bas
+Form=penwright.afg
+Stack=262144
+Icon=Penwright.info

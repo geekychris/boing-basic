@@ -1,0 +1,66 @@
+; builds the sample document of the README screenshot (and the guest smoke test)
+NEW
+TITLE Notes on Penwright
+INSERTTEXT Penwright
+STYLE HEADING1
+ALIGN CENTER
+RETURN
+INSERTTEXT A word processor for AmigaOS 4, written in Boing BASIC.
+ALIGN CENTER
+ITALIC ON
+SELECT 1 0 1 55
+ITALIC ON
+SETCURSOR 1 55
+RETURN
+ALIGN LEFT
+ITALIC OFF
+INSERTTEXT What it does
+STYLE HEADING2
+RETURN
+INSERTTEXT Penwright keeps your text in paragraphs with styles: headings, quotes, lists and code. Inside a paragraph every letter can be bold, italic, underlined, struck through or coloured, and the spelling checker marks words it does not know, like thsi one.
+RETURN
+INSERTTEXT Bold and colourful words
+STYLE BULLET
+RETURN
+INSERTTEXT Find and replace, with case and whole words
+RETURN
+INSERTTEXT Export to RTF, HTML and plain text
+RETURN
+STYLE BODY
+INSERTTEXT Good software, like good writing, is mostly rewriting.
+STYLE QUOTE
+SELECT 3 45 3 51
+BOLD ON
+SELECT 3 126 3 130
+BOLD ON
+SELECT 3 132 3 138
+ITALIC ON
+SELECT 3 140 3 150
+UNDERLINE ON
+SELECT 3 152 3 166
+STRIKE ON
+SELECT 3 170 3 178
+COLOR 1
+SELECT 3 188 3 204
+COLOR 6
+SELECT 4 0 4 4
+BOLD ON
+SELECT 4 9 4 24
+COLOR 4
+SETCURSOR 3 0
+LIVESPELL ON
+WORDCOUNT
+PAUSE 6 letter
+SAVE RAM:smoke.pwd
+EXPORT RTF RAM:smoke.rtf
+EXPORT HTML RAM:smoke.html
+NEW
+PARACOUNT
+OPEN RAM:smoke.pwd
+PARACOUNT
+GETPARA 2
+SPELLNEXT
+SUGGEST thsi
+FIND rewriting
+PAUSE 4 found
+QUIT
