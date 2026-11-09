@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """test-flow.py BB_GUEST=NAME [PROJECT ...] - the user's flow with an installed kit, on the guest:
-start AmiForge from its desktop icon (Workbench ARexx ICON ... OPEN = a double-click), show
+start AmiForge from its desktop icon (Workbench ARexx ICON ... OPEN; if that doesn't start it,
+WBRun DH1:BoingBASIC/AmiForge, which starts it as Workbench does, with the icon's stack), show
 Project > Browse Projects (Amiga-U), open each example project, Run it interpreted for a while,
 stop it, and quit AmiForge. Screenshots of each step go to build/kit/flow-<guest>/.
 
 PROJECT: an example drawer name (default: glimmerfield stack_tower_bb tincture riffwright).
-Projects are split over sessions of two (each a FIFO ticket + lock, AmiForge started and quit in
+Projects are split over sessions of BB_FLOW_PER_SESSION (1) (each a FIFO ticket + lock, AmiForge started and quit in
 each), so no session runs much over BB_SESSION_TIMEOUT (300 s). Exit 0 when every project opened
 and ran, AmiForge quit, and there is no Grim Reaper.
 """
@@ -94,14 +95,19 @@ def tasks(m):
 def start_amiforge(m):
     if has_port(m, "AMIFORGE"):
         raise RuntimeError("an AmiForge is already running on the guest (someone else's?): not touching it")
-    r = m.tool("amiga_arexx_send", port="WORKBENCH", command="ICON WINDOW root NAMES AmiForge OPEN")
-    log("double-click on the desktop icon (Workbench ARexx):", r)
-    for _ in range(40):
-        time.sleep(2)
-        if has_port(m, "AMIFORGE"):
-            time.sleep(3)
-            return True
-    raise RuntimeError("AmiForge didn't open its ARexx port within 80 s")
+    ways = [("Workbench ARexx ICON OPEN", lambda: m.tool("amiga_arexx_send", port="WORKBENCH",
+                                                        command="ICON WINDOW ROOT NAMES AmiForge SELECT OPEN")),
+            ("WBRun (as Workbench starts it)", lambda: m.tool("amiga_dos_command",
+                                                              command="run >NIL: C:WBRun %s/AmiForge" % DEST))]
+    for (what, do), wait in zip(ways, (10, 30)):
+        log("start AmiForge: %s: %s" % (what, do()))
+        for _ in range(wait):
+            time.sleep(2)
+            if has_port(m, "AMIFORGE"):
+                time.sleep(3)
+                log("AmiForge is up (%s)" % what)
+                return what
+    raise RuntimeError("AmiForge didn't open its ARexx port")
 
 
 def quit_amiforge(m):
@@ -154,8 +160,9 @@ def main():
             man[d] = afp
     ok = True
     m = g.MCP(g.URL)
-    for i in range(0, len(names), 2):
-        group = names[i:i + 2]
+    per = int(os.environ.get("BB_FLOW_PER_SESSION", "1"))
+    for i in range(0, len(names), per):
+        group = names[i:i + per]
         with g.testing("AmiForge + Boing BASIC: user flow (%s)" % ", ".join(group)):
             try:
                 start_amiforge(m)
