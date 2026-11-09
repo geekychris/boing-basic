@@ -1,0 +1,6 @@
+# Marble Tilt's rules (examples/marble_tilt): autopilot games, hashes equal to the C original's
+Name=MtTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/marble_tilt/MtCore.bas
+Module=mttest.bas
