@@ -48,9 +48,11 @@ def push_all(m):
     for f in sorted(os.listdir(APP)):
         if os.path.splitext(f)[1] in (".bas", ".bbp", ".afg", ".guide", ".info"):
             files.append((os.path.join(APP, f), DIR + "/" + f))
+    files.append((APP + "/icons/Riffwright.info", DIR + "/Riffwright.info"))
     for f in sorted(os.listdir(APP + "/demos")):
         if f.endswith(".mod"):
             files.append((os.path.join(APP, "demos", f), DIR + "/demos/" + f))
+            files.append((APP + "/icons/def_mod.info", DIR + "/demos/" + f + ".info"))
     if os.path.exists(ROOT + "/build/os4/boing"):
         files.append((ROOT + "/build/os4/boing", DIR + "/boing"))
     for local, remote in files:
