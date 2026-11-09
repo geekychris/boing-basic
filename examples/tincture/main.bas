@@ -16,6 +16,9 @@ Private layerListGen As Long
 Private smokeMode As Boolean, benchStrokes As Long
 Private autosaveOn As Boolean
 Private shownStatus As String
+Private quitAt As Double            ' --smoke / --hold: quit at this Timer value
+Private holdSecs As Long
+Private logActive As Boolean        ' --log: print active/inactive and events for the guest tests
 
 ' ---------------------------------------------------------------- start and end
 
@@ -39,6 +42,8 @@ Private Sub Form_Load()
             Case "--script": i = i + 1: If i <= UBound(args) Then scriptPath = args(i)
             Case "--smoke": smokeMode = True
             Case "--bench": i = i + 1: If i <= UBound(args) Then benchStrokes = CLng(args(i))
+            Case "--hold": i = i + 1: If i <= UBound(args) Then holdSecs = CLng(args(i))
+            Case "--log": logActive = True
             Case "--size"
                 i = i + 1
                 If i <= UBound(args) Then
@@ -74,12 +79,18 @@ End Sub
 
 Private Sub Form_Activate()
     Static started As Boolean
+    If logActive Then Debug.Print "active"
     If started Then Exit Sub
     started = True
     UpdateAll
     If smokeMode Then RunSmoke
     If benchStrokes > 0 Then RunBench benchStrokes
     If scriptQuit Then QuitNow
+    If holdSecs > 0 And quitAt = 0 Then quitAt = Timer + holdSecs
+End Sub
+
+Private Sub Form_Deactivate()
+    If logActive Then Debug.Print "inactive"
 End Sub
 
 Private Sub Form_Resize()
@@ -410,6 +421,11 @@ End Sub
 ' ---------------------------------------------------------------- timers
 
 Private Sub tick_Timer()
+    If quitAt > 0 And Timer >= quitAt Then
+        If logActive Then Debug.Print "quit"
+        QuitNow
+        Exit Sub
+    End If
     If selActive Or floatImg <> 0 Then
         antsPhase = (antsPhase + 1) Mod 8
         needView = True
@@ -458,6 +474,7 @@ Private Sub Form_KeyPress(KeyAscii As Integer)
         Case "s", "b": ActSetTool T_SELECT
         Case "i", ",": ActSetTool T_PICK
         Case "e": ActSetTool T_ERASER
+        Case "G": ActSetTool T_GRADIENT
         Case "x": Dim c As Long: c = fgColor: fgColor = bgColor: bgColor = c: needColours = True
         Case "[": ActBrushSize brushSize - 1: size.Value = brushSize: sizelabel.Caption = "Brush " & brushSize
         Case "]": ActBrushSize brushSize + 1: size.Value = brushSize: sizelabel.Caption = "Brush " & brushSize
@@ -948,9 +965,13 @@ Private Sub RunSmoke()
     Do While Undo(): Loop
     UpdateAll
     Debug.Print "SMOKE undo-all " & IIf(RunCommand("HASH") = h, "PASS", "FAIL")
+    Do While Redo(): Loop
+    NeedAll
+    UpdateAll
+    Debug.Print "SMOKE redo-all hash=" & RunCommand("HASH")
     view.SaveImage "RAM:tincture-smoke.ppm"
     docDirty = False
-    QuitNow
+    If holdSecs = 0 Then QuitNow
 End Sub
 
 Private Sub SmokeStroke(ByVal t As Long, ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2 As Long)
@@ -992,9 +1013,17 @@ Private Sub RunBench(ByVal n As Long)
     Debug.Print "BENCH full view redraw: " & Format$((Timer - t0) * 1000# / 20, "0.00") & " ms"
     t0 = Timer
     For i = 1 To 10
-        ToolDown 320, 256, 1, 0: ToolUp 320, 256, 1, 0
+        RunCommand "BOX 100 100 300 200"
         Undo
     Next
+    Debug.Print "BENCH undo of a 300x200 box: " & Format$((Timer - t0) * 1000# / 10, "0.00") & " ms (draw + undo)"
+    t0 = Timer
+    For i = 1 To 5
+        curTool = T_FILL
+        ToolDown 5, 5, 1 + (i Mod 2), 0
+        ToolUp 5, 5, 1 + (i Mod 2), 0
+    Next
+    Debug.Print "BENCH flood fill of 640x512: " & Format$((Timer - t0) * 1000# / 5, "0.00") & " ms (fill + undo record)"
     docDirty = False
     QuitNow
 End Sub

@@ -3,7 +3,7 @@ window name=main title="Tincture" width=920 height=560 resizable=1 dropfiles=1 i
 vlayout id=root
   hlayout id=body
     vlayout id=left weight=0
-      canvas id=tools width=62 height=210
+      canvas id=tools width=62 height=238
       space id=leftfill
     canvas id=view width=640 height=480 mousemove=1
     vlayout id=side weight=0

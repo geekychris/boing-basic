@@ -69,6 +69,7 @@ Private Function ToolByName(ByVal s As String) As Long
         Case "SELECT": ToolByName = T_SELECT
         Case "PICK", "EYEDROPPER": ToolByName = T_PICK
         Case "ERASER", "ERASE": ToolByName = T_ERASER
+        Case "GRADIENT": ToolByName = T_GRADIENT
         Case Else: Err.Raise 5, "Tincture", "Unknown tool " & s
     End Select
 End Function
@@ -186,6 +187,9 @@ Public Function RunCommand(ByVal cmdline As String) As String
             If Arg(w, 3) <> "" And IsNumeric(Arg(w, 3)) Then airRadius = NArg(w, 3)
             If Arg(w, 4) <> "" And IsNumeric(Arg(w, 4)) Then airDensity = NArg(w, 4)
             Stroke2 T_AIRBRUSH, NArg(w, 1), NArg(w, 2), NArg(w, 1), NArg(w, 2), Btn(w)
+        Case "GRADIENT"
+            ' GRADIENT x1 y1 x2 y2: foreground to background over the selection (or the layer)
+            Stroke2 T_GRADIENT, NArg(w, 1), NArg(w, 2), NArg(w, 3), NArg(w, 4), Btn(w)
         Case "ERASE"
             n = UBound(w) \ 2
             ReDim pts(0 To 2 * n - 1)
@@ -273,6 +277,10 @@ Public Function RunCommand(ByVal cmdline As String) As String
             r = CStr(cv.ImageHash(comp))
         Case "ZOOM"
             If Arg(w, 1) = "" Then r = CStr(ViewZoom()) Else SetViewZoom NArg(w, 1)
+        Case "MAGNIFIER"
+            SetMagnifier UCase$(Arg(w, 1)) <> "OFF"
+            If Arg(w, 2) <> "" Then magX = NArg(w, 2): magY = NArg(w, 3)
+        Case "GRID": showGrid = UCase$(Arg(w, 1)) <> "OFF"
         Case "QUIT": scriptQuit = True
         Case Else
             Err.Raise 5, "Tincture", "Unknown command " & w(0)

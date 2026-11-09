@@ -13,7 +13,7 @@ enum {
     MP_FLOODFILL = 1000, MP_ELLIPSE, MP_BRUSHLINE, MP_STAMPLINE, MP_DRAWIMAGESCALED, MP_DRAWIMAGEBLEND,
     MP_COPYIMAGE, MP_FLIPIMAGE, MP_ROTATEIMAGE, MP_SCALEIMAGE, MP_REPLACECOLOR, MP_SPRAY,
     MP_SAVEPNG, MP_SAVEILBM, MP_LASTPALETTE, MP_GETPALETTE, MP_QUANTIZE, MP_REMAPIMAGE, MP_DASHRECT,
-    MP_IMAGEHASH, MP_DRAWTEXTSCALED, MP_IMAGEPOINT, MP_CLEARRECT, MP_IMAGEBOUNDS, MP_CHECKER, MP_FILLBOUNDS, MP_GRADIENT
+    MP_IMAGEHASH, MP_DRAWTEXTSCALED, MP_IMAGEPOINT, MP_CLEARRECT, MP_IMAGEBOUNDS, MP_CHECKER, MP_FILLBOUNDS, MP_GRADIENT, MP_LINEARGRADIENT
 };
 
 static const struct { const char *name; int32_t id; } paint_members[] = {
@@ -25,7 +25,7 @@ static const struct { const char *name; int32_t id; } paint_members[] = {
     {"LastPalette", MP_LASTPALETTE}, {"GetPalette", MP_GETPALETTE}, {"Quantize", MP_QUANTIZE},
     {"RemapImage", MP_REMAPIMAGE}, {"DashRect", MP_DASHRECT}, {"ImageHash", MP_IMAGEHASH},
     {"DrawTextScaled", MP_DRAWTEXTSCALED}, {"ImagePoint", MP_IMAGEPOINT}, {"ClearRect", MP_CLEARRECT},
-    {"ImageBounds", MP_IMAGEBOUNDS}, {"Checker", MP_CHECKER}, {"FillBounds", MP_FILLBOUNDS}, {"Gradient", MP_GRADIENT},
+    {"ImageBounds", MP_IMAGEBOUNDS}, {"Checker", MP_CHECKER}, {"FillBounds", MP_FILLBOUNDS}, {"Gradient", MP_GRADIENT}, {"LinearGradient", MP_LINEARGRADIENT},
 };
 
 static int32_t paint_find(const char *name)
@@ -1623,6 +1623,41 @@ static void paint_invoke(bb_canvas *c, int32_t id, int argc, bb_value *argv, bb_
                 if ((uint32_t)xx >= (uint32_t)c->tw) continue;
                 for (k = 0; k < 3; k++) v[k] = (l[k] * (256 - fx) + r[k] * fx + 32768) >> 16;
                 d[xx] = 0xFF000000u | ((uint32_t)v[0] << 16) | ((uint32_t)v[1] << 8) | (uint32_t)v[2];
+            }
+        }
+        return;
+    }
+    case MP_LINEARGRADIENT: { /* LinearGradient x, y, w, h, x1, y1, x2, y2, colour1, colour2 [, dither] */
+        int32_t x = argl(argc, argv, 0), y = argl(argc, argv, 1), w = argl(argc, argv, 2), h = argl(argc, argv, 3);
+        int32_t gx1 = argl(argc, argv, 4), gy1 = argl(argc, argv, 5), gx2 = argl(argc, argv, 6), gy2 = argl(argc, argv, 7);
+        uint32_t ca = ARGB(argl(argc, argv, 8)), cb = ARGB(argl(argc, argv, 9));
+        int dith = argl_opt(argc, argv, 10, 1) != 0;
+        static const int bayer[4][4] = {{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}};
+        double dx = gx2 - gx1, dy = gy2 - gy1, len2 = dx * dx + dy * dy;
+        int32_t i, j;
+        if (x < 0) { w += x; x = 0; }
+        if (y < 0) { h += y; y = 0; }
+        if (x + w > c->tw) w = c->tw - x;
+        if (y + h > c->th) h = c->th - y;
+        if (w <= 0 || h <= 0) return;
+        if (len2 < 1) len2 = 1;
+        for (j = 0; j < h; j++) {
+            uint32_t *d = c->tp + (y + j) * c->tw + x;
+            for (i = 0; i < w; i++) {
+                double t = ((x + i - gx1) * dx + (y + j - gy1) * dy) / len2;
+                int32_t f, k;
+                uint32_t out = 0xFF000000u;
+                if (t < 0) t = 0;
+                if (t > 1) t = 1;
+                f = (int32_t)(t * 4096);
+                for (k = 0; k < 3; k++) {
+                    int32_t sh = 16 - 8 * k, va = (int32_t)((ca >> sh) & 255), vb = (int32_t)((cb >> sh) & 255);
+                    int32_t v16 = (va * (4096 - f) + vb * f) >> 8;          /* value * 16 */
+                    int32_t v = dith ? (v16 + bayer[(y + j) & 3][(x + i) & 3]) >> 4 : (v16 + 8) >> 4;
+                    if (v > 255) v = 255;
+                    out |= (uint32_t)v << sh;
+                }
+                d[i] = out;
             }
         }
         return;

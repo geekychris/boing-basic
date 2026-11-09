@@ -15,7 +15,7 @@ Public Const TB_COLS As Long = 2
 Public Const TB_UNDO As Long = 100
 Public Const TB_REDO As Long = 101
 
-Private icons(0 To 13) As Long          ' 0..11 tools, 12 undo, 13 redo
+Private icons(0 To 14) As Long          ' 0..12 tools, 13 undo, 14 redo
 Private tbCanvas As Object, cpCanvas As Object
 
 ' colour panel geometry
@@ -30,7 +30,7 @@ Public palSel As Long                    ' the palette entry being edited (-1 no
 Public Sub MakeIcons(tb As Object)
     Dim t As Long
     Set tbCanvas = tb
-    For t = 0 To 13
+    For t = 0 To T_COUNT + 1
         icons(t) = tb.CreateImage(24, 24)
         tb.SetTarget icons(t)
         DrawIcon tb, t
@@ -82,7 +82,10 @@ Private Sub DrawIcon(c As Object, ByVal t As Long)
             c.Polygon xs, ys, 4, UI_INK, True
             xs(0) = 3: ys(0) = 15: xs(1) = 7: ys(1) = 11: xs(2) = 15: ys(2) = 19: xs(3) = 11: ys(3) = 21
             c.Polygon xs, ys, 4, UI_ACCENT, True
-        Case 12, 13
+        Case T_GRADIENT
+            c.LinearGradient 4, 4, 16, 16, 4, 4, 19, 19, UI_INK, UI_BUTTON, False
+            c.Rect 3, 3, 18, 18, UI_INK
+        Case T_COUNT, T_COUNT + 1
             ' curved arrow (undo points left, redo right)
             For i = 0 To 5
                 xs(i) = 12 + CLng(7 * Cos(3.14159 * (0.15 + i * 0.16)))
@@ -93,7 +96,7 @@ Private Sub DrawIcon(c As Object, ByVal t As Long)
             Next
             xs(0) = xs(5) - 4: ys(0) = ys(5): xs(1) = xs(5) + 4: ys(1) = ys(5): xs(2) = xs(5): ys(2) = ys(5) + 6
             c.Polygon xs, ys, 3, UI_INK, True
-            If t = 12 Then c.FlipImage icons(t)
+            If t = T_COUNT Then c.FlipImage icons(t)
     End Select
 End Sub
 
@@ -135,7 +138,7 @@ End Sub
 
 Private Sub CellPos(ByVal t As Long, x As Long, y As Long)
     Dim row As Long
-    If t >= T_COUNT Then row = T_COUNT \ TB_COLS Else row = t \ TB_COLS
+    If t >= T_COUNT Then row = (T_COUNT + 1) \ TB_COLS Else row = t \ TB_COLS
     x = 3 + (t Mod TB_COLS) * TB_CELL
     y = 3 + row * TB_CELL + IIf(t >= T_COUNT, 8, 0)
 End Sub

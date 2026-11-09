@@ -1,0 +1,13 @@
+# Tincture: render a command script off-screen into a PPM of the view (for checking the look on the host)
+#   boing run Render.bbp script.tsc out.ppm
+Name=TinctureRender
+Startup=Sub Main
+Module=../Doc.bas
+Module=../History.bas
+Module=../Tools.bas
+Module=../View.bas
+Module=../FileIO.bas
+Module=../Script.bas
+Module=../Panels.bas
+Module=Render.bas
+Stack=262144

@@ -18,7 +18,8 @@ Public Const T_TEXT As Long = 8
 Public Const T_SELECT As Long = 9
 Public Const T_PICK As Long = 10
 Public Const T_ERASER As Long = 11
-Public Const T_COUNT As Long = 12
+Public Const T_GRADIENT As Long = 12
+Public Const T_COUNT As Long = 13
 
 Public curTool As Long
 Public brushSize As Long         ' 1..64
@@ -51,7 +52,7 @@ End Sub
 
 Public Function ToolName(ByVal t As Long) As String
     ToolName = Choose(t + 1, "Freehand", "Line", "Rectangle", "Filled Rectangle", "Ellipse", "Filled Ellipse", _
-                      "Flood Fill", "Airbrush", "Text", "Select", "Pick Colour", "Eraser")
+                      "Flood Fill", "Airbrush", "Text", "Select", "Pick Colour", "Eraser", "Gradient")
 End Function
 
 Public Function IsStroking() As Boolean
@@ -115,7 +116,7 @@ Public Sub ToolMove(ByVal x As Long, ByVal y As Long, ByVal shift As Long)
             SprayAt x, y
         Case T_SELECT
             SelectMove x, y, shift
-        Case T_LINE, T_RECT, T_RECTF, T_ELLIPSE, T_ELLIPSEF
+        Case T_LINE, T_RECT, T_RECTF, T_ELLIPSE, T_ELLIPSEF, T_GRADIENT
             ShapePreview x, y, shift
     End Select
     lastX = x: lastY = y
@@ -135,6 +136,9 @@ Public Sub ToolUp(ByVal x As Long, ByVal y As Long, ByVal btn As Long, ByVal shi
             BeginEdit ToolName(curTool)
             DrawShape x, y, shift, False
             EndEdit
+        Case T_GRADIENT
+            ClearPreview
+            GradientFill x, y, shift
     End Select
 End Sub
 
@@ -230,6 +234,12 @@ Private Sub DrawShape(ByVal x As Long, ByVal y As Long, ByVal shift As Long, ByV
     If toPreview Then cv.SetTarget preview Else cv.SetTarget layers(curLayer).img
     r = brushSize \ 2 + 1
     Select Case curTool
+        Case T_GRADIENT
+            ' the preview: the direction, with a dot at each end
+            cv.Line x1, y1, x2, y2, strokeCol
+            cv.Circle x1, y1, 2, strokeCol, True
+            cv.Circle x2, y2, 2, IIf(strokeBtn And 2, fgColor, bgColor), True
+            r = 3
         Case T_LINE
             cv.BrushLine x1, y1, x2, y2, brushSize, strokeCol, IIf(brushSquare, 1, 0)
         Case T_RECT, T_RECTF
@@ -262,6 +272,22 @@ Private Sub DrawShape(ByVal x As Long, ByVal y As Long, ByVal shift As Long, ByV
     Else
         EditTouched IIf(x1 < x2, x1, x2) - r, IIf(y1 < y2, y1, y2) - r, IIf(x1 > x2, x1, x2) + r, IIf(y1 > y2, y1, y2) + r
     End If
+End Sub
+
+'' gradient: from the button's colour at the press to the other pen at the release, over the
+' selection (or the whole layer)
+Private Sub GradientFill(ByVal x As Long, ByVal y As Long, ByVal shift As Long)
+    Dim x1 As Long, y1 As Long, x2 As Long, y2 As Long, gx As Long, gy As Long, gw As Long, gh As Long, other As Long
+    ShapeGeom x, y, shift, x1, y1, x2, y2
+    If selActive Then gx = selX: gy = selY: gw = selW: gh = selH Else gx = 0: gy = 0: gw = docW: gh = docH
+    If strokeBtn And 2 Then other = fgColor Else other = bgColor
+    BeginEdit "Gradient"
+    cv.SetTarget layers(curLayer).img
+    cv.LinearGradient gx, gy, gw, gh, x1, y1, x2, y2, strokeCol, other, docMode = MODE_TRUE
+    If docMode = MODE_INDEXED Then cv.RemapImage layers(curLayer).img, pal, palCount, True
+    cv.SetTarget 0
+    EditTouched gx, gy, gx + gw - 1, gy + gh - 1
+    EndEdit
 End Sub
 
 ' a thick ellipse outline: brush segments around it
