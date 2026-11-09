@@ -27,6 +27,12 @@ vlayout id=root
 menu id=mnuProject text="Project"
   menu id=mnuNew text="New..." key=N
   menu id=mnuOpen text="Open..." key=O
+  menu id=mnuRecent text="Open Recent"
+    menu id=mnuRecent0 text="(none)" disabled=1
+    menu id=mnuRecent1 text="-" hidden=1
+    menu id=mnuRecent2 text="-" hidden=1
+    menu id=mnuRecent3 text="-" hidden=1
+    menu id=mnuRecent4 text="-" hidden=1
   menu id=mnuOpenLayer text="Open as Layer..."
   menu id=mnuRevert text="Revert"
   menu text=-

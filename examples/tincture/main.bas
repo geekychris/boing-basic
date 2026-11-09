@@ -141,6 +141,51 @@ Private Sub UpdateAll()
     UpdateStatus
 End Sub
 
+Private Sub UpdateRecentMenu()
+    On Error Resume Next
+    Dim i As Long, m As Object
+    For i = 0 To 4
+        Set m = Me.Controls("mnuRecent" & i)
+        If recent(i) <> "" Then
+            m.Caption = FilePart(recent(i))
+            m.Visible = True
+            m.Enabled = True
+        ElseIf i = 0 Then
+            m.Caption = "(none)"
+            m.Enabled = False
+        Else
+            m.Visible = False
+        End If
+    Next
+End Sub
+
+Private Sub OpenRecent(ByVal i As Long)
+    If recent(i) = "" Then Exit Sub
+    If Not ConfirmDiscard("opening another picture") Then Exit Sub
+    ActOpenFile recent(i), False, 0, 0
+    UpdateAll
+End Sub
+
+Private Sub mnuRecent0_Click()
+    OpenRecent 0
+End Sub
+
+Private Sub mnuRecent1_Click()
+    OpenRecent 1
+End Sub
+
+Private Sub mnuRecent2_Click()
+    OpenRecent 2
+End Sub
+
+Private Sub mnuRecent3_Click()
+    OpenRecent 3
+End Sub
+
+Private Sub mnuRecent4_Click()
+    OpenRecent 4
+End Sub
+
 Private Sub UpdateTitle()
     Dim t As String
     If docPath = "" Then t = "Untitled" Else t = FilePart(docPath)
@@ -153,6 +198,8 @@ Private Sub UpdateTitle()
     If CanRedo() Then mnuRedo.Caption = "Redo " & RedoLabel() Else mnuRedo.Caption = "Redo"
     mnuMag.Checked = magOn
     mnuGrid.Checked = showGrid
+    If docPath <> "" And docPath <> recent(0) Then AddRecent docPath
+    UpdateRecentMenu
 End Sub
 
 Private Sub UpdateStatus()

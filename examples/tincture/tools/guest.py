@@ -73,10 +73,10 @@ def launch(m, cmdline):
     tmp = tempfile.NamedTemporaryFile("w", suffix=".run", delete=False)
     tmp.write("stack 1048576\n%s\n" % cmdline)
     tmp.close()
-    dos(m, "delete RAM:tincture.run QUIET")
-    g.push(m, tmp.name, "RAM:tincture.run")
+    script = "RAM:tincture-%d.run" % int(time.time())     # own name: an old one may still be open
+    g.push(m, tmp.name, script)
     os.unlink(tmp.name)
-    dos(m, "run >NIL: execute RAM:tincture.run")
+    dos(m, "run >NIL: execute %s" % script)
 
 
 def wait_for(m, outf, text, limit):
