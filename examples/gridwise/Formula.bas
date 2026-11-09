@@ -139,6 +139,8 @@ Public compileErr As String        ' "" when the formula compiled
 
 ' ---- lexer state ---------------------------------------------------------------------------
 Private lxS As String
+Private lxB() As Long                 ' lxS's character codes (1-based, 0 after the end): one
+                                      ' Mid$ per character instead of one per look
 Private lxPos As Long              ' 1-based index of the next character
 Private lxLen As Long
 Private tokKind As Long
@@ -209,8 +211,13 @@ End Function
 ' ---- the lexer ----------------------------------------------------------------------------------
 
 Private Sub LexStart(ByVal s As String, ByVal from As Long)
+    Dim i As Long
     lxS = s
     lxLen = Len(s)
+    ReDim lxB(0 To lxLen + 2)
+    For i = 1 To lxLen
+        lxB(i) = Asc(Mid$(s, i, 1))
+    Next i
     lxPos = from
     failed = False
     NextTok
@@ -225,19 +232,19 @@ Private Function IsDigit(ByVal ch As Long) As Boolean
 End Function
 
 Private Function PeekCh(ByVal p As Long) As Long
-    If p > lxLen Then PeekCh = 0 Else PeekCh = Asc(Mid$(lxS, p, 1))
+    If p > lxLen Then PeekCh = 0 Else PeekCh = lxB(p)
 End Function
 
 Private Sub NextTok()
     Dim ch As Long, p As Long, q As Long, t As String, cc As Long, rr As Long, nl As Long
     Do While lxPos <= lxLen
-        ch = Asc(Mid$(lxS, lxPos, 1))
+        ch = lxB(lxPos)
         If ch <> 32 And ch <> 9 Then Exit Do
         lxPos = lxPos + 1
     Loop
     tokStart = lxPos
     If lxPos > lxLen Then tokKind = T_END: Exit Sub
-    ch = Asc(Mid$(lxS, lxPos, 1))
+    ch = lxB(lxPos)
     If IsDigit(ch) Or (ch = 46 And IsDigit(PeekCh(lxPos + 1))) Then
         p = lxPos
         Do While IsDigit(PeekCh(p)): p = p + 1: Loop

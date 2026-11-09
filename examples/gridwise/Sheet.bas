@@ -257,7 +257,7 @@ Private Sub SetRaw(ByVal id As Long, ByVal src As String)
     cNum(id) = 0
     cDispOk(id) = False
     If src = "" Then cKind(id) = KEMPTY: Exit Sub
-    If Left$(src, 1) = "=" And Len(src) > 1 Then
+    If Asc(src) = 61 And Len(src) > 1 Then           ' "=" (Asc reads the first character without a Mid$)
         FormulaCount = FormulaCount + 1
         If Compile(src, 2) Then
             InstallCode id
@@ -271,7 +271,7 @@ Private Sub SetRaw(ByVal id As Long, ByVal src As String)
         End If
         Exit Sub
     End If
-    If Left$(src, 1) = "'" Then cKind(id) = KTEXT: cTxt(id) = Mid$(src, 2): Exit Sub
+    If Asc(src) = 39 Then cKind(id) = KTEXT: cTxt(id) = Mid$(src, 2): Exit Sub
     If ParseNumber(src, d, f) Then
         cKind(id) = KNUM
         cNum(id) = d
@@ -290,7 +290,7 @@ End Sub
 ' when the text sets no format.
 Public Function ParseNumber(ByVal s As String, d As Double, fmt As Long) As Boolean
     Dim i As Long, n As Long, ch As Long, digits As Long, dots As Long, t As String, pct As Boolean, cur As Boolean
-    Dim e As Long
+    Dim e As Long, commas As Boolean
     fmt = -1
     s = Trim$(s)
     n = Len(s)
@@ -304,30 +304,23 @@ Public Function ParseNumber(ByVal s As String, d As Double, fmt As Long) As Bool
         ch = Asc(Mid$(s, i, 1))
         If ch >= 48 And ch <= 57 Then
             digits = digits + 1
-            t = t & Chr$(ch)
         ElseIf ch = 46 Then
             If dots > 0 Or e > 0 Then Exit Function
             dots = 1
-            t = t & "."
         ElseIf ch = 44 Then
             If dots > 0 Or digits = 0 Or e > 0 Then Exit Function
+            commas = True
         ElseIf (ch = 45 Or ch = 43) Then
-            If i = 1 Then
-                If ch = 45 Then t = "-"
-            ElseIf e = i - 1 Then
-                t = t & Chr$(ch)
-            Else
-                Exit Function
-            End If
+            If i <> 1 And e <> i - 1 Then Exit Function
         ElseIf (ch = 69 Or ch = 101) And digits > 0 And e = 0 Then
             e = i
-            t = t & "E"
         Else
             Exit Function
         End If
     Next i
     If digits = 0 Then Exit Function
     If e = n Then Exit Function
+    If commas Then t = Replace(s, ",", "") Else t = s
     d = Val(t)
     If pct Then d = d / 100: fmt = NF_PCT
     If cur Then fmt = NF_CURRENCY
