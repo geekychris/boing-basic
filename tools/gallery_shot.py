@@ -39,32 +39,20 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import os4guest as g  # noqa: E402
 
 if g.GUEST == "m1":
-    sys.exit("gallery_shot: not on BB_GUEST=m1 (the user's guest); use m1b or local")
-# QEMU's HMP monitor of each guest, on the machine QEMU runs on
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", {"m1b": 2448, "m1c": 2548}.get(g.GUEST, 2348)))
+    sys.exit("gallery_shot: not on BB_GUEST=m1 (the user's guest); use m1b, m1c or local")
+# QEMU's monitor of the selected guest through os4guest (its profile's port; it refuses m1,
+# the user's guest)
 DEST = "RAM:bbdoc/"
 
 
 def hmp(cmd):
-    line = "printf '%s\\n' | nc -w 2 127.0.0.1 %d >/dev/null" % (cmd, HMP_PORT)
-    if g.SSH:
-        subprocess.run(["ssh", g.SSH, line], check=False)
-    else:
-        subprocess.run(line, shell=True, check=False)
+    g.hmp(cmd, wait=0.3)
 
 
 def screendump():
     from PIL import Image
-    tmp = tempfile.mktemp(suffix=".ppm")
-    remote = "/tmp/bbdoc_%d.ppm" % os.getpid()
-    if g.SSH:
-        hmp("screendump " + remote)
-        time.sleep(1.5)
-        subprocess.run(["scp", "-q", g.SSH + ":" + remote, tmp], check=True)
-        subprocess.run(["ssh", g.SSH, "rm -f " + remote], check=False)
-    else:
-        hmp("screendump " + tmp)
-        time.sleep(1.5)
+    tmp = tempfile.mktemp(suffix=".png")
+    g.shot(None, tmp)
     im = Image.open(tmp).convert("RGB")
     im.load()
     os.unlink(tmp)
@@ -72,10 +60,9 @@ def screendump():
 
 
 def wake():
-    hmp("mouse_move 1 0")
-    time.sleep(0.5)
-    hmp("mouse_move -1 0")
-    time.sleep(2)
+    g.mouse(1, 0)
+    g.mouse(-1, 0)
+    time.sleep(1.5)
 
 
 KEYS = {" ": "spc", ".": "dot", ",": "comma", "-": "minus", "/": "slash", "\n": "ret", "=": "equal",
