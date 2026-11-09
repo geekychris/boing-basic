@@ -1,0 +1,13 @@
+# Boing BASIC project: Harbour Crane, a gantry crane loading a rolling ship (a port of amiga_mcp's examples/harbour_crane)
+Name=HarbourCrane
+Startup=Form harbour
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Engine.bas
+Module=../common/Draw2D.bas
+Module=HcCore.bas
+Module=HcDraw.bas
+Module=HcSound.bas
+Form=harbour.afg
+Stack=262144
