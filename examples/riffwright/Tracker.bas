@@ -55,6 +55,7 @@ Public Sub ResetCursor()
     sideDirty = True
     InvalidatePattern
     frameDirty = True
+    lastView = -1
 End Sub
 
 Public Sub Say(ByVal s As String)
@@ -605,9 +606,12 @@ End Sub
 ' ---------------------------------------------------------------- a frame
 
 ' follow the player, then draw. Call every timer tick; returns True when something was drawn.
+Private sigHeader As String, sigInfo As String, sigHeads As String, sigStatus As String
+Private lastView As Long, lastSidePP As Long, scopesLive As Boolean
+
 Public Function Frame(ByVal force As Boolean) As Boolean
     Dim viewY As Long, pr As Long, pp As Long, ppat As Long, frac As Long, mode As Long
-    Dim hint As String, msg As String
+    Dim hint As String, msg As String, sig As String, c As Long
     pr = -1: pp = -1
     If playing Then
         PlayerPoll pp, ppat, pr, frac
@@ -627,17 +631,32 @@ Public Function Frame(ByVal force As Boolean) As Boolean
     frameDirty = False
     If playing And followOn Then viewY = curRow * RH + (frac * RH) \ 256 Else viewY = curRow * RH
     If playing Then mode = playMode Else mode = 0
-    DrawHeader songFileName()
-    DrawInfo curPos, curPat, curRow, CurSpeed(), CurTempo(), octave, curSmp, editOn, followOn, mode
-    DrawScopes
+    ' Only the parts that changed are drawn again: the back buffer keeps the rest
+    ' (Refresh always shows the whole picture).
+    If curView <> lastView Then force = True: lastView = curView
+    sig = songFileName() & "|" & TitleText() & "|" & songDirty
+    If force Or sig <> sigHeader Then DrawHeader songFileName(): sigHeader = sig
+    sig = curPos & "|" & curPat & "|" & curRow & "|" & CurSpeed() & "|" & CurTempo() & "|" & octave & "|" & _
+          curSmp & "|" & editOn & "|" & followOn & "|" & mode & "|" & smpName(curSmp)
+    If force Or sig <> sigInfo Then
+        DrawInfo curPos, curPat, curRow, CurSpeed(), CurTempo(), octave, curSmp, editOn, followOn, mode
+        sigInfo = sig
+    End If
+    If force Or playing Or scopesLive Then DrawScopes: scopesLive = playing
     Select Case curView
         Case V_PATTERN
-            DrawChannelHeads curCh
+            sig = curCh & "|" & nch
+            For c = 0 To nch - 1: sig = sig & IIf(ChanMuted(c), "m", "-"): Next c
+            If force Or sig <> sigHeads Then DrawChannelHeads curCh: sigHeads = sig
             If ppat = curPat Then pr = pr Else pr = -1
             If followOn Then pr = -1
             DrawPattern curPat, viewY, curRow, curCh, curField, pr, editOn, selOn, selR0, selR1, selC0, selC1
-            cv.Box PatWidth(), PY0 - 12, scrW - PatWidth(), PH + 12, cBg
-            If SideVisible() Then DrawSide curPos, pp, curSmp, 0
+            If force Or sideDirty Or pp <> lastSidePP Then
+                cv.Box PatWidth(), PY0 - 12, scrW - PatWidth(), PH + 12, cBg
+                If pp <> lastSidePP Then sideDirty = True
+                If SideVisible() Then DrawSide curPos, pp, curSmp, 0
+                lastSidePP = pp
+            End If
             hint = "F1/F2 octave  F3/F4 sample  F5 play  F8 stop  Space edit  F10 view  Help"
         Case V_SAMPLES
             DrawSampleView curSmp, smpField, smpZoomS, smpZoomL, PlayerSamplePos(curSmp)
@@ -648,7 +667,8 @@ Public Function Frame(ByVal force As Boolean) As Boolean
     End Select
     msg = message
     If msg = "" Then msg = "Riffwright"
-    DrawStatus msg, hint
+    sig = msg & "|" & hint
+    If force Or sig <> sigStatus Then DrawStatus msg, hint: sigStatus = sig
     Frame = True
 End Function
 

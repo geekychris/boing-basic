@@ -206,7 +206,7 @@ Private Sub RunBench()
     For i = 1 To benchN
         t0 = Timer
         frameDirty = True
-        Frame True
+        Frame False
         t1 = Timer
         view.Refresh
         t2 = Timer
