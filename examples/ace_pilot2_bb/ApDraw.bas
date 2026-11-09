@@ -5,9 +5,9 @@
 ' shell bursts, explosions and clouds; then the HUD (chase view) or the cockpit, the briefing
 ' with its map, the results, the title and the help. 320 x 256.
 '
-' The 3D is Boing.Engine3D: the camera banks (Engine3D's roll, render.c's xf the other way
-' round), every model is drawn by the engine (hills, buildings, the aeroplanes with yaw,
-' pitch and roll). The ground's flat pieces don't move, so they are kept as world quads in
+' The 3D is Boing.Engine3D: the camera banks (Engine3D's CamBank is render.c's xf), every
+' model is drawn by the engine (hills, buildings, and the aeroplanes through DrawModelMF: at
+' their 16.16 positions, with render.c's a3_rot_ypr >> 2 matrix for the quarter-unit model). The ground's flat pieces don't move, so they are kept as world quads in
 ' layers and handed to the engine in one QuadsW call a layer; the lists are made again only
 ' when the camera moves into another 400-unit cell. render.c makes them every frame.
 Option Explicit
@@ -409,7 +409,8 @@ Private Sub SetCamera()
         curView = v
     End If
     e3.CamPlace x, y, z
-    e3.CamAngles yaw And &HFFFF&, pitch And &HFFFF&, (-roll) And &HFFFF&
+    e3.CamAngles yaw And &HFFFF&, pitch And &HFFFF&
+    If roll <> 0 Then e3.CamBank A3Cos(roll), A3Sin(roll)      ' render.c's xf, exactly
     camX = ShrA(x, 16): camY = ShrA(y, 16): camZ = ShrA(z, 16)
     camYawV = yaw And &HFFFF&
     rc = A3Cos(roll): rs = A3Sin(roll)
@@ -491,8 +492,8 @@ Private Sub Planes()
                 Else
                     e3.RotYPR rot, plYaw(k), (-plPitch(k)) And &HFFFF&, (-plRoll(k)) And &HFFFF&
                     For j = 0 To 8: rot(j) = ShrA(rot(j), 2): Next j      ' the model is in quarter units
-                    e3.DrawModelM IIf(d < NEAR_LOD, mPlane, mPlaneLo), ShrA(plX(k), 16), ShrA(plY(k), 16), ShrA(plZ(k), 16), rot, _
-                                  planeLit(plType(k)), planeShade(plType(k)), flash, 0
+                    e3.DrawModelMF IIf(d < NEAR_LOD, mPlane, mPlaneLo), plX(k), plY(k), plZ(k), rot, _
+                                   planeLit(plType(k)), planeShade(plType(k)), flash, 0
                     If plHitT(k) < 3 And d < 1200 Then e3.Spot ShrA(plX(k), 16), ShrA(plY(k), 16) + 2, ShrA(plZ(k), 16), 3, PEN_FIRE, -10
                 End If
             End If

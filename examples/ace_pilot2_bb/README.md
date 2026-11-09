@@ -64,9 +64,9 @@ Kept from the C original:
 
 Changed:
 
-- **Drawing** is Boing.Engine3D: the camera's roll (render.c's `xf`, the other way round), the
-  models drawn by the engine with yaw, pitch and roll (the biplane through `DrawModelM` with
-  `a3_rot_ypr` >> 2, as render.c draws its quarter-unit model). The ground's flat pieces are
+- **Drawing** is Boing.Engine3D: the camera's bank is render.c's `xf` (`CamBank`), the models
+  are drawn by the engine (the biplane through `DrawModelMF`: at its 16.16 position, with
+  `a3_rot_ypr` >> 2, as render.c draws its quarter-unit model, so the chase view doesn't judder). The ground's flat pieces are
   kept in layers of world quads and handed to the engine with one `QuadsW` call a layer; they
   are made again only when the camera moves into another 400-unit cell (render.c makes them
   every frame). The view reaches 3200 units, as the C's on AmigaOS 4.
