@@ -11,6 +11,7 @@ Public phaseAvg(0 To 2) As Double     ' ms per frame over the last window
 Public perfFps As Double
 Public perfWorst As Double            ' slowest frame of the last window, ms
 Public perfLog As Boolean             ' Debug.Print one line per window
+Public perfWindows As Long            ' windows completed (phaseAvg/perfFps were updated)
 
 Private winStart As Double
 Private winFrames As Long
@@ -65,6 +66,7 @@ Public Sub PerfEnd()
             phaseSum(i) = 0
         Next i
         perfWorst = winWorst
+        perfWindows = perfWindows + 1
         If perfLog Then Debug.Print PerfText()
         winStart = t
         winFrames = 0

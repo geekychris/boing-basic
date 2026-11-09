@@ -15,6 +15,9 @@ Public duHurtTimer As Long
 Public entryRank As Long
 Public polyTotal As Double
 Public showPerf As Boolean
+Public gridFixed As Boolean          ' --grid N or the G key: no adapting
+Private adaptWin As Long, adaptAge As Long
+Private bandC(0 To 31) As Long
 Public gridDetail As Long          ' 0 no grid, 1 every other dot, 2 every dot (the original; the default)
 
 ' pens: 0 black, 1 white, 2 panel, 3 grey, 4 space, 5-6 stars, 7-9 the grid far to
@@ -75,6 +78,7 @@ Public Sub DrawInit()
                      &H9FF, &HF65, &HF33, &HFE4, &H6F6, &H5EF, &H822, &H58A)
     spaceTop = Rgb12(&H13)
     spaceBottom = Rgb12(&H103)
+    BandColours
     If gridDetail = 0 Then gridDetail = 2
     For i = 0 To 10
         lat = ((i - 5) * 65536) \ 24
@@ -303,14 +307,27 @@ End Sub
 
 ' the line of fire: from the ship through the centre
 Private Sub FireLine()
-    Dim t As Long, s As FV
+    Dim t As Long, s As FV, n As Long, vx As Long, vy As Long, vz As Long, c As Long
     SsShipPos s
+    c = pen(PEN_SIGHT)
     For t = 160 To 2 * SS_R - 61 Step 90
         If Not (t > SS_R - 70 And t < SS_R + 70) Then
-            Xf s.x + ssF.x * t, s.y + ssF.y * t, s.z + ssF.z * t
-            If Proj() Then gcv.PSet px, py, pen(PEN_SIGHT)
+            ' Xf and Proj written out
+            vx = s.x + ssF.x * t - cpfx: vy = s.y + ssF.y * t - cpfy: vz = s.z + ssF.z * t - cpfz
+            qz = ShrA(MulShr(vx, cF.x, 16) + MulShr(vy, cF.y, 16) + MulShr(vz, cF.z, 16), 14)
+            If qz >= NEAR_Z * 4 Then
+                qx = ShrA(MulShr(vx, cR.x, 16) + MulShr(vy, cR.y, 16) + MulShr(vz, cR.z, 16), 14)
+                qy = ShrA(MulShr(vx, cU.x, 16) + MulShr(vy, cU.y, 16) + MulShr(vz, cU.z, 16), 14)
+                px = G_W \ 2 + (qx * FOV) \ qz
+                py = G_H \ 2 - (qy * FOV) \ qz
+                If px >= 0 And px < G_W And py >= 0 And py < G_H Then
+                    dotX(n) = px: dotY(n) = py: dotC(n) = c
+                    n = n + 1
+                End If
+            End If
         End If
     Next t
+    If n > 0 Then gcv.PSetMany dotX, dotY, dotC, n
 End Sub
 
 ' ---------- 3D ----------
@@ -439,13 +456,39 @@ Private Sub DrawShip()
 End Sub
 
 Private Sub SpaceBands()
+    Dim y As Long
+    For y = 0 To G_H - 1 Step 16
+        gcv.Box 0, y, G_W, 16, bandC(y \ 16)
+    Next y
+End Sub
+
+Private Sub BandColours()
     Dim y As Long, r As Long, g As Long, b As Long
     For y = 0 To G_H - 1 Step 16
         r = (spaceTop And 255) + ((spaceBottom And 255) - (spaceTop And 255)) * y \ G_H
         g = ((spaceTop \ 256) And 255) + (((spaceBottom \ 256) And 255) - ((spaceTop \ 256) And 255)) * y \ G_H
         b = ((spaceTop \ 65536) And 255) + (((spaceBottom \ 65536) And 255) - ((spaceTop \ 65536) And 255)) * y \ G_H
-        gcv.Box 0, y, G_W, 16, RGB(r, g, b)
+        bandC(y \ 16) = RGB(r, g, b)
     Next y
+End Sub
+
+' grid detail from the frame time (unless fixed): every other dot when frames take over 38 ms
+' (the timer is 40 ms), every dot again under 25 ms; at most one change every 3 seconds
+Public Sub AdaptGrid()
+    Dim w As Double
+    If gridFixed Or gridDetail = 0 Then Exit Sub
+    If perfWindows = adaptWin Then Exit Sub
+    adaptWin = perfWindows
+    adaptAge = adaptAge + 1
+    If adaptAge < 3 Then Exit Sub
+    w = phaseAvg(PH_LOGIC) + phaseAvg(PH_DRAW) + phaseAvg(PH_BLIT)
+    If gridDetail = 2 And w > 38# Then
+        gridDetail = 1
+        adaptAge = 0
+    ElseIf gridDetail = 1 And w < 25# Then
+        gridDetail = 2
+        adaptAge = 0
+    End If
 End Sub
 
 Private Sub Scene(ByVal showLine As Boolean)

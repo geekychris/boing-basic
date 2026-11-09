@@ -74,6 +74,7 @@ Private Sub ParseArgs()
                 If i < UBound(args) Then nextSeed = CLng(args(i + 1))
             Case "--grid"
                 If i < UBound(args) Then gridDetail = CLng(args(i + 1))
+                gridFixed = True
             Case "--blit"
                 If i < UBound(args) Then view.BlitMode = CLng(args(i + 1))
         End Select
@@ -255,6 +256,7 @@ Private Sub Frame(ByVal steps As Long)
     PerfAdd PH_BLIT
     benchBlit = benchBlit + (TimerMs() - t)
     PerfEnd
+    AdaptGrid
     frameNo = frameNo + 1
     If Len(saveShot) > 0 And frameNo = shotFrame Then   ' --saveshot: this frame as a PPM, then quit
         gcv.SaveImage saveShot
@@ -272,7 +274,7 @@ Private Sub BenchReport(ByVal totalMs As Double)
     Print "time: total " & Format$(totalMs, "0") & " ms = " & Format$(totalMs / n, "0.000") & _
           " ms/frame = " & Format$(n * 1000# / totalMs, "0.0") & " fps"
     Print "time: logic " & Format$(benchLogic / n, "0.000") & "  draw " & Format$(benchDraw / n, "0.000") & _
-          "  blit " & Format$(benchBlit / n, "0.000") & " ms/frame;  polys/frame " & Format$(polyTotal / n, "0.0")
+          "  blit " & Format$(benchBlit / n, "0.000") & " ms/frame;  polys/frame " & Format$(polyTotal / n, "0.0") & ";  grid detail " & gridDetail
     Print "picture hash " & view.Hash
 End Sub
 
@@ -304,6 +306,7 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
             showPerf = Not showPerf
         Case vbKeyG
             gridDetail = (gridDetail + 1) Mod 3
+            gridFixed = True
         Case vbKeyEscape
             If duHelp > 0 Then
                 duHelp = 0
