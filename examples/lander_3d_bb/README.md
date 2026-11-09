@@ -36,27 +36,41 @@ tank gets 30 % more than that flight used.
 | Left / Right, Up / Down on the title | the world or the tour, the starting level |
 | Esc | title / quit |
 
+Options: `--bench N`, `--attract`, `--perf`, `--log`, `--level N`, `--start WORLD`, `--ships N`,
+`--place`, `--win N`, `--quiet`, `--dir PATH` (see the top of `lander.bas`).
+
 ## Screenshots
 
-SCREENSHOTS
+On AmigaOS 4.1 (the m1c QEMU sam460ex guest), native build: the title painting, and the
+autopilot flying the Moon, Mars (with its wind) and the asteroid:
+
+| | |
+|---|---|
+| ![The title](docs/guest-title.png) | ![The Moon](docs/guest-moon.png) |
+| ![Mars](docs/guest-mars.png) | ![The asteroid](docs/guest-asteroid.png) |
+
+The screens as `tools/guest_flow.py` plays them with injected keys: help, a landing on
+the x1 pad, flying on to level 2, a crash, the name entry and the saved table:
+
+![Help, landing, level 2, crash, name entry, high scores](docs/guest-flow.png)
 
 ## Files
 
 | file | |
 |---|---|
 | `Lander3D.bbp` | the game: a form project (startup form `lander`) |
-| `lander.afg`, `lander.bas` | the form (a 640 x 512 Canvas and a 40 ms Timer) and its code-behind: keys, the screens, `--bench N`, `--log` |
-| `LdCore.bas` | the simulation (`ld_core.c`): worlds, terrain, pads, the craft, touchdown, the autopilot, the level check. No drawing, no OS calls |
+| `lander.afg`, `lander.bas` | the form, "Lander 3D (Boing BASIC)" (a 640 x 512 Canvas and a 40 ms Timer) and its code-behind: keys, the screens, `--bench N`, `--log` |
+| `LdCore.bas` | the simulation (`ld_core.c`): worlds, terrain, pads, the craft, touchdown, the autopilot, the level check, and at its top the amiga3d engine's integer maths (A3Fix's names, integer-only, so they inline). No drawing, no OS calls |
 | `LdGame.bas` | the game around it (`game.c`): title demo, levels, ships, outcomes, scoring |
 | `LdDraw.bas` | the picture (`render.c`) through Engine3D: sky, ground grid, pads, lander, exhaust, shadow, HUD, title, help, high scores |
 | `LdSound.bas` | the module and the six effects through the Audio object |
-| `LdFix.bas` | the amiga3d engine's integer maths (see Performance) |
 | `art/*.png` | the original's title painting and skies (`tools/make_art.py` converts its `.img` files) |
 | `lander_3d.mod` | the original's music, "Quiet Descent" |
 | `Bench.bbp`, `BenchMain.bas` | the console bench (an off-screen canvas, the Mac too) |
 | `bench/` | micro benchmarks of the simulation's pieces |
 | `tools/trace.c`, `trace.sh` | the C original's flights, the reference for the tests |
-| `tools/guest.py`, `guest_flow.py` | runs on the AmigaOS 4 guest: the bench, screenshots, and the screens played with injected keys |
+| `tools/guest.py`, `guest_flow.py` | runs on an AmigaOS 4 agent guest (m1b, m1c or local; never the user's m1): the bench, screenshots, the screens played with injected keys; `guest.py cleanup` after an interrupted run |
+| `ArtTest.bbp` | guest check: the pictures and the music without a window |
 
 ## What is the same, and what changed
 
@@ -89,7 +103,6 @@ Changed:
 - **The level check runs 10 autopilot steps a frame**, not 150: in the interpreter a step
   costs more than on a 68k. Its result (and the tank top-up) is the same, it just arrives
   later into the level (a typical check is 3000-5000 steps: 12-20 s) instead of within a second or two.
-- The plain to the horizon is drawn in bands of 4 pixels (2 of the game's rows), not per row.
 - **The ground**: the engine draws a grid of the map with 32 mirrored cells round it
   (the original mirrors without end), the cells within 30 cells of the camera that are in
   view (the original: a 41 x 41 window ahead of the craft). Past that, the plain, as in
@@ -114,4 +127,35 @@ quit) and takes the screenshots above.
 
 ## Performance
 
-PERF
+`Lander3D --bench N` lets the autopilot fly the tour for N frames as fast as it can, drawing
+every frame (with the timing overlay), and prints the time per frame and the state hash.
+On the m1c agent guest (QEMU sam460ex on m1.local, a clone of the m1 guest; 200 frames
+VM/JIT, 500 native; ms per frame):
+
+| | logic | draw | blit | fps |
+|---|---:|---:|---:|---:|
+| VM (`boing run Lander3D.bbp --bench 200`) | 10.7 | 13.3 | 1.7 | **38.4** |
+| VM with `--jit` | 15.5 | 14.8 | 1.7 | 30.8 |
+| native (`boing build`, `Lander3D --bench 500`) | 1.1 | 12.5 | 2.3 | **62.2** |
+
+(The JIT is slower here: the frame is call-heavy, see docs/jit.md. On m1b, before the
+horizon became one `FillGradient` call: VM 31.7, JIT 28.9, native 70.8 fps.)
+
+The state hash after the same number of frames is the same in all three (and on the Mac).
+"logic" is four simulation steps a frame plus ten steps of the level check; "draw" is about
+800 polygons through Engine3D (the ground grid, pads, lander), the sky picture and the HUD.
+The Mac's VM does the same frame in 0.06 + 0.3 ms.
+
+What it took in the VM on the guest (a simulation step: 3650 us at first, 440 us now):
+
+- `CDbl()` expressions (examples/common/A3Fix.bas computed FMUL, FDIV and the angles through
+  Doubles) went through a Variant builtin call: ~29 us each on the guest, 0.04 us on the Mac.
+  bb-core made `Int`/`Fix`/`CDbl` typed and added `MulShr` / `MulDiv`, which the game uses for
+  FMUL (`MulShr(a, b, 16)`) and FDIV (`MulDiv(a, 65536, b)`); the rest of the maths is
+  integer-only (`Shl` / `ShrA` / `ShrL`, 16-bit partial products).
+- A call to a procedure taking a Double (`ISqrtD(d)`) cost ~25 us inside `FHypot`; inlined, the
+  length takes 3.8 us.
+- The maths helpers live in `LdCore.bas` beside the simulation, so the compiler inlines them.
+- Every VM call on the guest is expensive in a way the Mac doesn't show (the PowerPC 460's
+  software-refilled TLB under QEMU; see docs/performance.md), so the level check runs 10 steps
+  a frame, and the horizon's plain is one Engine3D `FillGradient` call.
