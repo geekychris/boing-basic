@@ -1,0 +1,6 @@
+# Harbour Crane's rules (examples/harbour_crane): games with hashes equal to the C original's
+Name=HcTest
+Startup=Sub Main
+Module=../../../examples/common/A3Fix.bas
+Module=../../../examples/harbour_crane/HcCore.bas
+Module=hctest.bas
