@@ -19,7 +19,7 @@ waits in "PAUSE n TAG"; its output counts for --expect (scripts drive the app's 
 `guest_smoke.py --shot OUT.png` only takes a screenshot.
 Holds the guest's lock and the "CLAUDE IS TESTING" banner (tools/os4guest.py).
 """
-import os, socket, subprocess, sys, tempfile, time
+import os, re, signal, socket, subprocess, sys, tempfile, time
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../.."))
 sys.path.insert(0, ROOT + "/tools")
 import os4guest as g  # noqa: E402
@@ -60,27 +60,18 @@ def send_keys(m, seq):
 
 
 def screendump(local_png):
-    """Whole-screen PPM via QEMU's monitor, converted to PNG."""
-    remote = "/tmp/bb_office_shot.ppm"
-    if g.SSH:
-        py = ("import socket,time;s=socket.create_connection(('127.0.0.1',%d),10);time.sleep(0.5);s.recv(65536);"
-              "s.sendall(b'screendump %s\\n');time.sleep(2);s.recv(65536);s.close()" % (HMP_PORT, remote))
-        subprocess.run(["ssh", g.SSH, "python3", "-c", '"%s"' % py], check=True, timeout=60)
-        tmp = tempfile.mktemp(suffix=".ppm")
-        subprocess.run(["scp", "-q", "%s:%s" % (g.SSH, remote), tmp], check=True, timeout=60)
-    else:
-        tmp = tempfile.mktemp(suffix=".ppm")
-        s = socket.create_connection(("127.0.0.1", HMP_PORT), timeout=10)
-        time.sleep(0.5); s.recv(65536)
-        s.sendall(("screendump %s\n" % tmp).encode()); time.sleep(2); s.recv(65536); s.close()
-    try:
-        from PIL import Image
-        Image.open(tmp).save(local_png)
-    except ImportError:
-        os.rename(tmp, local_png.replace(".png", ".ppm"))
-        return
-    os.unlink(tmp)
-    print("screenshot", local_png)
+    """os4guest's shot: wakes the blanker, then QEMU's screendump"""
+    print("screenshot", g.shot(g.MCP(g.URL), local_png))
+
+
+def stop_app(dos, name):
+    """break our app if it is still running (by its CLI number, never by name globally)"""
+    st = dos("status")
+    for line in st.splitlines():
+        mm = re.match(r"\s*Process\s+(\d+): Loaded as command: DH1:office/" + re.escape(name) + r"\s*$", line)
+        if mm:
+            dos("break %s C" % mm.group(1))
+            print("stopped our %s (process %s)" % (name, mm.group(1)))
 
 
 def main():
@@ -106,10 +97,22 @@ def main():
         else:
             sys.exit("unknown option " + a[i])
     name = os.path.basename(binary)
+    if g.GUEST == "m1" and os.environ.get("BB_ALLOW_M1") != "1":
+        sys.exit("guest_smoke: m1 is the user's guest; use BB_GUEST=m1b, m1c or local")
+    # hold the guest 5 minutes at most (os4guest's watchdog also gives up on a silent bridge)
+    os.environ.setdefault("BB_SESSION_TIMEOUT", "300")
+    limit = float(os.environ.get("BB_TEST_TIMEOUT", "240"))
     m = g.MCP(g.URL)
     dos = lambda c: str(m.tool("amiga_dos_command", command=c))
     ok = False
+    def hard_stop(*_):
+        sys.stderr.write("guest_smoke: hard timeout, giving up the guest\n")
+        os._exit(3)
     with g.testing("Boing BASIC: %s smoke test" % name):
+        signal.signal(signal.SIGALRM, hard_stop)
+        signal.alarm(int(float(os.environ["BB_SESSION_TIMEOUT"])) + 30)
+        # the guests' DH1: is nearly full: no old copies while pushing, and nothing left after
+        dos("delete DH1:office/#? QUIET")
         print(g.push(m, binary, "DH1:office/" + name))
         print(g.push(m, script, "DH1:office/" + os.path.basename(script)))
         for loc, dest in pushes:
@@ -121,7 +124,7 @@ def main():
         dos("run >DH1:office/app.out DH1:office/%s %s --script DH1:office/%s --log DH1:office/smoke.log --state DH1:office/state"
             % (name, extra, os.path.basename(script)))
         seen, t0, log, ok_keys, rexx_out = set(), time.time(), "", True, []
-        while time.time() - t0 < float(os.environ.get("BB_TEST_TIMEOUT", "240")):
+        while time.time() - t0 < limit:
             time.sleep(1.5)
             log = dos("type DH1:office/smoke.log")
             lines = [l for l in log.splitlines() if l.strip()]
@@ -152,18 +155,22 @@ def main():
         missing = [e for e in expects if e not in everything]
         if missing:
             print("missing:", missing)
-        # leave nothing behind: the script ends with QUIT; check the window is gone
+        # leave nothing behind: the script ends with QUIT; stop the app if it is still there
         time.sleep(2)
         st = dos("status")
-        if name.lower() in st.lower():
-            print("WARNING: %s still running:\n%s" % (name, st))
+        if ("DH1:office/" + name).lower() in st.lower():
+            print("WARNING: %s still running" % name)
+            stop_app(dos, name)
             ok = False
+        dos("delete DH1:office/#? QUIET")
+        signal.alarm(0)
     print("PASS" if ok else "FAIL")
     sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":
     if len(sys.argv) == 3 and sys.argv[1] == "--shot":
-        screendump(sys.argv[2])
+        with g.testing("Boing BASIC: screenshot"):
+            screendump(sys.argv[2])
     else:
         main()

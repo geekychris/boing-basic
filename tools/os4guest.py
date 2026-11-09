@@ -5,6 +5,7 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
 
     tools/os4guest.py push LOCAL AMIGA_PATH [LOCAL AMIGA_PATH ...]
     tools/os4guest.py dos 'AmigaDOS command'
+    tools/os4guest.py shot OUT.png                     screenshot (wakes the blanker; shot(m, png) in scripts)
     tools/os4guest.py test LOCAL_TEST_BINARY [args]   push to RAM:bbtest/ and run it, exit 1 on FAIL
     tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|jit|native|both|all]
                                                       run a BASIC test with build/os4/boing (VM)
@@ -54,15 +55,17 @@ import urllib.request
 # where the HTTP server for fast deploys must run (the guest only reaches its own host).
 GUESTS = {
     "local": {"url": "http://localhost:3010/mcp", "lock": "/tmp/amiga-emu.lock",
-              "queue": "/tmp/amiga-emu.queue", "ssh": None},
+              "queue": "/tmp/amiga-emu.queue", "ssh": None, "hmp": 2348},
     "m1": {"url": "http://localhost:3020/mcp", "lock": "/tmp/amiga-emu-m1.lock",
-           "queue": "/tmp/amiga-emu-m1.queue", "ssh": "chriscollins@m1.local"},
+           "queue": "/tmp/amiga-emu-m1.queue", "ssh": "chriscollins@m1.local", "hmp": 2348},
     # the second guest on m1 (~/retro/os4b.sh there, devbench :3003; tunnel localhost:3030 -> m1:3003)
     "m1b": {"url": "http://localhost:3030/mcp", "lock": "/tmp/amiga-emu-m1b.lock",
-            "queue": "/tmp/amiga-emu-m1b.queue", "ssh": "chriscollins@m1.local", "http_port": 18781},
+            "queue": "/tmp/amiga-emu-m1b.queue", "ssh": "chriscollins@m1.local", "http_port": 18781,
+            "hmp": 2448},
     # the third guest on m1 (~/retro/os4c.sh there, devbench :3004; tunnel localhost:3040 -> m1:3004)
     "m1c": {"url": "http://localhost:3040/mcp", "lock": "/tmp/amiga-emu-m1c.lock",
-            "queue": "/tmp/amiga-emu-m1c.queue", "ssh": "chriscollins@m1.local", "http_port": 18782},
+            "queue": "/tmp/amiga-emu-m1c.queue", "ssh": "chriscollins@m1.local", "http_port": 18782,
+            "hmp": 2548},
     "spark": {"url": "http://127.0.0.1:3032/mcp", "lock": "/tmp/amiga-emu-spark.lock",
               "queue": "/tmp/amiga-emu-spark.queue", "ssh": "chris@spark.local"},
 }
@@ -451,6 +454,48 @@ def bas(m, src, mode):
     return ok
 
 
+def shot(m, png):
+    """A screenshot of the guest's screen as PNG (or .ppm without Pillow): wakes the screen
+    blanker with a 1-pixel mouse move first (the guests' blankers stay as the user set them),
+    then QEMU's monitor `screendump` (127.0.0.1:<hmp> on the guest's machine, over ssh for
+    remote guests). Call it while holding the guest (inside testing())."""
+    import socket
+    import subprocess
+    import time
+    port = int(os.environ.get("OS4_HMP_PORT", _G.get("hmp", 2348)))
+    try:
+        m.tool("amiga_input_mouse_move", dx=1, dy=0)
+        m.tool("amiga_input_mouse_move", dx=-1, dy=0)
+    except Exception as e:
+        sys.stderr.write("os4guest: could not move the mouse (%s)\n" % e)
+    time.sleep(1.0)
+    remote = "/tmp/bb_shot_%d.ppm" % os.getpid()
+    tmp = tempfile.mktemp(suffix=".ppm")
+    if SSH:
+        py = ("import socket,time;s=socket.create_connection(('127.0.0.1',%d),10);time.sleep(0.5);s.recv(65536);"
+              "s.sendall(b'screendump %s\\n');time.sleep(2);s.recv(65536);s.close()" % (port, remote))
+        subprocess.run(["ssh", SSH, "python3", "-c", '"%s"' % py], check=True, timeout=60)
+        subprocess.run(["scp", "-q", "%s:%s" % (SSH, remote), tmp], check=True, timeout=60)
+        subprocess.run(["ssh", SSH, "rm", "-f", remote], timeout=30)
+    else:
+        sk = socket.create_connection(("127.0.0.1", port), timeout=10)
+        time.sleep(0.5)
+        sk.recv(65536)
+        sk.sendall(("screendump %s\n" % tmp).encode())
+        time.sleep(2)
+        sk.recv(65536)
+        sk.close()
+    try:
+        from PIL import Image
+        Image.open(tmp).save(png)
+        os.unlink(tmp)
+        return png
+    except ImportError:
+        out = os.path.splitext(png)[0] + ".ppm"
+        shutil.move(tmp, out)
+        return out
+
+
 def reapers(m, kill=False):
     """Grim Reaper requesters on the guest (crashed tasks): returns how many; closes them with kill."""
     out = m.tool("amiga_dos_command", command="status")
@@ -524,6 +569,8 @@ def main():
                 print(push(m, args[i], args[i + 1]))
         elif cmd == "dos":
             print(m.tool("amiga_dos_command", command=args[0]))
+        elif cmd == "shot":
+            print("screenshot", shot(m, args[0]))
         elif cmd == "setup":
             setup(m)
         elif cmd == "reapers":
