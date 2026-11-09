@@ -204,10 +204,10 @@ def harbour_lights(path):
     # 0: intro, drums and bass; first instruction sets speed 6 / tempo 125
     drums(0, sparse=True)
     bassline(0, busy=False)
-    s.put(0, 0, 3, None, 0, 0xF, 6)
-    s.put(0, 1, 3, None, 0, 0xF, 125)
     for r in (0, 16, 32, 48):
         s.put(0, r, 2, "E-3", E)
+    s.put(0, 0, 3, None, 0, 0xF, 6)
+    s.put(0, 0, 2, None, 0, 0xF, 125)
     # 1: groove with chords
     drums(1)
     bassline(1)
@@ -297,7 +297,7 @@ def boing_shuffle(path):
     groove(0, hats=False)
     bass(0)
     s.put(0, 0, 3, None, 0, 0xF, 5)
-    s.put(0, 1, 3, None, 0, 0xF, 140)
+    s.put(0, 0, 2, None, 0, 0xF, 140)
     # 1: + organ
     groove(1)
     bass(1)

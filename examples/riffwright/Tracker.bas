@@ -636,11 +636,11 @@ End Sub
 
 ' follow the player, then draw. Call every timer tick; returns True when something was drawn.
 Private sigHeader As String, sigInfo As String, sigHeads As String, sigStatus As String
-Private lastView As Long, lastSidePP As Long, scopesLive As Boolean
+Private lastView As Long, lastSidePP As Long, scopesLive As Boolean, lastSmpPos As Long
 
 Public Function Frame(ByVal force As Boolean) As Boolean
     Dim viewY As Long, pr As Long, pp As Long, ppat As Long, frac As Long, mode As Long
-    Dim hint As String, msg As String, sig As String, c As Long
+    Dim hint As String, msg As String, sig As String, c As Long, sp As Long
     pr = -1: pp = -1
     If playing Then
         PlayerPoll pp, ppat, pr, frac
@@ -656,6 +656,12 @@ Public Function Frame(ByVal force As Boolean) As Boolean
         End If
     End If
     If message <> "" And Timer - msgTime > 4 Then message = "": frameDirty = True
+    If curView = V_SAMPLES Then
+        ' the play cursor in the waveform while the sample sounds (and one frame after)
+        sp = PlayerSamplePos(curSmp)
+        If sp >= 0 Or lastSmpPos >= 0 Then frameDirty = True
+        lastSmpPos = sp
+    End If
     If Not (frameDirty Or force) Then Exit Function
     frameDirty = False
     If playing And followOn Then viewY = curRow * RH + (frac * RH) \ 256 Else viewY = curRow * RH

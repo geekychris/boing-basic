@@ -14,8 +14,6 @@ Private auPats As Long           ' patterns the player's song has
 Public playing As Boolean
 Public playMode As Long          ' 0 stopped, 1 song, 2 pattern
 Public mirrorCount As Long       ' cells sent to the player (tests)
-Private loopPat As Long          ' PlayPattern without player support: the pattern to hold
-Private loopPos As Long
 Private muted(0 To 7) As Boolean
 
 Public Sub PlayerOpen()
@@ -119,12 +117,7 @@ Public Sub MirrorSample(ByVal i As Long)
     If smpLen(i) = 0 Then
         mp.SampleLength(auSong, i) = 0
     Else
-        ' the data goes over as a WAV file (no loop in it, so nothing is cut)
-        p = TempPath(".wav")
-        If SaveSampleFile(i, p, "wav") Then
-            mp.LoadSample auSong, i, p
-            Kill p
-        End If
+        mp.SetSampleBytes auSong, i, smpData(i), smpLen(i)
     End If
     mp.SampleName(auSong, i) = CleanName(smpName(i))
     mp.SampleVolume(auSong, i) = smpVol(i)
@@ -199,27 +192,9 @@ Public Sub PlaySongAt(ByVal pos As Long, ByVal row As Long)
 End Sub
 
 Public Sub PlayPatternAt(ByVal pat As Long, ByVal row As Long)
-    Dim i As Long
     playing = True: playMode = 2
-    loopPat = pat
     If playerOk And auSong <> 0 Then
-        ' play from a position that has this pattern and jump back when the song leaves it
-        loopPos = -1
-        For i = 0 To songLen - 1
-            If orders(i) = pat Then loopPos = i: Exit For
-        Next i
-        If loopPos < 0 Then
-            ' not in the song: borrow the first position past the song's end
-            If songLen < 128 Then
-                loopPos = songLen
-                mp.Order(auSong, loopPos) = pat
-                mp.SongLength(auSong) = songLen + 1
-            Else
-                loopPos = 0
-            End If
-        End If
-        mp.Loop = True
-        mp.PlayMusic auSong, loopPos, row
+        mp.PlayPattern auSong, pat, row
         Exit Sub
     End If
     simPos = -1: simRow = row: simPat = pat
@@ -227,7 +202,6 @@ Public Sub PlayPatternAt(ByVal pat As Long, ByVal row As Long)
 End Sub
 
 Public Sub StopPlayer()
-    If playing And playMode = 2 And playerOk And auSong <> 0 Then mp.SongLength(auSong) = songLen
     playing = False: playMode = 0
     If playerOk Then
         On Error Resume Next
@@ -260,10 +234,7 @@ Public Sub PlayerPoll(pos As Long, pat As Long, row As Long, frac As Long)
         pat = mp.Pattern
         sp = mp.Speed
         If sp > 0 Then frac = (mp.Tick * 256) \ sp Else frac = 0
-        If playMode = 2 Then
-            If pos <> loopPos Then mp.JumpTo loopPos, 0: pos = loopPos: pat = loopPat
-            If pos >= songLen Then pos = -1
-        End If
+        If playMode = 2 Then pos = -1
         If Not mp.Playing Then playing = False: playMode = 0
         Exit Sub
     End If
@@ -307,7 +278,15 @@ Public Sub JamRow(ByVal pat As Long, ByVal row As Long)
     mp.PlayRow auSong, pat, row
 End Sub
 
-' the play position in sample i, or -1
+' the play position in sample i (on the first channel playing it), or -1
 Public Function PlayerSamplePos(ByVal i As Long) As Long
+    Dim c As Long, o As Long
     PlayerSamplePos = -1
+    If Not playerOk Or auSong = 0 Then Exit Function
+    For c = 0 To nch - 1
+        If mp.ChannelSample(c) = i Then
+            o = mp.ChannelPos(c)
+            If o >= 0 Then PlayerSamplePos = o: Exit Function
+        End If
+    Next c
 End Function
