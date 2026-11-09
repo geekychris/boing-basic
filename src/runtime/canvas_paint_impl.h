@@ -13,7 +13,7 @@ enum {
     MP_FLOODFILL = 1000, MP_ELLIPSE, MP_BRUSHLINE, MP_STAMPLINE, MP_DRAWIMAGESCALED, MP_DRAWIMAGEBLEND,
     MP_COPYIMAGE, MP_FLIPIMAGE, MP_ROTATEIMAGE, MP_SCALEIMAGE, MP_REPLACECOLOR, MP_SPRAY,
     MP_SAVEPNG, MP_SAVEILBM, MP_LASTPALETTE, MP_GETPALETTE, MP_QUANTIZE, MP_REMAPIMAGE, MP_DASHRECT,
-    MP_IMAGEHASH, MP_DRAWTEXTSCALED, MP_IMAGEPOINT, MP_CLEARRECT, MP_IMAGEBOUNDS, MP_CHECKER
+    MP_IMAGEHASH, MP_DRAWTEXTSCALED, MP_IMAGEPOINT, MP_CLEARRECT, MP_IMAGEBOUNDS, MP_CHECKER, MP_FILLBOUNDS
 };
 
 static const struct { const char *name; int32_t id; } paint_members[] = {
@@ -25,7 +25,7 @@ static const struct { const char *name; int32_t id; } paint_members[] = {
     {"LastPalette", MP_LASTPALETTE}, {"GetPalette", MP_GETPALETTE}, {"Quantize", MP_QUANTIZE},
     {"RemapImage", MP_REMAPIMAGE}, {"DashRect", MP_DASHRECT}, {"ImageHash", MP_IMAGEHASH},
     {"DrawTextScaled", MP_DRAWTEXTSCALED}, {"ImagePoint", MP_IMAGEPOINT}, {"ClearRect", MP_CLEARRECT},
-    {"ImageBounds", MP_IMAGEBOUNDS}, {"Checker", MP_CHECKER},
+    {"ImageBounds", MP_IMAGEBOUNDS}, {"Checker", MP_CHECKER}, {"FillBounds", MP_FILLBOUNDS},
 };
 
 static int32_t paint_find(const char *name)
@@ -80,6 +80,8 @@ static int col_near(uint32_t a, uint32_t b, int32_t tol)
     return 1;
 }
 
+static int32_t fill_bounds[4];   /* x, y, w, h of the last FloodFill */
+
 /* scanline fill, 4-connected; returns the number of pixels filled */
 static int32_t flood(bb_canvas *c, int32_t x, int32_t y, uint32_t col, int32_t tol)
 {
@@ -87,6 +89,8 @@ static int32_t flood(bb_canvas *c, int32_t x, int32_t y, uint32_t col, int32_t t
     uint32_t *p = c->tp, old;
     int32_t *st;
     unsigned char *done = NULL;
+    int32_t bx1 = w, by1 = h, bx2 = -1, by2 = -1;
+    fill_bounds[0] = fill_bounds[1] = fill_bounds[2] = fill_bounds[3] = 0;
     if ((uint32_t)x >= (uint32_t)w || (uint32_t)y >= (uint32_t)h) return 0;
     old = p[y * w + x];
     if (old == col && tol <= 0) return 0;
@@ -116,6 +120,10 @@ static int32_t flood(bb_canvas *c, int32_t x, int32_t y, uint32_t col, int32_t t
             if (done) done[y * w + i] = 1;
         }
         n += rx - lx + 1;
+        if (lx < bx1) bx1 = lx;
+        if (rx > bx2) bx2 = rx;
+        if (y < by1) by1 = y;
+        if (y > by2) by2 = y;
         for (yy = y - 1; yy <= y + 1; yy += 2) {
             int in = 0;
             if (yy < 0 || yy >= h) continue;
@@ -130,6 +138,7 @@ static int32_t flood(bb_canvas *c, int32_t x, int32_t y, uint32_t col, int32_t t
 #undef PUSH
     free(st);
     free(done);
+    if (bx2 >= 0) { fill_bounds[0] = bx1; fill_bounds[1] = by1; fill_bounds[2] = bx2 - bx1 + 1; fill_bounds[3] = by2 - by1 + 1; }
     return n;
 }
 
@@ -294,13 +303,14 @@ static void blit_scaled(bb_canvas *c, const cv_image *im, int32_t sx, int32_t sy
 
 static inline uint32_t blend_px(uint32_t d, uint32_t s, uint32_t a)
 {
-    /* s over d with alpha a (0..255); result opaque if d was */
-    uint32_t ia = 255 - a, rb, g, da;
-    rb = (((s & 0xFF00FFu) * a + (d & 0xFF00FFu) * ia) >> 8) & 0xFF00FFu;
-    g = (((s & 0x00FF00u) * a + (d & 0x00FF00u) * ia) >> 8) & 0x00FF00u;
-    da = (d >> 24) + (((255 - (d >> 24)) * a) >> 8);
+    /* s over d with alpha a (0..255), rounded; result opaque if d was */
+    uint32_t ia = 255 - a, r, g, b, da;
     if (!(d >> 24)) return (s & 0xFFFFFFu) | (a << 24);
-    return (da << 24) | rb | g;
+    r = (((s >> 16) & 255) * a + ((d >> 16) & 255) * ia + 127) / 255;
+    g = (((s >> 8) & 255) * a + ((d >> 8) & 255) * ia + 127) / 255;
+    b = ((s & 255) * a + (d & 255) * ia + 127) / 255;
+    da = (d >> 24) + (((255 - (d >> 24)) * a + 127) / 255);
+    return (da << 24) | (r << 16) | (g << 8) | b;
 }
 
 static void blit_blend(bb_canvas *c, const cv_image *im, int32_t sx, int32_t sy, int32_t sw, int32_t sh,
@@ -467,9 +477,9 @@ static int32_t last_pal[256], last_pal_n;
 static int32_t get_palette(const cv_image *s, int32_t *pal, int32_t max)
 {
     int32_t n = 0, i, k;
-    uint32_t hs[4096];
-    unsigned char used[4096];
-    memset(used, 0, sizeof used);
+    uint32_t *hs = (uint32_t *)malloc(4096 * sizeof(uint32_t));
+    unsigned char *used = (unsigned char *)calloc(4096, 1);
+    if (!hs || !used) { free(hs); free(used); bb_raise(7, NULL); }
     for (i = 0; i < s->w * s->h; i++) {
         uint32_t p = s->px[i], hk;
         if (!(p >> 24)) continue;
@@ -477,7 +487,7 @@ static int32_t get_palette(const cv_image *s, int32_t *pal, int32_t max)
         hk = (p * 2654435761u) >> 20;
         for (k = 0; k < 4096; k++, hk = (hk + 1) & 4095) {
             if (!used[hk]) {
-                if (n >= max) return -1;
+                if (n >= max) { free(hs); free(used); return -1; }
                 used[hk] = 1;
                 hs[hk] = p;
                 pal[n++] = VBCOL(p);
@@ -486,6 +496,8 @@ static int32_t get_palette(const cv_image *s, int32_t *pal, int32_t max)
             if (hs[hk] == p) break;
         }
     }
+    free(hs);
+    free(used);
     return n;
 }
 
@@ -1586,6 +1598,9 @@ static void paint_invoke(bb_canvas *c, int32_t id, int argc, bb_value *argv, bb_
         *ret = long_array(r, x1 < 0 ? 0 : 4);
         return;
     }
+    case MP_FILLBOUNDS: /* FillBounds() -> x, y, w, h of what the last FloodFill changed */
+        *ret = long_array(fill_bounds, 4);
+        return;
     case MP_CHECKER: { /* Checker x, y, w, h, size, col1, col2: transparency backdrop */
         int32_t x = argl(argc, argv, 0), y = argl(argc, argv, 1), w = argl(argc, argv, 2), h = argl(argc, argv, 3);
         int32_t sz = argl(argc, argv, 4), i, j;

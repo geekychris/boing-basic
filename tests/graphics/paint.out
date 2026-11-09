@@ -12,7 +12,7 @@ flip FF00 -1
 scale 16  FF00 FF00
 copy 10  10  FFFFFF
 zoom FFFFFF FFFFFF FF0000 FFFFFF 0
-blend 7F7F7F 7F0000
+blend 808080 800000
 stamp FF00 FF00 hash 1363178437 
 replace FF
 palette 3  FF FFFFFF 0 over True

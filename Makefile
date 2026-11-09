@@ -37,6 +37,7 @@ test: all
 	@sh tests/run.sh
 	@sh examples/riffwright/tests/run.sh $(CURDIR)/build/boing
 	@sh examples/stack_tower_bb/tools/test.sh
+	@for t in examples/*/tests/host-test.sh; do sh $$t || exit 1; done
 
 clean:
 	rm -rf $(B)
