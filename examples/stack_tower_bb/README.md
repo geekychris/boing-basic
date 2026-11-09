@@ -117,11 +117,47 @@ build/boing run examples/stack_tower_bb/Bench.bbp --frames 600 --prof [--shots D
   title's demo, and the bot in marathon (levels 1 and 9), rising and dig, with soft drops,
   holds, kicks, lock resets, combos and level-ups. After every game and at the end the full
   state hash (board, queue, generator, piece, timers, score) is the C's.
-- **Guest smoke run**: `BB_GUEST=m1 examples/common/tools/guest_game.py
-  examples/stack_tower_bb/StackTower.bbp vm --smoke 500` opens the window on the guest,
-  the bot plays with music and effects, and it prints the state, fps, the audio device and
-  a picture hash; the tool fails on a runtime error or a Grim Reaper.
+- **Guest smoke run**: `BB_GUEST=m1b examples/common/tools/guest_game.py
+  examples/stack_tower_bb/StackTower.bbp vm --smoke 400 --data RAM:bbg/examples/stack_tower_bb`
+  opens the window on the guest, the bot plays in real time with music and effects, and it
+  prints the state, fps, the audio device (`ahi, music playing`) and a picture hash; the
+  tool fails on a runtime error or a Grim Reaper. (`--data` because under `boing run` the
+  program's own directory is the interpreter's.)
+- **Screenshots**: `tools/guest_shots.py OUTDIR` (one lock ticket each; the banner's edge
+  can show in a corner). The ones above are from the local guest.
 
 ## Performance
 
-FPS_TABLE
+`StackTower --bench 500`: the bot plays marathon from seed 1234 in the form's window,
+frames back to back, every frame drawn (the tower through Engine3D, the panel and text
+through the Canvas) and shown. On **m1b** (QEMU sam460ex on an unloaded Mac; boing main
+of 2026-11-08, one session), ms per frame:
+
+| | logic | draw | blit | frame | fps |
+|---|---:|---:|---:|---:|---:|
+| VM (`boing run`) | 0.35 | 8.10 | 3.35 | 12.15 | **82.3** (82.8 on a second run) |
+| VM `--jit` | 0.79 | 8.82 | 3.26 | 13.21 | **75.7** |
+| native (`boing build --target os4`) | 0.08 | 4.51 | 3.19 | 7.88 | **126.9** |
+
+Dig mode (`--mode 2`: ten rings of rubble on the board from the start, ~293 polygons a
+frame): VM 68.5 fps (logic 0.74, draw 10.26, blit 3.22), native 119.4 fps (0.10 / 5.04 /
+3.12); the same state hash (FF5DAD11).
+
+In marathon all three end in the same state hash (08E8EAA7). Played in real time
+(`--smoke`, the form's 20 ms timer, music and effects on through AHI) the VM shows 31 fps
+on m1b, the timer's pace: well over the 25 the game's 40 ms ticks need.
+
+The 3D is cheap in BASIC because the BASIC hardly touches it: about four `DrawModels`
+calls a frame, with lists rebuilt only when the board, the facing column or the piece
+changes. The draw time is mostly the backdrop (a 200 x 256 image), the Engine3D fill of
+~230 polygons and the panel's text. An earlier version with the 3D in BASIC (a stand-in
+for the engine: per-face transform, culling and clipping in BASIC, polygons through the
+Canvas) drew the same frames at 11.5 fps in the VM on m1, 86 ms a frame (56 ms of it the
+BASIC face loop, 22 ms the Canvas fills).
+
+On the Mac (Apple M-series), `Bench.bbp --frames 3000 --mode 2` (dig, off-screen canvas):
+VM 0.068 ms/frame, VM `--jit` 0.066, native 0.059: the drawing is all in C, so the three
+are close. The picture hashes are the same in the VM and native.
+
+The JIT doesn't help here (the logic is small and call-heavy; see docs/performance.md on
+the JIT under QEMU), so the plain VM is the one to use.
