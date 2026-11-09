@@ -83,6 +83,7 @@ Private Sub StartGame()
 End Sub
 
 Private Sub Form_Load()
+    Set gcv = view
     SsInit
     DrawInit
     SoundInit
