@@ -51,12 +51,14 @@ fights N frames as fast as it can, drawing every one, then prints a timing repor
 | `arena.afg`, `arena.bas` | the form (a 320 x 256 Canvas shown at 2x, a 40 ms Timer) and its code-behind: title, fight, game over, name entry, high scores, help, `--bench` |
 | `TdCore.bas` | the rules, a line-by-line port of `td_core.c`: 16.16 fixed point, the enemies' minds, the autopilot, the state hash. No drawing |
 | `TdDraw.bas` | the picture (`render.c`) and the effects (`game.c`): scene, HUD, radar, title, help |
-| `TdSound.bas` | the sound effects (a stub until the audio library lands, see below) |
+| `TdSound.bas` | the original's sound effects (`game_sound_init`) on `Boing.Audio` |
 | `Bench.bbp`, `BenchMain.bas` | the console bench: the autopilot fights, every frame drawn on an off-screen Canvas (any platform) |
 | `tools/trace.c`, `tools/trace.sh` | the C original's autopilot fights, built from amiga_mcp's sources, for checking the port |
 | `../common/A3Fix.bas` | amiga3d's integer maths (`a3d_math.c`, `a3d_fix.c`) bit for bit: 32-bit wrapping, shifts, FMUL/FDIV, the sine table, atan2, square roots, the random generators |
-| `../common/A3Scene.bas` | amiga3d's 3D in BASIC: the camera (`cam_place`, sixteenths of a unit), near and screen clipping, the 512-bucket draw list, models (boxes, pyramids, prisms) |
-| `../common/Gfx2D.bas` | amiga3d's 2D calls on a Canvas: 32 pens, rectangles by corners, shadowed and big text |
+| `../common/A3Engine.bas` | bb-3d's A3Scene-compatible layer on `Boing.Engine3D` (the amiga3d engine in C): the camera maths in BASIC, the draw list, clipping, models and filling in C |
+| `../common/A3Scene.bas` | the same API all in BASIC (the stopgap the ports were first drawn with; kept as a reference) |
+| `../common/Draw2D.bas` | amiga3d's 2D calls on one Canvas (`gcv`): 32 pens, rectangles by corners, shadowed and big text |
+| `../common/HiScore.bas`, `../common/Perf.bas` | the high-score table, frame timing |
 
 ## Same fight as the C
 
@@ -77,7 +79,7 @@ including the original's own long-fight vector (seed 1234, 9000 ticks: `7CFAB335
 - The 3D is drawn at 320 x 256 and shown at twice the size (the original's AmigaOS 4 build fills
   polygons at 640 x 512). The floor's grid is drawn as lines rather than thin quads, and the sky
   as 8-row bands of its gradient.
-- @SOUND@
+- Sound: the original's effects, synthesised at start-up with the same calls and arithmetic as amiga3d's `a3d_sound.c` (`Boing.Audio`'s `SfxDefine`/`SfxTone`/`SfxNoise`/`Sfx`), so they are byte for byte the C game's; like the original, there is no music.
 
 ## Performance
 

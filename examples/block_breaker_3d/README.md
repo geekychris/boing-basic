@@ -43,7 +43,7 @@ Command line: `--level N`, `--seed N`, `--attract`, `--perf`, `--log`, `--bench 
 | `tunnel.afg`, `tunnel.bas` | the form and its code-behind |
 | `BbCore.bas` | the rules, a line-by-line port of `bb_core.c` (1/256 units, one axis at a time, the autopilot, the state hash) |
 | `BbDraw.bas` | the picture (`render.c`): the striped tunnel, only the bricks' visible faces, the ball with its shadow and depth ring, capsules, broken bits, the paddle; HUD, title, help |
-| `BbSound.bas` | the sound effects (a stub until the audio library lands) |
+| `BbSound.bas` | the original's sound effects (`game_sound_init`) on `Boing.Audio` |
 | `Bench.bbp`, `BenchMain.bas` | the console bench |
 | `tools/trace.c`, `tools/trace.sh` | the C original's games, for checking the port |
 
@@ -57,7 +57,7 @@ native; the first is the original's own vector (`D2B5D3AA`).
 
 - No bridge; command-line options instead. A table of eight high scores with name entry.
 - The Canvas's 6 x 9 font; the picture at 320 x 256 shown at 2x.
-- @SOUND@
+- Sound: the original's effects, synthesised at start-up with the same calls and arithmetic as amiga3d's `a3d_sound.c` (`Boing.Audio`'s `SfxDefine`/`SfxTone`/`SfxNoise`/`Sfx`), so they are byte for byte the C game's; like the original, there is no music.
 
 ## Performance
 

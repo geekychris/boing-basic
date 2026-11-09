@@ -45,7 +45,7 @@ Command line: `--wave N`, `--seed N`, `--grid 0|1|2`, `--attract`, `--perf`, `--
 | `sphere.afg`, `sphere.bas` | the form and its code-behind |
 | `SsCore.bas` | the rules, a line-by-line port of `ss_core.c`: the ship's rotation frame (no pole), shots through the centre, the enemies' phases, waves, the autopilot, the state hash over the whole game state in the C struct's order |
 | `SsDraw.bas` | the picture (`render.c`): a camera built from the ship's frame, stars, the dotted shell (2688 dots, `PSetMany`), the line of fire, the vortex, enemies as spinning shapes, shots, bullets, bursts, the ship; HUD and radar |
-| `SsSound.bas` | the sound effects (a stub until the audio library lands) |
+| `SsSound.bas` | the original's sound effects (`game_sound_init`) on `Boing.Audio` |
 | `Bench.bbp`, `BenchMain.bas` | the console bench |
 | `tools/trace.c`, `tools/trace.sh` | the C original's games, for checking the port |
 
@@ -62,7 +62,7 @@ struct as 32-bit words; `SsStateHash` hashes the same fields in the same order.
   original kept only the best score in a file).
 - The Canvas's 6 x 9 font; the picture at 320 x 256 shown at 2x; the shell's far dots one
   pixel and the nearer ones 2 x 2 (the original: 1, 2 and 2/3 pixels by distance).
-- @SOUND@
+- Sound: the original's effects, synthesised at start-up with the same calls and arithmetic as amiga3d's `a3d_sound.c` (`Boing.Audio`'s `SfxDefine`/`SfxTone`/`SfxNoise`/`Sfx`), so they are byte for byte the C game's; like the original, there is no music.
 
 ## Performance
 

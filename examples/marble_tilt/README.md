@@ -45,11 +45,11 @@ Duel's).
 | `board.afg`, `board.bas` | the form (a 320 x 256 Canvas at 2x, a 40 ms Timer) and its code-behind |
 | `MtCore.bas` | the rules, a line-by-line port of `mt_core.c` (16.16 fixed point, the levels, the autopilot's route, the state hash) |
 | `MtDraw.bas` | the picture (`render.c`): the board rolled and pitched, its floor and walls in runs, gates, bumpers, the marble and its shadow; HUD, title, help |
-| `MtSound.bas` | the sound effects (a stub until the audio library lands) |
+| `MtSound.bas` | the original's sound effects (`game_sound_init`) on `Boing.Audio` |
 | `Bench.bbp`, `BenchMain.bas` | the console bench (off-screen Canvas) |
 | `tools/trace.c`, `tools/trace.sh` | the C original's games, for checking the port |
 
-The shared modules (`../common/A3Fix.bas`, `A3Scene.bas`, `Gfx2D.bas`, `HiScore.bas`,
+The shared modules (`../common/A3Fix.bas`, `A3Engine.bas`, `Draw2D.bas`, `HiScore.bas`,
 `Perf.bas`) are described in [Tank Duel's README](../tank_duel/README.md#files).
 
 ## Same game as the C
@@ -65,7 +65,7 @@ from level 1 ends with the original's own vector, `07C7AF51`.
 - A table of eight high scores with name entry (the original kept only the best score).
 - The Canvas's 6 x 9 font for text; the picture drawn at 320 x 256 and shown at 2x; the void's
   gradient in 8-row bands.
-- @SOUND@
+- Sound: the original's effects, synthesised at start-up with the same calls and arithmetic as amiga3d's `a3d_sound.c` (`Boing.Audio`'s `SfxDefine`/`SfxTone`/`SfxNoise`/`Sfx`), so they are byte for byte the C game's; like the original, there is no music.
 
 ## Performance
 
