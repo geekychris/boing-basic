@@ -1,0 +1,13 @@
+# Boing BASIC project: Canyon Rail, a rail shooter down a winding canyon (a port of amiga_mcp's examples/canyon_rail)
+Name=CanyonRail
+Startup=Form canyon
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Engine.bas
+Module=../common/Draw2D.bas
+Module=CrCore.bas
+Module=CrDraw.bas
+Module=CrSound.bas
+Form=canyon.afg
+Stack=262144

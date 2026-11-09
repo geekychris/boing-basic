@@ -1,0 +1,13 @@
+# Boing BASIC project: Canyon Rail console bench (logic + drawing on an off-screen Canvas)
+Name=CanyonRailBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Engine.bas
+Module=../common/Draw2D.bas
+Module=CrCore.bas
+Module=CrDraw.bas
+Module=CrSound.bas
+Module=BenchMain.bas
+Stack=262144

@@ -74,7 +74,7 @@ Public Sub DrawInit()
                      &HDDE, &H99B, &H557, &H4CF, &HF92, &HFE6, &H3E8, &HBFD, &HE4C, &HFBE, &HC33, &HFA3, _
                      &H9FF, &HF65, &HF33, &HFE4, &H6F6, &H5EF, &H822, &H58A)
     spaceTop = Rgb12(&H13)
-    spaceBottom = Rgb12(&H215)
+    spaceBottom = Rgb12(&H103)
     If gridDetail = 0 Then gridDetail = 2
     For i = 0 To 10
         lat = ((i - 5) * 65536) \ 24
