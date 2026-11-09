@@ -23,7 +23,7 @@ ok   song view
 speed 7 
 ok   Amiga+1 pattern view
 Amiga+S asks the form to: save
-frame hash 1801054453 
+frame hash 384983623 
 LOAD -> 0 Boing Shuffle
 PLAY 2 -> 0 playing playing=True
 POSITION -> 0 2

@@ -218,9 +218,12 @@ Public Sub DrawPattern(ByVal p As Long, ByVal viewY As Long, ByVal curRow As Lon
     r0 = top \ RH: If r0 < 0 Then r0 = 0
     r1 = (top + PH) \ RH: If r1 > ROWS - 1 Then r1 = ROWS - 1
     For r = r0 - (r0 Mod 4) To r1 Step 4
-        If r >= 0 Then
-            y = PY0 + r * RH - top
-            If r Mod 16 = 0 Then cv.Box 0, y, w, RH, cBar Else cv.Box 0, y, w, RH, cBeat
+        y = PY0 + r * RH - top
+        h = RH
+        If y < PY0 Then h = h - (PY0 - y): y = PY0
+        If y + h > PY0 + PH Then h = PY0 + PH - y
+        If r >= 0 And h > 0 Then
+            If r Mod 16 = 0 Then cv.Box 0, y, w, h, cBar Else cv.Box 0, y, w, h, cBeat
         End If
     Next r
     If selOn Then
@@ -480,7 +483,7 @@ Public Sub DrawSampleView(ByVal smp As Long, ByVal field As Long, ByVal zoomStar
     Next i
     cv.DrawText 290, PY0 + 236, "Up/Down choose, Left/Right change (Shift: x16)", cLabel
     cv.DrawText 290, PY0 + 249, "Return edit name, piano keys play the sample", cLabel
-    cv.DrawText 290, PY0 + 262, "L load  W save  +/- zoom  Shift+Left/Right scroll", cLabel
+    cv.DrawText 290, PY0 + 262, "L load  W save  +/- zoom  Alt+Left/Right scroll", cLabel
     cv.DrawText 290, PY0 + 275, "R reverse  N normalise  X cut to loop  Del clear", cLabel
     cv.DrawText 290, PY0 + 288, "F3/F4 previous/next sample", cLabel
 End Sub
