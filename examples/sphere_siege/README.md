@@ -69,34 +69,35 @@ struct as 32-bit words; `SsStateHash` hashes the same fields in the same order.
 
 ## Performance
 
-`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
-guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
-as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
-300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
-(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
-normally; logic and draw are the game's own work.
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234 as fast as they
+go, on the AmigaOS 4.1 guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed
+the same state hash as the console bench on the Mac. The Mac column is the console bench
+(`Bench.bbp --frames 300`, the same game drawing into a canvas that is never shown) on the M1
+itself.
 
 | build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
 |---|---:|---:|---:|---:|---:|
-| VM | **26** | 8.228 | 22.252 | 7.121 | 4814 fps |
-| VM `--jit` | **15** | 9.461 | 47.943 | 7.072 | - |
-| native (`boing build --target os4`) | **86** | 0.315 | 4.194 | 6.911 | 23253 fps |
+| VM | **32** | 7.466 | 19.874 | 3.351 | 4814 fps |
+| VM `--jit` | **32** | 9.520 | 18.172 | 3.472 | - |
+| native (`boing build --target os4`) | **126** | 0.261 | 4.304 | 3.221 | 23253 fps |
 
-Played in real time (`--demo --perf`, the form's 40 ms timer, the original's 25 fps), the VM
-build ran at 21-23 fps on the same guest, while the host's display made each blit about 9 ms. Sphere Siege's frames there were 1 to 5 ms over the 40 ms tick (with a 3.4 ms
-blit it keeps up).
+Played in real time (`--demo --perf`: the form's 40 ms timer, the original's 25 fps), the
+VM build runs at 24-25 fps on the same guest. The JIT is slower than the VM on the QEMU guest
+for now (its code and tables crowd the guest's small TLB; `docs/performance.md`), so run
+without `--jit` there. Grid detail at the end of the bench (2 every dot, 1 every other): VM 2, JIT 2,
+native 2 (see below).
 
 Grid detail adapts to the frame time: when frames take over 38 ms for a second (the timer is
 40 ms, the original's 25 fps), the shell's grid is drawn with every other dot; it goes back
-to every dot under 25 ms, changing at most once in 3 seconds. The VM and JIT runs above
-settled on every other dot ("grid detail 1"); the native build keeps every dot. `--grid N`
-(0 none, 1 half, 2 all) or the G key fix it.
+to every dot under 25 ms, changing at most once in 3 seconds. `--grid N` (0 none, 1 half,
+2 all) or the G key fix it.
 
 On the QEMU guest the interpreted frame time also depends on where the code happens to lie
 in memory: the PPC 460's small TLB is refilled in software, slowly, under QEMU
 (`docs/performance.md`). Byte-for-byte the same grid loop took 11, 19 or 36 ms a frame
 depending only on the size of code earlier in the module. Real AmigaOS 4 machines refill
-their TLBs in hardware and should not show it.
+their TLBs in hardware and should not show it. Since 42beff2 (the VM's register ops in fewer code pages) the
+VM build here keeps every dot and runs at 32 fps; before it, it needed every other dot.
 
 ## Tests
 

@@ -68,18 +68,19 @@ the whole autopilot game from stage 1 ends with the original's own vector (`137A
 
 ## Performance
 
-`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234, on the AmigaOS 4.1
-guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed the same state hash
-as the console bench on the Mac. The Mac column is the console bench (`Bench.bbp --frames
-300`, the same game and drawing into a canvas that is never shown) on the M1 itself. Blit
-(showing the picture in QEMU's window) depends on the host's display load, about 3.4 ms
-normally; logic and draw are the game's own work.
+`guest_game.py ... --bench 300`: 300 frames of the autopilot from seed 1234 as fast as they
+go, on the AmigaOS 4.1 guest m1b (QEMU sam460ex on an M1 Mac), with sound. Every run printed
+the same state hash as the console bench on the Mac. The Mac column is the console bench
+(`Bench.bbp --frames 300`, the same game drawing into a canvas that is never shown) on the M1
+itself.
 
 | build | fps on the guest | logic | draw | blit (ms/frame) | Mac console |
 |---|---:|---:|---:|---:|---:|
-| VM | **38** | 0.580 | 22.138 | 3.378 | 13175 fps |
-| VM `--jit` | **33** | 1.273 | 25.059 | 3.426 | - |
-| native (`boing build --target os4`) | **123** | 0.067 | 4.487 | 3.422 | 26010 fps |
+| VM | **41** | 0.463 | 20.011 | 3.317 | 13175 fps |
+| VM `--jit` | **40** | 1.004 | 20.401 | 3.282 | - |
+| native (`boing build --target os4`) | **131** | 0.061 | 3.970 | 3.422 | 26010 fps |
 
-Played in real time (`--demo --perf`, the form's 40 ms timer, the original's 25 fps), the VM
-build ran at 25 fps on the same guest, while the host's display made each blit about 9 ms.
+Played in real time (`--demo --perf`: the form's 40 ms timer, the original's 25 fps), the
+VM build runs at 25 fps on the same guest. The JIT is slower than the VM on the QEMU guest
+for now (its code and tables crowd the guest's small TLB; `docs/performance.md`), so run
+without `--jit` there.
