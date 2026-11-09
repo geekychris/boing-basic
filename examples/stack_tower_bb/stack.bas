@@ -8,6 +8,10 @@
 '   StackTower --perf             timing overlay (also F9) and a log line a second
 '   StackTower --log              print each change of screen (tests)
 '   StackTower --nomusic          no music (M switches it, S the effects)
+'   StackTower --autoplay         start a game with the bot playing (screenshots)
+'   StackTower --help N           open on help page N;  --scores: on the high scores
+'   StackTower --smoke N          the bot plays N frames in real time (music and sound on),
+'                                 then a report and quit (the guest smoke test)
 '   StackTower --seed N           the first game's seed
 '   StackTower --blit N           the canvas's BlitMode
 '
@@ -26,6 +30,7 @@ Private lastMs As Double, accMs As Double
 Private benchLogic As Double, benchDraw As Double, benchBlit As Double
 Private lastState As Long
 Private noMusic As Boolean
+Private startPlaying As Boolean, startHelp As Long, startScores As Boolean, smokeN As Long, smokeDone As Long
 
 Private Sub ParseArgs()
     Dim args() As String, i As Long, a As String
@@ -43,6 +48,19 @@ Private Sub ParseArgs()
                 perfLog = True
             Case "--log": logModes = True
             Case "--nomusic": noMusic = True
+            Case "--autoplay": startPlaying = True
+            Case "--scores": startScores = True
+            Case "--help"
+                startHelp = 1
+                If i < UBound(args) Then
+                    If IsNumeric(args(i + 1)) Then startHelp = CLng(args(i + 1))
+                End If
+            Case "--smoke"
+                smokeN = 500
+                startPlaying = True
+                If i < UBound(args) Then
+                    If IsNumeric(args(i + 1)) Then smokeN = CLng(args(i + 1))
+                End If
             Case "--mode"
                 If i < UBound(args) Then svMode = CLng(args(i + 1)) Mod MODE_COUNT
             Case "--level"
@@ -96,6 +114,18 @@ Private Sub Form_Load()
         ShellStartGame svMode, svStartLevel
         autoplay = True
     End If
+    If startPlaying Then
+        nextSeed = 1234
+        ShellStartGame svMode, svStartLevel
+        autoplay = True
+    End If
+    If startScores Then
+        HsLoad ScoreFile(svMode)
+        svEntryRank = -1
+        svStateTimer = 30000
+        svState = SS_SCORES
+    End If
+    If startHelp >= 1 And startHelp <= 2 Then svHelp = startHelp
     LogState
     lastMs = TimerMs()
 End Sub
@@ -131,7 +161,22 @@ Private Sub tick_Timer()
     If steps > 4 Then steps = 4
     accMs = accMs - steps * 40#
     If accMs > 80# Or accMs < -40# Then accMs = 0
+    If smokeN > 0 And svState = SS_OVER Then
+        ShellStartGame svMode, svStartLevel
+        autoplay = True
+    End If
     Frame steps
+    If smokeN > 0 Then
+        smokeDone = smokeDone + 1
+        If smokeDone >= smokeN Then
+            Print "Stack Tower smoke: " & smokeN & " frames, " & stModeName(stMode) & " level " & stLevel & " score " & stScore & _
+                  " rings " & stLines & " pieces " & stPieces & " fps " & Format$(perfFps, "0.0") & " (" & PerfText() & ")"
+            Print "audio: " & au.Device & ", music " & IIf(au.Playing, "playing", "stopped") & ", effects " & _
+                  sfxCount(SFX_LOCK) & " locks " & sfxCount(SFX_DROP) & " drops"
+            Print "picture hash " & view.Hash
+            Unload Me
+        End If
+    End If
 End Sub
 
 ' steps game ticks (40 ms each), then one picture

@@ -39,7 +39,7 @@ Private Const RK_GRID As Long = 3       ' 139
 Private Const RK_GUIDE As Long = 4      ' 138
 Private Const YAW_SIGN As Long = -1     ' a model turned by yaw = YAW_SIGN * angle stands at that angle
 
-Private keyBoard As Long, keyCol As Long, keyPiece As String, keyGrid As Long, keyGuide As String
+Private keyBoard As Long, keyCol As Long, keyPiece As Long
 
 Public Sub TowerInit(cv As Object, pens As Variant)
     Dim c As Long, k As Long, rads As Variant, a As Long
@@ -66,7 +66,7 @@ Public Sub TowerInit(cv As Object, pens As Variant)
         Place c * 256 + 128, TOWER_R + 2, ST_ROWS * ROW_H, ringX(c), ringY(c), ringZ(c), ringYaw(c)
         Place c * 256 - 128, TOWER_R - 1, ST_ROWS * ROW_H \ 2, gvX(c), gvY(c), gvZ(c), gvYaw(c)
     Next c
-    keyBoard = -1: keyGrid = -1
+    keyBoard = -1: keyPiece = -1
 End Sub
 
 ' where a model made at angle 0 goes for column position colf (8.8), radius r, height y
@@ -254,7 +254,7 @@ End Sub
 
 ' one frame of the tower; view: the column facing you (8.8)
 Public Sub TowerDraw(ByVal view As Long, ByVal guide As Boolean)
-    Dim vc As Long, gr As Long, key As String, a As Long
+    Dim vc As Long, gr As Long, key As Long, a As Long
     vc = ((view + 128) \ 256) And 15
     If stOver = 0 Then gr = StGhostRow() Else gr = pRow
     If stBoardVer <> keyBoard Or vc <> keyCol Then
@@ -264,9 +264,10 @@ Public Sub TowerDraw(ByVal view As Long, ByVal guide As Boolean)
     If stBoardVer <> keyBoard Then
         BuildGrid
         keyBoard = stBoardVer
-        keyPiece = ""
+        keyPiece = -1
     End If
-    key = pType & "," & pRot & "," & pCol & "," & pRow & "," & gr & "," & guide & "," & stOver & "," & svGhost
+    key = ((((((pType * 4 + pRot) * 16 + pCol) * 32 + (pRow And 31)) * 32 + (gr And 31)) * 2 + IIf(guide, 1, 0)) * 2 + _
+          stOver) * 2 + svGhost
     If key <> keyPiece Then
         BuildPiece gr, guide
         keyPiece = key

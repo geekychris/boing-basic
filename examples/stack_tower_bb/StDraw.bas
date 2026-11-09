@@ -49,6 +49,7 @@ Public polyTotal As Double              ' polygons drawn, summed over frames (th
 Public profOn As Boolean                ' --prof: time the parts of a frame (ms, summed)
 Public prSky As Double, prTower As Double, prPanel As Double
 
+Private mapImg As Long, mapKey As Long
 Private titleImg As Long, backImg As Long, artLoaded As Boolean, titleFrames As Long
 Private helpText(1 To 2, 0 To 11) As String
 
@@ -100,23 +101,32 @@ Private Sub Icon(cv As Object, ByVal typ As Long, ByVal x As Long, ByVal y As Lo
     Next i
 End Sub
 
-' the whole tower unrolled, centred on the piece
+' the whole tower unrolled, centred on the piece (drawn into an image when it changes)
 Private Sub DrawMap(cv As Object, ByVal x0 As Long, ByVal y0 As Long)
-    Dim c As Long, r As Long, n As Long, k As Long, v As Long, mid As Long, c2 As Long, xs As Long, ys As Long
-    mid = pCol
-    GBox cv, x0 - 2, y0 - 2, x0 + ST_COLS * 3 + 1, y0 + ST_ROWS * 3 + 1, 0, 3
-    For r = 0 To ST_ROWS - 1
-        ys = y0 + (ST_ROWS - 1 - r) * 3
-        For c = 0 To 15
-            v = stBoard(r * 16 + ((mid - 8 + c) And 15))
-            If v <> 0 Then cv.Box x0 + c * 3, ys, 2, 2, pen(LitPen(v))
-        Next c
-    Next r
-    n = StCellsOf(pType, pRot, pCol, pRow)
-    For k = 0 To n - 1
-        c2 = (cellC(k) - mid + 8) And 15
-        If cellR(k) < ST_ROWS Then cv.Box x0 + c2 * 3, y0 + (ST_ROWS - 1 - cellR(k)) * 3, 2, 2, pen(1)
-    Next k
+    Dim c As Long, r As Long, n As Long, k As Long, v As Long, mid As Long, c2 As Long, ys As Long, key As Long
+    key = (((stBoardVer And &HFFFFF) * 16 + pCol) * 32 + (pRow And 31)) * 32 + pType * 4 + pRot
+    If mapImg = 0 Or key <> mapKey Then
+        If mapImg = 0 Then mapImg = cv.CreateImage(ST_COLS * 3 + 4, ST_ROWS * 3 + 4)
+        cv.SetTarget mapImg
+        cv.Box 0, 0, ST_COLS * 3 + 4, ST_ROWS * 3 + 4, pen(0)
+        cv.Rect 0, 0, ST_COLS * 3 + 4, ST_ROWS * 3 + 4, pen(3)
+        mid = pCol
+        For r = 0 To ST_ROWS - 1
+            ys = 2 + (ST_ROWS - 1 - r) * 3
+            For c = 0 To 15
+                v = stBoard(r * 16 + ((mid - 8 + c) And 15))
+                If v <> 0 Then cv.Box 2 + c * 3, ys, 2, 2, pen(LitPen(v))
+            Next c
+        Next r
+        n = StCellsOf(pType, pRot, pCol, pRow)
+        For k = 0 To n - 1
+            c2 = (cellC(k) - mid + 8) And 15
+            If cellR(k) < ST_ROWS Then cv.Box 2 + c2 * 3, 2 + (ST_ROWS - 1 - cellR(k)) * 3, 2, 2, pen(1)
+        Next k
+        cv.SetTarget 0
+        mapKey = key
+    End If
+    cv.DrawImage mapImg, x0 - 2, y0 - 2, True
 End Sub
 
 Private Function ModeTitle(ByVal m As Long) As String
