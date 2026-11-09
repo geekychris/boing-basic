@@ -9,7 +9,7 @@ Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screens
 **Games**
 
 <table>
-<tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#boing-pinball"><img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="200" alt="Boing Pinball"><br>Boing Pinball</a></td><td align="center" valign="bottom"><a href="#ace-pilot-2">Ace Pilot 2</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#boing-pinball"><img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="200" alt="Boing Pinball"><br>Boing Pinball</a></td><td align="center" valign="bottom"><a href="#ace-pilot-2"><img src="../examples/ace_pilot2_bb/gallery/chase.png" width="200" alt="Ace Pilot 2"><br>Ace Pilot 2</a></td></tr>
 <tr><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/gallery/driving.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td></tr>
 </table>
 
@@ -97,6 +97,14 @@ A biplane war in 3D: fly a Swallow scout over the trenches and the river Sellen,
 **Shows off:** Engine3D, Canvas (instruments, text), Audio: sound effects, Autopilot bot, a port of a C amiga3d game
 
 **Performance:** On the Mac: VM 13037 fps, native 19995 fps off-screen (`Bench.bbp --frames 3000 --mission 6`); guest numbers to follow in its README.
+
+<img src="../examples/ace_pilot2_bb/gallery/chase.png" width="560" alt="The autopilot flying a mission, chase view">
+
+*The autopilot flying a mission, chase view*
+
+<img src="../examples/ace_pilot2_bb/gallery/cockpit.png" width="560" alt="The cockpit view: upper wing, struts, twin guns and ring sight">
+
+*The cockpit view: upper wing, struts, twin guns and ring sight*
 
 [README](../examples/ace_pilot2_bb/README.md) · [source](../examples/ace_pilot2_bb/)
 
