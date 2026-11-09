@@ -153,3 +153,60 @@ static void key_q(int raw, int qual)
 }
 
 static __attribute__((unused)) void key(int raw) { key_q(raw, 0); }
+
+/* keys typed by a separate process while this one sits in a requester (whose window title is
+   `title`): only while that window is the active one */
+static int later_keys[16], nlater, later_delay;
+static const char *later_title;
+static struct Task *later_parent;
+static volatile int later_done;
+static void later_entry(void)
+{
+    int active = 0;
+    struct MsgPort *p = IExec->AllocSysObjectTags(ASOT_PORT, TAG_DONE);
+    struct IOStdReq *r = IExec->AllocSysObjectTags(ASOT_IOREQUEST, ASOIOR_Size, sizeof(struct IOStdReq),
+                                                   ASOIOR_ReplyPort, p, TAG_DONE);
+    if (r && !IExec->OpenDevice("input.device", 0, (struct IORequest *)r, 0)) {
+        IDOS->Delay(later_delay);
+        for (int t = 0; t < 30 && !active; t++) {
+            active = make_active(later_title);
+            if (!active) IDOS->Delay(10);
+        }
+        if (!active) printf("# keys_later: no active window \"%s\"\n", later_title);
+        IDOS->Delay(15);
+        for (int i = 0; active && i < nlater; i++) {
+            if (((struct IntuitionBase *)IntuitionBase)->ActiveWindow != find_window(later_title)) break;
+            struct InputEvent ie;
+            memset(&ie, 0, sizeof ie);
+            ie.ie_Class = IECLASS_RAWKEY;
+            ie.ie_Code = later_keys[i];
+            r->io_Command = IND_WRITEEVENT;
+            r->io_Data = &ie;
+            r->io_Length = sizeof ie;
+            IExec->DoIO((struct IORequest *)r);
+            ie.ie_Code |= IECODE_UP_PREFIX;
+            IExec->DoIO((struct IORequest *)r);
+            IDOS->Delay(5);
+        }
+        IExec->CloseDevice((struct IORequest *)r);
+    }
+    if (r) IExec->FreeSysObject(ASOT_IOREQUEST, r);
+    if (p) IExec->FreeSysObject(ASOT_PORT, p);
+    later_done = 1;
+}
+
+static __attribute__((unused)) void keys_later(int delay, const char *title, const int *k, int n)
+{
+    later_delay = delay;
+    later_title = title;
+    later_parent = IExec->FindTask(NULL);
+    later_done = 0;
+    nlater = n;
+    memcpy(later_keys, k, n * sizeof *k);
+    IDOS->CreateNewProcTags(NP_Entry, later_entry, NP_Name, "bb ui test keys", NP_Child, TRUE, TAG_DONE);
+}
+
+static __attribute__((unused)) void keys_later_wait(void)
+{
+    for (int i = 0; i < 100 && !later_done; i++) IDOS->Delay(5);
+}

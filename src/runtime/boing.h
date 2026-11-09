@@ -679,6 +679,7 @@ void bb_forms_main(const char *module);       /* Startup=Form x */
 void bb_form_load_obj(const bb_value *form);  /* Load x */
 void bb_form_unload_obj(const bb_value *form);/* Unload x */
 void bb_forms_shutdown_(void);
+bb_obj *bb_forms_create_object(const char *progid);  /* CreateObject names of the forms layer, or NULL */
 
 /* ------------------------------------------------------------------ */
 /* Console and Print                                                    */

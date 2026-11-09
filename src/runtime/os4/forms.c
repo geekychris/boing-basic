@@ -33,6 +33,8 @@ static struct LayoutIFace *ILO;
 static struct KeymapIFace *IKM;
 static struct Library *KeymapLib;
 
+struct Library *bbf_class_lib(int c) { return (struct Library *)class_lib[c]; }
+
 Class *cls(int c)
 {
     if (c == C_MENU) return NULL;
@@ -126,7 +128,7 @@ void relayout(bb_form *f)
 
 /* --- item lists ------------------------------------------------------------------------- */
 
-static void items_insert(bb_ctl *c, int at, const char *s)
+void bbf_items_insert(bb_ctl *c, int at, const char *s)
 {
     if (c->nitems + 1 > c->capitems) {
         c->capitems = c->capitems ? c->capitems * 2 : 8;
@@ -184,7 +186,7 @@ static void list_changed(bb_ctl *c)
 
 /* --- building --------------------------------------------------------------------------- */
 
-static void gadget_tags(bb_ctl *c, tags *t)
+void bbf_gadget_tags(bb_ctl *c, tags *t)
 {
     tg(t, GA_ID, c->gid);
     tg(t, GA_RelVerify, TRUE);
@@ -277,12 +279,12 @@ static Object *build(bb_form *f, afg_node *n)
         break;
     }
     case AFG_BUTTON:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         tg(&t, GA_Text, (uint32)afg_get(n, "text"));
         o = new_obj(C_BUTTON, &t);
         break;
     case AFG_STRING:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         tg(&t, GA_TabCycle, TRUE);
         if (c != &tmp) {
             if (!main_task) main_task = IExec->FindTask(NULL);
@@ -297,7 +299,7 @@ static Object *build(bb_form *f, afg_node *n)
         o = new_obj(C_STRING, &t);
         break;
     case AFG_INTEGER:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         tg(&t, GA_TabCycle, TRUE);
         tg(&t, INTEGER_Minimum, afg_get_int(n, "min"));
         tg(&t, INTEGER_Maximum, afg_get_int(n, "max"));
@@ -306,14 +308,14 @@ static Object *build(bb_form *f, afg_node *n)
         o = new_obj(C_INTEGER, &t);
         break;
     case AFG_CHECKBOX:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         tg(&t, GA_Text, (uint32)afg_get(n, "text"));
         tg(&t, CHECKBOX_Checked, afg_get_bool(n, "checked"));
         o = new_obj(C_CHECKBOX, &t);
         break;
     case AFG_CHOOSER:
         cls(C_CHOOSER);
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         c->sel = c->nitems ? afg_get_int(n, "selected") : -1;
         if (c->sel >= c->nitems) c->sel = c->nitems - 1;
         build_nodes(c);
@@ -323,7 +325,7 @@ static Object *build(bb_form *f, afg_node *n)
         o = new_obj(C_CHOOSER, &t);
         break;
     case AFG_RADIO:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         c->labelarray = calloc(c->nitems + 1, sizeof *c->labelarray);
         for (int i = 0; i < c->nitems; i++) c->labelarray[i] = c->items[i];
         c->sel = afg_get_int(n, "selected");
@@ -332,7 +334,7 @@ static Object *build(bb_form *f, afg_node *n)
         o = new_obj(C_RADIO, &t);
         break;
     case AFG_SLIDER:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         tg(&t, ICA_TARGET, ICTARGET_IDCMP);
         c->lastval = afg_get_int(n, "level");
         tg(&t, SLIDER_Min, afg_get_int(n, "min"));
@@ -342,7 +344,7 @@ static Object *build(bb_form *f, afg_node *n)
         o = new_obj(C_SLIDER, &t);
         break;
     case AFG_SCROLLER:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         tg(&t, ICA_TARGET, ICTARGET_IDCMP);
         c->lastval = afg_get_int(n, "top");
         tg(&t, SCROLLER_Total, afg_get_int(n, "total"));
@@ -353,7 +355,7 @@ static Object *build(bb_form *f, afg_node *n)
         break;
     case AFG_LISTBROWSER:
         cls(C_LISTBROWSER);
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         c->sel = -1;
         build_nodes(c);
         tg(&t, LISTBROWSER_Labels, (uint32)&c->labels);
@@ -389,7 +391,7 @@ static Object *build(bb_form *f, afg_node *n)
         o = new_obj(C_FUELGAUGE, &t);
         break;
     case AFG_GETFILE:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         tg(&t, GETFILE_TitleText, (uint32)afg_get(n, "title"));
         if (afg_has(n, "pattern")) {
             tg(&t, GETFILE_Pattern, (uint32)afg_get(n, "pattern"));
@@ -399,11 +401,12 @@ static Object *build(bb_form *f, afg_node *n)
         o = new_obj(C_GETFILE, &t);
         break;
     case AFG_TEXTEDITOR:
-        gadget_tags(c, &t);
+        bbf_gadget_tags(c, &t);
         if (afg_has(n, "text")) tg(&t, GA_TEXTEDITOR_Contents, (uint32)afg_get(n, "text"));
         o = new_obj(C_TEXTEDITOR, &t);
         break;
     default:
+        o = bbf_ext_build(f, n, c, &t);       /* the kinds of docs/ui.md (ui_*.c) */
         break;
     }
     if (c != &tmp) c->obj = o;
@@ -428,7 +431,7 @@ static void collect(afg_node *n, void *ud)
     if (n->kind == AFG_CHOOSER || n->kind == AFG_RADIO || n->kind == AFG_LISTBROWSER) {
         char **v;
         int k = afg_split_items(afg_get(n, "items"), &v);
-        for (int i = 0; i < k; i++) items_insert(c, -1, v[i]);
+        for (int i = 0; i < k; i++) bbf_items_insert(c, -1, v[i]);
         afg_free_items(v, k);
     }
     if (n->kind == AFG_TIMER) {
@@ -523,6 +526,7 @@ static void form_free(bb_form *f)
     bbf_menus_free(f);                           /* menu strips: ours to dispose */
     for (int i = 0; i < f->nctls; i++) {
         bb_ctl *c = f->ctls[i];
+        bbf_ext_free(c);
         free_nodes(c);
         for (int k = 0; k < c->nitems; k++) free(c->items[k]);
         free(c->items);
@@ -850,10 +854,12 @@ static void reap(void)
 
 int ret_str(bb_ctl *c, bb_fval *out, const char *s)
 {
-    free(c->form->ret);
-    c->form->ret = xstrdup(s ? s : "");
+    char **slot = c->form ? &c->form->ret : &c->ret_buf;
+    char *n = xstrdup(s ? s : "");      /* s may be the old string */
+    free(*slot);
+    *slot = n;
     out->type = BB_FV_STR;
-    out->s = c->form->ret;
+    out->s = n;
     return 0;
 }
 
@@ -948,6 +954,7 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
 int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
 {
     out->type = BB_FV_NONE;
+    if (!c->form) return bbf_ext_get(c, prop, index, out);       /* a CommonDialog object */
     if (c->kind == AFG_WINDOW) return form_get(c->form, prop, out);
     if (!c->form->loaded) return 364;
     struct Gadget *g = (struct Gadget *)c->obj;
@@ -955,6 +962,7 @@ int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
     if (IS("Name")) return ret_str(c, out, c->name);
     if (IS("Tag")) return ret_str(c, out, c->tagstr);
     if (k == AFG_MENU) return c->dead ? 364 : bbf_menu_get(c, prop, out);
+    if (!c->obj && k != AFG_TIMER) return bbf_ext_get(c, prop, index, out);      /* tool, commondialog */
     if (IS("ContextMenu")) return ret_str(c, out, c->ctxmenu ? c->ctxmenu : afg_get(c->node, "contextmenu"));
     if (k == AFG_TIMER) {
         if (IS("Interval")) return ret_int(out, c->interval);
@@ -1054,7 +1062,7 @@ int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
         }
         break;
     default:
-        break;
+        return bbf_ext_get(c, prop, index, out);
     }
     return 438;
 }
@@ -1071,6 +1079,7 @@ static int set_text_prop(bb_ctl *c, const char *s)
 int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
 {
     char buf[16];
+    if (!c->form) return bbf_ext_set(c, prop, index, v);
     if (c->kind == AFG_WINDOW) return form_set(c->form, prop, v);
     if (!c->form->loaded) return 364;
     afg_kind k = c->kind;
@@ -1081,6 +1090,7 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         return 0;
     }
     if (k == AFG_MENU) return c->dead ? 364 : bbf_menu_set(c, prop, v);
+    if (!c->obj && k != AFG_TIMER) return bbf_ext_set(c, prop, index, v);
     if (IS("ContextMenu")) {
         free(c->ctxmenu);
         c->ctxmenu = xstrdup(vstr(v, buf));
@@ -1241,7 +1251,7 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         if (IS("LineCount")) return 383;
         break;
     default:
-        break;
+        return bbf_ext_set(c, prop, index, v);
     }
     return 438;
 }
@@ -1253,6 +1263,7 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
 {
     char buf[16];
     if (ret) ret->type = BB_FV_NONE;
+    if (!c->form) return bbf_ext_call(c, method, argc, argv, ret);
     bb_form *f = c->form;
     if (c->kind == AFG_WINDOW) {
         if (IS("Show")) return bb_form_show(f);
@@ -1274,6 +1285,7 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
     }
     if (!f->loaded) return 364;
     if (c->kind == AFG_MENU || c->kind == AFG_TIMER) return 438;
+    if (!c->obj) return bbf_ext_call(c, method, argc, argv, ret);
     if (IS("Refresh")) {
         if (f->win) IIntuition->RefreshGList((struct Gadget *)c->obj, f->win, NULL, 1);
         return 0;
@@ -1288,7 +1300,7 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
             if (argc < 1) return 5;
             int at = argc > 1 ? vint(&argv[1]) : -1;
             if (argc > 1 && (at < 0 || at > c->nitems)) return 5;
-            items_insert(c, at, vstr(&argv[0], buf));
+            bbf_items_insert(c, at, vstr(&argv[0], buf));
             if (c->sel >= 0 && at >= 0 && at <= c->sel) c->sel++;
             list_changed(c);
             return 0;
@@ -1317,7 +1329,7 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
             set_attr(c, GETFILE_FullFile, (uint32)"");
         return 0;
     }
-    return 438;
+    return bbf_ext_call(c, method, argc, argv, ret);
 }
 
 /* --- events ----------------------------------------------------------------------------- */
@@ -1440,6 +1452,7 @@ static void gadget_up(bb_form *f, bb_ctl *c, uint16 code)
         if (IIntuition->IDoMethod(c->obj, GFILE_REQUEST, f->win)) fire0(c, "Change");
         break;
     default:
+        bbf_ext_gadget_up(f, c, code);
         break;
     }
 }
@@ -1469,7 +1482,7 @@ static void updates(bb_form *f)
     }
 }
 
-static void handle_form(bb_form *f)
+void bbf_handle_form(bb_form *f)
 {
     uint32 result;
     uint16 code = 0;
@@ -1556,7 +1569,7 @@ static void pump(int wait)
     }
     if (timer_port && (got & (1u << timer_port->mp_SigBit))) timers_handle();
     for (bb_form *f = forms; f && !ending; f = f->next)
-        if (f->loaded && f->win) handle_form(f);
+        if (f->loaded && f->win) bbf_handle_form(f);
 }
 
 int bb_forms_run(void)
@@ -1598,6 +1611,7 @@ void bb_forms_cleanup(void)
     if (KeymapLib) IExec->CloseLibrary(KeymapLib);
     IKM = NULL;
     KeymapLib = NULL;
+    bbf_ext_cleanup();
     if (ILB) IExec->DropInterface((struct Interface *)ILB);
     if (ICH) IExec->DropInterface((struct Interface *)ICH);
     if (ILO) IExec->DropInterface((struct Interface *)ILO);
@@ -1614,7 +1628,7 @@ void bb_forms_cleanup(void)
 
 /* --- requesters ------------------------------------------------------------------------- */
 
-static struct Window *front_window(void)
+struct Window *bbf_front_window(void)
 {
     for (bb_form *f = forms; f; f = f->next)
         if (f->loaded && f->win) return f->win;
@@ -1642,7 +1656,7 @@ static uint32 open_req(tags *t)
     Object *req = IIntuition->NewObjectA(k, NULL, t->t);
     free(t->t);
     if (!req) return 0;
-    struct Window *w = front_window();
+    struct Window *w = bbf_front_window();
     struct Screen *scr = w ? NULL : IIntuition->LockPubScreen(NULL);
     uint32 r = IIntuition->IDoMethod(req, RM_OPENREQ, NULL, w, scr);
     if (scr) IIntuition->UnlockPubScreen(NULL, scr);
@@ -1724,6 +1738,41 @@ static void afg_quote(char *out, size_t n, const char *s)
     out[o] = 0;
 }
 
+void bbf_form_discard(bb_form *f)
+{
+    f->fn = NULL;
+    f->loaded = 0;
+    for (bb_form **pp = &forms; *pp; pp = &(*pp)->next)
+        if (*pp == f) {
+            *pp = f->next;
+            break;
+        }
+    form_free(f);
+}
+
+/* a requester with the program's own buttons ("_Save|_Discard|_Cancel"): returns the number of
+   the button chosen, 1 = leftmost (requester.class numbers them 1, 2, ... and the last 0) */
+int bb_ui_request(const char *prompt, const char *buttons, const char *title, int icon)
+{
+    int img = REQIMAGE_DEFAULT;
+    switch (icon & 0x70) {
+    case 16: img = REQIMAGE_ERROR; break;
+    case 32: img = REQIMAGE_QUESTION; break;
+    case 48: img = REQIMAGE_WARNING; break;
+    case 64: img = REQIMAGE_INFO; break;
+    }
+    int n = 1;
+    for (const char *p = buttons; p && *p; p++) n += *p == '|';
+    tags t = { 0 };
+    tg(&t, REQ_Type, REQTYPE_INFO);
+    tg(&t, REQ_TitleText, (uint32)(title && *title ? title : prog_name()));
+    tg(&t, REQ_BodyText, (uint32)(prompt ? prompt : ""));
+    tg(&t, REQ_GadgetText, (uint32)(buttons && *buttons ? buttons : "_OK"));
+    tg(&t, REQ_Image, img);
+    uint32 r = open_req(&t);
+    return r == 0 ? n : (int)r;
+}
+
 char *bb_ui_inputbox(const char *prompt, const char *title, const char *def)
 {
     size_t plen = strlen(prompt ? prompt : "") + strlen(def ? def : "") + strlen(title ? title : "");
@@ -1775,7 +1824,7 @@ char *bb_ui_inputbox(const char *prompt, const char *title, const char *def)
             uint32 got = IExec->Wait(sig | esig | SIGBREAKF_CTRL_C);
             if (got & SIGBREAKF_CTRL_C) break;
             if (got & esig) check_edits(f);
-            handle_form(f);
+            bbf_handle_form(f);
         }
         if (box.ok) {
             const char *t = (const char *)get_attr(a, STRINGA_TextVal);
@@ -1783,15 +1832,7 @@ char *bb_ui_inputbox(const char *prompt, const char *title, const char *def)
         }
         ending = was_ending;
     }
-    /* free it now, without events */
-    f->fn = NULL;
-    f->loaded = 0;
-    for (bb_form **pp = &forms; *pp; pp = &(*pp)->next)
-        if (*pp == f) {
-            *pp = f->next;
-            break;
-        }
-    form_free(f);
+    bbf_form_discard(f);    /* free it now, without events */
     for (bb_form *o = forms; o; o = o->next)
         if (o->win) IIntuition->SetAttrs(o->winobj, WA_BusyPointer, !o->enabled, TAG_DONE);
     return result;

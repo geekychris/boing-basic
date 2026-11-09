@@ -60,3 +60,15 @@ char *bb_ui_inputbox(const char *prompt, const char *title, const char *def)
     buf[strcspn(buf, "\r\n")] = 0;
     return strdup(buf);
 }
+
+/* docs/ui.md on hosts without a GUI: the first button, no CommonDialog object */
+int bb_ui_request(const char *prompt, const char *buttons, const char *title, int icon)
+{
+    (void)buttons; (void)title; (void)icon;
+    printf("%s\n", prompt ? prompt : "");
+    fflush(stdout);
+    return 1;
+}
+
+bb_ctl *bb_dialog_new(void) { return NULL; }
+void bb_dialog_free(bb_ctl *c) { (void)c; }

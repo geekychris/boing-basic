@@ -70,6 +70,14 @@ void bb_forms_doevents(void);
  * cancelled. title NULL = the program's name. */
 int bb_ui_msgbox(const char *prompt, int buttons, const char *title);
 char *bb_ui_inputbox(const char *prompt, const char *title, const char *def);
+/* A requester with the program's own buttons, "_Save|_Discard|_Cancel": returns 1 for the
+ * leftmost button ... n for the last (also Esc / close). icon = MsgBox's vbCritical... bits. */
+int bb_ui_request(const char *prompt, const char *buttons, const char *title, int icon);
+
+/* A CommonDialog without a form (CreateObject("Boing.CommonDialog")): a bb_ctl of kind
+ * commondialog for bb_ctl_get/set/call. NULL where the platform has no requesters. */
+bb_ctl *bb_dialog_new(void);
+void bb_dialog_free(bb_ctl *c);
 
 /* Canvas (canvas.c): the OS window (struct Window * on AmigaOS) of a control and the control's
  * box inside it. 0 when the form isn't open or the platform has no windows. */

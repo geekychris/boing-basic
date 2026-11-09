@@ -35,6 +35,7 @@ typedef struct ctlobj {
     bb_ctl *ctl;            /* NULL for a form object whose form is not loaded yet */
     int is_form;
     char *name;
+    int owned;              /* a CommonDialog made by CreateObject: the bb_ctl is ours */
 } ctlobj;
 
 /* ---------- member names ---------- */
@@ -233,6 +234,7 @@ static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
 static void ctl_terminate(bb_obj *self)
 {
     ctlobj *o = (ctlobj *)self;
+    if (o->owned) bb_dialog_free(o->ctl);
     free(o->name);
 }
 
@@ -269,6 +271,24 @@ static bb_obj *new_ctlobj_kind(formdef *fd, bb_ctl *c, int is_form, const char *
     o->is_form = is_form;
     o->name = strdup(name);
     return &o->hdr;
+}
+
+/* CreateObject("Boing.CommonDialog") (canvas.c's registry asks here for names it doesn't know):
+   NULL if progid isn't ours */
+bb_obj *bb_forms_create_object(const char *progid)
+{
+    if (!strcasecmp(progid, "Boing.CommonDialog") || !strcasecmp(progid, "MSComDlg.CommonDialog") ||
+        !strcasecmp(progid, "CommonDialog")) {
+        bb_ctl *c = bb_dialog_new();
+        ctlobj *o;
+        if (!c) bb_raise(429, NULL);
+        o = (ctlobj *)bb_obj_new(class_for(AFG_COMMONDIALOG));
+        o->ctl = c;
+        o->name = strdup("CommonDialog");
+        o->owned = 1;
+        return &o->hdr;
+    }
+    return NULL;
 }
 
 static bb_obj *new_ctlobj(formdef *fd, bb_ctl *c, int is_form, const char *name)

@@ -83,6 +83,13 @@ struct bb_ctl {
     Object *strip;           /* menu: a hidden top-level menu's own strip (context / pop-up) */
     char *ctxmenu;           /* ContextMenu set at run time (NULL = the .afg's contextmenu=) */
     int dead;                /* menu removed at run time */
+    struct Node *sbnode;     /* tool: its speedbar node */
+    bb_ctl *bar;             /* tool: its toolbar */
+    Object *img, *selimg;    /* tool / image / button: bitmap.image objects (ours to dispose) */
+    Object **panels;         /* statusbar: one read-only button per panel */
+    int npanels;
+    void *ext;               /* the ui_*.c kinds' own state */
+    char *ret_buf;           /* the last string returned by a control without a form */
 };
 
 struct bb_form {
@@ -158,6 +165,32 @@ int32 vint(const bb_fval *v);
 const char *vstr(const bb_fval *v, char *buf);
 int vb_bool(int b);
 bb_ctl *bbf_ctl_by_gid(bb_form *f, uint32 gid);
+
+void bbf_gadget_tags(bb_ctl *c, tags *t);
+
+/* ui_bars.c: the kinds of docs/ui.md that are built into the layout (toolbar, statusbar,
+   image, ...) and the ones without a gadget (tool, commondialog) */
+Object *bbf_ext_build(bb_form *f, afg_node *n, bb_ctl *c, tags *t);
+int bbf_ext_get(bb_ctl *c, const char *prop, int index, bb_fval *out);
+int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v);
+int bbf_ext_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
+void bbf_ext_gadget_up(bb_form *f, bb_ctl *c, uint16 code);
+void bbf_ext_free(bb_ctl *c);         /* after the window object (and its gadgets) is gone */
+Object *bbf_load_image(const char *file, const char *selfile);
+void bbf_tools_follow_menu(bb_form *f, const char *menu, int enabled);
+void bbf_ext_cleanup(void);
+struct Library *bbf_class_lib(int c);
+void bbf_items_insert(bb_ctl *c, int at, const char *s);
+
+/* ui_dialog.c: commondialog (also used by CreateObject("Boing.CommonDialog")) */
+int bbf_dialog_get(bb_ctl *c, const char *prop, int index, bb_fval *out);
+int bbf_dialog_set(bb_ctl *c, const char *prop, int index, const bb_fval *v);
+int bbf_dialog_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
+void bbf_dialog_free(bb_ctl *c);
+void bbf_dialog_cleanup(void);
+struct Window *bbf_front_window(void);
+void bbf_handle_form(bb_form *f);       /* one round of a window's input */
+void bbf_form_discard(bb_form *f);      /* free a private form (requesters) without events */
 
 /* ui_menu.c */
 int bbf_menus_build(bb_form *f, tags *wintags);    /* adds WINDOW_MenuStrip etc.; 0 = failed */
