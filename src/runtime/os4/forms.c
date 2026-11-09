@@ -275,11 +275,13 @@ Object *bbf_build(bb_form *f, afg_node *n)
         tg(&t, LAYOUT_Orientation, n->kind == AFG_VLAYOUT ? LAYOUT_ORIENT_VERT : LAYOUT_ORIENT_HORIZ);
         tg(&t, LAYOUT_SpaceOuter, n->parent && n->parent->kind == AFG_WINDOW);
         const char *frame = afg_get(n, "frame");
-        if (afg_has(n, "title") && !strcmp(frame, "none")) frame = "group";
+        /* a tabs page: its title is the tab's label, not a frame title inside the page */
+        int page = n->parent && n->parent->kind == AFG_TABS;
+        if (!page && afg_has(n, "title") && !strcmp(frame, "none")) frame = "group";
         if (!strcmp(frame, "group")) tg(&t, LAYOUT_BevelStyle, BVS_GROUP);
         else if (!strcmp(frame, "button")) tg(&t, LAYOUT_BevelStyle, BVS_BUTTON);
         else if (!strcmp(frame, "field")) tg(&t, LAYOUT_BevelStyle, BVS_FIELD);
-        if (afg_has(n, "title")) tg(&t, LAYOUT_Label, (uint32)afg_get(n, "title"));
+        if (afg_has(n, "title") && !page) tg(&t, LAYOUT_Label, (uint32)afg_get(n, "title"));
         if (afg_get_bool(n, "even")) tg(&t, LAYOUT_EvenSize, TRUE);
         if (afg_get_bool(n, "splitter")) tg(&t, LAYOUT_WeightBar, TRUE);     /* draggable bars between children */
         for (int i = 0; i < n->nchildren; i++) {

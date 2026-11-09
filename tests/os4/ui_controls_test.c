@@ -180,6 +180,7 @@ int main(void)
 
     /* tabs */
     check(geti("pages", "TabCount", -1) == 2 && !strcmp(gets_("pages", "TabCaption", 1), "Two"), "tabs: TabCount, TabCaption(1)");
+    check(geti("pages", "PageFramed", 0) == 0 && geti("pages", "PageFramed", 1) == 0, "tab pages don't draw their title again as a frame label");
     seti("pages", "Tab", -1, 1);
     check(geti("pages", "Tab", -1) == 1, "pages.Tab = 1");
 

@@ -10,10 +10,12 @@ Object *bbf_tabs_build(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
     tags pt = { 0 };
     int np = 0;
     c->labelarray = calloc(n->nchildren + 1, sizeof *c->labelarray);
+    c->panels = calloc(n->nchildren + 1, sizeof *c->panels);   /* the page layouts */
     for (int i = 0; i < n->nchildren; i++) {
         afg_node *page = n->children[i];
         Object *o = bbf_build(f, page);
         if (!o) continue;
+        c->panels[c->npanels++] = o;
         bbf_items_insert(c, -1, afg_has(page, "title") ? afg_get(page, "title") : "Page");
         tg(&pt, PAGE_Add, (uint32)o);
         np++;
@@ -54,6 +56,12 @@ static int tabs_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
 {
     if (IS("Tab") || IS("Value") || IS("ListIndex")) return ret_int(out, (int32)get_attr(c, CLICKTAB_Current));
     if (IS("TabCount")) return ret_int(out, c->nitems);
+    if (IS("PageFramed")) {        /* does page i draw a frame title of its own? (tests: never) */
+        if (index < 0 || index >= c->npanels) return 381;
+        uint32 lab = 0;
+        IIntuition->GetAttr(LAYOUT_Label, c->panels[index], &lab);
+        return ret_int(out, vb_bool(lab != 0));
+    }
     if (IS("TabCaption")) {
         if (index < 0 || index >= c->nitems) return 381;
         return ret_str(c, out, c->items[index]);

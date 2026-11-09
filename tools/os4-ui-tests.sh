@@ -1,13 +1,13 @@
 #!/bin/sh
 # os4-ui-tests.sh [test ...] - run the docs/ui.md tests (tests/os4/ui_*_test) on the guest one by
 # one (BB_GUEST picks it: m1b, m1c or local; never m1). Each run is its own lock session with a
-# hard timeout; a test still running afterwards is stopped with Ctrl-C (its forms loop ends and
+# hard timeout (BB_TEST_TIMEOUT for the run itself; BB_WAIT bounds the wait for the lock as well); a test still running afterwards is stopped with Ctrl-C (its forms loop ends and
 # closes its window), and Grim Reapers are reported and closed.
 cd "$(dirname "$0")/.." || exit 2
 tests=${*:-"ui_menu_test ui_mouse_test ui_bars_test ui_controls_test ui_forms2_test ui_load_test"}
 fail=0
 for t in $tests; do
-    out=$(BB_TEST_TIMEOUT=${BB_TEST_TIMEOUT:-200} BB_KILL_REAPERS=1 timeout 280 tools/os4guest.py test build/os4/tests/$t 2>&1)
+    out=$(BB_TEST_TIMEOUT=${BB_TEST_TIMEOUT:-200} BB_KILL_REAPERS=1 timeout ${BB_WAIT:-3600} tools/os4guest.py test build/os4/tests/$t 2>&1)
     echo "$out" | grep -E "^(not ok|PASS|FAIL)|GRIM" | sed "s/^/$t: /"
     echo "$out" | grep -q "^PASS" || fail=1
     # still running (timed out or stuck): Ctrl-C it so no window is left behind
