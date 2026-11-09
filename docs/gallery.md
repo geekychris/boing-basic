@@ -4,15 +4,15 @@
 
 Boing BASIC is a Visual Basic 6 style language for AmigaOS 4.1 (PowerPC). A program runs in the interpreter (a bytecode VM, with an optional PowerPC JIT) for a quick edit-run cycle, or is compiled to C and built with GCC into a native executable. Forms are designed in the [AmiForge](https://github.com/geekychris/amiforge) IDE; the runtime brings a Canvas for 2D graphics, Engine3D for filled 3D, a ProTracker player and sound effects through AHI, menus, dialogs and ReAction gadgets, an ARexx port, and `Declare` for calling any AmigaOS library. See the [README](../README.md) and the [design](DESIGN.md).
 
-Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 14 games, 6 applications and 6 examples and tools.
+Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 15 games, 6 applications and 6 examples and tools.
 
 **Games**
 
 <table>
-<tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#boing-pinball"><img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="200" alt="Boing Pinball"><br>Boing Pinball</a></td><td align="center" valign="bottom"><a href="#ace-pilot-2"><img src="../examples/ace_pilot2_bb/screenshots/os4-strafing.png" width="200" alt="Ace Pilot 2"><br>Ace Pilot 2</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/gallery/driving.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td><td align="center" valign="bottom"><a href="#block-breaker-3d">Block Breaker 3D</a></td><td align="center" valign="bottom"><a href="#canyon-rail">Canyon Rail</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#drone-courier">Drone Courier</a></td><td align="center" valign="bottom"><a href="#harbour-crane">Harbour Crane</a></td><td align="center" valign="bottom"><a href="#marble-tilt">Marble Tilt</a></td><td align="center" valign="bottom"><a href="#ridge-runner">Ridge Runner</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#sphere-siege">Sphere Siege</a></td><td align="center" valign="bottom"><a href="#tank-duel">Tank Duel</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#boing-pinball"><img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="200" alt="Boing Pinball"><br>Boing Pinball</a></td><td align="center" valign="bottom"><a href="#lander-3d"><img src="../examples/lander_3d_bb/docs/guest-moon.png" width="200" alt="Lander 3D"><br>Lander 3D</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#ace-pilot-2"><img src="../examples/ace_pilot2_bb/screenshots/os4-strafing.png" width="200" alt="Ace Pilot 2"><br>Ace Pilot 2</a></td><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/gallery/driving.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td><td align="center" valign="bottom"><a href="#block-breaker-3d">Block Breaker 3D</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#canyon-rail">Canyon Rail</a></td><td align="center" valign="bottom"><a href="#drone-courier">Drone Courier</a></td><td align="center" valign="bottom"><a href="#harbour-crane">Harbour Crane</a></td><td align="center" valign="bottom"><a href="#marble-tilt">Marble Tilt</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#ridge-runner">Ridge Runner</a></td><td align="center" valign="bottom"><a href="#sphere-siege">Sphere Siege</a></td><td align="center" valign="bottom"><a href="#tank-duel">Tank Duel</a></td></tr>
 </table>
 
 **Applications**
@@ -92,6 +92,28 @@ Pinball with three tables and the Boing ball: the classic Amiga view, tilted and
 *Foundry*
 
 [README](../examples/boing_pinball_bb/README.md) · [source](../examples/boing_pinball_bb/)
+
+### Lander 3D
+
+The lunar lander in three dimensions: tip the lander to move, keep the thrust against gravity, and touch down softly on one of three pads on the Moon, Mars or an asteroid.
+
+**Shows off:** Engine3D (terrain, lander, FillGradient horizon), Canvas (HUD), Audio: MOD music and effects, Autopilot that proves every level can be landed, a port of a C amiga3d game, bit-for-bit simulation
+
+**Performance:** 62.2 fps native, 38.4 fps in the VM, 30.8 fps with the JIT (`--bench`, m1c guest).
+
+<img src="../examples/lander_3d_bb/docs/guest-moon.png" width="560" alt="The Moon">
+
+*The Moon*
+
+<img src="../examples/lander_3d_bb/docs/guest-title.png" width="560" alt="The title">
+
+*The title*
+
+<img src="../examples/lander_3d_bb/docs/guest-mars.png" width="560" alt="Mars">
+
+*Mars*
+
+[README](../examples/lander_3d_bb/README.md) · [source](../examples/lander_3d_bb/)
 
 ### Ace Pilot 2
 

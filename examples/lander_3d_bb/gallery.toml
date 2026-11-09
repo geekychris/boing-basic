@@ -1,0 +1,18 @@
+title = "Lander 3D"
+category = "game"
+order = 28
+summary = "The lunar lander in three dimensions: tip the lander to move, keep the thrust against gravity, and touch down softly on one of three pads on the Moon, Mars or an asteroid."
+shows = ["Engine3D (terrain, lander, FillGradient horizon)", "Canvas (HUD)", "Audio: MOD music and effects", "Autopilot that proves every level can be landed", "a port of a C amiga3d game, bit-for-bit simulation"]
+perf = "62.2 fps native, 38.4 fps in the VM, 30.8 fps with the JIT (`--bench`, m1c guest)."
+
+[[shot]]
+file = "docs/guest-moon.png"
+caption = "The Moon"
+
+[[shot]]
+file = "docs/guest-title.png"
+caption = "The title"
+
+[[shot]]
+file = "docs/guest-mars.png"
+caption = "Mars"
