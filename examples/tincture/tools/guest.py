@@ -101,9 +101,9 @@ def vm_cmd():
 def smoke(m, shots, native=False):
     os.makedirs(shots, exist_ok=True)
     outf = "RAM:tincture.log"
-    dos(m, "delete %s RAM:tincture-smoke.ppm QUIET" % outf)
+    dos(m, "delete %s RAM:tincture-smoke.ppm RAM:tincture.trace QUIET" % outf)
     cmd = ("%s/Tincture" % DIR) if native else vm_cmd()
-    launch(m, "%s --smoke --hold 6 --log >%s *>%s.err" % (cmd, outf, outf))
+    launch(m, "%s --smoke --hold 6 --log --trace >%s *>%s.err" % (cmd, outf, outf))
     out = wait_for(m, outf, "SMOKE redo-all", 120)
     print(out or dos(m, "type %s.err" % outf))
     if out:
@@ -113,6 +113,9 @@ def smoke(m, shots, native=False):
     time.sleep(2)
     ok = bool(out) and "undo-all PASS" in out and end is not None and gone(m)
     print("process gone:", gone(m))
+    if not ok:
+        print("trace (last steps):", dos(m, "type RAM:tincture.trace").strip().splitlines()[-12:])
+        hmp_shot(os.path.join(shots, "smoke_fail" + ("_native" if native else "")))
     return ok
 
 
@@ -246,6 +249,10 @@ def main():
             launch(m, "%s %s >%s *>%s" % (vm_cmd(), sys.argv[2], outf, outf))
             time.sleep(20)
             print(dos(m, "type %s" % outf))
+        elif what == "hold":
+            # keep the lock and banner (to look at / close our own crashed task by hand)
+            print("holding the guest", flush=True)
+            time.sleep(int(sys.argv[2]) if len(sys.argv) > 2 else 300)
         elif what == "shot":
             hmp_shot(sys.argv[2])
 

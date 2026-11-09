@@ -19,17 +19,23 @@ Private shownStatus As String
 Private quitAt As Double            ' --smoke / --hold: quit at this Timer value
 Private holdSecs As Long
 Private logActive As Boolean        ' --log: print active/inactive and events for the guest tests
+Private traceOn As Boolean          ' --trace: each step appended to RAM:tincture.trace (survives a crash)
 
 ' ---------------------------------------------------------------- start and end
 
 Private Sub Form_Load()
     Dim args() As String, i As Long, openPath As String, scriptPath As String, a As String, p As Long
 
+    If InStr(Command$, "--trace") Then traceOn = True: Tr "load"
     DocAttach view
     ToolsInit
+    Tr "prefs"
     LoadPrefs
+    Tr "view " & view.Width & "x" & view.Height
     ViewInit view.Width, view.Height
+    Tr "icons"
     MakeIcons tools
+    Tr "icons done"
     palSel = -1
     autosavePath = AutosaveFile()
 
@@ -44,6 +50,7 @@ Private Sub Form_Load()
             Case "--bench": i = i + 1: If i <= UBound(args) Then benchStrokes = CLng(args(i))
             Case "--hold": i = i + 1: If i <= UBound(args) Then holdSecs = CLng(args(i))
             Case "--log": logActive = True
+            Case "--trace": traceOn = True: Tr "trace on"
             Case "--size"
                 i = i + 1
                 If i <= UBound(args) Then
@@ -57,7 +64,9 @@ Private Sub Form_Load()
     If docW = 0 Then DocNew 640, 512
     ZoomFit
 
+    Tr "workbench"
     SetupWorkbench
+    Tr "load done"
     If openPath <> "" Then
         ActOpenFile openPath, False, 0, 0
     ElseIf HasAutosave() And Not smokeMode And scriptPath = "" Then
@@ -79,6 +88,7 @@ End Sub
 
 Private Sub Form_Activate()
     Static started As Boolean
+    Tr "activate"
     If logActive Then
         Debug.Print "geom " & Me.Left & " " & Me.Top & " " & view.Left & " " & view.Top & " " & view.Width & " " & view.Height
         Debug.Print "active"
@@ -97,6 +107,7 @@ Private Sub Form_Deactivate()
 End Sub
 
 Private Sub Form_Resize()
+    Tr "resize"
     needView = True
     UpdateAll
 End Sub
@@ -129,16 +140,27 @@ Private Function ConfirmDiscard(ByVal what As String) As Boolean
     End If
 End Function
 
+Private Sub Tr(ByVal what As String)
+    Dim f As Integer
+    If Not traceOn Then Exit Sub
+    f = FreeFile
+    Open "RAM:tincture.trace" For Append As #f
+    Print #f, what
+    Close #f
+End Sub
+
 ' ---------------------------------------------------------------- drawing the window
 
 Private Sub UpdateAll()
     If needFit Then needFit = False: ZoomFit: needView = True
-    If needView Then needView = False: RenderView: view.Refresh
-    If needTools Then needTools = False: DrawToolBox tools
-    If needColours Then needColours = False: DrawColourPanel colours
-    If needLayers Then needLayers = False: FillLayerList
-    If needTitle Then needTitle = False: UpdateTitle
+    If needView Then needView = False: Tr "render": RenderView: Tr "refresh": view.Refresh
+    If needTools Then needTools = False: Tr "toolbox": DrawToolBox tools
+    If needColours Then needColours = False: Tr "colours": DrawColourPanel colours
+    If needLayers Then needLayers = False: Tr "layers": FillLayerList
+    If needTitle Then needTitle = False: Tr "title": UpdateTitle
+    Tr "status"
     UpdateStatus
+    Tr "update done"
 End Sub
 
 Private Sub UpdateRecentMenu()
@@ -1028,6 +1050,7 @@ End Sub
 
 Private Sub SmokeStroke(ByVal t As Long, ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2 As Long)
     Dim i As Long, sx1 As Long, sy1 As Long, sx2 As Long, sy2 As Long
+    Tr "smoke tool " & t
     ActSetTool t
     sx1 = DocToViewX(x1): sy1 = DocToViewY(y1): sx2 = DocToViewX(x2): sy2 = DocToViewY(y2)
     view_MouseDown 1, 0, sx1, sy1
