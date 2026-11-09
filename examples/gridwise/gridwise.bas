@@ -6,8 +6,10 @@
 ' Amiga-key shortcuts as in the menus (see Gridwise.guide).
 '
 ' Command line: Gridwise [file.gws|file.csv] [--script file] [--log file]
-'   --script runs a command file (Script.bas commands, one per line), writes the results to
-'   --log (default file.log) and quits at QUIT: the guest smoke test uses this.
+'   --script runs a command file (Script.bas commands, one per line) once the window is open,
+'   writes the results to --log (default file.log) and quits at QUIT: the guest smoke test
+'   uses this. "PAUSE n [tag]" in a script waits n seconds (the log then ends with
+'   "paused tag", so a test can take a screenshot).
 Option Explicit
 
 Private settingText As Boolean        ' formula.Text set by code: ignore its Change
@@ -16,6 +18,11 @@ Private lastStatus As String
 Private scriptLog As String
 Private autosaveTicks As Long
 Private Const AUTOSAVE_SECS As Long = 120
+Private Const TICKS_PER_SEC As Long = 4     ' the timer runs every 250 ms
+Private scriptLines() As String
+Private scriptPos As Long
+Private scriptWait As Long                  ' ticks before the script goes on
+Private scriptActive As Boolean
 
 Private Sub Form_Load()
     Dim args As String, p As Long, f As String, scr As String
@@ -49,8 +56,9 @@ Private Sub Form_Load()
     If scr <> "" Then RunScriptFile scr
 End Sub
 
+' read a script; the timer runs it once the window is open
 Private Sub RunScriptFile(ByVal path As String)
-    Dim fn As Integer, s As String, line_ As String, res As String, logf As String
+    Dim fn As Integer, s As String, line_ As String
     If scriptLog = "" Then scriptLog = path & ".log"
     On Error GoTo Failed
     fn = FreeFile
@@ -61,39 +69,51 @@ Private Sub RunScriptFile(ByVal path As String)
     Loop
     Close #fn
     LogLines = ""
-    RunLines s
+    scriptLines = Split(Replace(s, vbCr, ""), vbLf)
+    scriptPos = 0
+    scriptWait = TICKS_PER_SEC
+    scriptActive = True
     Exit Sub
 Failed:
     LogLines = "can't read script " & path & ": " & Err.Description & vbLf
-    WriteLog
+    WriteLog "ok"
 End Sub
 
-' run script lines one at a time, redrawing and honouring SHOT/QUIT between them
-Private Sub RunLines(ByVal s As String)
-    Dim lines() As String, i As Long, res As String
-    lines = Split(s, vbLf)
-    For i = 0 To UBound(lines)
-        If Trim$(lines(i)) <> "" And Left$(Trim$(lines(i)), 1) <> ";" Then
-            res = RunCommand(lines(i))
-            LogLines = LogLines & lines(i) & " -> " & res
+' run script lines until a PAUSE or the end, redrawing and honouring SHOT/QUIT between them
+Private Sub StepScript()
+    Dim res As String, l As String, w() As String
+    Do While scriptPos <= UBound(scriptLines)
+        l = Trim$(scriptLines(scriptPos))
+        scriptPos = scriptPos + 1
+        If l <> "" And Left$(l, 1) <> ";" Then
+            If UCase$(Left$(l, 6)) = "PAUSE " Then
+                w = Split(l & " ", " ")
+                scriptWait = Val(w(1)) * TICKS_PER_SEC
+                If scriptWait < 1 Then scriptWait = 1
+                WriteLog "paused " & Trim$(Mid$(l, 7 + Len(w(1))))
+                Exit Sub
+            End If
+            res = RunCommand(l)
+            LogLines = LogLines & l & " -> " & res
             If ScriptRC > 0 Then LogLines = LogLines & " [rc " & ScriptRC & "]"
             LogLines = LogLines & vbLf
             AfterCommand
-            If WantQuit Then Exit For
+            If WantQuit Then Exit Do
         End If
-    Next i
-    WriteLog
+    Loop
+    scriptActive = False
+    WriteLog "ok"
     If WantQuit Then Unload Me
 End Sub
 
-Private Sub WriteLog()
+Private Sub WriteLog(ByVal last As String)
     Dim fn As Integer
     If scriptLog = "" Then Exit Sub
     On Error Resume Next
     fn = FreeFile
     Open scriptLog For Output As #fn
     Print #fn, LogLines;
-    Print #fn, "ok"
+    Print #fn, last
     Close #fn
 End Sub
 
@@ -426,8 +446,16 @@ End Sub
 ' ---- autosave ------------------------------------------------------------------------------
 
 Private Sub tick_Timer()
+    If scriptActive Then
+        If scriptWait > 0 Then
+            scriptWait = scriptWait - 1
+        Else
+            StepScript
+            If WantQuit Then Exit Sub      ' the form is unloaded: touching it would load it again
+        End If
+    End If
     autosaveTicks = autosaveTicks + 1
-    If autosaveTicks >= AUTOSAVE_SECS Then
+    If autosaveTicks >= AUTOSAVE_SECS * TICKS_PER_SEC Then
         autosaveTicks = 0
         If Modified And DocPath <> "" Then
             SaveGws DocPath & ".autosave"

@@ -8,4 +8,4 @@ vlayout id=root
   canvas id=grid width=660 height=420
   hlayout weight=0
     label id=status text="Ready"
-  timer id=tick interval=1000 enabled=1
+  timer id=tick interval=250 enabled=1

@@ -1,0 +1,7 @@
+# Penwright's document model (examples/penwright): editing, styles, undo, search, files, spelling
+Name=PenwrightTest
+Startup=Sub Main
+Module=../../../examples/penwright/Doc.bas
+Module=../../../examples/penwright/DocIO.bas
+Module=../../../examples/penwright/Spell.bas
+Module=ptest.bas
