@@ -33,11 +33,22 @@ static const struct kind_def kinds[AFG_NUM_KINDS] = {
     [AFG_TEXTEDITOR] = { "texteditor", 0, 1, COMMON_GADGET },
     [AFG_TIMER] = { "timer", 0, 0, "interval=0\nenabled=1\n" },
     [AFG_CANVAS] = { "canvas", 0, 0, "width=320\nheight=200\nscale=1\n" },     /* canvas */
+    /* docs/ui.md */
+    [AFG_MENU] = { "menu", 1, 0, "text=Menu\ncheckable=0\nchecked=0\nradio=0\ndisabled=0\nhidden=0\n" },
+    [AFG_TOOLBAR] = { "toolbar", 1, 1, COMMON_GADGET },
+    [AFG_TOOL] = { "tool", 0, 0, "toggle=0\nchecked=0\nseparator=0\ndisabled=0\n" },
+    [AFG_STATUSBAR] = { "statusbar", 0, 0, "panels=Ready\n" },
+    [AFG_COMMONDIALOG] = { "commondialog", 0, 0, "" },
+    [AFG_TABS] = { "tabs", 1, 1, "selected=0\n" COMMON_GADGET },
+    [AFG_TREEVIEW] = { "treeview", 0, 1, COMMON_GADGET },
+    [AFG_GRID] = { "grid", 0, 1, "rows=10\ncols=5\nfixedrows=1\nfixedcols=1\ncolwidth=64\neditable=1\n" COMMON_GADGET },
+    [AFG_IMAGE] = { "image", 0, 0, "" },
 };
 
 const char *afg_kind_name(afg_kind k) { return k < AFG_NUM_KINDS ? kinds[k].name : "?"; }
 int afg_is_container(afg_kind k) { return k < AFG_NUM_KINDS && kinds[k].container; }
 int afg_is_gadget(afg_kind k) { return k < AFG_NUM_KINDS && kinds[k].gadget; }
+int afg_takes_space(afg_kind k) { return k != AFG_TIMER && k != AFG_MENU && k != AFG_COMMONDIALOG && k != AFG_WINDOW; }
 
 int afg_kind_by_name(const char *name)
 {
@@ -229,9 +240,15 @@ afg_node *afg_parse(const char *text, char *err, int errlen)
         while (depth > 0 && indents[depth - 1] >= (int)ind) depth--;
         afg_node *parent = depth ? stack[depth - 1] : win;
         const char *msg = NULL;
-        if (parent == win && win->nchildren) msg = "only one root layout is allowed";
-        else if (parent == win && !afg_is_container(n->kind)) msg = "the root must be a vlayout or hlayout";
+        int layout = n->kind == AFG_VLAYOUT || n->kind == AFG_HLAYOUT;
+        if (parent == win && n->kind == AFG_MENU) {
+            if (!win->nchildren) msg = "menus come after the root layout";
+        } else if (parent == win && win->nchildren) msg = "only one root layout is allowed";
+        else if (parent == win && !layout) msg = "the root must be a vlayout or hlayout";
         else if (!afg_is_container(parent->kind)) msg = "this object can't contain objects";
+        else if ((parent->kind == AFG_MENU) != (n->kind == AFG_MENU)) msg = "menus hold menus only, and only the window or a menu holds menus";
+        else if ((parent->kind == AFG_TOOLBAR) != (n->kind == AFG_TOOL)) msg = "a toolbar holds tools only, and tools go in a toolbar";
+        else if (parent->kind == AFG_TABS && !layout) msg = "every page of tabs must be a vlayout or hlayout";
         else if (depth >= 64) msg = "nested too deeply";
         if (msg) {
             snprintf(err, errlen, "line %d: %s", lineno, msg);

@@ -54,6 +54,9 @@ static int32_t intern(const char *s)
     return nnames++;
 }
 
+static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret);
+static bb_obj *new_ctlobj_kind(formdef *fd, bb_ctl *c, int is_form, const char *name, int kind);
+
 static void fv_from_value(const bb_value *v0, bb_fval *fv, bb_str **hold)
 {
     bb_value t;
@@ -61,6 +64,12 @@ static void fv_from_value(const bb_value *v0, bb_fval *fv, bb_str **hold)
     *hold = NULL;
     fv->s = NULL;
     fv->i = 0;
+    /* a control or form object as an argument is its name (Me.PopupMenu mnuEdit) */
+    if (v->type == BB_OBJECT && v->u.o && v->u.o->cls->invoke == ctl_invoke) {
+        fv->type = BB_FV_STR;
+        fv->s = ((ctlobj *)v->u.o)->name;
+        return;
+    }
     switch (v->type) {
     case BB_EMPTY: fv->type = BB_FV_INT; break;
     case BB_STRING: fv->type = BB_FV_STR; fv->s = bb_str_ptr(v->u.s); break;
@@ -137,6 +146,25 @@ static void ctl_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
         return;
     }
     c = ctl_of(o);
+    /* form.Controls("name"): any control by name, also menus added at run time */
+    if (o->is_form && !strcasecmp(name, "Controls") && (kind & (BB_INV_GET | BB_INV_METHOD)) && argc == 1) {
+        bb_value t;
+        const bb_value *a = bb_v_deref(&argv[0], &t);
+        bb_str *nm = bb_v_to_str(a);
+        bb_ctl *cc = bb_form_ctl(o->fd->form, bb_str_ptr(nm));
+        if (!cc) { bb_str_release(nm); bb_raise(5, NULL); }
+        {
+            int type = 0;
+            void *slot = bb_find_global(o->fd->module, bb_str_ptr(nm), &type);
+            bb_obj *ctl = NULL;
+            if (slot && type == BB_OBJECT) ctl = *(bb_obj **)slot;
+            else if (slot && type == BB_VARIANT && ((bb_value *)slot)->type == BB_OBJECT) ctl = ((bb_value *)slot)->u.o;
+            if (ctl) *ret = bb_v_obj(bb_obj_retain(ctl));
+            else *ret = bb_v_obj(new_ctlobj_kind(o->fd, cc, 0, bb_str_ptr(nm), afg_kind_by_name(bb_ctl_kind(cc))));
+        }
+        bb_str_release(nm);
+        return;
+    }
     /* form.control: a control of the form by name (main.ok.Caption) */
     if (o->is_form && *name && (kind & BB_INV_GET) && argc == 0 && bb_form_ctl(o->fd->form, name)) {
         int type = 0;
@@ -217,7 +245,9 @@ static const char *const vb_type[AFG_NUM_KINDS] = {
     [AFG_CHECKBOX] = "CheckBox", [AFG_CHOOSER] = "ComboBox", [AFG_RADIO] = "OptionGroup", [AFG_SLIDER] = "Slider",
     [AFG_SCROLLER] = "ScrollBar", [AFG_LISTBROWSER] = "ListBox", [AFG_LABEL] = "Label", [AFG_SPACE] = "Space",
     [AFG_FUELGAUGE] = "ProgressBar", [AFG_GETFILE] = "FileChooser", [AFG_TEXTEDITOR] = "TextEditor",
-    [AFG_TIMER] = "Timer",
+    [AFG_TIMER] = "Timer", [AFG_MENU] = "Menu", [AFG_TOOLBAR] = "Toolbar", [AFG_TOOL] = "ToolButton",
+    [AFG_STATUSBAR] = "StatusBar", [AFG_COMMONDIALOG] = "CommonDialog", [AFG_TABS] = "TabStrip",
+    [AFG_TREEVIEW] = "TreeView", [AFG_GRID] = "Grid", [AFG_IMAGE] = "Image",
 };
 static bb_class kind_classes[AFG_NUM_KINDS];
 

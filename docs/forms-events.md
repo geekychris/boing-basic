@@ -30,6 +30,7 @@ Conventions:
 | `Visible` | Boolean | — | hides the control and relayouts the window |
 | `ToolTipText` | String | `hint` | `GA_HintInfo` |
 | `Tag` | String | — | free for the program |
+| `ContextMenu` | String | `contextmenu` | the hidden top-level `menu` the right mouse button opens over the control |
 | `Left`, `Top`, `Width`, `Height` | Long, R/O | — | pixels, inside the window; set by the layout |
 
 Methods every gadget has: `SetFocus` (activates a string/integer/texteditor gadget; does
@@ -50,10 +51,16 @@ but no `Enabled`, `ToolTipText` or `SetFocus`.
 | `Enabled` | Boolean | — | `False` = busy pointer and no input |
 | `WindowState` | Integer | — | 0 normal, 1 minimised (iconified) |
 | `Tag` | String | — | |
+| `ContextMenu` | String | `contextmenu` | the window's context menu (over no control that has one) |
+| `ContextControl` | String, R/O | — | the control the last context menu was opened over |
 
 | Method | Notes |
 |---|---|
 | `Show` | creates (fires `Form_Load` the first time) and opens the window |
+| `PopupMenu menu [, x, y]` | opens a hidden top-level menu at the pointer (or x, y in the window) |
+| `AddMenu id, caption [, parent [, key]]` | a menu added at run time (no parent = a new title) |
+| `RemoveMenu id` | |
+| `Controls(name)` | a control by name |
 | `Hide` | closes the window, the form and its controls stay loaded |
 | `Refresh` | redraws |
 | `SetFocus` | brings the window to the front and activates it |
@@ -276,7 +283,7 @@ the next one is due skips that tick.
 ## Canvas (`canvas`) — a drawing surface (VB `PictureBox`, for graphics and games) — **new .afg kind**
 
 ```
-canvas id=view width=400 height=300
+canvas id=view width=400 height=300 contextmenu=mnuCanvas mousemove=0
 ```
 
 The layout gives it at least `width` x `height` pixels. Programs draw into an off-screen
@@ -295,8 +302,57 @@ Methods: `Cls`, `PSet`, `Line` (`B`/`BF`), `Box`, `Rect`, `Circle`, `Polygon`, `
 `DrawImagePart`, `ImageWidth`, `ImageHeight`, `FreeImage`, `SaveImage`, `Hash`, `Resize`
 (see graphics.md for their arguments).
 
-No events: keys arrive as the form's `KeyDown`/`KeyUp`, and `view.KeyDown(k)` gives a key's
-state at any time. Animate it from a `Timer`.
+Keys arrive as the form's `KeyDown`/`KeyUp`, and `view.KeyDown(k)` gives a key's state at any
+time. Animate it from a `Timer`. Mouse events are in canvas pixels (the picture is centred in
+the control and scaled by `scale`; while dragging, X and Y may be outside the picture):
+
+| Event | Signature | When |
+|---|---|---|
+| `MouseDown` | `<id>_MouseDown(Button As Integer, Shift As Integer, X As Long, Y As Long)` | a button went down over the canvas (Button: 1 left, 2 right, 4 middle) |
+| `MouseUp` | `<id>_MouseUp(Button As Integer, Shift As Integer, X As Long, Y As Long)` | it was released (also outside the canvas, after a press on it) |
+| `MouseMove` | `<id>_MouseMove(Button As Integer, Shift As Integer, X As Long, Y As Long)` | the pointer moved while a button is down (Button = the buttons held); with `mousemove=1` every move over the canvas |
+| `DblClick` | `<id>_DblClick()` | a double click (after the second `MouseDown`) |
+| `MouseWheel` | `<id>_MouseWheel(Delta As Integer)` | the wheel turned over the canvas (positive = away from the user) |
+
+The right button opens the menus (or the canvas's `contextmenu=`) when the form has any, as on
+every Amiga window, so `Button = 2` only arrives in forms without menus.
+
+The form gets the same events (`Form_MouseDown(Button, Shift, X, Y)` ...) for clicks outside
+any canvas and gadget, X and Y inside the window's border.
+
+## Menu (`menu`) — VB `Menu` — **new .afg kind**
+
+The menu bar: `menu` trees at the top level of the file, after the root layout. A top-level
+`menu` is a menu title, its children the items, theirs sub-items. A top-level menu with
+`hidden=1` is a context / pop-up menu (see `contextmenu` and `PopupMenu`). Details and an
+example: [ui.md](ui.md#1-menus).
+
+```
+menu id=mnuFile text="Project"
+  menu id=mnuOpen text="Open..." key=O
+  menu text=-
+  menu id=mnuQuit text="Quit" key=Q
+```
+
+| Property | Type | Design-time key | Notes |
+|---|---|---|---|
+| `Caption` | String | `text` | `-` = a separator bar |
+| `Shortcut` | String | `key` | one character: Amiga + key; a longer text is only shown |
+| `Checked` | Boolean | `checked` | |
+| `Checkable` | Boolean | `checkable` | a toggle item with a checkmark |
+| `Enabled` | Boolean | `disabled` (inverted) | |
+| `Visible` | Boolean | `hidden` (inverted) | |
+| | | `radio` | mutually exclusive with the other `radio` items of its panel |
+
+| Event | Signature | When |
+|---|---|---|
+| `Click` | `<id>_Click()` | the item was chosen (mouse, shortcut, context or pop-up menu); `Checked` is already the new state |
+
+The form's methods and properties for menus: `Me.PopupMenu menu [, x, y]`,
+`Me.AddMenu id, caption [, parent [, key]]`, `Me.RemoveMenu id`, `Me.Controls(name)`;
+`ContextMenu` (String, design-time key `contextmenu`) on every control and the form names the
+hidden menu the right mouse button opens over it; `Me.ContextControl` (String, R/O) is the
+control the last context menu was opened over.
 
 ## Requesters
 

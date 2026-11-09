@@ -754,6 +754,20 @@ void bb_canvas_ctl_gone(bb_ctl *ctl)
         if (c->ctl == ctl) c->ctl = NULL;
 }
 
+/* the picture size and scale of a control's canvas, for the forms layer's mouse coordinates */
+int bb_canvas_ctl_geometry(bb_ctl *ctl, int *w, int *h, int *scale)
+{
+    bb_canvas *c;
+    for (c = ctl_canvases; c; c = c->next)
+        if (c->ctl == ctl) {
+            *w = c->w;
+            *h = c->h;
+            *scale = c->scale > 1 ? c->scale : 1;
+            return 1;
+        }
+    return 0;
+}
+
 void bb_canvas_key_event(int key, int down)
 {
     if (key >= 0 && key < 512) keys[key] = down ? 1 : 0;
