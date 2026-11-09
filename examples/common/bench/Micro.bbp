@@ -1,0 +1,7 @@
+# micro-benchmarks of the game ports' drawing pieces
+Name=Micro
+Startup=Sub Main
+Module=../A3Fix.bas
+Module=../A3Scene.bas
+Module=../Gfx2D.bas
+Module=MicroMain.bas

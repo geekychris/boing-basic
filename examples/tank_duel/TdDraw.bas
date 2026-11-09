@@ -10,7 +10,7 @@ Option Explicit
 Public duState As Long, duStateTimer As Long
 Public startRound As Long, duAutoplay As Boolean, duPaused As Boolean, duHelp As Long
 Public duFlash As String, duFlashTimer As Long, duFlashPen As Long
-Public duHurtTimer As Long, duBest As Long
+Public duHurtTimer As Long
 Public entryRank As Long
 Public polyTotal As Double
 Public showPerf As Boolean

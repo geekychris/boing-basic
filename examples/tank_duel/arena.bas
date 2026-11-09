@@ -92,7 +92,6 @@ Private Sub Form_Load()
     PerfReset
     ToTitle
     If benchN > 0 Then
-        tick.Enabled = False
         showPerf = True
         duAutoplay = True
         TdNewGame 1234, startRound
@@ -102,9 +101,11 @@ Private Sub Form_Load()
     lastMs = TimerMs()
 End Sub
 
-Private Sub Form_Activate()
+' --bench: the frames back to back, from the first timer tick (the window
+' need not be the active one), keeping the window alive
+Private Sub RunBench()
     Dim t0 As Double
-    If benchN <= 0 Or benchDone > 0 Then Exit Sub
+    tick.Enabled = False
     t0 = TimerMs()
     Do While benchDone < benchN
         Frame 1
@@ -120,6 +121,10 @@ End Sub
 
 Private Sub tick_Timer()
     Dim now As Double, steps As Long
+    If benchN > 0 Then
+        If benchDone = 0 Then RunBench
+        Exit Sub
+    End If
     now = TimerMs()
     accMs = accMs + (now - lastMs)
     lastMs = now
@@ -188,7 +193,6 @@ Private Sub Frame(ByVal steps As Long)
             If duState = DS_PLAY And (tdOver <> 0 Or tdWon <> 0) Then
                 SetState DS_OVER
                 duStateTimer = 40
-                If tdScore > hsScore(0) Then duBest = tdScore
             End If
             If duState = DS_SCORES And duStateTimer = 0 Then ToTitle
         End If

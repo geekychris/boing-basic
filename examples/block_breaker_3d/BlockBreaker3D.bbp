@@ -1,0 +1,13 @@
+# Boing BASIC project: Block Breaker 3D, breakout down a tunnel (a port of amiga_mcp's examples/block_breaker_3d)
+Name=BlockBreaker3D
+Startup=Form tunnel
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Scene.bas
+Module=../common/Gfx2D.bas
+Module=BbCore.bas
+Module=BbDraw.bas
+Module=BbSound.bas
+Form=tunnel.afg
+Stack=262144

@@ -13,9 +13,9 @@ Sub Main()
     args = Split(Trim$(Command$), " ")
     For i = 0 To UBound(args)
         Select Case LCase$(args(i))
-            Case "--frames": n = CLng(args(i + 1))
-            Case "--shots": shots = args(i + 1)
-            Case "--round": rnd = CLng(args(i + 1))
+            Case "--frames": If i < UBound(args) Then n = CLng(args(i + 1))
+            Case "--shots": If i < UBound(args) Then shots = args(i + 1)
+            Case "--round": If i < UBound(args) Then rnd = CLng(args(i + 1))
         End Select
     Next i
     Set cv = CreateObject("Boing.Canvas")

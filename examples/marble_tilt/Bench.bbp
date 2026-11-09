@@ -1,0 +1,13 @@
+# Boing BASIC project: Marble Tilt console bench (logic + drawing on an off-screen Canvas)
+Name=MarbleTiltBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Scene.bas
+Module=../common/Gfx2D.bas
+Module=MtCore.bas
+Module=MtDraw.bas
+Module=MtSound.bas
+Module=BenchMain.bas
+Stack=262144

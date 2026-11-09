@@ -1,0 +1,13 @@
+# Boing BASIC project: Sphere Siege console bench (logic + drawing on an off-screen Canvas)
+Name=SphereSiegeBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Scene.bas
+Module=../common/Gfx2D.bas
+Module=SsCore.bas
+Module=SsDraw.bas
+Module=SsSound.bas
+Module=BenchMain.bas
+Stack=262144

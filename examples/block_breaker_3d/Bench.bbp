@@ -1,0 +1,13 @@
+# Boing BASIC project: Block Breaker 3D console bench (logic + drawing on an off-screen Canvas)
+Name=BlockBreakerBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Scene.bas
+Module=../common/Gfx2D.bas
+Module=BbCore.bas
+Module=BbDraw.bas
+Module=BbSound.bas
+Module=BenchMain.bas
+Stack=262144

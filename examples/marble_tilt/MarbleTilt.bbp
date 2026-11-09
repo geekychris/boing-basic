@@ -1,0 +1,13 @@
+# Boing BASIC project: Marble Tilt, a tilting maze board (a port of amiga_mcp's examples/marble_tilt)
+Name=MarbleTilt
+Startup=Form board
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Scene.bas
+Module=../common/Gfx2D.bas
+Module=MtCore.bas
+Module=MtDraw.bas
+Module=MtSound.bas
+Form=board.afg
+Stack=262144
