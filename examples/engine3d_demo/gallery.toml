@@ -1,0 +1,9 @@
+title = "Engine3D demo"
+category = "example"
+summary = "A terrain flyover with spinning models and an fps counter, in 15 lines of form code."
+shows = ["Engine3D", "Forms", "Timer"]
+
+[[shot]]
+file = "gallery/flyover.png"
+caption = "The flyover on the AmigaOS 4 guest (VM)"
+run = { project = "Engine3DDemo.bbp", secs = 10 }

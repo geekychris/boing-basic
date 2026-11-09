@@ -1,0 +1,18 @@
+title = "Riffwright"
+category = "app"
+order = 10
+summary = "A ProTracker music editor: a keyboard-driven pattern editor, sample editor, order list, channel scopes and VU meters, 200 steps of undo."
+shows = ["Canvas", "Boing.Audio (the runtime's ProTracker player and mixer through AHI)", "Menus and dialogs", "ARexx port", "Drag and drop", "AmigaGuide help", "Program and project icons"]
+perf = "161 fps native, 98.5 fps in the VM, 97.7 fps with the JIT, with music, scopes and VU meters (`--bench 300`, m1b guest)."
+
+[[shot]]
+file = "docs/guest_pattern_playing.png"
+caption = "Playing Harbour Lights in follow mode"
+
+[[shot]]
+file = "docs/guest_samples.png"
+caption = "The sample editor"
+
+[[shot]]
+file = "docs/guest_song.png"
+caption = "Song settings and the order list"

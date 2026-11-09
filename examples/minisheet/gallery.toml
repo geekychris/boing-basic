@@ -1,0 +1,10 @@
+title = "MiniSheet"
+category = "app"
+order = 40
+summary = "A small spreadsheet: editable cells with =SUM(B2:B10)-style formulas, a TreeView of sheets, tabs, a sortable summary list and a splitter."
+shows = ["Grid control with BeforeEdit/AfterEdit", "TreeView", "Tabs", "ListBrowser columns", "Splitter", "Menus and status bar"]
+
+[[shot]]
+file = "gallery/minisheet.png"
+caption = "A sheet with formulas"
+run = { project = "minisheet.bbp", secs = 10 }

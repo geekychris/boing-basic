@@ -1,0 +1,18 @@
+title = "Stack Tower"
+category = "game"
+order = 20
+summary = "The falling-block puzzle wrapped round a sixteen-column tower: no side walls, and a ring only clears when the back is full too."
+shows = ["Engine3D (the tower)", "Canvas (panel and text)", "Audio: MOD music and effects", "Bot player", "High scores"]
+perf = "126.9 fps native, 82.3 fps in the VM, 75.7 fps with the JIT (`--bench 500`, m1b guest)."
+
+[[shot]]
+file = "screenshots/os4-playing.png"
+caption = "Playing on the guest"
+
+[[shot]]
+file = "screenshots/os4-title.png"
+caption = "The title screen"
+
+[[shot]]
+file = "screenshots/os4-scores.png"
+caption = "High scores"

@@ -1,0 +1,10 @@
+title = "SysInfo (Declare)"
+category = "example"
+order = 30
+summary = "Calls exec, dos and intuition functions with Declare: free memory, the current task, an environment variable, a DisplayBeep."
+shows = ["Declare ... Lib \"exec.library\" (calling AmigaOS libraries)", "The generated bindings (bindings/*.bi)"]
+
+[[shot]]
+file = "gallery/sysinfo.png"
+caption = "`boing run sysinfo.bas` in a Shell"
+run = { shell = true, type = "RAM:bbdoc/boing run sysinfo.bas", secs = 10 }

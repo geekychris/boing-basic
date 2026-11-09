@@ -1,0 +1,9 @@
+title = "File Viewer"
+category = "example"
+order = 20
+summary = "Lists a folder and shows a file as text or hex dump."
+shows = ["Forms", "ListBox and TextBox", "Dir()/file I/O"]
+
+[[shot]]
+file = "../../docs/images/fileviewer.png"
+caption = "Browsing a folder on the guest"

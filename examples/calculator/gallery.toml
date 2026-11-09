@@ -1,0 +1,9 @@
+title = "Calculator"
+category = "example"
+order = 10
+summary = "A four-function calculator: a form designed in AmiForge with about 90 lines of event code."
+shows = ["Forms (AmiForge .afg)", "Button and TextBox events"]
+
+[[shot]]
+file = "../../docs/images/calculator.png"
+caption = "The calculator form on the guest"

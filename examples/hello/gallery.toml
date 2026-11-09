@@ -1,0 +1,10 @@
+title = "Hello"
+category = "example"
+order = 1
+summary = "A console program: Print, Environ, App.Path, Command(), then an InputBox and a MsgBox."
+shows = ["Console output", "InputBox and MsgBox requesters"]
+
+[[shot]]
+file = "gallery/inputbox.png"
+caption = "`boing run hello.bas` in a Shell, asking for a name"
+run = { shell = true, type = "RAM:bbdoc/boing run hello.bas", secs = 10 }

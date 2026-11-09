@@ -1,0 +1,10 @@
+title = "BoingPad"
+category = "app"
+order = 30
+summary = "A text editor: menus with Amiga-key shortcuts, a toolbar, status bar, find/replace, recent files, ASL file requesters and an ARexx port, in 230 lines."
+shows = ["Menus and context menu", "Toolbar and status bar", "CommonDialog (ASL)", "TextEditor gadget", "GetSetting/SaveSetting (ENVARC:)", "ARexx port", "Drag and drop", "Project icons"]
+
+[[shot]]
+file = "gallery/boingpad.png"
+caption = "Editing its own source"
+run = { project = "boingpad.bbp", args = "pad.bas", secs = 10 }

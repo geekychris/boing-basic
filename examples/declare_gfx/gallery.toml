@@ -1,0 +1,10 @@
+title = "Declare graphics"
+category = "example"
+order = 40
+summary = "An animation in a window opened and painted entirely through Declare'd intuition and graphics calls: no forms, no Canvas."
+shows = ["Declare and the generated bindings", "TagLists, PeekL/PeekB into OS structures", "graphics.library drawing", "an IDCMP message loop in BASIC"]
+
+[[shot]]
+file = "gallery/declare_gfx.png"
+caption = "The window drawn with RectFillColor, Move/Draw, WritePixelColor and Text"
+run = { project = "declare_gfx.bbp", args = "--frames 100000 --wait", secs = 8 }

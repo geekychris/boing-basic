@@ -1,0 +1,10 @@
+title = "Tincture"
+category = "app"
+order = 20
+summary = "A paint program: true colour or up to 256 colours, 16 layers, multi-level undo, custom brushes, a magnifier and a command language."
+shows = ["Canvas members for the per-pixel work (fills, brushes, scaled views, codecs)", "Forms and panels", "Menus and dialogs", "IFF ILBM and PNG load/save in BASIC", "Scripting (`.tsc` command files)", "Workbench icons"]
+
+[[shot]]
+file = "gallery/sunset.png"
+caption = "The sunset demo script (`--script demo/sunset.tsc`) painted in three layers"
+run = { project = "Tincture.bbp", args = "--script demo/sunset.tsc", secs = 40, files = ["demo/*", "Icons/*.info"] }

@@ -1,0 +1,14 @@
+title = "Glimmerfield"
+category = "game"
+order = 10
+summary = "An arcade shooter: fly a skiff through a wrapping field of glimmer crystals that crack into shards and grow back, with hunting wisps from wave 2."
+shows = ["Canvas (scaled, double-buffered)", "Audio: an original ProTracker MOD and synthesised effects", "Timer-driven game loop", "High scores", "a benchmark of the language"]
+perf = "354-365 fps native, 88 fps in the VM, 75-79 fps with the JIT (`--bench 1000`, m1 guest)."
+
+[[shot]]
+file = "docs/guest-2x.png"
+caption = "The bot playing wave 3 at 2x scale, with the F1 timing line"
+
+[[shot]]
+file = "docs/guest-2x-frames.png"
+caption = "Four frames on the guest"
