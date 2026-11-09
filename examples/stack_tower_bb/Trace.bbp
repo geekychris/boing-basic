@@ -1,0 +1,8 @@
+# Boing BASIC project: Stack Tower's rules against the C original (tools/trace.sh prints the same)
+Name=StackTrace
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=StCore.bas
+Module=StBot.bas
+Module=TraceMain.bas
+Stack=262144

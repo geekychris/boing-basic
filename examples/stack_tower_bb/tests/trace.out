@@ -1,0 +1,30 @@
+script marathon 12345: pieces 16 score 406 rings 0 over 1 won 0 board 3902978329 queue 3 2 4 1 7 hold 4 hash 786326B0
+  browser: pieces 16 score 406 board 3902978329 queue 3 2 4 1 7 hold 4
+script marathon 987654321: pieces 20 score 478 rings 0 over 1 won 0 board 2330888977 queue 1 0 2 6 5 hold 4 hash C3AF2815
+  browser: pieces 20 score 478 board 2330888977 queue 1 0 2 6 5 hold 4
+script dig 42: pieces 11 score 140 rings 0 over 1 won 0 board 3304110537 queue 6 5 0 3 0 hold 3 hash 852C60F5
+  browser: pieces 11 score 140 board 3304110537 queue 6 5 0 3 0 hold 3
+script dig 2026: pieces 11 score 142 rings 0 over 1 won 0 board 475790452 queue 5 4 1 7 1 hold 7 hash 2CCB8F87
+  browser: pieces 11 score 142 board 475790452 queue 5 4 1 7 1 hold 7
+  t 516 game 1 over 1 won 0 score 2574 rings 6 level 1 pieces 86 hash 4BC4ABF8
+  t 1068 game 2 over 1 won 0 score 2946 rings 8 level 1 pieces 92 hash 201817F4
+  t 1506 game 3 over 1 won 0 score 1864 rings 2 level 1 pieces 73 hash 19FF265E
+  t 1938 game 4 over 1 won 0 score 1770 rings 2 level 1 pieces 72 hash 7036999D
+  t 2490 game 5 over 1 won 0 score 2762 rings 7 level 1 pieces 92 hash F733B4A4
+  t 3024 game 6 over 1 won 0 score 2602 rings 7 level 1 pieces 89 hash FEB0AEE9
+  t 3510 game 7 over 1 won 0 score 2104 rings 4 level 1 pieces 81 hash 10884A07
+  t 3966 game 8 over 1 won 0 score 2196 rings 4 level 1 pieces 76 hash 14E75921
+  t 4554 game 9 over 1 won 0 score 3384 rings 10 level 2 pieces 98 hash EF862D6D
+  t 4998 game 10 over 1 won 0 score 1788 rings 2 level 1 pieces 74 hash 2EB2E423
+  t 5562 game 11 over 1 won 0 score 2700 rings 8 level 1 pieces 94 hash 4FE1B6A7
+demo marathon seed 778 level 1, 6000 ticks: games 12 score 1918 rings 3 level 1 pieces 73 events 2075/2116FBA3 hash E1EB7983
+  t 9874 game 1 over 1 won 0 score 3411 rings 14 level 2 pieces 113 hash B2413ABF
+bot marathon seed 1 level 1, 20000 ticks: games 2 score 2628 rings 12 level 2 pieces 74 events 1386/08426597 hash 682943E8
+  t 2759 game 1 over 1 won 0 score 1671 rings 4 level 3 pieces 45 hash BD930D1F
+  t 5732 game 2 over 1 won 0 score 2131 rings 5 level 3 pieces 50 hash 47A778CB
+  t 9472 game 3 over 1 won 0 score 5612 rings 13 level 4 pieces 69 hash B2DF10D6
+bot rising seed 7 level 3, 12000 ticks: games 4 score 1634 rings 4 level 3 pieces 32 events 1495/0069C67B hash 47909B58
+  t 4239 game 1 over 1 won 0 score 1796 rings 12 level 1 pieces 75 hash 8933D5B4
+bot dig seed 42 level 1, 8000 ticks: games 2 score 1337 rings 8 level 1 pieces 41 events 867/F82D8C20 hash 553872E9
+  t 3620 game 1 over 1 won 0 score 14302 rings 14 level 10 pieces 114 hash 1C26889A
+bot marathon seed 2026 level 9, 8000 ticks: games 2 score 33404 rings 26 level 11 pieces 137 events 1914/28E6DF91 hash CBAC717D
