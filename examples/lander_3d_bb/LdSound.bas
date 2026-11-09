@@ -109,8 +109,7 @@ Public Sub SoundInit(ByVal withDevice As Boolean)
     Define SFX_BEEP, 300, 30, 20: Tone 0, 300, 1400, 1400, 70, 150: Commit SFX_BEEP
     sndStatus = "no sound"
     If Not auOk Then Exit Sub
-    p = App.Path
-    If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+    p = GameDir()
     On Error Resume Next
     song = au.LoadMusic(p & "lander_3d.mod")
     If Err.Number <> 0 Then song = 0
@@ -142,6 +141,20 @@ Public Sub SoundPause(ByVal held As Boolean)
     If Not auOk Or song = 0 Then Exit Sub
     If held Then au.Pause Else au.Resume
 End Sub
+
+' the folder with the game's files: beside the program (a native build), else the current
+' directory (boing run: App.Path is boing's own folder)
+Public Function GameDir() As String
+    Dim p As String
+    p = App.Path
+    If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+    On Error Resume Next
+    If Len(Dir$(p & "lander_3d.mod")) = 0 Then
+        p = CurDir$
+        If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+    End If
+    GameDir = p
+End Function
 
 Public Sub SoundCleanup()
     If auOk Then

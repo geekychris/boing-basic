@@ -111,8 +111,7 @@ End Sub
 ' a picture beside the program: PNG (AmigaOS 4), else the PPM tools/make_art.py makes
 Private Function LoadArt(ByVal nm As String) As Long
     Dim p As String
-    p = App.Path
-    If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+    p = GameDir()
     On Error Resume Next
     LoadArt = cvw.LoadImage(p & "art/" & nm & ".png")
     If Err.Number <> 0 Then

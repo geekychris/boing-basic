@@ -65,7 +65,7 @@ Private Sub Form_Load()
     DrawInit view
     GameInit
     HsSetup Array("ALDRIN", "ARMSTRNG", "CONRAD", "BEAN", "SHEPARD", "MITCHELL", "SCOTT", "IRWIN"), 400
-    HsLoad HsPath("lander_3d.scores")
+    HsLoad GameDir() & "lander_3d.scores"
     gBest = hsScore(0)
     startLevel = 1
     entryRank = -1
@@ -317,7 +317,7 @@ Private Sub Form_KeyPress(KeyAscii As Integer)
     If KeyAscii = 13 Then
         If Len(entryName) = 0 Then entryName = "PILOT"
         entryRank = HsInsert(entryName, gScore)
-        If Not HsSave(HsPath("lander_3d.scores")) And gLog Then Print "cannot save the scores"
+        If Not HsSave(GameDir() & "lander_3d.scores") And gLog Then Print "cannot save the scores"
         gBest = hsScore(0)
         gState = LS_SCORES
         gStateTimer = 300

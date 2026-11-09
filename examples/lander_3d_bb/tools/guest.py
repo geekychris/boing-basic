@@ -139,7 +139,9 @@ def main():
             dos(m, "makedir " + TOP + " " + " ".join(
                 sorted({"/".join(x.split("/")[:i]) for x in dirs for i in range(2, x.count("/") + 2)})) + " QUIET")
             for f in fl:
-                g.push(m, f, amiga(f))
+                r = g.push(m, f, amiga(f))
+                if os.environ.get("BB_VERBOSE"):
+                    print("push", amiga(f), r)
             d = os.path.dirname(amiga(src))
             for md in modes:
                 if md == "native":

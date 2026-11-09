@@ -4,11 +4,11 @@ Option Explicit
 
 Sub Main()
     Dim cv As Object, au As Object, nm As Variant, id As Long, t As Double, p As String, song As Long, s As Long
-    p = App.Path
+    p = CurDir$
     If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
     Set cv = CreateObject("Boing.Canvas")
     cv.Resize 640, 512
-    Print "canvas ok"
+    Print "canvas ok, path " & p & ", art: " & Dir$(p & "art/*.png")
     For Each nm In Array("sky_moon", "sky_mars", "sky_asteroid", "lander_title")
         t = TimerMs()
         id = cv.LoadImage(p & "art/" & nm & ".png")
