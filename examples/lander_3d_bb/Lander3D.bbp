@@ -8,4 +8,4 @@ Module=LdGame.bas
 Module=LdSound.bas
 Module=LdDraw.bas
 Form=lander.afg
-Stack=262144
+Stack=1048576
