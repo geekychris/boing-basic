@@ -6,6 +6,7 @@ FIFO ticket, emulator lock, "CLAUDE IS TESTING" banner; BB_GUEST=m1|spark|local)
       MODE vm      build/os4/boing run PROJECT.bbp args
            shot:OUT.png:SECONDS[:native]   start the game (VM, or the native build), wait,
                    save a screenshot of the guest's screen (QEMU HMP screendump), stop it
+           shots:LIST.txt[:native]   several in one session: lines "OUT.png SECONDS game args"
            jit     the same with --jit
            native  boing build --target os4, then the executable
            all     vm, jit and native one after the other
@@ -116,6 +117,11 @@ def main():
     src, mode, args = os.path.abspath(sys.argv[1]), sys.argv[2], " ".join(sys.argv[3:])
     limit = float(os.environ.get("BB_TEST_TIMEOUT", "300"))
     shot = None
+    shotlist = None
+    if mode.startswith("shots:"):
+        parts = mode.split(":")
+        shotlist = [l.split(None, 2) for l in open(parts[1]) if l.strip() and not l.startswith("#")]
+        mode = parts[2] if len(parts) > 2 else "vm"
     if mode.startswith("shot:"):
         parts = mode.split(":")
         shot = (os.path.abspath(parts[1]), float(parts[2]))
@@ -149,6 +155,16 @@ def main():
                 cmd = "RAM:bbg/boing run %s%s %s" % ("--jit " if md == "jit" else "", amiga(src), args)
             print("(pushed in %.0f s)" % (time.time() - t0))
             m.tool("amiga_dos_command", command="cd " + d)
+            if shotlist:
+                base = cmd[:len(cmd) - len(args)].rstrip() if args else cmd
+                for row in shotlist:
+                    out_png, secs, gargs = os.path.abspath(row[0]), float(row[1]), (row[2] if len(row) > 2 else "")
+                    m.tool("amiga_dos_command", command="run >NIL: %s %s >RAM:bbg/shot.out *>RAM:bbg/shot.err" % (base, gargs))
+                    time.sleep(secs)
+                    screendump(out_png)
+                    stop_ours(m)
+                    time.sleep(4)
+                continue
             if shot:
                 m.tool("amiga_dos_command", command="run >NIL: %s >RAM:bbg/shot.out *>RAM:bbg/shot.err" % cmd)
                 time.sleep(shot[1])
