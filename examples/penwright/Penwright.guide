@@ -17,6 +17,7 @@ plain text.
   @{" Find and replace " LINK Find}
   @{" Spelling         " LINK Spelling}    the dictionary, learning words
   @{" Files            " LINK Files}    .pwd, RTF, HTML, text; autosave
+  @{" Documents        " LINK Documents}    several at once, recent files, settings
   @{" Menus and keys   " LINK Keys}
   @{" ARexx            " LINK ARexx}    the PENWRIGHT port and its commands
   @{" Command line     " LINK CLI}
@@ -110,6 +111,22 @@ Every two minutes a changed document that has a file name is also saved as
 name.pwd.autosave.
 @ENDNODE
 
+@NODE Documents "Documents"
+@{b}Documents@{ub}
+
+Up to eight documents can be open at once. Documents > New document (Amiga-T) starts
+one, Open loads a file into a new one (or into the current document if that is still
+empty), and the list at the bottom of the Documents menu switches between them (a *
+marks unsaved changes). Close document (Amiga-.) closes the current one. Quit asks
+before throwing away unsaved changes in any of them.
+
+Project > Open recent lists the last eight files opened or saved.
+
+Tools has the settings: Mark misspelt words, Autosave every two minutes and the
+Default text size of new documents. They and the recent files are kept in
+ENVARC:Penwright.prefs.
+@ENDNODE
+
 @NODE Keys "Menus and keys"
 @{b}Menus and keys@{ub}
 
@@ -120,7 +137,9 @@ Edit       Undo A-Z, Redo A-Y, Cut A-X, Copy A-C, Paste A-V, Select all A-A,
 Text       Bold A-B, Italic A-I, Underline A-U, Strike through, Plain A-P, Bigger A->, Smaller A-<
 Paragraph  Body A-0, Heading 1-3 A-1..3, Quote A-4, Bullet A-5, Code A-6,
            Align left A-[, Centre A-|, Align right A-], Justify A-J
-Tools      Check spelling A-K, Mark misspelt words, Word count A-W, Show paragraph marks A-M
+Tools      Check spelling A-K, Mark misspelt words, Word count A-W, Show paragraph marks A-M,
+           Autosave, Default text size
+Documents  New document A-T, Close document A-., the open documents
 
 The right mouse button over the page opens a menu with Cut, Copy, Paste, Bold,
 Italic and Check spelling.
@@ -139,7 +158,7 @@ Penwright opens the ARexx port PENWRIGHT. Commands (also usable in scripts):
   FIND text [CASE] [WORD]   REPLACEALL "find" "with" [CASE] [WORD]
   WORDCOUNT   CHARCOUNT   UNDO   REDO   COPY   CUT   PASTE
   NEW   OPEN file   SAVE [file]   EXPORT RTF|HTML|TXT file   TITLE text   AUTHOR text
-  SPELLNEXT   SUGGEST word   LEARN word   LIVESPELL [OFF]
+  SPELLNEXT   SUGGEST word   LEARN word   LIVESPELL [OFF]   GETATTR para offset
   MODIFIED   FILENAME   VERSION   QUIT
 
 Example:

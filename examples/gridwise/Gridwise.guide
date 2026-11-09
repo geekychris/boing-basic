@@ -146,6 +146,9 @@ can paste it; text from other programs pastes into cells (tabs between columns).
 Fill down (Amiga-D) copies the top row of the selection into the rows below it,
 Fill right (Amiga-R) the left column into the columns to its right.
 
+AutoSum (Amiga-U, or the Sum button) enters =SUM(...) of the numbers above the cursor
+cell, or of those to its left; with a range selected, a sum under each of its columns.
+
 Undo (Amiga-Z) and Redo (Amiga-Y) go back and forth through your changes, also
 inserted and deleted rows and columns, and sorting.
 @ENDNODE
@@ -185,11 +188,16 @@ name.gws.autosave, so little is lost if something goes wrong.
 
 Project   New A-N, Open A-O, Save A-S, Save as, Import CSV, Export CSV A-E, Help, About, Quit A-Q
 Edit      Undo A-Z, Redo A-Y, Cut A-X, Copy A-C, Paste A-V, Clear A-K, Fill down A-D,
-          Fill right A-R, Select all A-A, Find A-F, Find next A-G, Go to cell A-J
+          Fill right A-R, AutoSum A-U, Select all A-A, Find A-F, Find next A-G, Go to cell A-J
 Format    Bold A-B, Italic A-I, Numbers (A-1 .. A-6), Alignment, Wider A-+, Narrower A--
 Sheet     Insert/delete row, insert/delete column, Sort ascending/descending (by the
           cursor's column, within the selection), Recalculate, Show formulas A-L, Grid lines
 Chart     Bar, Line, Pie chart of the selection, Delete selected chart
+
+The button bar above the formula bar has New, Open, Save, Undo, Redo, Bold, Italic,
+the number format of the cursor cell, Sum (AutoSum) and Chart.
+Sheet also has Autosave (on/off) and the Currency symbol; these settings and the recent
+files are kept in ENVARC:Gridwise.prefs.
 
 The right mouse button over the sheet opens the menus; with the Cell context menu
 you get Cut, Copy, Paste, Clear, Bold and a chart of the selection.
@@ -207,7 +215,8 @@ Commands (also usable in scripts, see @{"Command line" LINK CLI}):
   GETCELL [A1]          the text a cell shows        GETVALUE A1  the raw value
   GETFORMULA A1         what was typed               SETCELL A1 =SUM(B1:B9)
   SELECT A1:C9          select (GOTO is the same)    GETSELECTION
-  CLEAR [range]  COPY  CUT  PASTE [A1]  FILLDOWN  FILLRIGHT  UNDO  REDO
+  CLEAR [range]  COPY  CUT  PASTE [A1]  FILLDOWN  FILLRIGHT  AUTOSUM  UNDO  REDO
+  GETFORMAT [A1]        the format bits (number format + 256 * alignment, bold 1024, italic 2048)
   FORMAT GENERAL|INTEGER|FIXED|THOUSANDS|THOUSANDS2|CURRENCY|PERCENT|PERCENT2|SCIENTIFIC|DATE|TIME
   BOLD [ON|OFF]  ITALIC [ON|OFF]  ALIGN LEFT|CENTER|RIGHT|AUTO  COLWIDTH B [pixels]
   ROWHEIGHT 5 [pixels]
