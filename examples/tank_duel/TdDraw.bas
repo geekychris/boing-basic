@@ -56,7 +56,7 @@ Public Sub DrawInit()
     skyBottom = Rgb12(&HBCD)
     a3ModelMargin = 200                 ' the biggest model (a pyramid) is 70 across
     MdlBegin mPillar
-    MdlPrism mPillar, 9, 10, 8, 26, 0, 130
+    MdlPrism mPillar, 9, 10, 8, 26, 0, 130, True    ' (its top is above the turret's eye)
     MdlBegin mPyramid
     MdlPyramid mPyramid, 11, 12, -50, 50, 0, -50, 50, 110
     MdlBegin mCrate

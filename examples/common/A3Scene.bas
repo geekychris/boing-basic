@@ -496,9 +496,9 @@ Public Sub MdlPyramid(m As A3Model, ByVal lit As Long, ByVal shade As Long, ByVa
     MdlFace m, lit, shade, 3, b + 3, b + 0, t, 0, cx, cy, cz
 End Sub
 
-' a prism about the y axis
+' a prism about the y axis (noTop: without its top, for one never seen from above)
 Public Sub MdlPrism(m As A3Model, ByVal lit As Long, ByVal shade As Long, ByVal sides As Long, ByVal r As Long, _
-                    ByVal y0 As Long, ByVal y1 As Long)
+                    ByVal y0 As Long, ByVal y1 As Long, Optional ByVal noTop As Boolean = False)
     Dim b As Long, k As Long, j As Long, cy As Long, a As Long, x As Long, z As Long, c As Long, q As Long
     b = m.nv
     cy = (y0 + y1) \ 2
@@ -513,6 +513,7 @@ Public Sub MdlPrism(m As A3Model, ByVal lit As Long, ByVal shade As Long, ByVal 
         j = (k + 1) Mod sides
         MdlFace m, lit, shade, 4, b + 2 * k, b + 2 * k + 1, b + 2 * j + 1, b + 2 * j, 0, cy, 0
     Next k
+    If noTop Then Exit Sub
     c = MdlVtx(m, 0, y1, 0)
     For k = 0 To sides - 1
         j = (k + 1) Mod sides
