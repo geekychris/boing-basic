@@ -1,0 +1,10 @@
+title = "Tank Duel"
+category = "game"
+order = 67
+summary = "A tank fight in a walled arena seen from the turret: shells bounce once off the walls, over 8 rounds of scouts, mortars and bulwarks."
+shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+
+[[shot]]
+file = "gallery/play.png"
+caption = "The autopilot playing on the AmigaOS 4 guest (VM)"
+run = { project = "TankDuel.bbp", args = "--demo --nosound", secs = 20 }

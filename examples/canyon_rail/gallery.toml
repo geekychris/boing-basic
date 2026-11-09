@@ -1,0 +1,10 @@
+title = "Canyon Rail"
+category = "game"
+order = 61
+summary = "A rail shooter down a winding canyon: move the sight, shoot turrets, drones and their bolts, then a guardian at the end of each stage."
+shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+
+[[shot]]
+file = "gallery/play.png"
+caption = "The autopilot playing on the AmigaOS 4 guest (VM)"
+run = { project = "CanyonRail.bbp", args = "--demo --nosound", secs = 20 }

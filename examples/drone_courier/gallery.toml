@@ -1,0 +1,10 @@
+title = "Drone Courier"
+category = "game"
+order = 62
+summary = "Parcel deliveries by drone across a city of towers: collect at the depot pad, land gently on the customer's pad, beat the clock and the wind."
+shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+
+[[shot]]
+file = "gallery/play.png"
+caption = "The autopilot playing on the AmigaOS 4 guest (VM)"
+run = { project = "DroneCourier.bbp", args = "--demo --nosound", secs = 20 }

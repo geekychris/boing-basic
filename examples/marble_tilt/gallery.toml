@@ -1,0 +1,10 @@
+title = "Marble Tilt"
+category = "game"
+order = 64
+summary = "Tilt a floating maze board to roll a marble to the exit: holes, gates, bumpers, sand and checkpoints over 8 levels against the clock."
+shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+
+[[shot]]
+file = "gallery/play.png"
+caption = "The autopilot playing on the AmigaOS 4 guest (VM)"
+run = { project = "MarbleTilt.bbp", args = "--demo --nosound", secs = 20 }

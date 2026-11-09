@@ -1,0 +1,10 @@
+title = "Block Breaker 3D"
+category = "game"
+order = 60
+summary = "Breakout down a tunnel: move a paddle frame on the near opening and send the ball at a block of bricks at the far end, over 8 levels with capsules."
+shows = ["Engine3D (examples/common/A3Engine.bas)", "Canvas (HUD)", "Audio: sound effects", "Autopilot bot", "a port of a C amiga3d game, same state hashes as the C"]
+
+[[shot]]
+file = "gallery/play.png"
+caption = "The autopilot playing on the AmigaOS 4 guest (VM)"
+run = { project = "BlockBreaker3D.bbp", args = "--demo --nosound", secs = 20 }
