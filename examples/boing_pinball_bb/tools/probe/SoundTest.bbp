@@ -1,0 +1,7 @@
+# the sound effects and the music on the Audio object (the null device on the Mac)
+Name=PinballSound
+Startup=Sub Main
+Module=../../../common/A3Fix.bas
+Module=../../PbCore.bas
+Module=../../PbSound.bas
+Module=SoundMain.bas

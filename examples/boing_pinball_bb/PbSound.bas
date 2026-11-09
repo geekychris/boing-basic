@@ -27,6 +27,7 @@ Private Const FX_RATE As Long = 11823           ' 3546895 / 300, the Paula perio
 Public soundOn As Boolean
 Public musicOn As Boolean
 Public soundsPlayed As Long
+Public initError As String
 
 Private au As Object
 Private haveAudio As Boolean
@@ -96,6 +97,7 @@ Private Sub Clear(ByVal n As Long)
 End Sub
 
 Public Sub SoundInit(ByVal musicPath As String)
+    A3FixInit
     soundOn = True
     musicOn = True
     nrng = 4242
@@ -123,9 +125,14 @@ Public Sub SoundInit(ByVal musicPath As String)
     Clear 3000: Tone 3000, 300, 150, 80, 1500, 0: Define SFX_FAIL, 3000, 40, 25
     Clear 300: Noise 300, 60, 3, 2: Define SFX_WALL, 300, 30, 6
     Erase buf
+    If Err.Number <> 0 Then initError = "effects: " & Err.Number & " " & Err.Description
+    Err.Clear
     If Len(musicPath) > 0 Then
         song = au.LoadMusic(musicPath)
-        If Err.Number <> 0 Then song = 0
+        If Err.Number <> 0 Then
+            initError = initError & " music: " & Err.Number & " " & Err.Description
+            song = 0
+        End If
         If song Then au.PlayMusic song
     End If
     Err.Clear
@@ -146,6 +153,15 @@ Public Sub SoundToggleMusic()
         au.MusicEnabled = musicOn
     End If
 End Sub
+
+' how many effects were made, and the song (for the tests)
+Public Function SoundInfo() As String
+    Dim i As Long, n As Long
+    For i = 0 To 15
+        If sfxId(i) <> 0 Then n = n + 1
+    Next i
+    SoundInfo = n & " effects, song " & song & " " & initError
+End Function
 
 Public Function SoundDevice() As String
     If Not haveAudio Then

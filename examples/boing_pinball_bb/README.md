@@ -6,7 +6,14 @@ game [Boing pinball](https://geekychris.github.io/tools/boing-pinball/). The bal
 ball; the view is the classic Amiga pinball one, the table seen from the player's end, tilted,
 scrolling to follow the ball, with a dot-matrix display over it.
 
-@SHOTS@
+On the AmigaOS 4 guest (QEMU sam460ex), in the interpreter:
+
+| | |
+|---|---|
+| ![The title: Comet Tour's backglass](screenshots/os4-title.png) | ![Comet Tour](screenshots/os4-comet.png) |
+| ![Deep Dive](screenshots/os4-deep.png) | ![Robot Foundry](screenshots/os4-foundry.png) |
+| ![Deep Dive's backglass](screenshots/os4-title_deep.png) | ![Robot Foundry's backglass](screenshots/os4-title_foundry.png) |
+| ![The controls](screenshots/os4-help1.png) | ![High scores](screenshots/os4-scores.png) |
 
 | Table | |
 |---|---|

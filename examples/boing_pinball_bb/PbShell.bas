@@ -33,6 +33,7 @@ Public pDemo As Boolean
 Public botPlay As Boolean
 Public stateTimer As Long
 Public titleFrames As Long
+Public titleHold As Boolean                    ' --screen title/demo: the title's cycle stays where it is
 Public entryName As String
 Public entryRank As Long
 Public keysHeld As Long
@@ -224,7 +225,7 @@ Public Sub ShellFrame(ByVal dtMs As Double)
         animMs = animMs - 40#
         DrawAge
         If stateTimer > 0 Then stateTimer = stateTimer - 1
-        If pState = PS_TITLE Then titleFrames = titleFrames + 1
+        If pState = PS_TITLE And Not titleHold Then titleFrames = titleFrames + 1
         If pState = PS_SCORES And stateTimer = 0 Then ToTitle
     Loop
     If pState = PS_PLAY And gState = GS_OVER Then

@@ -9,8 +9,8 @@
 '   BoingPinball --perf            timing overlay (also F1) and a log line a second
 '   BoingPinball --log             print each change of screen (tests)
 '   BoingPinball --blit M          the Canvas's BlitMode
-'   BoingPinball --screen S        start on a screen (for screenshots): demo (the title's
-'                                  demo), help1, help2, scores, play (the bot plays a game)
+'   BoingPinball --screen S        start on a screen (for screenshots): title, demo (the
+'                                  title's backglass or demo, held), help1, help2, scores, play (the bot plays a game)
 '
 ' Keys: Z / left mouse button the left flippers, / (slash) / right button the right
 ' ones, Space / Down / Return the plunger (hold, let go), cursor keys nudge (and
@@ -60,7 +60,8 @@ Private Sub Form_Load()
         BotReset 99
     End If
     Select Case screenArg
-        Case "demo": titleFrames = 250
+        Case "title": titleHold = True
+        Case "demo": titleFrames = 300: titleHold = True
         Case "help1": pHelp = 1
         Case "help2": pHelp = 2
         Case "scores": pState = PS_SCORES: entryRank = -1: stateTimer = 30000

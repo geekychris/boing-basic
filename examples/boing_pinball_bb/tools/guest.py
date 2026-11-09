@@ -20,7 +20,8 @@ sys.path.insert(0, ROOT + "/examples/common/tools")
 import os4guest as g
 import guest_game as gg
 
-SHOTS_SSH = {"m1": "chriscollins@m1.local"}
+SHOTS_SSH = {"m1": "chriscollins@m1.local", "m1b": "chriscollins@m1.local"}
+HMP_PORT = {"m1": 2348, "m1b": 2448}.get(g.GUEST, 2348)
 
 
 def push_project(m, bbp):
@@ -67,17 +68,17 @@ def command(m, bbp, md, args, exe):
 
 def hmp(cmd):
     if g.GUEST in SHOTS_SSH:
-        py = ("import socket,time\ns=socket.create_connection(('127.0.0.1',2348),timeout=10)\ntime.sleep(0.5);s.recv(65536)\n"
-              "s.sendall(%r.encode());time.sleep(2);s.recv(65536);s.close()" % (cmd + "\n"))
+        py = ("import socket,time\ns=socket.create_connection(('127.0.0.1',%d),timeout=10)\ntime.sleep(0.5);s.recv(65536)\n"
+              "s.sendall(%r.encode());time.sleep(2);s.recv(65536);s.close()" % (HMP_PORT, cmd + "\n"))
         subprocess.check_call(["ssh", SHOTS_SSH[g.GUEST], "python3", "-c", '"%s"' % py.replace('"', '\\"')])
     else:
-        s = socket.create_connection(("127.0.0.1", 2348), timeout=10)
+        s = socket.create_connection(("127.0.0.1", HMP_PORT), timeout=10)
         time.sleep(0.5); s.recv(65536); s.sendall((cmd + "\n").encode()); time.sleep(2); s.recv(65536); s.close()
 
 
 def screendump(out_png):
     from PIL import Image
-    remote = "/tmp/bb_pinball_shot.ppm"
+    remote = "/tmp/bb_pinball_shot_%s.ppm" % g.GUEST
     hmp("mouse_move 1 0"); hmp("mouse_move -1 0")          # wake the screen blanker
     hmp("screendump " + remote)
     local = out_png[:-4] + ".ppm"
@@ -89,13 +90,15 @@ def screendump(out_png):
     os.remove(local)
     # the canvas: the 640 x 512 area whose top row is the display's dark brown (or the picture)
     box = find_canvas(im)
+    if not box and im.size == (1280, 720):
+        box = (320, 107, 960, 619)          # where the window opens on the m1 guests' screen
     (im.crop(box) if box else im).save(out_png)
     print("screenshot", out_png, "canvas at", box)
 
 
 def screendump_full(out_png):
     from PIL import Image
-    remote = "/tmp/bb_pinball_shot.ppm"
+    remote = "/tmp/bb_pinball_shot_%s.ppm" % g.GUEST
     hmp("screendump " + remote)
     local = out_png[:-4] + ".ppm"
     if g.GUEST in SHOTS_SSH:
@@ -107,12 +110,15 @@ def screendump_full(out_png):
 
 
 def find_canvas(im):
-    """the window's inner area: look for the 640-wide run of the canvas under the title bar"""
+    """the canvas: a 640 x 512 area whose top row starts and ends in the display's dark brown
+    (34, 17, 0), give or take the 16-bit screen's rounding, just inside the window's border"""
     w, h = im.size
     px = im.load()
-    for y in range(0, h - 512):
-        for x in range(0, w - 640, 1):
-            if px[x, y] == (34, 17, 0) and px[x + 639, y] == (34, 17, 0) and (x == 0 or px[x - 1, y] != (34, 17, 0)):
+    near = lambda p: abs(p[0] - 34) <= 8 and abs(p[1] - 17) <= 8 and p[2] <= 8
+    for y in range(0, h - 511):
+        for x in range(0, w - 639):
+            if near(px[x, y]) and near(px[x + 639, y]) and near(px[x + 320, y]) and not near(px[x - 1, y]) \
+                    and not near(px[x, y - 1]):
                 return (x, y, x + 640, y + 512)
     return None
 
@@ -185,11 +191,11 @@ def main():
         os.makedirs(outdir, exist_ok=True)
         bbp = os.path.join(PROJ, "Pinball.bbp")
         exe = build_native(bbp) if md == "native" else None
-        plan = [("title", "--table 0", 14), ("demo", "--table 0 --screen demo", 18), ("help1", "--screen help1", 12),
+        plan = [("title", "--table 0 --screen title", 14), ("demo", "--table 0 --screen demo", 18), ("help1", "--screen help1", 12),
                 ("help2", "--screen help2", 12), ("scores", "--screen scores", 12),
                 ("comet", "--table 0 --screen play", 40), ("deep", "--table 1 --screen play", 40),
-                ("foundry", "--table 2 --screen play", 40), ("title_deep", "--table 1", 16),
-                ("title_foundry", "--table 2", 16)]
+                ("foundry", "--table 2 --screen play", 40), ("title_deep", "--table 1 --screen title", 16),
+                ("title_foundry", "--table 2 --screen title", 16)]
         only = os.environ.get("PB_SHOTS")
         with g.testing("Boing BASIC: Boing Pinball screenshots"):
             push_project(m, bbp)
