@@ -187,12 +187,12 @@ Private Sub TrackRibbon()
     Do While z < z1
         za = z: zb = z + SEG
         ca = RrCentre(za): cb = RrCentre(zb)
-        CamXform cam, cb, RrHeight(cb, zb) + 2, zb
+        CamXform cam, cb, e3d.GridHeight(grid, cb * 65536, zb * 65536) + 2, zb
         If oz >= CamNear(cam) Then
             stripe = (z \ SEG) And 1
-            For k = 0 To 4
-                ya(k) = RrHeight(ca + off5(k) \ 2, za) + 2      ' (measured inside the valley's sides)
-                yb(k) = RrHeight(cb + off5(k) \ 2, zb) + 2
+            For k = 0 To 4                     ' (measured inside the valley's sides; from the grid, in C)
+                ya(k) = e3d.GridHeight(grid, (ca + off5(k) \ 2) * 65536, za * 65536) + 2
+                yb(k) = e3d.GridHeight(grid, (cb + off5(k) \ 2) * 65536, zb * 65536) + 2
             Next k
             For k = 0 To 3
                 If k = 0 Or k = 3 Then
