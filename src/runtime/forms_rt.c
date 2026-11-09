@@ -25,7 +25,10 @@ typedef struct formdef {
     int loading;
 } formdef;
 
-static formdef *forms;
+/* one allocation per form: form objects keep a formdef pointer, so the table must not move
+   them (a realloc of an array of formdefs left the first form's objects dangling as soon as a
+   second form was registered) */
+static formdef **forms;
 static int nforms;
 static int forms_used;
 
@@ -115,7 +118,7 @@ static formdef *find_form(const char *module)
 {
     int i;
     for (i = 0; i < nforms; i++)
-        if (strcasecmp(forms[i].module, module) == 0 || strcasecmp(forms[i].name, module) == 0) return &forms[i];
+        if (strcasecmp(forms[i]->module, module) == 0 || strcasecmp(forms[i]->name, module) == 0) return forms[i];
     return NULL;
 }
 
@@ -475,9 +478,10 @@ static int load_form(formdef *fd)
 void bb_forms_register(const char *module, const char *form_name, const char *afg_text, const char *afg_path)
 {
     formdef *fd;
-    forms = (formdef *)bb_realloc(forms, sizeof(formdef) * (size_t)(nforms + 1));
-    fd = &forms[nforms++];
-    memset(fd, 0, sizeof *fd);
+    forms = (formdef **)bb_realloc(forms, sizeof(formdef *) * (size_t)(nforms + 1));
+    fd = (formdef *)calloc(1, sizeof(formdef));
+    if (!fd) bb_raise(7, NULL);
+    forms[nforms++] = fd;
     fd->module = strdup(module);
     fd->name = strdup(form_name && *form_name ? form_name : module);
     fd->afg = strdup(afg_text ? afg_text : "");
