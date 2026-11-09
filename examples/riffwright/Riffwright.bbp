@@ -1,0 +1,11 @@
+# Boing BASIC project: Riffwright, a ProTracker music editor for AmigaOS 4
+Name=Riffwright
+Startup=Form main
+Module=Song.bas
+Module=Edit.bas
+Module=Samples.bas
+Module=Player.bas
+Module=View.bas
+Module=Tracker.bas
+Form=main.afg
+Stack=524288
