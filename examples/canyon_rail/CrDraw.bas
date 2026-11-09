@@ -46,6 +46,7 @@ Private bX(0 To 11) As Long, bY(0 To 11) As Long, bZ(0 To 11) As Long
 Private tx3(0 To 2) As Long, ty3(0 To 2) As Long
 Private helpText(1 To 2, 0 To 11) As String
 Private skyTop As Long, skyBottom As Long
+Private segHt(0 To 120) As Long, segSpL(0 To 120) As Boolean, segSpR(0 To 120) As Boolean, segReady(0 To 120) As Long
 
 Public Sub DrawInit()
     Dim h As Variant, i As Long
@@ -169,6 +170,28 @@ Private Sub Quad(ByVal x0 As Long, ByVal y0 As Long, ByVal z0 As Long, ByVal x1 
     A3QuadW cam, -1, col, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3
 End Sub
 
+' the wall's height and the spires at segment s (fixed by s: worked out once and kept)
+Private Function SegH(ByVal s As Long) As Long
+    Dim i As Long
+    i = s \ SEG + 2
+    If segReady(i) = 0 Then FillSeg s, i
+    SegH = segHt(i)
+End Function
+
+Private Function SegSpire(ByVal s As Long, ByVal side As Long) As Boolean
+    Dim i As Long
+    i = s \ SEG + 2
+    If segReady(i) = 0 Then FillSeg s, i
+    If side < 0 Then SegSpire = segSpL(i) Else SegSpire = segSpR(i)
+End Function
+
+Private Sub FillSeg(ByVal s As Long, ByVal i As Long)
+    segHt(i) = 250 + UModL(A3Hash(MulW(s, 7)), 90)
+    segSpL(i) = (A3Hash(AddW(MulW(s, 13), -1)) And 3) = 0
+    segSpR(i) = (A3Hash(AddW(MulW(s, 13), 1)) And 3) = 0
+    segReady(i) = 1
+End Sub
+
 Private Sub Canyon()
     Dim s As Long, s0 As Long, s1 As Long, sb As Long, ca As Long, cb As Long, wa As Long, wb As Long
     Dim ha As Long, hb As Long, tone As Long, side As Long, xa As Long, xb As Long, ta As Long, tb As Long, p As Long, k As Long
@@ -178,8 +201,8 @@ Private Sub Canyon()
     Do While s < s1
         sb = s + SEG
         ca = CrPathX(s): cb = CrPathX(sb): wa = CrHalfWidth(s): wb = CrHalfWidth(sb)
-        ha = 250 + UModL(A3Hash(MulW(s, 7)), 90)
-        hb = 250 + UModL(A3Hash(MulW(sb, 7)), 90)
+        ha = SegH(s)
+        hb = SegH(sb)
         tone = (s \ SEG) And 1
         ' the floor: the banks and the river
         Quad ca - wa, 0, s, ca - 30, 0, s, cb - 30, 0, sb, cb - wb, 0, sb, 60, PEN_BANK + tone
@@ -191,7 +214,7 @@ Private Sub Canyon()
             p = PEN_WALL + 2 * tone
             If side > 0 Then p = p + 1
             Quad xa, 0, s, xb, 0, sb, tb, hb, sb, ta, ha, s, 40, p
-            If (A3Hash(AddW(MulW(s, 13), side)) And 3) = 0 Then
+            If SegSpire(s, side) Then
                 CamXform cam, ta, ha, s: pvx(0) = ox: pvy(0) = oy: pvz(0) = oz
                 CamXform cam, tb, hb, sb: pvx(1) = ox: pvy(1) = oy: pvz(1) = oz
                 CamXform cam, (ta + tb) \ 2 + side * 20, (ha + hb) \ 2 + 90, s + SEG \ 2: pvx(2) = ox: pvy(2) = oy: pvz(2) = oz
