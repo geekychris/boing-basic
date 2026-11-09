@@ -927,3 +927,11 @@ Failed:
     On Error Resume Next
     Printer.KillDoc
 End Sub
+
+' the canvas follows the window (fill=1): the page is laid out again for the new width
+Private Sub page_Resize()
+    If page.Width = vw And page.Height = vh Then Exit Sub
+    ViewResize page.Width, page.Height
+    EnsureCaretVisible
+    Redraw
+End Sub

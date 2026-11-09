@@ -1011,3 +1011,11 @@ Failed:
     On Error Resume Next
     Printer.KillDoc
 End Sub
+
+' the canvas follows the window (fill=1): the view takes its new size
+Private Sub grid_Resize()
+    If grid.Width = vw And grid.Height = vh Then Exit Sub
+    vw = grid.Width: vh = grid.Height
+    EnsureVisible
+    Redraw
+End Sub

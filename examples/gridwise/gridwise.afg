@@ -23,7 +23,7 @@ vlayout id=root
     chooser id=tbFormat items="General|Integer|Fixed|Thousands|Thousands .00|Percent|Percent .00|Currency|Scientific|Date|Time" selected=0 weight=0 hint="Number format"
     string id=formula text=""
     button id=enter text="_Enter" weight=0
-  canvas id=grid width=660 height=420 contextmenu=mnuCell
+  canvas id=grid width=480 height=300 fill=1 contextmenu=mnuCell
   statusbar id=sb panels="Ready|A1|General" widths="0|120|150"
   commondialog id=dlg title="Gridwise" filter="Sheets|#?.(gws|csv)"
   timer id=tick interval=250 enabled=1
