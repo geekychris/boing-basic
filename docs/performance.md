@@ -337,3 +337,25 @@ The hashes stay identical across all three. The JIT gains 10% on the game logic 
 about 20% on the drawing, which is call-heavy: ~60 late-bound Canvas calls a frame and small
 helpers called in loops (reported to bb-core). This boing's VM is 3.5x faster on the logic than
 the 205dba1 one above (3.89 → 1.12 ms), and now 5.5x slower than native on the guest.
+
+## Engine3D
+
+[Engine3D](engine3d.md) moves a game's 3D (transforms, clipping, sorting, models, filling) from
+BASIC into C. Timings on m1's guest (QEMU sam460ex, OS 4.1 FE), boing main 0c7c9ce, 320 x 256
+off-screen Canvas:
+
+| | VM | VM `--jit` | native |
+|---|---:|---:|---:|
+| `examples/engine3d_demo/Bench.bbp` (terrain flyover, ~880 polygons a frame, 200 frames), fps | 215 | 209 | 236 |
+| Tank Duel with A3Scene.bas (3D in BASIC, bb-g-more's g-more e73336e), fps | 28.5 | 21.9 | 490 |
+| Tank Duel with A3Engine.bas (the same game on Engine3D), fps | **47.7** | 37.9 | 395 |
+| Tank Duel draw, ms/frame (A3Scene → A3Engine, VM) | 28.4 → 13.7 | | |
+
+The game-state hash is the same in all of them (300C3D9F). The demo is only 10% slower in the
+VM than native because its ~20 calls a frame do all the work in C. What is left of Tank Duel's
+13.7 ms of drawing in the VM is mostly game-side Canvas work (sky bands, HUD, radar, text) and
+the call overhead of ~60 engine calls; its logic (7.2 ms) is BASIC.
+
+Natively built, Tank Duel is faster with A3Scene (490 fps) than with the engine (395): there the
+BASIC 3D is compiled C too, and each engine call goes through late-bound dispatch (Variant
+arguments, member lookup per call site). Both are far above the 25 fps frame rate the games run at.
