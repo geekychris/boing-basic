@@ -30,18 +30,9 @@ DIR = "DH1:tincture"
 
 
 def hmp_shot(path_local):
-    """QEMU screendump of the whole guest screen (HMP on the QEMU machine's 127.0.0.1:2348)."""
-    remote = "/tmp/tincture_shot.ppm"
-    port = int(os.environ.get("OS4_HMP_PORT", g._G.get("hmp", 2348)))      # each guest's own QEMU
-    cmd = "printf 'screendump %s\\n' | nc -w 3 127.0.0.1 %d >/dev/null; sleep 1" % (remote, port)
-    if g.SSH:
-        subprocess.run(["ssh", g.SSH, cmd], check=True, timeout=30)
-        subprocess.run(["scp", "-q", "%s:%s" % (g.SSH, remote), path_local + ".ppm"], check=True, timeout=60)
-    else:
-        subprocess.run(["sh", "-c", cmd.replace(remote, path_local + ".ppm")], check=True, timeout=30)
-    from PIL import Image
-    Image.open(path_local + ".ppm").save(path_local + ".png")
-    os.unlink(path_local + ".ppm")
+    """A screenshot of the selected guest's screen (os4guest.shot: that guest's own QEMU
+    monitor; refuses the user's m1)."""
+    g.shot(None, path_local + ".png")
     print("screenshot", path_local + ".png")
 
 
@@ -108,7 +99,7 @@ def smoke(m, shots, native=False):
     outf = "RAM:tincture-%d.log" % int(time.time())      # own names: a crashed run may hold old ones open
     dos(m, "delete RAM:tincture-smoke.ppm RAM:tincture.trace QUIET")
     cmd = ("%s/Tincture" % DIR) if native else vm_cmd()
-    launch(m, "%s --smoke --hold 6 --log --trace >%s *>%s.err" % (cmd, outf, outf))
+    launch(m, "%s --smoke --hold 15 --log --trace >%s *>%s.err" % (cmd, outf, outf))
     out = wait_for(m, outf, "SMOKE redo-all", 120)
     print(out or dos(m, "type %s.err" % outf))
     if out:
