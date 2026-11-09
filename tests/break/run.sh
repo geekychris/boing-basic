@@ -7,9 +7,10 @@ mkdir -p "$tmp"; fail=0; n=0
 expect() {  # name expected-output-file-content
     case $1 in handler) printf 'running\ncleanup 18 User interrupt occurred\nrc=0\n' ;;
     nohandler) printf 'running\nnohandler.bas:5: ***Break\nrc=20\n' ;;
-    resumenext) printf 'running\nouter caught 18 \nrc=0\n' ;; esac
+    resumenext) printf 'running\nouter caught 18 \nrc=0\n' ;;
+    waiting) printf 'running\ncleanup 18 User interrupt occurred\nrc=0\n' ;; esac
 }
-for t in handler nohandler resumenext; do
+for t in handler nohandler resumenext waiting; do
     (cd "$d" && "$B" build $t.bas -o "$tmp/$t" >/dev/null 2>&1) || { echo "FAIL break $t (build)"; fail=1; continue; }
     for mode in vm jit nat; do
         n=$((n + 1))

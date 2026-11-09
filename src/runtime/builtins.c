@@ -298,11 +298,12 @@ bb_long bb_shell(bb_str *cmd)
 }
 
 void bb_beep(void) { bb_plat_beep(); }
-void bb_sleep_ms(bb_long ms) { bb_console_flush(); bb_plat_sleep_ms(ms); }
+/* Sleep / DoEvents look for Ctrl-C at once (a waiting loop polls rarely) */
+void bb_sleep_ms(bb_long ms) { bb_console_flush(); bb_plat_sleep_ms(ms); bb_poll_slow(); }
 
 static bb_int (*g_doevents)(void);
 void bb_set_doevents(bb_int (*fn)(void)) { g_doevents = fn; }
-bb_int bb_doevents(void) { bb_console_flush(); return g_doevents ? g_doevents() : 0; }
+bb_int bb_doevents(void) { bb_int r; bb_console_flush(); r = g_doevents ? g_doevents() : 0; bb_poll_slow(); return r; }
 bb_long bb_rgb(bb_long r, bb_long g, bb_long b)
 {
     return (bb_long)((r & 255) | ((g & 255) << 8) | ((b & 255) << 16));
