@@ -1250,8 +1250,9 @@ static Node *resolve_dot(Ctx *c, Node *e, NodeList *args, int mode)
     if (base->kind == E_NAME) {
         Sym *s = scope_find(c->scope, base->name);
         if (!s && name_eq(base->name, "Err")) return err_prop(c, e, e->name, args, mode);
-        if (!s && (name_eq(base->name, "App") || name_eq(base->name, "Clipboard"))) {
-            char *bn = xsprintf("__%s.%s", name_eq(base->name, "App") ? "App" : "Clipboard", e->name);
+        if (!s && (name_eq(base->name, "App") || name_eq(base->name, "Clipboard") || name_eq(base->name, "Printer"))) {
+            const char *on = name_eq(base->name, "App") ? "App" : name_eq(base->name, "Clipboard") ? "Clipboard" : "Printer";
+            char *bn = xsprintf("__%s.%s", on, e->name);
             int bi = builtin_find(bn);
             if (bi < 0) {
                 if (name_eq(base->name, "App") && (name_eq(e->name, "Major") || name_eq(e->name, "Minor") || name_eq(e->name, "Revision"))) {
@@ -1259,6 +1260,13 @@ static Node *resolve_dot(Ctx *c, Node *e, NodeList *args, int mode)
                     memset(&z, 0, sizeof z);
                     z.type = T_INTEGER;
                     return mk_const_node(e, &z);
+                }
+                /* the other members are late bound on the runtime's App / Clipboard / Printer
+                   object (docs/ui.md: ToolType, ARexxPort, ShowHelp, SetPicture, ...) */
+                {
+                    char *on2 = xsprintf("__%sObject", on);
+                    int ob = builtin_find(on2);
+                    if (ob >= 0) return resolve_member(c, e, make_builtin(c, base, ob, NULL, M_VALUE, 0), e->name, args, mode);
                 }
                 ERR(c, e, "the %s object has no member '%s'", base->name, e->name);
                 e->ty = &ty_variant;

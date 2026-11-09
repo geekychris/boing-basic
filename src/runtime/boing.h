@@ -805,6 +805,14 @@ void bb_set_app_title(const char *t);
 bb_str *bb_clipboard_get(void);              /* Clipboard.GetText */
 void bb_clipboard_set(bb_str *s);            /* Clipboard.SetText */
 void bb_clipboard_clear(void);
+/* docs/ui.md: the App / Clipboard / Printer objects for late-bound members (app.c) */
+bb_value bb_app_object(void);
+bb_value bb_clipboard_object(void);
+bb_value bb_printer_object(void);
+/* VB's registry settings, in ENV:/ENVARC: (AmigaOS) or ~/.boing/ (hosts) */
+bb_str *bb_getsetting(bb_str *app, bb_str *section, bb_str *key, bb_str *def);
+void bb_savesetting(bb_str *app, bb_str *section, bb_str *key, bb_str *value);
+void bb_deletesetting(bb_str *app, bb_str *section, bb_str *key);
 
 /* ------------------------------------------------------------------ */
 /* Files                                                                */

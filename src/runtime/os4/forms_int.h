@@ -123,6 +123,8 @@ struct bb_form {
     uint32 last_secs, last_micros;
     bb_ctl *last_down;
     int32_t movex, movey;    /* the last MouseMove position reported while dragging */
+    int dropmode;            /* OLEDropMode: an AppWindow for dropped files */
+    struct AppWindow *appwin;
 };
 
 
@@ -191,6 +193,16 @@ void bbf_dialog_cleanup(void);
 struct Window *bbf_front_window(void);
 void bbf_handle_form(bb_form *f);       /* one round of a window's input */
 void bbf_form_discard(bb_form *f);      /* free a private form (requesters) without events */
+
+/* ui_app.c: Workbench, ARexx, locale, help */
+uint32 bbf_app_sigmask(void);
+void bbf_app_signals(uint32 got);
+void bbf_app_window_open(bb_form *f);
+void bbf_app_window_close(bb_form *f);
+void bbf_app_cleanup(void);
+int bbf_app_help_key(bb_form *f);
+void bbf_localize(afg_node *root);
+const char *bbf_app_str(int32 id, const char *def);
 
 /* ui_menu.c */
 int bbf_menus_build(bb_form *f, tags *wintags);    /* adds WINDOW_MenuStrip etc.; 0 = failed */

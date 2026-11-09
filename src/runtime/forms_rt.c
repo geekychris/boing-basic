@@ -71,6 +71,12 @@ static void fv_from_value(const bb_value *v0, bb_fval *fv, bb_str **hold)
         fv->s = ((ctlobj *)v->u.o)->name;
         return;
     }
+    fv->o = NULL;
+    if (v->type == BB_OBJECT && v->u.o) {       /* a Canvas for Clipboard.SetPicture ... */
+        fv->type = BB_FV_OBJ;
+        fv->o = v->u.o;
+        return;
+    }
     switch (v->type) {
     case BB_EMPTY: fv->type = BB_FV_INT; break;
     case BB_STRING: fv->type = BB_FV_STR; fv->s = bb_str_ptr(v->u.s); break;
@@ -90,14 +96,20 @@ static void fv_from_value(const bb_value *v0, bb_fval *fv, bb_str **hold)
     }
 }
 
+void bb_fv_from_value(const bb_value *v, bb_fval *fv, bb_str **hold) { fv_from_value(v, fv, hold); }
+bb_value bb_value_from_fv(const bb_fval *fv);
+
 static bb_value value_from_fv(const bb_fval *fv)
 {
     switch (fv->type) {
     case BB_FV_INT: return bb_v_long(fv->i);
     case BB_FV_STR: return bb_v_str(bb_str_from_c(fv->s ? fv->s : ""));
+    case BB_FV_OBJ: return fv->o ? bb_v_obj(bb_obj_retain((bb_obj *)fv->o)) : bb_v_empty();
     default: return bb_v_empty();
     }
 }
+
+bb_value bb_value_from_fv(const bb_fval *fv) { return value_from_fv(fv); }
 
 static formdef *find_form(const char *module)
 {

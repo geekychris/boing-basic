@@ -16,11 +16,12 @@
 typedef struct bb_form bb_form;
 typedef struct bb_ctl bb_ctl;
 
-enum { BB_FV_NONE, BB_FV_INT, BB_FV_STR };
+enum { BB_FV_NONE, BB_FV_INT, BB_FV_STR, BB_FV_OBJ };
 typedef struct bb_fval {
     int type;
     int32_t i;
     const char *s;
+    void *o;            /* BB_FV_OBJ: a bb_obj * argument that isn't a control (a Canvas) */
 } bb_fval;
 
 /* An event: ctl is the control's name, or "Form" for the form's own events; event is

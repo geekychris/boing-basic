@@ -519,6 +519,7 @@ static void form_free(bb_form *f)
             if (c->tio) IExec->FreeSysObject(ASOT_IOREQUEST, c->tio);
         }
     }
+    bbf_app_window_close(f);
     if (f->winobj) {
         if (f->win) IIntuition->IDoMethod(f->winobj, WM_CLOSE);
         IIntuition->DisposeObject(f->winobj);    /* disposes the layout and gadgets too */
@@ -690,6 +691,7 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
         snprintf(err, errlen, "%s:%s", file ? file : "form", e + (strncmp(e, "line ", 5) ? 0 : 5));
         return NULL;
     }
+    bbf_localize(a);                     /* "$12:Open..." texts from the catalog */
     bb_form *f = calloc(1, sizeof *f);
     f->afg = a;
     f->file = xstrdup(file ? file : "form");
@@ -798,6 +800,7 @@ int bb_form_show(bb_form *f)
     f->win = (struct Window *)IIntuition->IDoMethod(f->winobj, WM_OPEN);
     if (!f->win) return 7;
     f->self.visible = 1;
+    bbf_app_window_open(f);
     f->lastw = f->win->Width;
     f->lasth = f->win->Height;
     canvas_refresh_all(f);       /* canvas */
@@ -809,6 +812,7 @@ int bb_form_show(bb_form *f)
 int bb_form_hide(bb_form *f)
 {
     if (!f->loaded) return 364;
+    bbf_app_window_close(f);
     if (f->win) IIntuition->IDoMethod(f->winobj, WM_CLOSE);
     f->win = NULL;
     f->self.visible = 0;
@@ -907,6 +911,7 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
     if (IS("Top")) return ret_int(out, w ? w->TopEdge : 0);
     if (IS("ContextMenu")) return ret_str(&f->self, out, f->self.ctxmenu ? f->self.ctxmenu : afg_get(f->afg, "contextmenu"));
     if (IS("ContextControl")) return ret_str(&f->self, out, f->ctx_control ? f->ctx_control : "");
+    if (IS("OLEDropMode")) return ret_int(out, f->dropmode || afg_get_bool(f->afg, "dropfiles"));
     return 438;
 }
 
@@ -945,6 +950,12 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
     if (IS("ContextMenu")) {
         free(f->self.ctxmenu);
         f->self.ctxmenu = xstrdup(vstr(v, buf));
+        return 0;
+    }
+    if (IS("OLEDropMode")) {
+        f->dropmode = vint(v) != 0;
+        if (f->dropmode) bbf_app_window_open(f);
+        else bbf_app_window_close(f);
         return 0;
     }
     if (IS("Name") || IS("WindowState") || IS("ContextControl")) return 383;
@@ -1381,6 +1392,7 @@ static void raw_key(bb_form *f, int code)
     IIntuition->GetAttr(WINDOW_Qualifier, f->winobj, &q);
     int up = code & IECODE_UP_PREFIX, raw = code & 0x7F;
     if (raw >= 0x60 && raw <= 0x67) return;            /* qualifier keys alone */
+    if (raw == 0x5F && !up && bbf_app_help_key(f)) return;     /* Help with App.HelpFile set */
     int32_t a[2] = { vb_key(raw), vb_shift(q) };
     bb_canvas_key_event(a[0], !up);      /* canvas: Canvas.KeyDown(k) */
     fire(f, "Form", up ? "KeyUp" : "KeyDown", 2, a);
@@ -1561,7 +1573,9 @@ static void pump(int wait)
         }
     if (timer_port) sigs |= 1u << timer_port->mp_SigBit;
     if (edit_sigbit >= 0) sigs |= 1u << edit_sigbit;
+    sigs |= bbf_app_sigmask();          /* AppWindow/AppIcon messages, the ARexx port, help */
     uint32 got = wait ? IExec->Wait(sigs) : IExec->SetSignal(0, sigs) & sigs;
+    bbf_app_signals(got);
     if (edit_sigbit >= 0 && (got & (1u << edit_sigbit))) edits_handle();
     if (got & SIGBREAKF_CTRL_C) {
         ending = 1;
@@ -1612,6 +1626,7 @@ void bb_forms_cleanup(void)
     IKM = NULL;
     KeymapLib = NULL;
     bbf_ext_cleanup();
+    bbf_app_cleanup();
     if (ILB) IExec->DropInterface((struct Interface *)ILB);
     if (ICH) IExec->DropInterface((struct Interface *)ICH);
     if (ILO) IExec->DropInterface((struct Interface *)ILO);

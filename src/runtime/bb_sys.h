@@ -9,6 +9,12 @@
  * "a", "b"} and app_dir the directory of prog.bas (NULL = the executable's directory). */
 void bb_sys_init(int argc, char **argv, const char *app_dir);
 
+/* docs/ui.md: the WBStartup message when started from Workbench (NULL from a shell), and the
+ * program's arguments one by one (argv[1..]) */
+void *bb_sys_wbstartup(void);
+int bb_sys_argc(void);
+const char *bb_sys_argv(int i);
+
 const char *bb_sys_command(void);       /* Command(): the arguments, as typed (joined by spaces) */
 const char *bb_sys_app_path(void);      /* App.Path: the program's directory, no trailing / */
 const char *bb_sys_app_exename(void);   /* App.EXEName: the program name without directory */
