@@ -54,6 +54,7 @@ Public Sub DrawInit()
                      &HF33, &HFE4, &H6F6, &H5EF, &HFA3, &H21)
     skyTop = Rgb12(&H369)
     skyBottom = Rgb12(&HBCD)
+    a3ModelMargin = 200                 ' the biggest model (a pyramid) is 70 across
     MdlBegin mPillar
     MdlPrism mPillar, 9, 10, 8, 26, 0, 130
     MdlBegin mPyramid

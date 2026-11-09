@@ -52,6 +52,9 @@ Public ox As Long, oy As Long, oz As Long
 ' a polygon being built in camera space (A3Poly's input)
 Public pvx(0 To 9) As Long, pvy(0 To 9) As Long, pvz(0 To 9) As Long
 Public a3NPolys As Long, a3Dropped As Long
+' A3ModelDraw skips a model whose middle is this far behind the camera or outside
+' the view (the C engine's 800 units; a game with small models can narrow it)
+Public a3ModelMargin As Long
 
 Private Const MAX_DPOLY As Long = 1500
 Private Const NBUCKET As Long = 512
@@ -140,6 +143,7 @@ End Sub
 ' ---------- the draw list ----------
 Public Sub A3Begin(ByVal fz As Long)
     Dim i As Long
+    If a3ModelMargin = 0 Then a3ModelMargin = 800
     a3NPolys = 0
     If fz > 0 Then farZ = fz Else farZ = 1
     For i = 0 To NBUCKET - 1
@@ -519,7 +523,7 @@ Public Sub A3ModelDraw(c As A3Cam, m As A3Model, ByVal wx As Long, ByVal wy As L
     Dim nx As Double, ny As Double, nzz As Double, depth As Double, dep As Long
     CamXform c, wx, wy, wz
     cxz = oz
-    mg = 800 * CamU(c)
+    mg = a3ModelMargin * CamU(c)
     If oz < -mg Or ox > oz + mg Or ox < -oz - mg Then Exit Sub
     ' the vertices to camera space (CamXform written out: calls cost in the VM)
     bx = wx - c.x: by = wy - c.y: bz = wz - c.z
