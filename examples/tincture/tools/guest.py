@@ -74,7 +74,7 @@ def launch(m, cmdline):
     """Start a command in the background with a 1 MB stack: processes started through the
     bridge get 64 KB, and the $STACK cookie isn't honoured there (the VM overflowed it)."""
     tmp = tempfile.NamedTemporaryFile("w", suffix=".run", delete=False)
-    tmp.write("stack 1048576\nchangetaskpri -1\n%s\n" % cmdline)     # below the bridge's priority
+    tmp.write("stack 1048576\n%s\n" % cmdline)
     tmp.close()
     script = "RAM:tincture-%d.run" % int(time.time())     # own name: an old one may still be open
     g.push(m, tmp.name, script)

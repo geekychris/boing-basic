@@ -104,4 +104,11 @@ PERFORMANCE_TABLE
 
 ## Known limits
 
-KNOWN_LIMITS
+- The picture view is a fixed 640 x 480 canvas (form canvases don't resize with the window
+  yet); zoom and scrolling cover larger pictures.
+- The right mouse button opens the menus (as in every OS4 window), so painting with the
+  background colour is Alt+click; a canvas option to take the right button is requested.
+- Text uses the built-in 6 x 9 font, scaled; no OS fonts yet.
+- Selections are rectangles (no lasso or magic wand); flood fill works on the current layer.
+- Iconify isn't available in forms yet; "Icon on Workbench" gives the AppIcon for drops.
+- PNG files with Adam7 interlacing are read through the datatypes (not the built-in reader).

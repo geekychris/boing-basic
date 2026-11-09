@@ -1154,8 +1154,11 @@ Private Sub RunBench(ByVal n As Long)
     UpdateAll
     ActSetTool T_FREEHAND
     brushSize = 6
+    Dim paused As Double, tp As Double
     t0 = Timer
     For i = 1 To n
+        ' let the rest of the system (the test bridge) run between strokes; not timed
+        tp = Timer: Sleep 20: paused = paused + (Timer - tp)
         x = 20 + (i * 37) Mod 560: y = 20 + (i * 53) Mod 440
         view_MouseDown 1, 0, DocToViewX(x), DocToViewY(y)
         For k = 1 To 50
@@ -1165,7 +1168,7 @@ Private Sub RunBench(ByVal n As Long)
         view_MouseUp 1, 0, DocToViewX(x + 50), DocToViewY(y)
     Next
     t1 = Timer
-    Debug.Print "BENCH " & n & " strokes, " & segs & " moves: " & Format$((t1 - t0) * 1000# / segs, "0.00") & " ms per mouse move (incl. view redraw)"
+    Debug.Print "BENCH " & n & " strokes, " & segs & " moves: " & Format$((t1 - t0 - paused) * 1000# / segs, "0.00") & " ms per mouse move (incl. view redraw)"
     t0 = Timer
     For i = 1 To 100
         RenderView
