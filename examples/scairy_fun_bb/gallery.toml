@@ -2,10 +2,17 @@ title = "ScAIry Fun"
 category = "game"
 order = 50
 summary = "A self-driving car game: score while the autopilot drives, and grab the wheel just before it gets something wrong."
-shows = ["Engine3D maths with its own road renderer", "Canvas", "Audio: MOD music and sampled voice lines", "a port of a C amiga3d game"]
-perf = "On the Mac: VM 4736 fps, native 12523 fps off-screen (`Bench.bbp --frames 3000 --route 1`); guest numbers to follow in its README."
+shows = ["Engine3D (the road, about 400 polygons)", "Canvas", "Audio: MOD music and sampled voice lines", "a port of a C amiga3d game"]
+perf = "90.7 fps native, 27.7 fps in the VM, 24.5 fps with the JIT (`--bench 500`, m1c guest); in real time the VM holds 30.2 fps with music, effects and voice."
 
 [[shot]]
-file = "gallery/driving.png"
-caption = "On autopilot"
-run = { project = "ScairyFun.bbp", args = "--route 2 --nosound --nomusic --data {dir}", secs = 20, files = ["*.raw"] }
+file = "screenshots/os4-levee.png"
+caption = "Levee Road on autopilot"
+
+[[shot]]
+file = "screenshots/os4-mountain.png"
+caption = "Mountain Pass: the low sun blinds the autopilot"
+
+[[shot]]
+file = "screenshots/os4-town.png"
+caption = "Flooded Town from the cockpit"
