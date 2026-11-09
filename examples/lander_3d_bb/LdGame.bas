@@ -87,7 +87,7 @@ End Sub
 
 ' "2.5": a 16.16 value with one decimal, as the C's "%ld.%ld"
 Public Function Dec1(ByVal v As Long) As String
-    Dec1 = FInt(v) & "." & ((ShrA(Abs(v) * 10, 16)) Mod 10)
+    Dec1 = FInt(v) & "." & ((ShrA(AbsL(v) * 10, 16)) Mod 10)
 End Function
 
 Private Sub Outcome()

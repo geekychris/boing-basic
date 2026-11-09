@@ -1,7 +1,6 @@
 # Lander 3D's simulation (examples/lander_3d_bb): terrain, autopilot and pilot flights, the probe; hashes equal to the C original's
 Name=LdTest
 Startup=Sub Main
-Module=../../../examples/lander_3d_bb/LdFix.bas
 Module=../../../examples/lander_3d_bb/LdCore.bas
 Module=../../../examples/lander_3d_bb/LdSound.bas
 Module=ldtest.bas

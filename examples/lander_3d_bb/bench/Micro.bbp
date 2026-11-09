@@ -2,5 +2,4 @@
 Name=LdMicro
 Startup=Sub Main
 Module=MicroMain.bas
-Module=../LdFix.bas
 Module=../LdCore.bas

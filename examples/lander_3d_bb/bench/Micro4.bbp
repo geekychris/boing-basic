@@ -1,0 +1,4 @@
+Name=LdMicro4
+Startup=Sub Main
+Module=Micro4Main.bas
+Module=../LdCore.bas

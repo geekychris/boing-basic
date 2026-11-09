@@ -2,7 +2,6 @@
 Name=Lander3DBench
 Startup=Sub Main
 Module=BenchMain.bas
-Module=LdFix.bas
 Module=../common/HiScore.bas
 Module=../common/Perf.bas
 Module=LdCore.bas

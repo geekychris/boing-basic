@@ -32,6 +32,42 @@ Private Function ISqBits(ByVal v As Long) As Long
     ISqBits = r
 End Function
 
+Private Function HypA(ByVal a As Long, ByVal b As Long) As Long
+    Dim x As Long, y As Long, sh As Long, d As Double, r As Long, q As Double
+    If a < 0 Then x = -a Else x = a
+    If b < 0 Then y = -b Else y = b
+    Do While (x Or y) >= 46000
+        x = ShrL(x, 1)
+        y = ShrL(y, 1)
+        sh = sh + 1
+    Loop
+    d = x
+    q = y
+    d = d * d + q * q
+    r = Int(Sqr(d))
+    q = r
+    If q * q > d Then r = r - 1
+    HypA = Shl(r, sh)
+End Function
+
+Private Function HypC(ByVal a As Long, ByVal b As Long) As Long
+    Dim x As Long, y As Long, sh As Long, d As Double, r As Long, q As Double
+    If a < 0 Then x = -a Else x = a
+    If b < 0 Then y = -b Else y = b
+    HypC = x + y
+End Function
+
+Private Function HypD(ByVal a As Long, ByVal b As Long) As Long
+    Dim x As Long, y As Long, sh As Long
+    x = a: y = b
+    Do While (x Or y) >= 46000
+        x = ShrL(x, 1)
+        y = ShrL(y, 1)
+        sh = sh + 1
+    Loop
+    HypD = Shl(x + y, sh)
+End Function
+
 Sub Main()
     Dim i As Long, t As Double, x As Long, n As Long, d As Double, e As Double, y As Long
     n = 2000
@@ -83,5 +119,35 @@ Sub Main()
         y = (i Or 5) >= 46000
     Next i
     Report "(x Or y) >= k", t, n
+    t = TimerMs()
+    For i = 1 To n
+        x = Abs(i - 1000)
+    Next i
+    Report "x = Abs(i - 1000)", t, n
+    t = TimerMs()
+    For i = 1 To n
+        x = AbsL(i - 1000)
+    Next i
+    Report "x = AbsL(i - 1000)", t, n
+    t = TimerMs()
+    For i = 1 To n
+        x = FHypot(i * 100, 54321)
+    Next i
+    Report "FHypot (no Abs)", t, n
+    t = TimerMs()
+    For i = 1 To n
+        x = HypA(i * 100, 54321)
+    Next i
+    Report "HypA (sqrt inline)", t, n
+    t = TimerMs()
+    For i = 1 To n
+        x = HypC(i * 100, 54321)
+    Next i
+    Report "HypC (abs only)", t, n
+    t = TimerMs()
+    For i = 1 To n
+        x = HypD(i * 100, 54321)
+    Next i
+    Report "HypD (the loop only)", t, n
     Print "picture hash 0"
 End Sub

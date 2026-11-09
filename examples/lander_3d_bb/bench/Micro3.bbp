@@ -1,3 +1,4 @@
 Name=LdMicro3
 Startup=Sub Main
 Module=Micro3Main.bas
+Module=../LdCore.bas

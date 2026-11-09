@@ -2,7 +2,6 @@
 Name=LdDrawTest
 Startup=Sub Main
 Module=ldpics.bas
-Module=../../../examples/lander_3d_bb/LdFix.bas
 Module=../../../examples/common/HiScore.bas
 Module=../../../examples/common/Perf.bas
 Module=../../../examples/lander_3d_bb/LdCore.bas
