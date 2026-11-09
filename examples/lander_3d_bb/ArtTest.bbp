@@ -2,3 +2,5 @@
 Name=LdArtTest
 Startup=Sub Main
 Module=ArtTestMain.bas
+Module=LdCore.bas
+Module=LdSound.bas

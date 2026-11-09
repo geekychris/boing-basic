@@ -10,6 +10,8 @@
 '   Lander3D --level N          start at level N (also Up/Down on the title)
 '   Lander3D --win N            terrain cells drawn each side (default 20)
 '   Lander3D --quiet            no music or sound
+'   Lander3D --dir PATH         where the pictures, module and scores are (boing run: App.Path
+'                               is boing's own folder)
 '   Lander3D --ships N          ships a game (default 3; tests)
 '   Lander3D --place            each level starts 6 m over the x1 pad, still (tests: a quick landing)
 '

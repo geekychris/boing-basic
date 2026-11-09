@@ -4,8 +4,7 @@ Option Explicit
 
 Sub Main()
     Dim cv As Object, au As Object, nm As Variant, id As Long, t As Double, p As String, song As Long, s As Long
-    p = CurDir$
-    If Len(p) > 0 And Right$(p, 1) <> ":" And Right$(p, 1) <> "/" Then p = p & "/"
+    p = GameDir()
     Set cv = CreateObject("Boing.Canvas")
     cv.Resize 640, 512
     Print "canvas ok, path " & p & ", art: " & Dir$(p & "art/*.png")
@@ -17,7 +16,7 @@ Sub Main()
         cv.DrawImage id, 0, 0, True
         Print "  drawn, hash " & cv.Hash
     Next nm
-    If Command$ <> "noaudio" Then
+    If InStr(Command$, "noaudio") = 0 Then
         Set au = CreateObject("Boing.Audio")
         Print "audio " & au.Device
         song = au.LoadMusic(p & "lander_3d.mod")
