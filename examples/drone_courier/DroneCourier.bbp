@@ -1,0 +1,13 @@
+# Boing BASIC project: Drone Courier, parcel deliveries by drone across a city of towers (a port of amiga_mcp's examples/drone_courier)
+Name=DroneCourier
+Startup=Form city
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Engine.bas
+Module=../common/Draw2D.bas
+Module=DcCore.bas
+Module=DcDraw.bas
+Module=DcSound.bas
+Form=city.afg
+Stack=262144

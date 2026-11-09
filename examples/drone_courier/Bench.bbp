@@ -1,0 +1,13 @@
+# Boing BASIC project: Drone Courier console bench (logic + drawing on an off-screen Canvas)
+Name=DroneCourierBench
+Startup=Sub Main
+Module=../common/A3Fix.bas
+Module=../common/HiScore.bas
+Module=../common/Perf.bas
+Module=../common/A3Engine.bas
+Module=../common/Draw2D.bas
+Module=DcCore.bas
+Module=DcDraw.bas
+Module=DcSound.bas
+Module=BenchMain.bas
+Stack=262144
