@@ -98,22 +98,25 @@ calls per frame whatever is in it. An edit redraws only its rows. While a song p
 next pattern in the order list is drawn into a second image, 8 rows per frame, so following
 the song into it costs nothing. The order and sample lists are cached the same way.
 
-### Measured on m1's guest
+### Measured on m1's guests
 
-`Riffwright demos/harbour_lights.mod --bench 300`: the song plays in follow mode and 300
-frames are drawn back to back with the pattern scrolling (a new pixel offset every frame), on
-the 640 x 480 Canvas in its window (QEMU sam460ex on m1.local, unloaded):
+`Riffwright demos/harbour_lights.mod --bench 300`: the song plays through AHI in follow mode
+and 300 frames are drawn back to back with the pattern scrolling (a new pixel offset every
+frame), on the 640 x 480 Canvas in its window (QEMU sam460ex on m1.local). fps, with ms per
+frame as draw + blit:
 
-| | fps | ms per frame (draw + blit) | worst frame, ms |
+| | native | VM (`boing run`) | VM `--jit` |
 |---|---:|---:|---:|
-| native (`boing build`) | 178 | 3.70 + 1.69 | 12.7 |
-| VM (`boing run`) | 128 | 5.93 + 1.62 | 15.6 |
-| VM `--jit` | 124 | 6.12 + 1.69 | 25.4 |
+| music, scopes and VU meters (m1b) | **161** (4.3 + 1.7) | **98.5** (8.0 + 1.9) | 97.7 (7.8 + 2.1) |
+| music, scopes off (m1) | 192 (3.3 + 1.8) | 138 (5.2 + 1.8) | |
+| no player (m1, earlier build) | 178 (3.7 + 1.7) | 128 (5.9 + 1.6) | 124 (6.1 + 1.7) |
 
-The window's timer asks for a frame every 20 ms (50 fps), so the interpreter uses about 40%
-of the CPU time for a smoothly scrolling pattern, and the native build about 27%. The JIT
-doesn't help here: a frame is a few dozen late-bound Canvas calls, not loops. Before the
-frame drew only the regions that changed, the numbers were 136 / 95 / 94 fps.
+The window's timer asks for a frame every 20 ms (50 fps): with the music playing and the
+scopes on, the interpreter needs about half of that time, the native build under a third.
+The mixer task takes 0.2-0.9% of the CPU, and the music kept playing through every run. The
+JIT doesn't help: a frame is a few dozen late-bound Canvas calls plus one `State()` and one
+`Scopes()` call to the player (calls returning arrays cost ~45 us under QEMU, scalar ones
+~0.6 us), not loops.
 
 ## Tests
 

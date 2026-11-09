@@ -4,7 +4,8 @@
     BB_GUEST=m1 examples/riffwright/tools/guest.py push            binary, sources, demos -> DH1:riffwright/
     BB_GUEST=m1 examples/riffwright/tools/guest.py smoke [SHOTDIR]  play a demo, switch views by key,
                                                                     screenshot each, check it quits cleanly
-    BB_GUEST=m1 examples/riffwright/tools/guest.py bench [N]       --bench N frames: native, VM, VM --jit
+    BB_GUEST=m1 examples/riffwright/tools/guest.py bench [N [modes [args]]]   --bench N frames: native,vm,jit
+                                                                    (after `push`; one lock ticket per mode)
     BB_GUEST=m1 examples/riffwright/tools/guest.py shot NAME        screenshot only
 
 Needs build/Riffwright (build/boing build examples/riffwright/Riffwright.bbp --target os4
@@ -185,6 +186,9 @@ def main():
     what = sys.argv[1] if len(sys.argv) > 1 else "smoke"
     m = g.MCP(g.URL)
     rc = 0
+    if what == "bench":
+        bench_main()
+        sys.exit(0)
     with g.testing("Riffwright (Boing BASIC tracker): " + what):
       try:
           if what == "push":
@@ -195,8 +199,8 @@ def main():
               print("SMOKE", "PASS" if ok else "FAIL")
               rc = 0 if ok else 1
           elif what == "bench":
-              # one ticket for the push, then one ticket per mode (bench_main)
-              push_all(m)
+              # run `push` first (its own ticket); then one ticket per mode (bench_main)
+              pass
           elif what == "start":
               # the gentlest check: start, screenshot, let it quit by itself
               push_all(m)
@@ -213,8 +217,6 @@ def main():
         time.sleep(1)
         if cleanup(m):
             print("(had to stop leftover processes)")
-    if what == "bench" and rc == 0:
-        bench_main()
     sys.exit(rc)
 
 
