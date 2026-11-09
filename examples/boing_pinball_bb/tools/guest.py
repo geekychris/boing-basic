@@ -5,6 +5,10 @@
     tools/guest.py run MODE [game args]     the game (Pinball.bbp), e.g. run all --bench 1000
     tools/guest.py bench MODE [args]        the console bench (Bench.bbp), e.g. bench vm --frames 500
     tools/guest.py shots OUTDIR [MODE]      screenshots (QEMU HMP screendump) of each screen and table
+    tools/guest.py stop                     Ctrl-C to our own processes there (after a timed-out run)
+    tools/guest.py reaper [PNG]             close the Grim Reaper of a crash of ours (only when no
+                                            other program runs: the Reaper could be theirs)
+    tools/guest.py probe                    tools/probe natively, step by step (finding a crash)
     tools/guest.py clean                    delete our files from the guest's RAM:
   MODE: vm | jit | native | all
 
@@ -134,12 +138,22 @@ def main():
         print(__doc__); return 2
     what = sys.argv[1]
     m = g.MCP(g.URL)
+    if what == "stop":              # Ctrl-C to our own processes (left by a timed-out run), nothing else
+        with g.testing("Boing Pinball: stopping a test"):
+            stop_mine(m)
+            time.sleep(5)
+            print(m.tool("amiga_dos_command", command="status"))
+        return 0
     if what == "reaper":            # a crash of ours: screenshot the Grim Reaper, close it, stop our processes
         out = sys.argv[2] if len(sys.argv) > 2 else "/tmp/pb_reaper.png"
         with g.testing("Boing Pinball: closing a crashed test"):
             st = str(m.tool("amiga_dos_command", command="status"))
             print(st)
-            if "GrimReaper" in st and MYDIR in st:
+            others = [l for l in st.splitlines() if "Loaded as command:" in l and MYDIR not in l and not
+                      re.search(r"amiga-bridge|launcher|QEMUCopyFix|status|GrimReaper", l)]
+            if others:
+                print("other programs are running, the Reaper may be theirs: not touching it\n" + "\n".join(others))
+            elif "GrimReaper" in st and MYDIR in st:
                 screendump_full(out)
                 print("ptr reaper:", ptr_reaper(m))
             stop_mine(m)
