@@ -1,0 +1,11 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=gridwise title="Gridwise" width=660 height=470 resizable=1
+vlayout id=root
+  hlayout weight=0
+    label id=cellname text="A1      "
+    string id=formula text=""
+    button id=enter text="_Enter" weight=0
+  canvas id=grid width=660 height=420
+  hlayout weight=0
+    label id=status text="Ready"
+  timer id=tick interval=1000 enabled=1

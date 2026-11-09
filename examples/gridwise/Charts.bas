@@ -15,6 +15,10 @@ Public NCharts As Long
 Public chType() As Long
 Public chRange() As String
 Public chTitle() As String
+Public chRow() As Long                ' where the chart floats over the sheet: top-left cell,
+Public chCol() As Long                ' and size in pixels
+Public chW() As Long
+Public chH() As Long
 
 ' the data of a chart, filled by ChartData
 Private dN As Long                    ' categories
@@ -28,6 +32,7 @@ Private chInit As Boolean
 Public Sub ClearCharts()
     NCharts = 0
     ReDim chType(0 To 7): ReDim chRange(0 To 7): ReDim chTitle(0 To 7)
+    ReDim chRow(0 To 7): ReDim chCol(0 To 7): ReDim chW(0 To 7): ReDim chH(0 To 7)
     chInit = True
 End Sub
 
@@ -35,8 +40,11 @@ Public Function AddChart(ByVal kind As Long, ByVal rng As String, ByVal title As
     If Not chInit Then ClearCharts
     If NCharts > UBound(chType) Then
         ReDim Preserve chType(0 To NCharts * 2): ReDim Preserve chRange(0 To NCharts * 2): ReDim Preserve chTitle(0 To NCharts * 2)
+        ReDim Preserve chRow(0 To NCharts * 2): ReDim Preserve chCol(0 To NCharts * 2)
+        ReDim Preserve chW(0 To NCharts * 2): ReDim Preserve chH(0 To NCharts * 2)
     End If
     chType(NCharts) = kind: chRange(NCharts) = UCase$(rng): chTitle(NCharts) = title
+    chRow(NCharts) = 1: chCol(NCharts) = 4: chW(NCharts) = 320: chH(NCharts) = 200
     NCharts = NCharts + 1
     AddChart = NCharts - 1
     Modified = True
@@ -47,6 +55,7 @@ Public Sub RemoveChart(ByVal i As Long)
     If i < 0 Or i >= NCharts Then Exit Sub
     For j = i To NCharts - 2
         chType(j) = chType(j + 1): chRange(j) = chRange(j + 1): chTitle(j) = chTitle(j + 1)
+        chRow(j) = chRow(j + 1): chCol(j) = chCol(j + 1): chW(j) = chW(j + 1): chH(j) = chH(j + 1)
     Next j
     NCharts = NCharts - 1
     Modified = True
@@ -63,13 +72,14 @@ End Function
 Public Function ChartsAsText() As String
     Dim i As Long, s As String
     For i = 0 To NCharts - 1
-        s = s & "CHART" & vbTab & ChartTypeName(chType(i)) & vbTab & chRange(i) & vbTab & EscapeField(chTitle(i)) & vbLf
+        s = s & "CHART" & vbTab & ChartTypeName(chType(i)) & vbTab & chRange(i) & vbTab & EscapeField(chTitle(i)) & _
+            vbTab & CellName(chRow(i), chCol(i)) & vbTab & chW(i) & vbTab & chH(i) & vbLf
     Next i
     ChartsAsText = s
 End Function
 
 Public Sub ChartsFromText(ByVal rest As String)
-    Dim lines() As String, f() As String, i As Long, k As Long
+    Dim lines() As String, f() As String, i As Long, k As Long, n As Long, r As Long, c As Long
     ClearCharts
     If rest = "" Then Exit Sub
     lines = Split(rest, vbLf)
@@ -82,7 +92,12 @@ Public Sub ChartsFromText(ByVal rest As String)
                 Case "pie": k = CH_PIE
                 Case Else: k = CH_BAR
                 End Select
-                AddChart k, f(2), UnescapeField(f(3))
+                n = AddChart(k, f(2), UnescapeField(f(3)))
+                If UBound(f) >= 6 Then
+                    If ParseCellName(f(4), r, c) Then chRow(n) = r: chCol(n) = c
+                    If Val(f(5)) >= 60 Then chW(n) = Val(f(5))
+                    If Val(f(6)) >= 40 Then chH(n) = Val(f(6))
+                End If
             End If
         End If
     Next i

@@ -1,0 +1,12 @@
+# Boing BASIC project: Gridwise, a spreadsheet with charts
+Name=Gridwise
+Startup=Form gridwise
+Module=Formula.bas
+Module=Sheet.bas
+Module=SheetIO.bas
+Module=Charts.bas
+Module=GridView.bas
+Module=Script.bas
+Form=gridwise.afg
+Stack=262144
+Icon=Gridwise.info
