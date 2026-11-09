@@ -1,5 +1,5 @@
 ' MiniSheet - a small spreadsheet in Boing BASIC (docs/ui.md): a Grid with editable cells and
-' "=SUM(B2:B10)"-style formulas, a TreeView of sheets, tabs, a ListBrowser summary with sortable
+' "=SUM(A1:A9)"-style formulas, a TreeView of sheets, tabs, a ListBrowser summary with sortable
 ' columns, a splitter, menus and a status bar.
 Option Explicit
 
@@ -21,7 +21,7 @@ Private Sub Form_Load()
     grid.TextMatrix(1, 1) = "10"
     grid.TextMatrix(2, 1) = "20"
     grid.TextMatrix(3, 1) = "12.5"
-    SetCell 4, 1, "=SUM(B2:B4)"
+    SetCell 4, 1, "=SUM(A1:A3)"
     ShowCellRef
     If Environ("BOING_SMOKE") <> "" Then smoke.Interval = 1500
 End Sub
