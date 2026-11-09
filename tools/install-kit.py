@@ -139,6 +139,16 @@ def script(m, name, lines, limit=240):
     raise RuntimeError("%s: no end after %ds (still running on the guest?): %s" % (name, limit, out[-400:]))
 
 
+def move_lines():
+    """The new drawer's entries moved into DH1:BoingBASIC with Rename (no second copy on the
+    disk); without the local stage to name them, a Copy."""
+    top = os.path.join(os.path.dirname(KIT), "stage", "BoingBASIC")
+    if not os.path.isdir(top):
+        return ['  Copy DH1:BBkit-new/BoingBASIC/#? DH1:BoingBASIC ALL CLONE QUIET']
+    return ['  Rename "DH1:BBkit-new/BoingBASIC/%s" "DH1:BoingBASIC/%s"' % (e, e)
+            for e in sorted(os.listdir(top)) if not e.startswith("MyProjects")]
+
+
 def free_bytes(info):
     # info DH1:  ->  "DH1: 511M 398,898 124,758  76%  0 Read/Write chris" (Used/Free in blocks):
     # free = Size x (100 - Full) %
@@ -341,7 +351,7 @@ def install(m):
         '    Rename DH1:BoingBASIC/MyProjects.info DH1:BBkit-new/MyProjects.info',
         '  EndIf',
         '  Delete DH1:BoingBASIC/#? ALL QUIET FORCE',
-        '  Copy DH1:BBkit-new/BoingBASIC/#? DH1:BoingBASIC ALL CLONE QUIET',
+    ] + move_lines() + [
         'Else',
         '  Rename DH1:BBkit-new/BoingBASIC DH1:BoingBASIC',
         'EndIf',
