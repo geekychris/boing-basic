@@ -19,7 +19,8 @@ Sub Main()
         End Select
     Next i
     Set cv = CreateObject("Boing.Canvas")
-    cv.Resize G_W, G_H
+    Set gcv = cv
+    gcv.Resize G_W, G_H
     BbInit
     DrawInit
     startLevel = rnd
@@ -35,20 +36,20 @@ Sub Main()
         AgeEffects
         tl = tl + TimerMs() - t
         t = TimerMs()
-        DrawGame cv, False, True
+        DrawGame False, True
         td = td + TimerMs() - t
-        If Len(shots) > 0 And i Mod 100 = 0 Then cv.SaveImage shots & "/bb_" & Format$(i, "0000") & ".ppm"
+        If Len(shots) > 0 And i Mod 100 = 0 Then gcv.SaveImage shots & "/bb_" & Format$(i, "0000") & ".ppm"
     Next i
     t = TimerMs() - t0
     Print "Block Breaker 3D bench: " & n & " frames, seed 1234, level " & rnd
     Print "state: level " & bbLevel & " score " & bbScore & " broken " & bbBroken & " hash " & Hex8(BbStateHash()) & _
-          " picture " & cv.Hash
+          " picture " & gcv.Hash
     Print "time: logic " & Format$(tl / n, "0.000") & " draw " & Format$(td / n, "0.000") & " ms/frame, " & _
           Format$(n * 1000# / t, "0.0") & " fps;  polys/frame " & Format$(polyTotal / n, "0.0")
     If Len(shots) > 0 Then
-        DrawTitle cv
-        cv.SaveImage shots & "/bb_title.ppm"
-        DrawHelp cv, 1
-        cv.SaveImage shots & "/bb_help.ppm"
+        DrawTitle
+        gcv.SaveImage shots & "/bb_title.ppm"
+        DrawHelp 1
+        gcv.SaveImage shots & "/bb_help.ppm"
     End If
 End Sub

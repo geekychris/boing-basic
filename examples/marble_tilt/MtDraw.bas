@@ -157,7 +157,7 @@ Private Function FloorPen(ByVal ch As Long, ByVal row As Long) As Long
     End Select
 End Function
 
-Private Sub Board(cv As Object)
+Private Sub Board()
     Dim r As Long, c As Long, e As Long, p As Long, z0 As Long, z1 As Long
     ' the floor, in runs along each row; then the slab's front edge
     A3Begin 2000
@@ -182,7 +182,7 @@ Private Sub Board(cv As Object)
     Next r
     BQuad -HALF, 0, -HALF, HALF, 0, -HALF, HALF, -16, -HALF, -HALF, -16, -HALF, 30, PEN_EDGE
     polyTotal = polyTotal + a3NPolys
-    A3Flush cv
+    A3Flush
 End Sub
 
 Private Sub Blocks()
@@ -278,17 +278,17 @@ Private Sub Marble()
     A3Poly cam, cz - 11, PEN_SHINE, 8
 End Sub
 
-Private Sub VoidBands(cv As Object)
+Private Sub VoidBands()
     Dim y As Long, r As Long, g As Long, b As Long
     For y = 0 To G_H - 1 Step 8
         r = (voidTop And 255) + ((voidBottom And 255) - (voidTop And 255)) * y \ G_H
         g = ((voidTop \ 256) And 255) + (((voidBottom \ 256) And 255) - ((voidTop \ 256) And 255)) * y \ G_H
         b = ((voidTop \ 65536) And 255) + (((voidBottom \ 65536) And 255) - ((voidTop \ 65536) And 255)) * y \ G_H
-        cv.Box 0, y, G_W, 8, RGB(r, g, b)
+        gcv.Box 0, y, G_W, 8, RGB(r, g, b)
     Next y
 End Sub
 
-Private Sub Scene(cv As Object)
+Private Sub Scene()
     Dim ar As Long, ap As Long
     ar = A3Angle(mtRoll * 2)
     ap = A3Angle(mtPitch * 2)
@@ -300,104 +300,104 @@ Private Sub Scene(cv As Object)
     cam.precise = 0
     CamView cam, G_W, G_H, G_W \ 2, G_H \ 2 + 6, 266
     CamSetup cam
-    VoidBands cv
-    Board cv
+    VoidBands
+    Board
     A3Begin 2000
     Blocks
     Marble
     polyTotal = polyTotal + a3NPolys
-    A3Flush cv
+    A3Flush
 End Sub
 
-Private Sub Hud(cv As Object)
+Private Sub Hud()
     Dim gx As Long, gy As Long, p As Long
     gx = G_W - 26
     gy = 26
-    GTextShadow cv, 4, 10, PEN_YELLOW, mtLevel & " " & MtLevelName(mtLevel)
+    GTextShadow 4, 10, PEN_YELLOW, mtLevel & " " & MtLevelName(mtLevel)
     If mtTimeLeft < 250 And (mtTicks And 8) <> 0 Then p = PEN_RED Else p = 1
-    GTextBig cv, 4, 16, p, CStr(mtTimeLeft \ 25), 2
-    GTextShadow cv, 4, 250, 3, "SCORE " & mtScore
-    If mtFalls Then GTextShadow cv, 120, 250, 3, "FALLS " & mtFalls
+    GTextBig 4, 16, p, CStr(mtTimeLeft \ 25), 2
+    GTextShadow 4, 250, 3, "SCORE " & mtScore
+    If mtFalls Then GTextShadow 120, 250, 3, "FALLS " & mtFalls
     ' the tilt gauge
-    cv.Circle gx, gy, 18, pen(2), True
-    GRect cv, gx - 18, gy, gx + 18, gy, 3
-    GRect cv, gx, gy - 18, gx, gy + 18, 3
-    cv.Circle gx + (mtRoll * 15) \ MT_TILT_MAX, gy - (mtPitch * 15) \ MT_TILT_MAX, 3, pen(PEN_YELLOW), True
-    If mtGatesOpen = 0 Then GTextShadow cv, 230, 250, PEN_RED, "GATES SHUT"
-    If duAutoplay Then GTextShadow cv, 230, 238, PEN_GREEN, "AUTO"
+    gcv.Circle gx, gy, 18, pen(2), True
+    GRect gx - 18, gy, gx + 18, gy, 3
+    GRect gx, gy - 18, gx, gy + 18, 3
+    gcv.Circle gx + (mtRoll * 15) \ MT_TILT_MAX, gy - (mtPitch * 15) \ MT_TILT_MAX, 3, pen(PEN_YELLOW), True
+    If mtGatesOpen = 0 Then GTextShadow 230, 250, PEN_RED, "GATES SHUT"
+    If duAutoplay Then GTextShadow 230, 238, PEN_GREEN, "AUTO"
 End Sub
 
-Public Sub DrawGame(cv As Object, ByVal isOver As Boolean, ByVal isPlay As Boolean)
+Public Sub DrawGame(ByVal isOver As Boolean, ByVal isPlay As Boolean)
     Dim p As Long
-    Scene cv
-    Hud cv
+    Scene
+    Hud
     If mtBetween Then
-        GTextBigCentre cv, 90, PEN_GREEN, "THROUGH!", 2
-        If mtLevel < MT_LEVELS Then GTextCentre cv, 120, 1, "NEXT: " & MtLevelName(mtLevel + 1)
+        GTextBigCentre 90, PEN_GREEN, "THROUGH!", 2
+        If mtLevel < MT_LEVELS Then GTextCentre 120, 1, "NEXT: " & MtLevelName(mtLevel + 1)
     End If
     If isPlay And mtLevelTicks < 50 And mtBetween = 0 Then
-        GTextCentre cv, 120, PEN_YELLOW, "LEVEL " & mtLevel & ": " & MtLevelName(mtLevel)
+        GTextCentre 120, PEN_YELLOW, "LEVEL " & mtLevel & ": " & MtLevelName(mtLevel)
     End If
     If isOver Then
         If mtWon Then p = PEN_GREEN Else p = PEN_RED
-        GBox cv, 50, 80, 270, 160, 2, p
-        If mtWon Then GTextBigCentre cv, 88, p, "ALL THROUGH", 2 Else GTextBigCentre cv, 88, p, "TIME UP", 2
-        GTextCentre cv, 122, PEN_YELLOW, "LEVEL " & mtLevel & "  FALLS " & mtFalls
-        GTextCentre cv, 136, 1, "SCORE " & mtScore
-        If duStateTimer = 0 Then GTextCentre cv, 152, PEN_YELLOW, "PRESS SPACE"
+        GBox 50, 80, 270, 160, 2, p
+        If mtWon Then GTextBigCentre 88, p, "ALL THROUGH", 2 Else GTextBigCentre 88, p, "TIME UP", 2
+        GTextCentre 122, PEN_YELLOW, "LEVEL " & mtLevel & "  FALLS " & mtFalls
+        GTextCentre 136, 1, "SCORE " & mtScore
+        If duStateTimer = 0 Then GTextCentre 152, PEN_YELLOW, "PRESS SPACE"
     End If
-    If duPaused Then GTextCentre cv, 128, 1, "PAUSED"
-    If duFlashTimer > 0 And Len(duFlash) > 0 Then GTextCentre cv, 60, duFlashPen, duFlash
+    If duPaused Then GTextCentre 128, 1, "PAUSED"
+    If duFlashTimer > 0 And Len(duFlash) > 0 Then GTextCentre 60, duFlashPen, duFlash
 End Sub
 
-Public Sub DrawTitle(cv As Object)
+Public Sub DrawTitle()
     Dim p As Long
-    Scene cv                             ' the autopilot rolls behind the title
-    GTextBig cv, 52, 14, 0, "MARBLE", 6
-    GTextBig cv, 50, 12, PEN_YELLOW, "MARBLE", 6
-    GTextBig cv, 98, 70, 0, "TILT", 6
-    GTextBig cv, 96, 68, PEN_CYAN, "TILT", 6
-    GBox cv, 40, 200, 280, 254, 2, 3
-    GTextCentre cv, 214, PEN_GREEN, "LEVEL " & startLevel & ": " & MtLevelName(startLevel)
+    Scene                             ' the autopilot rolls behind the title
+    GTextBig 52, 14, 0, "MARBLE", 6
+    GTextBig 50, 12, PEN_YELLOW, "MARBLE", 6
+    GTextBig 98, 70, 0, "TILT", 6
+    GTextBig 96, 68, PEN_CYAN, "TILT", 6
+    GBox 40, 200, 280, 254, 2, 3
+    GTextCentre 214, PEN_GREEN, "LEVEL " & startLevel & ": " & MtLevelName(startLevel)
     If (mtTicks \ 12) And 1 Then p = PEN_YELLOW Else p = 1
-    GTextCentre cv, 230, p, "PRESS SPACE TO PLAY"
-    GTextCentre cv, 246, 3, "BEST " & hsScore(0) & "   HELP: HOW TO PLAY"
+    GTextCentre 230, p, "PRESS SPACE TO PLAY"
+    GTextCentre 246, 3, "BEST " & hsScore(0) & "   HELP: HOW TO PLAY"
 End Sub
 
-Public Sub DrawHelp(cv As Object, ByVal page As Long)
+Public Sub DrawHelp(ByVal page As Long)
     Dim k As Long
-    cv.Box 0, 0, G_W, G_H, pen(2)
-    If page = 1 Then GTextBigCentre cv, 14, PEN_YELLOW, "HOW TO PLAY", 2 Else GTextBigCentre cv, 14, PEN_YELLOW, "CONTROLS", 2
+    gcv.Box 0, 0, G_W, G_H, pen(2)
+    If page = 1 Then GTextBigCentre 14, PEN_YELLOW, "HOW TO PLAY", 2 Else GTextBigCentre 14, PEN_YELLOW, "CONTROLS", 2
     For k = 0 To 11
-        GText cv, 12, 58 + k * 14, 1, helpText(page, k)
+        GText 12, 58 + k * 14, 1, helpText(page, k)
     Next k
-    GText cv, 8, 248, 3, "PAGE " & page & " OF 2"
-    GText cv, 156, 248, PEN_YELLOW, "HELP: NEXT  SPACE: BACK"
+    GText 8, 248, 3, "PAGE " & page & " OF 2"
+    GText 156, 248, PEN_YELLOW, "HELP: NEXT  SPACE: BACK"
 End Sub
 
-Public Sub DrawEntry(cv As Object, ByVal nm As String)
+Public Sub DrawEntry(ByVal nm As String)
     Dim cur As String
-    Scene cv
-    GBox cv, 40, 70, 280, 180, 2, PEN_YELLOW
-    GTextCentre cv, 90, PEN_YELLOW, "A NEW HIGH SCORE!"
-    GTextCentre cv, 110, 1, "PLACE " & (HsRank(mtScore) + 1) & "   " & Format$(mtScore, "0000000")
+    Scene
+    GBox 40, 70, 280, 180, 2, PEN_YELLOW
+    GTextCentre 90, PEN_YELLOW, "A NEW HIGH SCORE!"
+    GTextCentre 110, 1, "PLACE " & (HsRank(mtScore) + 1) & "   " & Format$(mtScore, "0000000")
     If (mtTicks And 8) = 0 Then cur = "_" Else cur = " "
-    GTextCentre cv, 140, PEN_GREEN, "YOUR NAME: " & nm & cur
-    GTextCentre cv, 166, 3, "RETURN TO CONFIRM"
+    GTextCentre 140, PEN_GREEN, "YOUR NAME: " & nm & cur
+    GTextCentre 166, 3, "RETURN TO CONFIRM"
 End Sub
 
-Public Sub DrawScores(cv As Object)
+Public Sub DrawScores()
     Dim i As Long, p As Long
-    Scene cv
-    GBox cv, 50, 36, 270, 200, 2, 3
-    GTextBigCentre cv, 44, PEN_YELLOW, "HIGH SCORES", 2
+    Scene
+    GBox 50, 36, 270, 200, 2, 3
+    GTextBigCentre 44, PEN_YELLOW, "HIGH SCORES", 2
     For i = 0 To HS_COUNT - 1
         If i = entryRank Then p = PEN_GREEN Else p = 1
-        GTextCentre cv, 86 + i * 14, p, HsLine(i)
+        GTextCentre 86 + i * 14, p, HsLine(i)
     Next i
 End Sub
 
-Public Sub DrawPerf(cv As Object)
-    cv.Box 0, 226, G_W, 11, pen(0)
-    GText cv, 2, 235, PEN_GREEN, PerfText()
+Public Sub DrawPerf()
+    gcv.Box 0, 226, G_W, 11, pen(0)
+    GText 2, 235, PEN_GREEN, PerfText()
 End Sub

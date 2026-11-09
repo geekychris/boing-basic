@@ -223,12 +223,12 @@ Private Sub RingAt(ByVal x As Long, ByVal z As Long, ByVal r As Long, ByVal col 
 End Sub
 
 ' the floor's grid: lines every 200 units (the original draws them as thin quads)
-Private Sub FloorGrid(cv As Object)
+Private Sub FloorGrid()
     Dim k As Long, c As Long
     c = pen(PEN_GRID)
     For k = -TD_ARENA To TD_ARENA Step 200
-        A3LineW cv, cam, k, 0, -TD_ARENA, k, 0, TD_ARENA, c
-        A3LineW cv, cam, -TD_ARENA, 0, k, TD_ARENA, 0, k, c
+        A3LineW cam, k, 0, -TD_ARENA, k, 0, TD_ARENA, c
+        A3LineW cam, -TD_ARENA, 0, k, TD_ARENA, 0, k, c
     Next k
 End Sub
 
@@ -308,7 +308,7 @@ Private Sub Missiles()
     Next k
 End Sub
 
-Private Sub Scene(cv As Object)
+Private Sub Scene()
     Dim hz As Long
     ' placed to a sixteenth of a unit: a camera on whole units steps unevenly as
     ' the tank drives, which shows as judder
@@ -321,20 +321,20 @@ Private Sub Scene(cv As Object)
     If hz < 1 Then hz = 1
     If hz > G_H - 1 Then hz = G_H - 1
     ' the sky: a gradient in bands, the floor plain
-    SkyBands cv, hz
-    cv.Box 0, hz, G_W, G_H - hz, pen(PEN_FLOOR)
-    FloorGrid cv
+    SkyBands hz
+    gcv.Box 0, hz, G_W, G_H - hz, pen(PEN_FLOOR)
+    FloorGrid
     A3Begin 3000
     Walls
     Obstacles
     Tanks
     Missiles
     polyTotal = polyTotal + a3NPolys
-    A3Flush cv
+    A3Flush
 End Sub
 
 ' the sky from skyTop down to skyBottom over 120 rows, in 8-row bands
-Private Sub SkyBands(cv As Object, ByVal hz As Long)
+Private Sub SkyBands(ByVal hz As Long)
     Dim y As Long, f As Long, r As Long, g As Long, b As Long, h As Long
     For y = 0 To hz - 1 Step 8
         f = y
@@ -344,25 +344,25 @@ Private Sub SkyBands(cv As Object, ByVal hz As Long)
         b = ((skyTop \ 65536) And 255) + (((skyBottom \ 65536) And 255) - ((skyTop \ 65536) And 255)) * f \ 120
         h = 8
         If y + h > hz Then h = hz - y
-        cv.Box 0, y, G_W, h, RGB(r, g, b)
+        gcv.Box 0, y, G_W, h, RGB(r, g, b)
     Next y
 End Sub
 
 ' ---------- the HUD ----------
-Private Sub Radar(cv As Object)
+Private Sub Radar()
     Dim cx As Long, cy As Long, k As Long, c As Long, s As Long, p As Long
     cx = G_W - 36
     cy = 36
     c = A3Cos(tk(0).yaw)
     s = A3Sin(tk(0).yaw)
-    cv.Circle cx, cy, 32, pen(3), True
-    cv.Circle cx, cy, 30, pen(PEN_RADAR), True
+    gcv.Circle cx, cy, 32, pen(3), True
+    gcv.Circle cx, cy, 30, pen(PEN_RADAR), True
     ' everything turned so ahead is up; 1 pixel = 40 units
     For k = 0 To tdNObs - 1
-        If ob(k).kind <> OB_CRATE Or ob(k).hp > 0 Then Blip cv, ob(k).x, ob(k).z, 3, 0, c, s, cx, cy
+        If ob(k).kind <> OB_CRATE Or ob(k).hp > 0 Then Blip ob(k).x, ob(k).z, 3, 0, c, s, cx, cy
     Next k
     For k = 0 To TD_MAX_MORTARS - 1
-        If mo(k).alive Then Blip cv, mo(k).tx, mo(k).tz, PEN_RED, 1, c, s, cx, cy
+        If mo(k).alive Then Blip mo(k).tx, mo(k).tz, PEN_RED, 1, c, s, cx, cy
     Next k
     For k = 1 To tdNTanks - 1
         If tk(k).alive Then
@@ -371,14 +371,14 @@ Private Sub Radar(cv As Object)
                 Case TK_MORTAR: p = PEN_FIRE
                 Case Else: p = PEN_CYAN
             End Select
-            Blip cv, tk(k).x, tk(k).z, p, 1, c, s, cx, cy
+            Blip tk(k).x, tk(k).z, p, 1, c, s, cx, cy
         End If
     Next k
-    GRect cv, cx - 1, cy - 1, cx + 1, cy + 1, 1
-    GRect cv, cx, cy - 5, cx, cy - 2, 1
+    GRect cx - 1, cy - 1, cx + 1, cy + 1, 1
+    GRect cx, cy - 5, cx, cy - 2, 1
 End Sub
 
-Private Sub Blip(cv As Object, ByVal wx As Long, ByVal wz As Long, ByVal p As Long, ByVal sz As Long, _
+Private Sub Blip(ByVal wx As Long, ByVal wz As Long, ByVal p As Long, ByVal sz As Long, _
                  ByVal c As Long, ByVal s As Long, ByVal cx As Long, ByVal cy As Long)
     Dim dx As Long, dz As Long, rx As Long, rz As Long, bx As Long, by As Long
     dx = ShrA(wx - tk(0).x, 16)
@@ -387,121 +387,121 @@ Private Sub Blip(cv As Object, ByVal wx As Long, ByVal wz As Long, ByVal p As Lo
     rz = Int((CDbl(dx) * s + CDbl(dz) * c) / 65536#)
     bx = cx + rx \ 40
     by = cy - rz \ 40
-    If (bx - cx) * (bx - cx) + (by - cy) * (by - cy) < 900 Then GRect cv, bx - sz, by - sz, bx + sz, by + sz, p
+    If (bx - cx) * (bx - cx) + (by - cy) * (by - cy) < 900 Then GRect bx - sz, by - sz, bx + sz, by + sz, p
 End Sub
 
-Private Sub Gun(cv As Object)
+Private Sub Gun()
     Dim kick As Long
     If tk(0).reload > TD_RELOAD - 4 Then kick = 6
     gunX(0) = 146: gunX(1) = 174: gunX(2) = 186: gunX(3) = 134
     gunY(0) = 206 + kick: gunY(1) = 206 + kick: gunY(2) = G_H - 1: gunY(3) = G_H - 1
-    cv.Polygon gunX, gunY, 4, pen(3), True
-    GRect cv, 154, 206 + kick, 166, 210 + kick, 0
+    gcv.Polygon gunX, gunY, 4, pen(3), True
+    GRect 154, 206 + kick, 166, 210 + kick, 0
     ' the sight
-    GRect cv, 159, 108, 160, 113, PEN_GREEN
-    GRect cv, 159, 123, 160, 128, PEN_GREEN
-    GRect cv, 148, 117, 153, 118, PEN_GREEN
-    GRect cv, 166, 117, 171, 118, PEN_GREEN
+    GRect 159, 108, 160, 113, PEN_GREEN
+    GRect 159, 123, 160, 128, PEN_GREEN
+    GRect 148, 117, 153, 118, PEN_GREEN
+    GRect 166, 117, 171, 118, PEN_GREEN
 End Sub
 
-Private Sub Hud(cv As Object)
+Private Sub Hud()
     Dim w As Long, p As Long
-    Gun cv
-    Radar cv
-    GTextShadow cv, 4, 10, PEN_YELLOW, "ROUND " & tdRound
-    GTextShadow cv, 4, 22, 1, "ENEMIES " & TdEnemiesLeft()
-    GTextShadow cv, 4, 34, 3, CStr(tdScore)
-    GTextShadow cv, 4, 242, 3, "ARMOUR"
-    GBox cv, 56, 235, 138, 243, 0, 3
+    Gun
+    Radar
+    GTextShadow 4, 10, PEN_YELLOW, "ROUND " & tdRound
+    GTextShadow 4, 22, 1, "ENEMIES " & TdEnemiesLeft()
+    GTextShadow 4, 34, 3, CStr(tdScore)
+    GTextShadow 4, 242, 3, "ARMOUR"
+    GBox 56, 235, 138, 243, 0, 3
     w = (tk(0).hp * 80) \ TD_HP
     If tk(0).hp > 40 Then p = PEN_GREEN Else p = PEN_RED
-    If w > 0 Then GRect cv, 57, 236, 57 + w, 242, p
-    GTextShadow cv, 202, 242, 3, "GUN"
+    If w > 0 Then GRect 57, 236, 57 + w, 242, p
+    GTextShadow 202, 242, 3, "GUN"
     w = ((TD_RELOAD - tk(0).reload) * 80) \ TD_RELOAD
-    GBox cv, 228, 235, 310, 243, 0, 3
+    GBox 228, 235, 310, 243, 0, 3
     If tk(0).reload Then p = PEN_FIRE Else p = PEN_YELLOW
-    GRect cv, 229, 236, 229 + w, 242, p
-    If duAutoplay Then GTextShadow cv, 4, 228, PEN_GREEN, "AUTO"
+    GRect 229, 236, 229 + w, 242, p
+    If duAutoplay Then GTextShadow 4, 228, PEN_GREEN, "AUTO"
     If duHurtTimer > 0 Then
-        GRect cv, 0, 0, G_W - 1, 3, PEN_RED
-        GRect cv, 0, G_H - 4, G_W - 1, G_H - 1, PEN_RED
-        GRect cv, 0, 0, 3, G_H - 1, PEN_RED
-        GRect cv, G_W - 4, 0, G_W - 1, G_H - 1, PEN_RED
+        GRect 0, 0, G_W - 1, 3, PEN_RED
+        GRect 0, G_H - 4, G_W - 1, G_H - 1, PEN_RED
+        GRect 0, 0, 3, G_H - 1, PEN_RED
+        GRect G_W - 4, 0, G_W - 1, G_H - 1, PEN_RED
     End If
 End Sub
 
-Public Sub DrawFight(cv As Object, ByVal isOver As Boolean)
+Public Sub DrawFight(ByVal isOver As Boolean)
     Dim pct As Long, p As Long
-    Scene cv
-    Hud cv
+    Scene
+    Hud
     If tdBetween Then
-        GTextBigCentre cv, 70, PEN_GREEN, "ROUND CLEAR", 2
-        If tdRound < TD_ROUNDS Then GTextCentre cv, 100, 1, "ROUND " & (tdRound + 1) & " NEXT"
+        GTextBigCentre 70, PEN_GREEN, "ROUND CLEAR", 2
+        If tdRound < TD_ROUNDS Then GTextCentre 100, 1, "ROUND " & (tdRound + 1) & " NEXT"
     End If
     If Not isOver And tdTicks < 50 And tdBetween = 0 Then
-        GTextCentre cv, 70, PEN_YELLOW, "ROUND " & tdRound & ": " & TdEnemiesLeft() & " ENEMIES"
+        GTextCentre 70, PEN_YELLOW, "ROUND " & tdRound & ": " & TdEnemiesLeft() & " ENEMIES"
     End If
     If isOver Then
         If tdWon Then p = PEN_GREEN Else p = PEN_RED
-        GBox cv, 50, 70, 270, 150, 2, p
-        If tdWon Then GTextBigCentre cv, 78, p, "VICTORY", 2 Else GTextBigCentre cv, 78, p, "GAME OVER", 2
+        GBox 50, 70, 270, 150, 2, p
+        If tdWon Then GTextBigCentre 78, p, "VICTORY", 2 Else GTextBigCentre 78, p, "GAME OVER", 2
         If tdShots Then pct = (tdHits * 100) \ tdShots
-        GTextCentre cv, 112, PEN_YELLOW, tdKills & " KILLS  " & pct & "% HITS"
-        GTextCentre cv, 126, 1, "SCORE " & tdScore
-        If duStateTimer = 0 Then GTextCentre cv, 142, PEN_YELLOW, "PRESS FIRE"
+        GTextCentre 112, PEN_YELLOW, tdKills & " KILLS  " & pct & "% HITS"
+        GTextCentre 126, 1, "SCORE " & tdScore
+        If duStateTimer = 0 Then GTextCentre 142, PEN_YELLOW, "PRESS FIRE"
     End If
-    If duPaused Then GTextCentre cv, 160, 1, "PAUSED"
-    If duFlashTimer > 0 And Len(duFlash) > 0 Then GTextCentre cv, 60, duFlashPen, duFlash
+    If duPaused Then GTextCentre 160, 1, "PAUSED"
+    If duFlashTimer > 0 And Len(duFlash) > 0 Then GTextCentre 60, duFlashPen, duFlash
 End Sub
 
-Public Sub DrawTitle(cv As Object)
+Public Sub DrawTitle()
     Dim p As Long
-    Scene cv                              ' the autopilot fights behind the title
-    GTextBig cv, 58, 26, 0, "TANK", 6
-    GTextBig cv, 56, 24, PEN_YELLOW, "TANK", 6
-    GTextBig cv, 94, 82, 0, "DUEL", 6
-    GTextBig cv, 92, 80, PEN_FIRE, "DUEL", 6
-    GBox cv, 40, 196, 280, 252, 2, 3
-    GTextCentre cv, 210, PEN_GREEN, "START AT ROUND " & startRound & " (UP/DOWN)"
+    Scene                              ' the autopilot fights behind the title
+    GTextBig 58, 26, 0, "TANK", 6
+    GTextBig 56, 24, PEN_YELLOW, "TANK", 6
+    GTextBig 94, 82, 0, "DUEL", 6
+    GTextBig 92, 80, PEN_FIRE, "DUEL", 6
+    GBox 40, 196, 280, 252, 2, 3
+    GTextCentre 210, PEN_GREEN, "START AT ROUND " & startRound & " (UP/DOWN)"
     If (tdTicks \ 12) And 1 Then p = PEN_YELLOW Else p = 1
-    GTextCentre cv, 226, p, "PRESS SPACE TO FIGHT"
-    GTextCentre cv, 242, 3, "BEST " & hsScore(0) & "   HELP: HOW TO PLAY"
+    GTextCentre 226, p, "PRESS SPACE TO FIGHT"
+    GTextCentre 242, 3, "BEST " & hsScore(0) & "   HELP: HOW TO PLAY"
 End Sub
 
-Public Sub DrawHelp(cv As Object, ByVal page As Long)
+Public Sub DrawHelp(ByVal page As Long)
     Dim k As Long
-    cv.Box 0, 0, G_W, G_H, pen(2)
-    If page = 1 Then GTextBigCentre cv, 14, PEN_YELLOW, "HOW TO PLAY", 2 Else GTextBigCentre cv, 14, PEN_YELLOW, "CONTROLS", 2
+    gcv.Box 0, 0, G_W, G_H, pen(2)
+    If page = 1 Then GTextBigCentre 14, PEN_YELLOW, "HOW TO PLAY", 2 Else GTextBigCentre 14, PEN_YELLOW, "CONTROLS", 2
     For k = 0 To 11
-        GText cv, 12, 58 + k * 14, 1, helpText(page, k)
+        GText 12, 58 + k * 14, 1, helpText(page, k)
     Next k
-    GText cv, 8, 248, 3, "PAGE " & page & " OF 2"
-    GText cv, 156, 248, PEN_YELLOW, "HELP: NEXT  SPACE: BACK"
+    GText 8, 248, 3, "PAGE " & page & " OF 2"
+    GText 156, 248, PEN_YELLOW, "HELP: NEXT  SPACE: BACK"
 End Sub
 
-Public Sub DrawEntry(cv As Object, ByVal nm As String)
+Public Sub DrawEntry(ByVal nm As String)
     Dim cur As String
-    Scene cv
-    GBox cv, 40, 70, 280, 180, 2, PEN_YELLOW
-    GTextCentre cv, 90, PEN_YELLOW, "A NEW HIGH SCORE!"
-    GTextCentre cv, 110, 1, "PLACE " & (HsRank(tdScore) + 1) & "   " & Format$(tdScore, "0000000")
+    Scene
+    GBox 40, 70, 280, 180, 2, PEN_YELLOW
+    GTextCentre 90, PEN_YELLOW, "A NEW HIGH SCORE!"
+    GTextCentre 110, 1, "PLACE " & (HsRank(tdScore) + 1) & "   " & Format$(tdScore, "0000000")
     If (tdTicks And 8) = 0 Then cur = "_" Else cur = " "
-    GTextCentre cv, 140, PEN_GREEN, "YOUR NAME: " & nm & cur
-    GTextCentre cv, 166, 3, "RETURN TO CONFIRM"
+    GTextCentre 140, PEN_GREEN, "YOUR NAME: " & nm & cur
+    GTextCentre 166, 3, "RETURN TO CONFIRM"
 End Sub
 
-Public Sub DrawScores(cv As Object)
+Public Sub DrawScores()
     Dim i As Long, p As Long
-    Scene cv
-    GBox cv, 50, 36, 270, 200, 2, 3
-    GTextBigCentre cv, 44, PEN_YELLOW, "HIGH SCORES", 2
+    Scene
+    GBox 50, 36, 270, 200, 2, 3
+    GTextBigCentre 44, PEN_YELLOW, "HIGH SCORES", 2
     For i = 0 To HS_COUNT - 1
         If i = entryRank Then p = PEN_GREEN Else p = 1
-        GTextCentre cv, 86 + i * 14, p, HsLine(i)
+        GTextCentre 86 + i * 14, p, HsLine(i)
     Next i
 End Sub
 
-Public Sub DrawPerf(cv As Object)
-    cv.Box 0, 46, G_W, 11, pen(0)
-    GText cv, 2, 55, PEN_GREEN, PerfText()
+Public Sub DrawPerf()
+    gcv.Box 0, 46, G_W, 11, pen(0)
+    GText 2, 55, PEN_GREEN, PerfText()
 End Sub

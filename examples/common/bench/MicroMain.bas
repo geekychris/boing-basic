@@ -9,7 +9,8 @@ Sub Main()
     Dim cv As Object, i As Long, t As Double, s As Long, c As A3Cam, d As Double, x As Long
     Dim xs(0 To 9) As Long, ys(0 To 9) As Long
     Set cv = CreateObject("Boing.Canvas")
-    cv.Resize 320, 256
+    Set gcv = cv
+    gcv.Resize 320, 256
     A3FixInit
     GfxPalette Array(0, &HFFF, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     t = TimerMs()
@@ -72,33 +73,33 @@ Sub Main()
     xs(0) = 10: ys(0) = 10: xs(1) = 100: ys(1) = 20: xs(2) = 90: ys(2) = 90: xs(3) = 15: ys(3) = 80
     t = TimerMs()
     For i = 1 To 1000
-        cv.Polygon xs, ys, 4, vbWhite, True
+        gcv.Polygon xs, ys, 4, vbWhite, True
     Next i
-    Report "cv.Polygon 90x80", t, 1000
+    Report "gcv.Polygon 90x80", t, 1000
     t = TimerMs()
     For i = 1 To 1000
-        cv.Box 0, 0, 320, 8, vbWhite
+        gcv.Box 0, 0, 320, 8, vbWhite
     Next i
-    Report "cv.Box 320x8", t, 1000
+    Report "gcv.Box 320x8", t, 1000
     t = TimerMs()
     For i = 1 To 1000
-        cv.DrawText 4, 4, "ROUND 3", vbWhite
+        gcv.DrawText 4, 4, "ROUND 3", vbWhite
     Next i
-    Report "cv.DrawText 7 chars", t, 1000
+    Report "gcv.DrawText 7 chars", t, 1000
     t = TimerMs()
     For i = 1 To 1000
-        GRect cv, 4, 4, 40, 10, 1
+        GRect 4, 4, 40, 10, 1
     Next i
     Report "GRect", t, 1000
     t = TimerMs()
     For i = 1 To 200
-        A3Flush cv
+        A3Flush
     Next i
     Report "A3Flush (" & a3NPolys & " polys)", t, 200
     t = TimerMs()
     For i = 1 To 200
-        cv.Cls 0
+        gcv.Cls 0
     Next i
-    Report "cv.Cls", t, 200
-    Print "picture hash " & cv.Hash
+    Report "gcv.Cls", t, 200
+    Print "picture hash " & gcv.Hash
 End Sub

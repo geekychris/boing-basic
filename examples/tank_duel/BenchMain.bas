@@ -19,7 +19,8 @@ Sub Main()
         End Select
     Next i
     Set cv = CreateObject("Boing.Canvas")
-    cv.Resize G_W, G_H
+    Set gcv = cv
+    gcv.Resize G_W, G_H
     TdInit
     DrawInit
     startRound = rnd
@@ -35,20 +36,20 @@ Sub Main()
         AgeEffects
         tl = tl + TimerMs() - t
         t = TimerMs()
-        DrawFight cv, False
+        DrawFight False
         td = td + TimerMs() - t
-        If Len(shots) > 0 And i Mod 100 = 0 Then cv.SaveImage shots & "/td_" & Format$(i, "0000") & ".ppm"
+        If Len(shots) > 0 And i Mod 100 = 0 Then gcv.SaveImage shots & "/td_" & Format$(i, "0000") & ".ppm"
     Next i
     t = TimerMs() - t0
     Print "Tank Duel bench: " & n & " frames, seed 1234, round " & rnd
     Print "state: round " & tdRound & " score " & tdScore & " kills " & tdKills & " hash " & Hex8(TdStateHash()) & _
-          " picture " & cv.Hash
+          " picture " & gcv.Hash
     Print "time: logic " & Format$(tl / n, "0.000") & " draw " & Format$(td / n, "0.000") & " ms/frame, " & _
           Format$(n * 1000# / t, "0.0") & " fps;  polys/frame " & Format$(polyTotal / n, "0.0")
     If Len(shots) > 0 Then
-        DrawTitle cv
-        cv.SaveImage shots & "/td_title.ppm"
-        DrawHelp cv, 1
-        cv.SaveImage shots & "/td_help.ppm"
+        DrawTitle
+        gcv.SaveImage shots & "/td_title.ppm"
+        DrawHelp 1
+        gcv.SaveImage shots & "/td_help.ppm"
     End If
 End Sub

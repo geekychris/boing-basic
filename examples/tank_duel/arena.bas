@@ -202,16 +202,16 @@ Private Sub Frame(ByVal steps As Long)
 
     t = TimerMs()
     If duHelp > 0 Then
-        DrawHelp view, duHelp
+        DrawHelp duHelp
     Else
         Select Case duState
-            Case DS_TITLE: DrawTitle view
-            Case DS_ENTRY: DrawEntry view, entryName
-            Case DS_SCORES: DrawScores view
-            Case Else: DrawFight view, duState = DS_OVER
+            Case DS_TITLE: DrawTitle
+            Case DS_ENTRY: DrawEntry entryName
+            Case DS_SCORES: DrawScores
+            Case Else: DrawFight duState = DS_OVER
         End Select
     End If
-    If showPerf Then DrawPerf view
+    If showPerf Then DrawPerf
     PerfAdd PH_DRAW
     benchDraw = benchDraw + (TimerMs() - t)
 

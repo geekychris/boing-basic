@@ -358,7 +358,7 @@ End Sub
 
 ' a line between two world points, drawn straight away: cut at the near plane
 ' and at the picture's edges (the Canvas would step through the whole line)
-Public Sub A3LineW(cv As Object, c As A3Cam, ByVal x0 As Long, ByVal y0 As Long, ByVal z0 As Long, _
+Public Sub A3LineW(c As A3Cam, ByVal x0 As Long, ByVal y0 As Long, ByVal z0 As Long, _
                    ByVal x1 As Long, ByVal y1 As Long, ByVal z1 As Long, ByVal col As Long)
     Dim ax As Long, ay As Long, az As Long, nz As Long, t As Double
     Dim sx0 As Double, sy0 As Double, sx1 As Double, sy1 As Double, dx As Double, dy As Double
@@ -399,11 +399,11 @@ Public Sub A3LineW(cv As Object, c As A3Cam, ByVal x0 As Long, ByVal y0 As Long,
             End If
         End If
     Next k
-    cv.Line CLng(sx0 + t0 * dx), CLng(sy0 + t0 * dy), CLng(sx0 + t1 * dx), CLng(sy0 + t1 * dy), col
+    gcv.Line CLng(sx0 + t0 * dx), CLng(sy0 + t0 * dy), CLng(sx0 + t1 * dx), CLng(sy0 + t1 * dy), col
 End Sub
 
 ' draw the list, far to near
-Public Sub A3Flush(cv As Object)
+Public Sub A3Flush()
     Dim b As Long, k As Long, i As Long, base As Long, n As Long
     For b = NBUCKET - 1 To 0 Step -1
         k = bHead(b)
@@ -414,7 +414,7 @@ Public Sub A3Flush(cv As Object)
                 fx(i) = dpX(base + i)
                 fy(i) = dpY(base + i)
             Next i
-            cv.Polygon fx, fy, n, pen(dpCol(k)), True
+            gcv.Polygon fx, fy, n, pen(dpCol(k)), True
             k = dpNext(k)
         Loop
     Next b

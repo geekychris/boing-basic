@@ -181,7 +181,7 @@ Private Sub Card(ByVal x0 As Long, ByVal y0 As Long, ByVal x1 As Long, ByVal y1 
     A3QuadW cam, depth - cam.z, col, x0, y0, z, x1, y0, z, x1, y1, z, x0, y1, z
 End Sub
 
-Private Sub Tunnel(cv As Object)
+Private Sub Tunnel()
     Dim z As Long, z1 As Long, d As Long, s As Long, k As Long
     A3Begin 1400
     z = WALL_Z0
@@ -199,7 +199,7 @@ Private Sub Tunnel(cv As Object)
     Loop
     Card -BB_W, -BB_H, BB_W, BB_H, BB_D, BB_D + 50, PEN_BACK
     polyTotal = polyTotal + a3NPolys
-    A3Flush cv
+    A3Flush
 End Sub
 
 Private Function EmptyAt(ByVal c As Long, ByVal r As Long, ByVal l As Long) As Boolean
@@ -305,20 +305,20 @@ Private Sub Paddle()
     Card x - 1, y - 6, x + 1, y + 6, 0, -10, col
 End Sub
 
-Private Sub CapsuleLetters(cv As Object)
+Private Sub CapsuleLetters()
     Dim k As Long, sx As Long, sy As Long
     For k = 0 To BB_MAX_CAPS - 1
         If bbCap(k).active Then
             CamXform cam, bbCap(k).x \ BB_FX, bbCap(k).y \ BB_FX, bbCap(k).z \ BB_FX
             If oz >= 60 Then
                 CamProject cam, ox, oy, oz, sx, sy
-                GText cv, sx - 2, sy + 3, 0, Mid$("WSLP", bbCap(k).ctype + 1, 1)
+                GText sx - 2, sy + 3, 0, Mid$("WSLP", bbCap(k).ctype + 1, 1)
             End If
         End If
     Next k
 End Sub
 
-Private Sub Scene(cv As Object)
+Private Sub Scene()
     cam.x = bbPX \ BB_FX \ 5
     cam.y = bbPY \ BB_FX \ 5
     cam.z = -320
@@ -327,8 +327,8 @@ Private Sub Scene(cv As Object)
     cam.precise = 0
     CamView cam, G_W, G_H, G_W \ 2, G_H \ 2, 270
     CamSetup cam
-    cv.Cls pen(0)
-    Tunnel cv
+    gcv.Cls pen(0)
+    Tunnel
     A3Begin 1400
     Bricks
     Capsules
@@ -336,100 +336,100 @@ Private Sub Scene(cv As Object)
     If Not (bbBetween <> 0 And bbStuck <> 0) Then Ball
     Paddle
     polyTotal = polyTotal + a3NPolys
-    A3Flush cv
-    CapsuleLetters cv
+    A3Flush
+    CapsuleLetters
 End Sub
 
-Private Sub Hud(cv As Object)
+Private Sub Hud()
     Dim k As Long, x As Long
-    GTextShadow cv, 4, 10, 1, "SCORE " & bbScore
-    GTextShadow cv, 128, 10, PEN_YELLOW, "LEVEL " & bbLevel
+    GTextShadow 4, 10, 1, "SCORE " & bbScore
+    GTextShadow 128, 10, PEN_YELLOW, "LEVEL " & bbLevel
     x = 210
     For k = 0 To bbLives - 1
         If k >= 8 Then Exit For
-        cv.Circle x + 4, 6, 4, pen(PEN_BALL), True
+        gcv.Circle x + 4, 6, 4, pen(PEN_BALL), True
         x = x + 13
     Next k
     x = 4
     If bbWideT Then
-        GTextShadow cv, x, 250, PEN_YELLOW, "WIDE"
+        GTextShadow x, 250, PEN_YELLOW, "WIDE"
         x = x + 44
     End If
     If bbSlowT Then
-        GTextShadow cv, x, 250, PEN_CYAN, "SLOW"
+        GTextShadow x, 250, PEN_CYAN, "SLOW"
         x = x + 44
     End If
-    If bbPloughT Then GTextShadow cv, x, 250, PEN_RED, "PLOUGH"
-    If duAutoplay Then GTextShadow cv, 250, 250, PEN_GREEN, "AUTO"
+    If bbPloughT Then GTextShadow x, 250, PEN_RED, "PLOUGH"
+    If duAutoplay Then GTextShadow 250, 250, PEN_GREEN, "AUTO"
 End Sub
 
-Public Sub DrawGame(cv As Object, ByVal isOver As Boolean, ByVal isPlay As Boolean)
+Public Sub DrawGame(ByVal isOver As Boolean, ByVal isPlay As Boolean)
     Dim p As Long
-    Scene cv
-    Hud cv
+    Scene
+    Hud
     If bbStuck <> 0 And bbBetween = 0 And isPlay Then
-        GTextCentre cv, 92, PEN_YELLOW, "LEVEL " & bbLevel & ": " & BbLevelName(bbLevel)
-        GTextCentre cv, 172, 1, "SPACE TO SERVE"
+        GTextCentre 92, PEN_YELLOW, "LEVEL " & bbLevel & ": " & BbLevelName(bbLevel)
+        GTextCentre 172, 1, "SPACE TO SERVE"
     End If
-    If bbBetween Then GTextBigCentre cv, 100, PEN_GREEN, "CLEARED!", 3
+    If bbBetween Then GTextBigCentre 100, PEN_GREEN, "CLEARED!", 3
     If isOver Then
         If bbWon Then p = PEN_GREEN Else p = PEN_RED
-        GBox cv, 60, 90, 260, 170, 2, p
-        If bbWon Then GTextBigCentre cv, 98, p, "YOU WIN", 2 Else GTextBigCentre cv, 98, p, "GAME OVER", 2
-        GTextCentre cv, 140, 1, "SCORE " & bbScore
-        If duStateTimer = 0 Then GTextCentre cv, 158, PEN_YELLOW, "PRESS SPACE"
+        GBox 60, 90, 260, 170, 2, p
+        If bbWon Then GTextBigCentre 98, p, "YOU WIN", 2 Else GTextBigCentre 98, p, "GAME OVER", 2
+        GTextCentre 140, 1, "SCORE " & bbScore
+        If duStateTimer = 0 Then GTextCentre 158, PEN_YELLOW, "PRESS SPACE"
     End If
-    If duPaused Then GTextCentre cv, 128, 1, "PAUSED"
-    If duFlashTimer > 0 And Len(duFlash) > 0 Then GTextCentre cv, 40, PEN_YELLOW, duFlash
+    If duPaused Then GTextCentre 128, 1, "PAUSED"
+    If duFlashTimer > 0 And Len(duFlash) > 0 Then GTextCentre 40, PEN_YELLOW, duFlash
 End Sub
 
-Public Sub DrawTitle(cv As Object)
+Public Sub DrawTitle()
     Dim p As Long
-    Scene cv                             ' the autopilot plays behind the title
-    GTextBigCentre cv, 28, 0, "BLOCK BREAKER", 3
-    GTextBig cv, (G_W - GTextBigWidth(cv, "BLOCK BREAKER", 3)) \ 2 - 2, 26, PEN_YELLOW, "BLOCK BREAKER", 3
-    GTextBig cv, 126, 66, 0, "3D", 6
-    GTextBig cv, 124, 64, PEN_CYAN, "3D", 6
-    GTextCentre cv, 186, PEN_GREEN, "START AT LEVEL " & startLevel & "  (UP/DOWN)"
+    Scene                             ' the autopilot plays behind the title
+    GTextBigCentre 28, 0, "BLOCK BREAKER", 3
+    GTextBig (G_W - GTextBigWidth("BLOCK BREAKER", 3)) \ 2 - 2, 26, PEN_YELLOW, "BLOCK BREAKER", 3
+    GTextBig 126, 66, 0, "3D", 6
+    GTextBig 124, 64, PEN_CYAN, "3D", 6
+    GTextCentre 186, PEN_GREEN, "START AT LEVEL " & startLevel & "  (UP/DOWN)"
     If (bbTicks \ 12) And 1 Then p = PEN_YELLOW Else p = 1
-    GTextCentre cv, 204, p, "PRESS SPACE TO PLAY"
-    GTextCentre cv, 222, 3, "BEST " & hsScore(0) & "     HELP: HOW TO PLAY"
+    GTextCentre 204, p, "PRESS SPACE TO PLAY"
+    GTextCentre 222, 3, "BEST " & hsScore(0) & "     HELP: HOW TO PLAY"
 End Sub
 
-Public Sub DrawHelp(cv As Object, ByVal page As Long)
+Public Sub DrawHelp(ByVal page As Long)
     Dim k As Long
-    cv.Cls pen(0)
-    If page = 1 Then GTextBigCentre cv, 14, PEN_CYAN, "HOW TO PLAY", 2 Else GTextBigCentre cv, 14, PEN_CYAN, "CONTROLS", 2
+    gcv.Cls pen(0)
+    If page = 1 Then GTextBigCentre 14, PEN_CYAN, "HOW TO PLAY", 2 Else GTextBigCentre 14, PEN_CYAN, "CONTROLS", 2
     For k = 0 To 11
-        GText cv, 12, 58 + k * 14, 1, helpText(page, k)
+        GText 12, 58 + k * 14, 1, helpText(page, k)
     Next k
-    GText cv, 8, 248, 3, "PAGE " & page & " OF 2"
-    GText cv, 156, 248, PEN_YELLOW, "HELP: NEXT  SPACE: BACK"
+    GText 8, 248, 3, "PAGE " & page & " OF 2"
+    GText 156, 248, PEN_YELLOW, "HELP: NEXT  SPACE: BACK"
 End Sub
 
-Public Sub DrawEntry(cv As Object, ByVal nm As String)
+Public Sub DrawEntry(ByVal nm As String)
     Dim cur As String
-    Scene cv
-    GBox cv, 40, 70, 280, 180, 2, PEN_YELLOW
-    GTextCentre cv, 90, PEN_YELLOW, "A NEW HIGH SCORE!"
-    GTextCentre cv, 110, 1, "PLACE " & (HsRank(bbScore) + 1) & "   " & Format$(bbScore, "0000000")
+    Scene
+    GBox 40, 70, 280, 180, 2, PEN_YELLOW
+    GTextCentre 90, PEN_YELLOW, "A NEW HIGH SCORE!"
+    GTextCentre 110, 1, "PLACE " & (HsRank(bbScore) + 1) & "   " & Format$(bbScore, "0000000")
     If (bbTicks And 8) = 0 Then cur = "_" Else cur = " "
-    GTextCentre cv, 140, PEN_GREEN, "YOUR NAME: " & nm & cur
-    GTextCentre cv, 166, 3, "RETURN TO CONFIRM"
+    GTextCentre 140, PEN_GREEN, "YOUR NAME: " & nm & cur
+    GTextCentre 166, 3, "RETURN TO CONFIRM"
 End Sub
 
-Public Sub DrawScores(cv As Object)
+Public Sub DrawScores()
     Dim i As Long, p As Long
-    Scene cv
-    GBox cv, 50, 36, 270, 200, 2, 3
-    GTextBigCentre cv, 44, PEN_YELLOW, "HIGH SCORES", 2
+    Scene
+    GBox 50, 36, 270, 200, 2, 3
+    GTextBigCentre 44, PEN_YELLOW, "HIGH SCORES", 2
     For i = 0 To HS_COUNT - 1
         If i = entryRank Then p = PEN_GREEN Else p = 1
-        GTextCentre cv, 86 + i * 14, p, HsLine(i)
+        GTextCentre 86 + i * 14, p, HsLine(i)
     Next i
 End Sub
 
-Public Sub DrawPerf(cv As Object)
-    cv.Box 0, 226, G_W, 11, pen(0)
-    GText cv, 2, 235, PEN_GREEN, PerfText()
+Public Sub DrawPerf()
+    gcv.Box 0, 226, G_W, 11, pen(0)
+    GText 2, 235, PEN_GREEN, PerfText()
 End Sub

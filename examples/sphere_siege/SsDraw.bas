@@ -251,7 +251,7 @@ Private Sub AddDot(ByVal c As Long)
 End Sub
 
 ' ---------- the backdrop: stars and the shell ----------
-Private Sub StarsAndShell(cv As Object)
+Private Sub StarsAndShell()
     Dim i As Long, x As Long, y As Long, z As Long, stp As Long, c7 As Long, c8 As Long, c9 As Long
     Dim rx As Long, ry As Long, rz As Long, ux As Long, uy As Long, uz As Long, fx As Long, fy As Long, fz As Long
     Dim t As Long, scx As Long, scy As Long
@@ -265,7 +265,7 @@ Private Sub StarsAndShell(cv As Object)
             If Proj() Then AddDot pen(sPen(i))
         End If
     Next i
-    If nDots > 0 Then cv.PSetMany dotX, dotY, dotC, nDots
+    If nDots > 0 Then gcv.PSetMany dotX, dotY, dotC, nDots
     If gridDetail = 0 Then Exit Sub
     ' far dots 1 pixel (from the start of the arrays), nearer ones 2 x 2 (from the end)
     nDots = 0
@@ -297,18 +297,18 @@ Private Sub StarsAndShell(cv As Object)
             End If
         End If
     Next i
-    If nDots > 0 Then cv.PSetMany dotX, dotY, dotC, nDots
-    If nNear > 0 Then cv.PSetMany nearX, nearY, nearC, nNear, 2
+    If nDots > 0 Then gcv.PSetMany dotX, dotY, dotC, nDots
+    If nNear > 0 Then gcv.PSetMany nearX, nearY, nearC, nNear, 2
 End Sub
 
 ' the line of fire: from the ship through the centre
-Private Sub FireLine(cv As Object)
+Private Sub FireLine()
     Dim t As Long, s As FV
     SsShipPos s
     For t = 160 To 2 * SS_R - 61 Step 90
         If Not (t > SS_R - 70 And t < SS_R + 70) Then
             Xf s.x + ssF.x * t, s.y + ssF.y * t, s.z + ssF.z * t
-            If Proj() Then cv.PSet px, py, pen(PEN_SIGHT)
+            If Proj() Then gcv.PSet px, py, pen(PEN_SIGHT)
         End If
     Next t
 End Sub
@@ -432,40 +432,40 @@ Private Sub DrawShip()
     Shape qx, qy, qz, 6, 14 + (ssTicks And 3) * 4, 160, ssTicks * 4000, PEN_ENGINE, -240
 End Sub
 
-Private Sub SpaceBands(cv As Object)
+Private Sub SpaceBands()
     Dim y As Long, r As Long, g As Long, b As Long
     For y = 0 To G_H - 1 Step 16
         r = (spaceTop And 255) + ((spaceBottom And 255) - (spaceTop And 255)) * y \ G_H
         g = ((spaceTop \ 256) And 255) + (((spaceBottom \ 256) And 255) - ((spaceTop \ 256) And 255)) * y \ G_H
         b = ((spaceTop \ 65536) And 255) + (((spaceBottom \ 65536) And 255) - ((spaceTop \ 65536) And 255)) * y \ G_H
-        cv.Box 0, y, G_W, 16, RGB(r, g, b)
+        gcv.Box 0, y, G_W, 16, RGB(r, g, b)
     Next y
 End Sub
 
-Private Sub Scene(cv As Object, ByVal showLine As Boolean)
+Private Sub Scene(ByVal showLine As Boolean)
     Camera
-    SpaceBands cv
-    StarsAndShell cv
-    If showLine Then FireLine cv
+    SpaceBands
+    StarsAndShell
+    If showLine Then FireLine
     A3Begin 12000
     Vortex
     Enemies
     Movers
     If ssOver = 0 Then DrawShip
     polyTotal = polyTotal + a3NPolys
-    A3Flush cv
+    A3Flush
 End Sub
 
 ' ---------- the HUD ----------
-Private Sub Radar(cv As Object)
+Private Sub Radar()
     Dim k As Long, x As Long, y As Long, z As Long, rx As Long, ry As Long, pp As Long
     Const RX0 As Long = 286
     Const RY0 As Long = 222
     Const RR As Long = 28
-    cv.Circle RX0, RY0, RR + 2, pen(3), True
-    cv.Circle RX0, RY0, RR, pen(2), True
-    GRect cv, RX0 - RR + 3, RY0, RX0 + RR - 3, RY0, PEN_GRID + 1
-    GRect cv, RX0, RY0 - RR + 3, RX0, RY0 + RR - 3, PEN_GRID + 1
+    gcv.Circle RX0, RY0, RR + 2, pen(3), True
+    gcv.Circle RX0, RY0, RR, pen(2), True
+    GRect RX0 - RR + 3, RY0, RX0 + RR - 3, RY0, PEN_GRID + 1
+    GRect RX0, RY0 - RR + 3, RX0, RY0 + RR - 3, PEN_GRID + 1
     For k = 0 To ssNEn - 1
         If en(k).phase <> PH_WAIT And en(k).phase <> PH_DEAD Then
             SsLocal en(k).d, x, y, z
@@ -473,49 +473,49 @@ Private Sub Radar(cv As Object)
             ry = RY0 - ShrA(y * (RR - 2), 16)
             If z < 0 Then
                 If en(k).phase = PH_SWOOP Then pp = PEN_YELLOW Else pp = PEN_RED
-                GRect cv, rx - 1, ry - 1, rx + 1, ry + 1, pp
+                GRect rx - 1, ry - 1, rx + 1, ry + 1, pp
             Else
-                GRect cv, rx, ry, rx, ry, PEN_GREEN
+                GRect rx, ry, rx, ry, PEN_GREEN
             End If
         End If
     Next k
-    GRect cv, RX0 - 1, RY0 - 1, RX0 + 1, RY0 + 1, 1
+    GRect RX0 - 1, RY0 - 1, RX0 + 1, RY0 + 1, 1
 End Sub
 
-Private Sub Hud(cv As Object)
+Private Sub Hud()
     Dim k As Long, best As Long, s As String, pp As Long
     Static lx(0 To 2) As Long, ly(0 To 2) As Long
-    GTextShadow cv, 4, 10, 1, CStr(ssScore)
+    GTextShadow 4, 10, 1, CStr(ssScore)
     best = hsScore(0)
     If ssScore > best Then best = ssScore
-    GTextCentre cv, 10, 3, "HI " & best
+    GTextCentre 10, 3, "HI " & best
     s = "WAVE " & ssWave
     If ssSiege Then pp = PEN_RED Else pp = PEN_YELLOW
-    GTextShadow cv, G_W - 4 - GTextWidth(cv, s), 10, pp, s
+    GTextShadow G_W - 4 - GTextWidth(s), 10, pp, s
     For k = 0 To ssLives - 2
         If k >= 8 Then Exit For
         lx(0) = 8 + k * 14: lx(1) = 14 + k * 14: lx(2) = 20 + k * 14
         ly(0) = G_H - 6: ly(1) = G_H - 16: ly(2) = G_H - 6
-        cv.Polygon lx, ly, 3, pen(PEN_SHIP), True
+        gcv.Polygon lx, ly, 3, pen(PEN_SHIP), True
     Next k
-    Radar cv
-    If duAutoplay Then GTextShadow cv, G_W - 104, G_H - 4, PEN_GREEN, "AUTO"
+    Radar
+    If duAutoplay Then GTextShadow G_W - 104, G_H - 4, PEN_GREEN, "AUTO"
     If duHurtTimer > 0 Then
-        GRect cv, 0, 0, G_W - 1, 3, PEN_RED
-        GRect cv, 0, G_H - 4, G_W - 1, G_H - 1, PEN_RED
-        GRect cv, 0, 0, 3, G_H - 1, PEN_RED
-        GRect cv, G_W - 4, 0, G_W - 1, G_H - 1, PEN_RED
+        GRect 0, 0, G_W - 1, 3, PEN_RED
+        GRect 0, G_H - 4, G_W - 1, G_H - 1, PEN_RED
+        GRect 0, 0, 3, G_H - 1, PEN_RED
+        GRect G_W - 4, 0, G_W - 1, G_H - 1, PEN_RED
     End If
 End Sub
 
-Public Sub DrawGame(cv As Object, ByVal isOver As Boolean, ByVal isPlay As Boolean)
+Public Sub DrawGame(ByVal isOver As Boolean, ByVal isPlay As Boolean)
     Dim pct As Long, pp As Long, s As String
-    Scene cv, True
-    Hud cv
+    Scene True
+    Hud
     If ssBetween > 0 And ssBetween < SS_BETWEEN - 10 And ssOver = 0 Then
-        GTextBigCentre cv, 70, PEN_GREEN, "WAVE CLEAR", 2
-        GTextCentre cv, 104, 1, "BONUS " & (500 * ssWave)
-        If (ssWave + 1) Mod SS_SIEGE = 0 Then GTextCentre cv, 120, PEN_RED, "NEXT: A SIEGE WAVE"
+        GTextBigCentre 70, PEN_GREEN, "WAVE CLEAR", 2
+        GTextCentre 104, 1, "BONUS " & (500 * ssWave)
+        If (ssWave + 1) Mod SS_SIEGE = 0 Then GTextCentre 120, PEN_RED, "NEXT: A SIEGE WAVE"
     ElseIf ssWaveTick < 50 And ssBetween = 0 Then
         If ssSiege Then
             s = "SIEGE WAVE " & ssWave
@@ -524,70 +524,70 @@ Public Sub DrawGame(cv As Object, ByVal isOver As Boolean, ByVal isPlay As Boole
             s = "WAVE " & ssWave
             pp = PEN_YELLOW
         End If
-        GTextBigCentre cv, 70, pp, s, 2
-        If ssSiege Then GTextCentre cv, 104, 1, "WARDENS TAKE THREE HITS"
+        GTextBigCentre 70, pp, s, 2
+        If ssSiege Then GTextCentre 104, 1, "WARDENS TAKE THREE HITS"
     End If
     If isOver Then
-        GBox cv, 50, 80, 270, 168, 2, PEN_RED
-        GTextBigCentre cv, 88, PEN_RED, "GAME OVER", 2
+        GBox 50, 80, 270, 168, 2, PEN_RED
+        GTextBigCentre 88, PEN_RED, "GAME OVER", 2
         If ssShots Then pct = (ssHits * 100) \ ssShots
-        GTextCentre cv, 122, PEN_YELLOW, "WAVE " & ssWave & "   " & pct & "% HITS"
-        GTextCentre cv, 136, 1, "SCORE " & ssScore
-        If duStateTimer = 0 Then GTextCentre cv, 158, PEN_YELLOW, "PRESS SPACE"
+        GTextCentre 122, PEN_YELLOW, "WAVE " & ssWave & "   " & pct & "% HITS"
+        GTextCentre 136, 1, "SCORE " & ssScore
+        If duStateTimer = 0 Then GTextCentre 158, PEN_YELLOW, "PRESS SPACE"
     End If
-    If duPaused Then GTextCentre cv, 180, 1, "PAUSED"
-    If duFlashTimer > 0 And Len(duFlash) > 0 Then GTextCentre cv, 44, duFlashPen, duFlash
+    If duPaused Then GTextCentre 180, 1, "PAUSED"
+    If duFlashTimer > 0 And Len(duFlash) > 0 Then GTextCentre 44, duFlashPen, duFlash
 End Sub
 
-Public Sub DrawTitle(cv As Object)
+Public Sub DrawTitle()
     Dim pp As Long
-    Scene cv, False                       ' the autopilot plays behind the title
-    GTextBigCentre cv, 26, 0, "SPHERE", 6
-    GTextBig cv, (G_W - GTextBigWidth(cv, "SPHERE", 6)) \ 2 - 2, 24, PEN_CYAN, "SPHERE", 6
-    GTextBigCentre cv, 86, 0, "SIEGE", 6
-    GTextBig cv, (G_W - GTextBigWidth(cv, "SIEGE", 6)) \ 2 - 2, 84, PEN_CORE + 1, "SIEGE", 6
-    GBox cv, 40, 186, 280, 252, 2, 3
-    GTextCentre cv, 200, PEN_GREEN, "START AT WAVE " & startWave & " (UP/DOWN)"
+    Scene False                       ' the autopilot plays behind the title
+    GTextBigCentre 26, 0, "SPHERE", 6
+    GTextBig (G_W - GTextBigWidth("SPHERE", 6)) \ 2 - 2, 24, PEN_CYAN, "SPHERE", 6
+    GTextBigCentre 86, 0, "SIEGE", 6
+    GTextBig (G_W - GTextBigWidth("SIEGE", 6)) \ 2 - 2, 84, PEN_CORE + 1, "SIEGE", 6
+    GBox 40, 186, 280, 252, 2, 3
+    GTextCentre 200, PEN_GREEN, "START AT WAVE " & startWave & " (UP/DOWN)"
     If (ssTicks \ 12) And 1 Then pp = PEN_YELLOW Else pp = 1
-    GTextCentre cv, 216, pp, "PRESS SPACE TO PLAY"
-    GTextCentre cv, 232, 1, "HIGH SCORE " & hsScore(0)
-    GTextCentre cv, 246, 3, "HELP: HOW TO PLAY"
+    GTextCentre 216, pp, "PRESS SPACE TO PLAY"
+    GTextCentre 232, 1, "HIGH SCORE " & hsScore(0)
+    GTextCentre 246, 3, "HELP: HOW TO PLAY"
 End Sub
 
-Public Sub DrawHelp(cv As Object, ByVal page As Long)
+Public Sub DrawHelp(ByVal page As Long)
     Dim k As Long
-    cv.Box 0, 0, G_W, G_H, pen(2)
-    If page = 1 Then GTextBigCentre cv, 14, PEN_YELLOW, "HOW TO PLAY", 2 Else GTextBigCentre cv, 14, PEN_YELLOW, "CONTROLS", 2
+    gcv.Box 0, 0, G_W, G_H, pen(2)
+    If page = 1 Then GTextBigCentre 14, PEN_YELLOW, "HOW TO PLAY", 2 Else GTextBigCentre 14, PEN_YELLOW, "CONTROLS", 2
     For k = 0 To 11
-        GText cv, 12, 58 + k * 14, 1, helpText(page, k)
+        GText 12, 58 + k * 14, 1, helpText(page, k)
     Next k
-    GText cv, 8, 248, 3, "PAGE " & page & " OF 2"
-    GText cv, 156, 248, PEN_YELLOW, "HELP: NEXT  SPACE: BACK"
+    GText 8, 248, 3, "PAGE " & page & " OF 2"
+    GText 156, 248, PEN_YELLOW, "HELP: NEXT  SPACE: BACK"
 End Sub
 
-Public Sub DrawEntry(cv As Object, ByVal nm As String)
+Public Sub DrawEntry(ByVal nm As String)
     Dim cur As String
-    Scene cv, False
-    GBox cv, 40, 70, 280, 180, 2, PEN_YELLOW
-    GTextCentre cv, 90, PEN_YELLOW, "A NEW HIGH SCORE!"
-    GTextCentre cv, 110, 1, "PLACE " & (HsRank(ssScore) + 1) & "   " & Format$(ssScore, "0000000")
+    Scene False
+    GBox 40, 70, 280, 180, 2, PEN_YELLOW
+    GTextCentre 90, PEN_YELLOW, "A NEW HIGH SCORE!"
+    GTextCentre 110, 1, "PLACE " & (HsRank(ssScore) + 1) & "   " & Format$(ssScore, "0000000")
     If (ssTicks And 8) = 0 Then cur = "_" Else cur = " "
-    GTextCentre cv, 140, PEN_GREEN, "YOUR NAME: " & nm & cur
-    GTextCentre cv, 166, 3, "RETURN TO CONFIRM"
+    GTextCentre 140, PEN_GREEN, "YOUR NAME: " & nm & cur
+    GTextCentre 166, 3, "RETURN TO CONFIRM"
 End Sub
 
-Public Sub DrawScores(cv As Object)
+Public Sub DrawScores()
     Dim i As Long, pp As Long
-    Scene cv, False
-    GBox cv, 50, 36, 270, 200, 2, 3
-    GTextBigCentre cv, 44, PEN_YELLOW, "HIGH SCORES", 2
+    Scene False
+    GBox 50, 36, 270, 200, 2, 3
+    GTextBigCentre 44, PEN_YELLOW, "HIGH SCORES", 2
     For i = 0 To HS_COUNT - 1
         If i = entryRank Then pp = PEN_GREEN Else pp = 1
-        GTextCentre cv, 86 + i * 14, pp, HsLine(i)
+        GTextCentre 86 + i * 14, pp, HsLine(i)
     Next i
 End Sub
 
-Public Sub DrawPerf(cv As Object)
-    cv.Box 0, 22, G_W, 11, pen(0)
-    GText cv, 2, 31, PEN_GREEN, PerfText()
+Public Sub DrawPerf()
+    gcv.Box 0, 22, G_W, 11, pen(0)
+    GText 2, 31, PEN_GREEN, PerfText()
 End Sub
