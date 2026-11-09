@@ -19,7 +19,8 @@ Install (one guest session, FIFO ticket + emulator lock + banner, at most BB_SES
     ":BoingBASIC/AmiForge" into DH1:.backdrop itself (Workbench shows it after a reboot)
 Verify (a second, short session): AmiForge's version string, `boing --version`, `boing check` of
 one example, the KIT-MANIFEST revisions, the .backdrop entry, Grim Reapers, and a screenshot of the
-desktop (QEMU HMP screendump; the screen blanker is woken by a 1-pixel mouse move first).
+desktop (os4guest.shot; never on m1, the user's guest, where the icon's place is read through
+Workbench ARexx instead).
 
 Exit status 0 when everything checks. Never touches anything outside DH1:BoingBASIC*, DH1:BBkit-new,
 DH1:BoingBASIC.info, DH1:.backdrop and RAM:bbkit.
@@ -56,7 +57,9 @@ def opt(name, default=None):
 
 KIT = os.path.abspath(opt("--kit", os.path.join(ROOT, "build", "kit", "BoingBASIC.lha")))
 SHOT = os.path.abspath(opt("--shot", os.path.join(os.path.dirname(KIT), "desktop-%s.png" % g.GUEST)))
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", g._G.get("hmp", 2348)))   # the guest's QEMU monitor (os4guest.py)
+# Screenshots (QEMU monitor) only on guests whose os4guest.py profile has a monitor port; never on
+# m1, the user's guest: there the icon is checked through Workbench ARexx alone.
+CAN_SHOOT = g.GUEST != "m1" and "hmp" in g._G
 DEST = "DH1:BoingBASIC"
 ENTRY = ":BoingBASIC/AmiForge"
 WB = "WORKBENCH"
@@ -220,16 +223,44 @@ def place(m):
 PLACED = []
 
 
+def wb_attr(m, obj, name="ROOT"):
+    r = rexx(m, "GETATTR OBJECT %s NAME %s" % (obj, name))
+    return r[4:].strip() if r.startswith("[OK]") else None
+
+
 def screen_size(m):
+    """The Workbench screen's size (Workbench ARexx: no screenshot needed)."""
     try:
-        from PIL import Image
-        p = screenshot(m, os.path.join(tempfile.gettempdir(), "bbkit-size-%d.png" % os.getpid()))
-        w, h = Image.open(p).size
-        os.unlink(p)
-        return w, h
-    except Exception as e:
-        log("screen size unknown (%s): using 1280x720" % e)
+        return int(wb_attr(m, "WINDOW.SCREEN.WIDTH")), int(wb_attr(m, "WINDOW.SCREEN.HEIGHT"))
+    except (TypeError, ValueError):
+        log("screen size unknown: using 1280x720")
         return 1280, 720
+
+
+def icon_position(m):
+    """(left, top) of the AmiForge icon on the Workbench backdrop, from Workbench ARexx; None if
+    it isn't there."""
+    try:
+        n = int(wb_attr(m, "WINDOW.ICONS.ALL.COUNT"))
+    except (TypeError, ValueError):
+        return None
+    for i in range(n):
+        if wb_attr(m, "WINDOW.ICONS.ALL.%d.NAME" % i) == "AmiForge":
+            try:
+                return int(wb_attr(m, "WINDOW.ICONS.ALL.%d.LEFT" % i)), int(wb_attr(m, "WINDOW.ICONS.ALL.%d.TOP" % i))
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
+def icon_on_screen(m):
+    """The icon is on the backdrop and inside the screen (Workbench ARexx only)."""
+    pos = icon_position(m)
+    w, h = screen_size(m)
+    ok = pos is not None and 0 <= pos[0] <= w - 32 and 0 <= pos[1] <= h - 32
+    log("AmiForge icon on the Workbench backdrop at %s on a %dx%d screen: %s"
+        % (pos, w, h, "yes" if ok else "NO"))
+    return ok
 
 
 def icon_visible(png, xy=None):
@@ -334,37 +365,11 @@ def install(m):
             raise RuntimeError("couldn't put the AmiForge icon on the desktop")
 
 
-def hmp(lines):
-    data = "".join(l + "\n" for l in lines)
-    if g.SSH:
-        cmd = ["ssh", "-o", "BatchMode=yes", g.SSH, "nc -w 3 127.0.0.1 %d >/dev/null" % HMP_PORT]
-    else:
-        cmd = ["sh", "-c", "nc -w 3 127.0.0.1 %d >/dev/null" % HMP_PORT]
-    subprocess.run(cmd, input=data.encode(), timeout=30, check=True)
-
-
 def screenshot(m, out):
-    try:
-        m.tool("amiga_input_mouse_move", dx=1, dy=0)     # wake the screen blanker
-        time.sleep(0.3)
-        m.tool("amiga_input_mouse_move", dx=-1, dy=0)
-    except RuntimeError:
-        pass
-    time.sleep(2)
-    tmp = "/tmp/bbkit-shot-%d.ppm" % os.getpid()
-    hmp(["screendump %s" % tmp])
-    time.sleep(1)
-    if g.SSH:
-        subprocess.run(["ssh", "-o", "BatchMode=yes", g.SSH,
-                        "sips -s format png %s --out %s.png >/dev/null 2>&1 || "
-                        "python3 -c \"from PIL import Image; Image.open(\"%s\").save('%s.png')\"; rm -f %s"
-                        % (tmp, tmp, tmp, tmp, tmp)], check=True, timeout=60)
-        subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "%s:%s.png" % (g.SSH, tmp), out], check=True)
-        subprocess.run(["ssh", "-o", "BatchMode=yes", g.SSH, "rm -f %s.png" % tmp], timeout=30)
-    else:
-        subprocess.run(["sips", "-s", "format", "png", tmp, "--out", out], check=True, capture_output=True)
-        os.unlink(tmp)
-    return out
+    """A screenshot through os4guest.shot (it refuses m1, the user's guest)."""
+    if not CAN_SHOOT:
+        sys.exit("install-kit: no screenshots on BB_GUEST=%s" % g.GUEST)
+    return g.shot(m, out)
 
 
 def verify(m):
@@ -400,6 +405,12 @@ def verify(m):
     n = g.reapers(m)
     log("Grim Reapers: %d" % n)
     ok &= n == 0
+    if "--no-icon" not in args and wb_alive(m):
+        ok &= icon_on_screen(m)
+    if not CAN_SHOOT:
+        log("no screenshot on BB_GUEST=%s (the user's guest): the icon was checked through Workbench ARexx"
+            % g.GUEST)
+        return ok
     try:
         log("desktop screenshot: %s" % screenshot(m, SHOT))
         if "--no-icon" not in args:

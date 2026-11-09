@@ -24,12 +24,14 @@ for a in sys.argv[1:]:
         os.environ["BB_GUEST"] = a.split("=", 1)[1]
     else:
         names.append(a)
+if os.environ.get("BB_GUEST", "local") == "m1":
+    # m1 is the user's guest: this test starts AmiForge and programs there and needs screenshots
+    sys.exit("flow: not on BB_GUEST=m1 (the user's guest); run it on m1b or m1c")
 os.environ.setdefault("BB_SESSION_TIMEOUT", "330")
 sys.path.insert(0, os.path.dirname(HERE))
 import os4guest as g  # noqa: E402
 
 RUN_SECONDS = int(os.environ.get("BB_FLOW_RUN", "25"))
-HMP_PORT = int(os.environ.get("OS4_HMP_PORT", g._G.get("hmp", 2348)))   # the guest's QEMU monitor (os4guest.py)
 OUT = os.path.join(ROOT, "build", "kit", "flow-%s" % g.GUEST)
 DEST = "DH1:BoingBASIC"
 names = names or ["glimmerfield", "stack_tower_bb", "tincture", "riffwright"]
@@ -39,37 +41,27 @@ def log(*a):
     print("flow:", *a, flush=True)
 
 
-def hmp(lines):
-    data = "".join(l + "\n" for l in lines)
-    cmd = (["ssh", "-o", "BatchMode=yes", g.SSH, "nc -w 3 127.0.0.1 %d >/dev/null" % HMP_PORT] if g.SSH
-           else ["sh", "-c", "nc -w 3 127.0.0.1 %d >/dev/null" % HMP_PORT])
-    subprocess.run(cmd, input=data.encode(), timeout=30, check=True)
+def amiga_key(m, *codes):
+    """Raw keys through the bridge's input.device injection (it keeps the qualifier state, so
+    0x67 down, 0x16 down/up, 0x67 up is Right-Amiga+U); codes > 0xff are only pressed, then
+    released after the others."""
+    held = []
+    for c in codes:
+        m.tool("amiga_input_key", rawkey="%02x" % (c & 0xff), direction="down")
+        if c > 0xff:
+            held.append(c & 0xff)
+        else:
+            m.tool("amiga_input_key", rawkey="%02x" % c, direction="up")
+    for c in reversed(held):
+        m.tool("amiga_input_key", rawkey="%02x" % c, direction="up")
 
 
-def keys(*ks):
-    hmp(["sendkey %s" % k for k in ks])
+RAMIGA, KEY_U, ESC = 0x167, 0x16, 0x45
 
 
 def shot(m, name):
     os.makedirs(OUT, exist_ok=True)
-    try:
-        m.tool("amiga_input_mouse_move", dx=1, dy=0)
-        m.tool("amiga_input_mouse_move", dx=-1, dy=0)
-    except RuntimeError:
-        pass
-    time.sleep(1)
-    tmp = "/tmp/bbflow-%d.ppm" % os.getpid()
-    out = os.path.join(OUT, name + ".png")
-    hmp(["screendump %s" % tmp])
-    time.sleep(1)
-    if g.SSH:
-        subprocess.run(["ssh", "-o", "BatchMode=yes", g.SSH, "sips -s format png %s --out %s.png >/dev/null; rm -f %s"
-                        % (tmp, tmp, tmp)], check=True, timeout=60)
-        subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "%s:%s.png" % (g.SSH, tmp), out], check=True)
-        subprocess.run(["ssh", "-o", "BatchMode=yes", g.SSH, "rm -f %s.png" % tmp], timeout=30)
-    else:
-        subprocess.run(["sips", "-s", "format", "png", tmp, "--out", out], check=True, capture_output=True)
-        os.unlink(tmp)
+    out = g.shot(m, os.path.join(OUT, name + ".png"))     # os4guest refuses m1
     log("screenshot", out)
     return out
 
@@ -144,7 +136,7 @@ def run_project(m, d, afp):
             break
     else:
         log("the program didn't stop: closing it with Esc")
-        keys("esc")
+        amiga_key(m, ESC)
         time.sleep(3)
     after = tasks(m)
     stopped = after.lower().count("boing") <= before.lower().count("boing")
@@ -176,10 +168,17 @@ def main():
                 start_amiforge(m)
                 shot(m, "amiforge-%d" % i)
                 if os.environ.get("BB_FLOW_FIRST", "1") == "1":
-                    keys("meta_r-u")          # Project > Browse Projects
+                    # a click in AmiForge's status bar makes its window the active one (WBRun leaves
+                    # another window active), then Project > Browse Projects (Right-Amiga+U)
+                    m.tool("amiga_input_mouse_move", dx=-3000, dy=-3000)
+                    m.tool("amiga_input_mouse_move", dx=600, dy=667)
+                    m.tool("amiga_input_click", button="left", direction="down")
+                    m.tool("amiga_input_click", button="left", direction="up")
+                    time.sleep(1)
+                    amiga_key(m, RAMIGA, KEY_U)
                     time.sleep(4)
                     shot(m, "browse-projects")
-                    keys("esc")
+                    amiga_key(m, ESC)
                     time.sleep(2)
                 for d in group:
                     if d not in man:
