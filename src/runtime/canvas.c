@@ -412,7 +412,7 @@ enum {
     M_FREEIMAGE, M_SETTARGET, M_DRAWIMAGE, M_DRAWIMAGEPART, M_IMAGEWIDTH, M_IMAGEHEIGHT, M_KEYDOWN,
     M_SAVEIMAGE, M_INJECTKEY, M_RESIZE,
     P_WIDTH, P_HEIGHT, P_FORECOLOR, P_FILLCOLOR, P_BACKCOLOR, P_CURRENTX, P_CURRENTY, P_FRAMES,
-    P_TARGET, P_NAME, P_BLITMODE, P_BLITINFO, P_SCALE
+    P_TARGET, P_NAME, P_BLITMODE, P_BLITINFO, P_SCALE, P_LEFT, P_TOP
 };
 
 static const struct { const char *name; int32_t id; } members[] = {
@@ -429,6 +429,7 @@ static const struct { const char *name; int32_t id; } members[] = {
     {"ForeColor", P_FORECOLOR}, {"FillColor", P_FILLCOLOR}, {"BackColor", P_BACKCOLOR},
     {"CurrentX", P_CURRENTX}, {"CurrentY", P_CURRENTY}, {"Frames", P_FRAMES}, {"Target", P_TARGET},
     {"Name", P_NAME}, {"BlitMode", P_BLITMODE}, {"BlitInfo", P_BLITINFO}, {"Scale", P_SCALE},
+    {"Left", P_LEFT}, {"Top", P_TOP},
 };
 
 #define CV_CTL_MEMBER 10000
@@ -767,6 +768,14 @@ static void cv_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         if (setting) bb_raise(383, NULL);
         *ret = bb_v_long(c->scale);
         return;
+    case P_LEFT: case P_TOP: {  /* the control's place in the window (0 off-screen) */
+        bb_fval out;
+        if (setting) bb_raise(383, NULL);
+        out.type = 0; out.i = 0; out.s = NULL;
+        if (c->ctl && bb_ctl_get(c->ctl, id == P_LEFT ? "Left" : "Top", -1, &out) != 0) out.i = 0;
+        *ret = bb_v_long(out.i);
+        return;
+    }
     case P_BLITINFO:
         if (setting) bb_raise(383, NULL);
         *ret = bb_v_str(bb_str_from_c(canvas_plat_blit_info()));
