@@ -37,6 +37,19 @@ def push_project(m, bbp):
         g.push(m, f, gg.amiga(f))
 
 
+MYDIR = "RAM:bbg/examples/boing_pinball_bb"
+
+
+def stop_mine(m):
+    """Ctrl-C to our own processes only (loaded from our directory: other agents use RAM:bbg/ too)."""
+    st = str(m.tool("amiga_dos_command", command="status"))
+    for num in re.findall(r"Process\s+(\d+): Loaded as command: " + re.escape(MYDIR) + "/", st):
+        m.tool("amiga_dos_command", command="break %s C" % num)
+
+
+gg.stop_ours = stop_mine                    # (guest_game's run() calls it on a time-out)
+
+
 def build_native(bbp):
     exe = os.path.join(ROOT, "build/os4", os.path.splitext(os.path.basename(bbp))[0] + ".exe")
     subprocess.check_call([os.path.join(ROOT, "build/boing"), "build", bbp, "--target", "os4", "-o", exe])
@@ -48,8 +61,8 @@ def command(m, bbp, md, args, exe):
     if md == "native":
         g.push(m, exe, d + "/native")
         return "%s/native %s" % (d, args)
-    g.push(m, os.path.join(ROOT, "build/os4/boing"), "RAM:bbg/boing")
-    return "RAM:bbg/boing run %s%s %s" % ("--jit " if md == "jit" else "", gg.amiga(bbp), args)
+    g.push(m, os.path.join(ROOT, "build/os4/boing"), MYDIR + "/boing")
+    return "%s/boing run %s%s %s" % (MYDIR, "--jit " if md == "jit" else "", gg.amiga(bbp), args)
 
 
 def hmp(cmd):
@@ -80,6 +93,19 @@ def screendump(out_png):
     print("screenshot", out_png, "canvas at", box)
 
 
+def screendump_full(out_png):
+    from PIL import Image
+    remote = "/tmp/bb_pinball_shot.ppm"
+    hmp("screendump " + remote)
+    local = out_png[:-4] + ".ppm"
+    if g.GUEST in SHOTS_SSH:
+        subprocess.check_call(["scp", "-q", SHOTS_SSH[g.GUEST] + ":" + remote, local])
+    else:
+        os.replace(remote, local)
+    Image.open(local).save(out_png); os.remove(local)
+    print("screenshot", out_png)
+
+
 def find_canvas(im):
     """the window's inner area: look for the 640-wide run of the canvas under the title bar"""
     w, h = im.size
@@ -96,6 +122,40 @@ def main():
         print(__doc__); return 2
     what = sys.argv[1]
     m = g.MCP(g.URL)
+    if what == "reaper":            # a crash of ours: screenshot the Grim Reaper, close it, stop our processes
+        out = sys.argv[2] if len(sys.argv) > 2 else "/tmp/pb_reaper.png"
+        with g.testing("Boing Pinball: closing a crashed test"):
+            st = str(m.tool("amiga_dos_command", command="status"))
+            print(st)
+            if "GrimReaper" in st and MYDIR in st:
+                screendump_full(out)
+                print("ptr:", m.tool("amiga_dos_command", command="list DH1:bbtools"),
+                      m.tool("amiga_dos_command", command="DH1:bbtools/ptr reaper"))
+            stop_mine(m)
+            time.sleep(3)
+            print(m.tool("amiga_dos_command", command="status"))
+        return 0
+    if what == "probe":             # tools/probe: the native build's init step by step
+        bbp = os.path.join(PROJ, "tools/probe/Probe.bbp")
+        exe = build_native(bbp)
+        with g.testing("Boing Pinball: native probe"):
+            push_project(m, os.path.join(PROJ, "Pinball.bbp"))
+            print("reaper before:", m.tool("amiga_dos_command", command="DH1:bbtools/ptr reaper"))
+            g.push(m, exe, MYDIR + "/probe")
+            m.tool("amiga_dos_command", command="delete RAM:pb_probe.log QUIET")
+            m.tool("amiga_dos_command", command="cd " + MYDIR)
+            m.tool("amiga_dos_command", command="run >NIL: %s/probe >RAM:pb_probe.out *>RAM:pb_probe.err" % MYDIR)
+            time.sleep(float(os.environ.get("PB_PROBE_WAIT", "90")))
+            print(m.tool("amiga_dos_command", command="type RAM:pb_probe.log"))
+            print(m.tool("amiga_dos_command", command="type RAM:pb_probe.err"))
+            st = str(m.tool("amiga_dos_command", command="status"))
+            print(st)
+            if "GrimReaper" in st:
+                screendump_full(os.environ.get("PB_SHOT", "/tmp/pb_reaper.png"))
+                print("reaper after:", m.tool("amiga_dos_command", command="DH1:bbtools/ptr reaper"))
+            stop_mine(m)
+            m.tool("amiga_dos_command", command="delete RAM:pb_probe.log RAM:pb_probe.out RAM:pb_probe.err QUIET")
+        return 0
     if what == "clean":
         with g.testing("Boing Pinball: cleaning up"):
             print(m.tool("amiga_dos_command", command="delete RAM:bbg/examples/boing_pinball_bb ALL QUIET FORCE"))
@@ -112,7 +172,7 @@ def main():
             for md in modes:
                 cmd = command(m, bbp, md, args, exe)
                 m.tool("amiga_dos_command", command="cd " + os.path.dirname(gg.amiga(bbp)))
-                out = gg.run(m, cmd, "RAM:bbg/pb_%s.out" % md, limit)
+                out = gg.run(m, cmd, "RAM:bbg/examples/boing_pinball_bb/pb_%s.out" % md, limit)
                 print("== %s: %s\n%s" % (md, cmd, out.strip()), flush=True)
                 ok &= "FAIL" not in out
             n = g.reapers(m)
@@ -138,12 +198,12 @@ def main():
                     continue
                 cmd = command(m, bbp, md, args + " --log", exe)
                 m.tool("amiga_dos_command", command="cd " + os.path.dirname(gg.amiga(bbp)))
-                m.tool("amiga_dos_command", command="run >NIL: %s >RAM:bbg/pb_shot.out *>RAM:bbg/pb_shot.err" % cmd)
+                m.tool("amiga_dos_command", command="run >NIL: %s >RAM:bbg/examples/boing_pinball_bb/pb_shot.out *>RAM:bbg/examples/boing_pinball_bb/pb_shot.err" % cmd)
                 time.sleep(wait)
                 screendump(os.path.join(outdir, "os4-%s.png" % name))
                 gg.stop_ours(m)
                 time.sleep(3)
-                print(str(m.tool("amiga_dos_command", command="type RAM:bbg/pb_shot.err")).strip()[-300:])
+                print(str(m.tool("amiga_dos_command", command="type RAM:bbg/examples/boing_pinball_bb/pb_shot.err")).strip()[-300:])
             n = g.reapers(m)
             if n:
                 print("Grim Reapers: %d" % n)

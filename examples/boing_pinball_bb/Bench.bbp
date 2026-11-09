@@ -10,4 +10,4 @@ Module=PbDraw.bas
 Module=PbSound.bas
 Module=PbShell.bas
 Module=BenchMain.bas
-Stack=262144
+Stack=1048576

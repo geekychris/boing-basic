@@ -71,6 +71,7 @@ Public slingFlash(0 To 1) As Long
 Public bestScore As Long                        ' the chosen table's best, for the title and game over
 Public buildLoadMs As Double, buildPaintMs As Double, buildRampMs As Double, buildPatchMs As Double
 
+Public dbgLog As String                         ' a file: DbgMark writes each step to it (for finding a crash)
 Private picImg As Long
 Private titleImg(0 To 2) As Long
 Private fieldPainted As Boolean
@@ -174,6 +175,15 @@ Public Sub DrawInit(cvObj As Object)
     dmdImg = CV.CreateImage(SCR_W, VIEW_Y)
     MakeBall
     drawReady = True
+End Sub
+
+Public Sub DbgMark(ByVal s As String)
+    Dim f As Integer
+    If Len(dbgLog) = 0 Then Exit Sub
+    f = FreeFile
+    Open dbgLog For Append As #f
+    Print #f, s
+    Close #f
 End Sub
 
 ' ================================================================ coordinates
@@ -739,6 +749,7 @@ Private Sub BuildPicture()
     orgX = 0: orgY = 0: oyR = 0
     CV.Box 0, 0, SCR_W, PIC_H, penC(P_WOOD)
     fieldPainted = PaintField(tTheme)
+    DbgMark "paint " & fieldPainted
     If Not fieldPainted Then FillField
     ' the inserts (lamps), unlit: on a painting, tinted see-through plastic
     For i = 0 To L_COUNT - 1
@@ -753,6 +764,7 @@ Private Sub BuildPicture()
             End If
         End If
     Next i
+    DbgMark "lamps"
     ' the saucer
     Ellipse PXf(saucerX), PYf(saucerY, 0), RXf(saucerR + 262144), RYf(saucerR + 262144), P_METAL_L
     Ellipse PXf(saucerX), PYf(saucerY, 0), RXf(saucerR), RYf(saucerR), P_BLACK
@@ -761,6 +773,7 @@ Private Sub BuildPicture()
         j = dropSeg(i)
         ThickLine PXf(sg(j).ax), PYf(sg(j).ay, 0), PXf(sg(j).bx), PYf(sg(j).by, 0), P_BLACK, 2
     Next i
+    DbgMark "slots"
     ' the walls, posts and bumpers, far to near
     For i = 0 To tNseg - 1
         If sg(i).kind <> SK_DROP And sg(i).kind <> SK_GATE Then
@@ -788,6 +801,7 @@ Private Sub BuildPicture()
     Next i
     For i = 0 To n - 1
         j = idx(i)
+        DbgMark "item " & i & " " & kind(i) & " " & j
         If kind(i) = 0 Then
             Wall3d sg(j).ax, sg(j).ay, sg(j).bx, sg(j).by, sg(j).r, sg(j).h, SegSide(j), SegTop(j)
         ElseIf cc(j).bumper Then
@@ -799,6 +813,7 @@ Private Sub BuildPicture()
             Cylinder cc(j).cx, cc(j).cy, cc(j).r, cc(j).h, P_RUBBER_D, P_RUBBER
         End If
     Next i
+    DbgMark "walls"
     ' the gates: a wire on two posts
     For i = 0 To tNseg - 1
         If sg(i).kind = SK_GATE Then
@@ -814,12 +829,15 @@ Private Sub BuildPicture()
             ThickLine PXf(sn(i).bx) - 4, PYf(sn(i).by, 0), PXf(sn(i).bx) - 4, PYf(sn(i).by, 1966080), P_METAL_D, 2
         End If
     Next i
+    DbgMark "spinners"
     ' the apron over the drain
     xsA(0) = PXI(20): ysA(0) = PYI(22, 20): xsA(1) = PXI(474): ysA(1) = PYI(22, 20)
     xsA(2) = PXI(474): ysA(2) = PYI(-60, 0): xsA(3) = PXI(20): ysA(3) = PYI(-60, 0)
     Quad P_CAB_D
     ThickLine PXI(20), PYI(22, 20), PXI(474), PYI(22, 20), P_CAB_L, 2
+    DbgMark "apron"
     GText PXI(PB_MID) \ 2 - 52, PYI(-10, 20) \ 2, P_ART3, "BOING PINBALL", True
+    DbgMark "text"
     ' the ramps, over everything
     Dim tr As Double
     tr = TimerMs()
@@ -884,6 +902,7 @@ Private Sub BuildPatches()
             Ellipse x - 2, y - 2, rx \ 2, ry \ 2, P_TEXT
         End If
     Next i
+    DbgMark "lamp patches"
     ' flashing pop bumpers
     For i = 0 To 15
         FreePatch PT_BUMPER + i
@@ -896,6 +915,7 @@ Private Sub BuildPatches()
             Ellipse x, PYf(cc(i).cy + 65536, cc(i).h * 65536), RXf(FMr(cc(i).r, 58982)), RYf(FMr(cc(i).r, 58982)), P_FLASH
         End If
     Next i
+    DbgMark "bumper patches"
     ' flashing slingshots
     For i = 0 To tNseg - 1
         If sg(i).kind = SK_SLING Then
@@ -910,6 +930,7 @@ Private Sub BuildPatches()
             ThickLine x0, y0, x1, y1, P_FLASH, 3
         End If
     Next i
+    DbgMark "sling patches"
     ' standing drop targets
     For i = 0 To 15
         FreePatch PT_DROP + i
@@ -921,6 +942,7 @@ Private Sub BuildPatches()
         NewPatch PT_DROP + i, x0, y0, x1, y1
         Wall3d sg(j).ax, sg(j).ay, sg(j).bx, sg(j).by, 196608, 26, P_YEL_D, P_ORANGE
     Next i
+    DbgMark "drop patches"
     ' the flippers: NFRAMES sprites from the low angle to the high one
     For i = 0 To 2 * NFRAMES * 3 \ 2 - 1
         If PT_FLIP + i < PT_KNOB Then FreePatch PT_FLIP + i
@@ -936,6 +958,7 @@ Private Sub BuildPatches()
             FlipperSprite i, ang
         Next k
     Next i
+    DbgMark "flippers"
     ' the plunger's knob
     NewPatch PT_KNOB, -10, -6, 10, 6
     Ellipse 0, 0, 10, 6, P_METAL_L

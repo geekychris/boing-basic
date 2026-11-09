@@ -11,4 +11,4 @@ Module=PbDraw.bas
 Module=PbSound.bas
 Module=PbShell.bas
 Form=pinball.afg
-Stack=262144
+Stack=1048576

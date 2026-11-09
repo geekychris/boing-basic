@@ -1,0 +1,13 @@
+# the native build's init, step by step (a log file closed after every line): for finding a crash
+Name=PinballProbe
+Startup=Sub Main
+Module=../../../common/A3Fix.bas
+Module=../../../common/HiScore.bas
+Module=../../PbCore.bas
+Module=../../PbTables.bas
+Module=../../PbFont.bas
+Module=../../PbDraw.bas
+Module=../../PbSound.bas
+Module=../../PbShell.bas
+Module=ProbeMain.bas
+Stack=1048576
