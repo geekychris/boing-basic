@@ -618,9 +618,14 @@ Information window), and the files it was started with:
 | `App.FromWorkbench` | `True` if the program was started from Workbench |
 | `App.ArgCount` | the number of files given to the program: project icons double-clicked, icons selected with it, or names on the Shell command line |
 | `App.Arg(i)` | file `i` (from 0), with its full path |
+| `App.ReadArgs(template)` | reads the arguments with an AmigaDOS template (`"FILE/A,SIZE/N,QUIET/S"`), or the tooltypes when started from Workbench; `True` if they fit |
+| `App.ArgValue(key)` | a value after `ReadArgs`, as text |
 
-The icon is the executable's: a native build has its own `.info`. When you `boing run` a
-program, there are no tooltypes; `App.ToolType` then gives the default.
+The icon is the executable's: a native build has its own `.info`. Under `boing run` (also when
+a project icon with the default tool `boing` starts the program) it is `Name.info` in the
+program's drawer, `Name` being `App.EXEName`; without such an icon, `App.ToolType` gives the
+default. Templates, and starting interpreted programs from Workbench, are described in
+[chapter 18](18-desktop.md#arguments-templates-and-tooltypes).
 
 *Listing 13.10* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
@@ -746,6 +751,32 @@ End Sub
 ```
 
 Programs without forms receive these events (and ARexx commands) while they call `DoEvents`.
+
+### Notifications, hotkeys and Exchange
+
+| Member or Sub | What it does |
+|---|---|
+| `App.Notify title, text [, imagefile]` | shows a Ringhio notification, which goes away by itself; error 5 if it can't be shown |
+| `App.HotKey name, keys` | a hotkey that works in every program (`"ctrl alt j"`), and an entry for the program in Exchange |
+| `HotKey_Pressed(Name As String)` | the hotkey `Name` was pressed |
+| `App_Show()`, `App_Hide()`, `App_Quit()` | Exchange's Show, Hide and Remove buttons, or the same request from another program through application.library |
+
+These Subs, too, can be in any module. A program with a hotkey should always have an
+`App_Quit` that does what its Quit menu item does (for example `Unload Me`). In a form's
+code, a hotkey that brings the window to the front is a line in `Form_Load` and a Sub:
+
+<!-- fragment -->
+```basic
+App.HotKey "popup", "ctrl alt j"            ' Ctrl-Alt-J anywhere: HotKey_Pressed("popup")
+
+Sub HotKey_Pressed(Name As String)
+    Me.WindowState = 0                      ' open the window if it is iconified
+    Me.SetFocus                             ' and bring it to the front
+End Sub
+```
+
+The details, with Exchange and application.library, are in
+[The AmigaOS 4 desktop](18-desktop.md#commodities-a-hotkey-and-exchange).
 
 ## The clipboard
 
@@ -962,8 +993,9 @@ there for files of your own. These are described with the other system functions
   `ShowMessage` open the standard requesters; `Me.FontName` / `Me.FontSize` apply a chosen
   font and `App.OpenScreen` a chosen screen mode. `MsgBox`, `InputBox` and `App.Request` ask
   quick questions.
-- The App object connects a program to Workbench (tooltypes, arguments, drops, icons,
-  AppIcons, iconify), ARexx (`ARexxPort`, `ARexx_Command`, `SendARexx`), AmigaGuide help and
+- The App object connects a program to Workbench (tooltypes, arguments and `ReadArgs`
+  templates, drops, icons, AppIcons, iconify), notifications (`App.Notify`), hotkeys and
+  Exchange (`App.HotKey`, `App_Quit`), ARexx (`ARexxPort`, `ARexx_Command`, `SendARexx`), AmigaGuide help and
   catalogs; `Clipboard` and `Printer` do what their names say.
 
 See also: [Forms and controls](12-forms.md), [Graphics](14-graphics.md),

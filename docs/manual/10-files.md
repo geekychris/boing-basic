@@ -580,6 +580,9 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 | `App.ToolType(name [, default])` | a tooltype from the program's icon: `NAME=value` gives `"value"`, a bare `NAME` gives `"1"`, a missing one `default` (or `""`). On a host, always the default |
 | `App.ToolTypeCount`, `App.ToolTypes(i)` | the number of tooltypes and each tooltype line (AmigaOS) |
 | `App.ArgCount`, `App.Arg(i)` | the files the program was given: icons selected with it on the Workbench, or the names on the command line (AmigaOS) |
+| `App.ReadArgs(template)`, `App.ArgValue(key)` | the arguments read with an AmigaDOS template such as `"FILE/A,SIZE/N,QUIET/S"` (`True` if they fit), and each value as text; from Workbench, the tooltypes (AmigaOS; see [below](#command)) |
+| `App.Notify title, text [, imagefile]` | a Ringhio notification (AmigaOS; [chapter 18](18-desktop.md#notifications)) |
+| `App.HotKey name, keys` | a hotkey such as `"ctrl alt j"`, which calls `HotKey_Pressed(Name)`, and an entry in Exchange (AmigaOS; [chapter 18](18-desktop.md#commodities-a-hotkey-and-exchange)) |
 
 *Listing 10.13* (`examples/book/ch10-files/listing-10-13.bas`)
 
@@ -601,7 +604,9 @@ window width 640
 
 (On a host there are no icons, so `App.ToolType` gives the default.) `App` also has members for Workbench and
 ARexx integration and for requesters (`App.Request`, `App.ARexxPort`, `App.ShowHelp`, AppIcons,
-catalogs...): see [Menus and dialogs](13-menus-dialogs.md).
+catalogs...): see [Menus and dialogs](13-menus-dialogs.md). Notifications, hotkeys, Exchange's
+Show, Hide and Remove (the Subs `App_Show`, `App_Hide` and `App_Quit`) and the other desktop
+features are in [The AmigaOS 4 desktop](18-desktop.md).
 
 Do not call one of your own modules `App` (for example by naming a program `app.bas`): the
 module's name then hides the `App` object in that program.
@@ -634,6 +639,13 @@ Hello, Ada and Grace
 A native program gets its arguments the same way (`greet Ada "and Grace"`). A program started
 from the Workbench has no command line: `Command` is `""`, and the icons it was given are in
 `App.Arg(i)`. To split the arguments into words, use `Split(Command)`.
+
+On AmigaOS a program can also read its arguments the way the system's commands do, with a
+template: `App.ReadArgs("NAME/A,TIMES/N,LOUD/S")` returns `True` if the command line fits it,
+and `App.ArgValue("TIMES")` gives a value as text (`"1"` for a switch that was given, `""` for
+an argument that wasn't). Started from Workbench, the same template reads the icon's tooltypes
+(`TIMES=3`). The details are in
+[Arguments: templates and tooltypes](18-desktop.md#arguments-templates-and-tooltypes).
 
 ### Environ
 

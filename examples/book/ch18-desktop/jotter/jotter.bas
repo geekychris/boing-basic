@@ -10,6 +10,9 @@ Private Sub Form_Load()
     App.ARexxPort = "JOTTER"                         ' JOTTER.1 if one is running already
     App.HelpFile = App.Path & "/Jotter.guide"        ' the Help key opens it
     If App.ArgCount > 0 Then LoadFile App.Arg(0)     ' a project icon, or "Jotter file" in the Shell
+    On Error Resume Next                             ' fails if a Jotter is running already
+    App.HotKey "popup", "ctrl alt j"                 ' brings Jotter to the front; an Exchange entry
+    On Error GoTo 0
     UpdateTitle
 End Sub
 
@@ -142,6 +145,30 @@ End Sub
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
     If KeyCode = vbKeyHelp Then sb.Text = "Right mouse button: menus; Shift + right button over the text: Edit"
+End Sub
+
+' --- Commodities: the hotkey, and Exchange's Show, Hide and Remove --------------------------
+
+Private Sub PopUp()
+    Me.WindowState = 0                               ' open the window again if it is iconified
+    Me.SetFocus                                      ' to the front, and active
+End Sub
+
+Private Sub HotKey_Pressed(Name As String)
+    If Name = "popup" Then PopUp
+End Sub
+
+Private Sub App_Show()                               ' Exchange's Show, or a second Jotter started
+    PopUp
+End Sub
+
+Private Sub App_Hide()                               ' Exchange's Hide: iconify
+    Me.WindowState = 1
+End Sub
+
+Private Sub App_Quit()                               ' Exchange's Remove: like Quit, it asks first
+    PopUp
+    Unload Me
 End Sub
 
 ' --- ARexx: OPEN file, SAVE, GETTEXT, QUIT --------------------------------------------------

@@ -56,6 +56,10 @@ End If
 No arguments
 ```
 
+`Command()` gives the arguments as one string. To read them the way AmigaOS commands do, with a
+template such as `FILE/A,SIZE/N,QUIET/S`, use `App.ReadArgs` and `App.ArgValue` (see
+[Arguments: templates and tooltypes](18-desktop.md#arguments-templates-and-tooltypes)).
+
 Options for `boing run` go before the program's name:
 
 | Option | What it does |
@@ -216,9 +220,28 @@ right path even when the program is at the top of a volume (`Work:x`).
 
 ## Running programs from Workbench
 
-A native program is an ordinary AmigaOS program: give it an icon and double-click it. To start
-an interpreted program from Workbench, write a small script and give it a project icon whose
-default tool is `C:IconX`:
+A native program is an ordinary AmigaOS program: give it an icon and double-click it.
+
+An interpreted program starts from Workbench too. Give its `.bas` or `.bbp` file a project icon
+whose default tool is `boing` (for example `BOING:boing`), and double-clicking the icon runs the
+program as `boing run` would. You can set the default tool in the icon's Information window, or
+let a one-line program write the icon:
+
+*Listing 2.3* (`examples/book/ch02-shell/listing-02-03.bas`)
+
+```basic
+' gives Notes.bbp a project icon that runs it in the interpreter
+App.SaveIcon "Work:Projects/Notes/Notes.bbp", "BOING:boing"
+```
+
+A console window opens when the program first prints something (and `Input` reads from it); it
+stays open at the end until you close it, so you can read the output. A program with windows
+that doesn't print gets no console window. The program sees itself as started from Workbench:
+`App.FromWorkbench` is `True`, `Command()` is empty, and its options come from tooltypes (see
+[Interpreted programs from Workbench](18-desktop.md#interpreted-programs-from-workbench)).
+
+To pass arguments, or to start the program the way the Shell would, use a small script instead,
+and give the script a project icon whose default tool is `C:IconX`:
 
 ```sh
 ; Run-Notes: start Notes in the interpreter (default tool C:IconX)
@@ -226,10 +249,9 @@ Stack 262144
 boing run Work:Projects/Notes/Notes.bbp
 ```
 
-(`boing` itself is a Shell command: started directly from Workbench it only prints its usage.)
-
-Programs with windows need a stack of at least 256 KB (the native programs `boing build`
-makes ask for it themselves).
+Programs with windows need a stack of at least 256 KB. The native programs `boing build`
+makes ask for it themselves, and so does `boing`; the script above sets it for the Shell that
+IconX opens.
 
 ## Building from macOS or Linux
 

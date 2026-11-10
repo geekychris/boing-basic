@@ -1,9 +1,9 @@
 # The AmigaOS 4 desktop
 
 This chapter is about how a Boing BASIC program fits into the AmigaOS 4 desktop: windows that
-adapt to the user's fonts and screen, starting from Workbench or the Shell, icons and tooltypes,
-AppIcons and AppWindows, the standard requesters, ARexx, settings, translations, help, and the
-conventions Amiga users expect, from the order of the menus to the Amiga-key shortcuts. The
+adapt to the user's fonts and screen, starting from Workbench or the Shell, arguments, icons and
+tooltypes, AppIcons and AppWindows, the standard requesters, ARexx, notifications, hotkeys and
+Exchange, settings, translations, help, and the conventions Amiga users expect, from the order of the menus to the Amiga-key shortcuts. The
 controls themselves are described in [Forms and controls](12-forms.md), and menus, toolbars and
 dialogs in detail in [Menus, toolbars, status bars and dialogs](13-menus-dialogs.md); here you
 find which of their features to use, and how, so that your program looks and behaves like an
@@ -20,6 +20,8 @@ the end.
 | uses the user's fonts, or a font the user picked | no `font=` as a rule; `Me.FontName` after `ShowFont` | [Fonts](#fonts) |
 | works from Workbench and from the Shell | `App.FromWorkbench`, `App.ArgCount`, `App.Arg(i)`, `Command` | [Starting](#started-from-workbench-or-from-the-shell) |
 | reads its tooltypes | `App.ToolType("NAME", default)` | [Tooltypes](#tooltypes) |
+| takes its options as an AmigaDOS template, or as tooltypes from Workbench | `App.ReadArgs("FILE/A,SIZE/N,QUIET/S")`, `App.ArgValue("FILE")` | [Arguments](#arguments-templates-and-tooltypes) |
+| an interpreted program starts from its icon | a project icon with the default tool `boing` | [From Workbench](#interpreted-programs-from-workbench) |
 | gives saved documents an icon | `App.SaveIcon path` | [Icons](#icons) |
 | takes files dropped on its window | `dropfiles=1` and `Form_OLEDragDrop` | [AppWindows](#appwindows-files-dropped-on-a-window) |
 | uses the system's file, font and screen mode requesters | a `commondialog` control | [ASL requesters](#asl-requesters) |
@@ -27,6 +29,8 @@ the end.
 | Project, Edit, Settings menus; Quit last in Project; Amiga-key shortcuts | `menu` objects with `key=` | [Menus](#menus-the-standard-layout) |
 | keyboard control | `_` shortcut letters, `default=1` and `cancel=1` buttons, Tab, Help | [Keyboard](#keyboard-control) |
 | an ARexx port | `App.ARexxPort` and `ARexx_Command` | [ARexx](#an-arexx-port) |
+| tells the user something without stopping them | `App.Notify title, text` (a Ringhio notification) | [Notifications](#notifications) |
+| a hotkey, and an entry in Exchange that can show, hide and quit it | `App.HotKey`, `HotKey_Pressed`, `App_Show`, `App_Hide`, `App_Quit` | [Commodities](#commodities-a-hotkey-and-exchange) |
 | settings in `ENV:` and `ENVARC:` | `GetSetting` / `SaveSetting` | [Settings](#settings-in-env-and-envarc) |
 | speaks the user's language | `App.OpenCatalog`, `App.Str`, `$id:` texts | [Catalogs](#translations-catalogs) |
 | online help | `App.HelpFile`, `App.ShowHelp` (AmigaGuide) | [Help](#help-amigaguide) |
@@ -255,6 +259,7 @@ These tell you how the program was started and what it was given:
 | `App.Arg(i)` | file `i` (from 0) with its full path when it came from Workbench |
 | `Command` | the whole command line as one string (empty from Workbench) |
 | `App.ToolType(name [, default])` | a tooltype of the program's icon (next section) |
+| `App.ReadArgs(template)`, `App.ArgValue(key)` | the arguments read with an AmigaDOS template, or from the tooltypes when started from Workbench ([below](#arguments-templates-and-tooltypes)) |
 | `App.Path` | the drawer the program is in |
 
 So "open the files I was given" is the same for both: Jotter does it in `Form_Load`.
@@ -270,6 +275,9 @@ Private Sub Form_Load()
     App.ARexxPort = "JOTTER"                         ' JOTTER.1 if one is running already
     App.HelpFile = App.Path & "/Jotter.guide"        ' the Help key opens it
     If App.ArgCount > 0 Then LoadFile App.Arg(0)     ' a project icon, or "Jotter file" in the Shell
+    On Error Resume Next                             ' fails if a Jotter is running already
+    App.HotKey "popup", "ctrl alt j"                 ' brings Jotter to the front; an Exchange entry
+    On Error GoTo 0
     UpdateTitle
 End Sub
 ```
@@ -284,20 +292,10 @@ Things to know about the two ways of starting:
   of its project (262144 by default) with a `$STACK:` cookie in the executable; give its icon
   the same stack size in Workbench's Information window too, as not every way of starting a
   program honours the cookie. In the Shell, `Stack 262144` before starting does the same.
-- **Interpreted programs.** `boing` itself does not take a Workbench start. To start a program
-  that runs in the interpreter from an icon, write a small script and give the script's icon
-  the default tool `C:IconX`:
-
-```sh
-; Jotter-run: start Jotter in the interpreter (icon default tool: C:IconX)
-Stack 262144
-boing run Work:Projects/Jotter/Jotter.bbp
-```
-
-  Such a program sees itself as started from the Shell (`App.FromWorkbench` is `False`, and its
-  tooltypes are those of the program file's own icon, if it has one). A native build
-  (`boing build`) is a real Workbench program, and the better choice for programs you give to
-  other people.
+- **Interpreted programs.** A program that runs in the interpreter starts from Workbench too:
+  give its `.bas` or `.bbp` file a project icon whose default tool is `boing` (see
+  [Interpreted programs from Workbench](#interpreted-programs-from-workbench)). A native build
+  (`boing build`) is still the better choice for programs you give to other people.
 - **Ctrl-C.** In the Shell, Ctrl-C stops a program: a console program gets error 18 ("User
   interrupt occurred", which `On Error` can catch); a program with windows closes them and
   ends.
@@ -340,6 +338,109 @@ Started from the Shell, arguments: ""
 `App.ToolTypeCount` and `App.ToolTypes(i)` give the raw lines (from 0), for a program that wants
 to list them all. Tooltype names are written in capitals by convention.
 
+### Arguments: templates and tooltypes
+
+AmigaOS commands describe their arguments with a **template**, such as
+`FILE/A,SIZE/N,QUIET/S` (type a system command followed by `?` in the Shell to see its own).
+`App.ReadArgs(template)` reads the program's arguments with such a template, the way the
+system's own commands do, and returns `True` if they fit it. `App.ArgValue(key)` then gives
+each value:
+
+| Template item | Means | `App.ArgValue` gives |
+|---|---|---|
+| `FILE` | an argument, by position or as `FILE name` / `FILE=name` | the text, `""` if it was not given |
+| `FILE/A` | the argument must be given | the text |
+| `FROM/K` | it must be given with its keyword: `FROM Work:x` | the text |
+| `SIZE/N` | a whole number | the number as text (`Val` it) |
+| `QUIET/S` | a switch: just the word | `"1"` if it was given, else `""` |
+| `FILES/M` | any number of values | all of them, joined by `vbLf` (`Split(v, vbLf)`) |
+| `TEXT/F` | the rest of the line, spaces and all | the text |
+| `F=FILE` | `F` is a short name for `FILE` | `App.ArgValue("FILE")` |
+
+Keywords are not case-sensitive: the user can type `quiet` or `size=5`. `ReadArgs` returns
+`False` when the arguments don't fit (a missing `/A` argument, a word that isn't a number for a
+`/N`, an unknown keyword); the program then prints its template as a usage line. `ArgValue`
+with a key that isn't in the template (or before `ReadArgs`) is error 5. Use up to 32 items,
+and don't use `/T` (toggle) or `/N/M` (several numbers): Boing BASIC reads their values
+wrongly. `App.ReadArgs` and `App.ArgValue` work only on AmigaOS: on other systems they are
+error 438.
+
+**Started from Workbench**, a program has no command line, and `ReadArgs` reads the icon's
+tooltypes instead: the tooltype `MINUTES=5` is the value of the template's `MINUTES`, and a
+bare `REPEAT` gives `"1"`. Then `ReadArgs` always returns `True`: `/A` isn't checked and a `/N`
+value is the text as written, so the program must cope with missing values itself. In return,
+one template covers both ways of starting the program.
+
+Here is the start of **Reminder**, a program without a window from
+`examples/book/ch18-desktop/reminder/`, which shows a notification after some minutes.
+In the Shell it is started as `Reminder "Tea is ready" 5` (or `Reminder TEXT="Tea is ready"
+MINUTES=5 REPEAT`); from Workbench, its icon's tooltypes are `TEXT=Tea is ready` and
+`MINUTES=5`:
+
+*Listing 18.3* (`examples/book/ch18-desktop/reminder/Reminder.bbp`)
+
+<!-- project: examples/book/ch18-desktop/reminder/Reminder.bbp -->
+```basic
+Public Sub Main()
+    If Not App.ReadArgs("TEXT/A,MINUTES/N,REPEAT/S") Then
+        Print "Usage: Reminder TEXT/A,MINUTES/N,REPEAT/S"
+        Exit Sub
+    End If
+    message = App.ArgValue("TEXT")
+    If message = "" Then message = "Time for a break"   ' from Workbench without a TEXT tooltype
+    minutes = Val(App.ArgValue("MINUTES"))
+    If minutes <= 0 Then minutes = 10
+```
+
+`Command` and `App.Arg(i)` still give the raw command line and the files, for programs that
+want them as they are.
+
+### Interpreted programs from Workbench
+
+A program that runs in the interpreter is a `.bas` or `.bbp` file (or a compiled `.bbc`), not
+an executable. To start it from Workbench, give that file a project icon whose **default tool**
+is `boing`, for example `BOING:boing`: double-clicking the icon then runs the program as
+`boing run` would. `boing` asks for a stack of 1 MB itself, which is plenty for windows.
+
+You can make such an icon in Workbench (copy a project icon, then set its default tool in the
+Information window), or let Boing BASIC write it: `App.SaveIcon path, "BOING:boing"` writes
+`path.info` with that default tool. This small program, run once, gives Jotter's project file
+its icon:
+
+*Listing 18.4* (`examples/book/ch18-desktop/listing-18-04.bas`)
+
+```basic
+' an icon for Jotter.bbp: double-clicking it runs Jotter in the interpreter
+App.SaveIcon "Work:Projects/Jotter/Jotter.bbp", "BOING:boing"
+```
+
+Things to know about a program started this way:
+
+- **The console.** The program gets a console window, but only when it prints something: a
+  program with windows that never uses `Print` doesn't get one. `Input` reads from the same
+  window. At the end the window stays open until the user closes it, so the output can be read.
+  A compile error appears there too.
+- **How it was started.** `App.FromWorkbench` is `True` and `Command` is `""`. `ReadArgs` reads
+  the tooltypes, and `App.ToolType` too, but the icon they come from is `Name.info` in the
+  program's drawer, where `Name` is `App.EXEName` (the file's name without `.bas` or `.bbp`),
+  not the project icon that was double-clicked: put the tooltypes into `Jotter.info` beside
+  `Jotter.bbp` (the icon a native build of Jotter would have).
+- **One program per icon.** Only the double-clicked project is run; `App.ArgCount` is 0, so
+  icons selected with it are not passed on.
+- Only give program files `boing` as their default tool. A document saved by a program running
+  in the interpreter needs a default tool that opens it: the program's native build
+  (`App.SaveIcon fileName, "Work:Jotter/Jotter"`), or a script.
+
+An older way, which still works, is a small script whose icon has the default tool `C:IconX`.
+The program then sees itself as started from the Shell (`App.FromWorkbench` is `False`), and
+the script can pass arguments and set the stack:
+
+```sh
+; Jotter-run: start Jotter in the interpreter (icon default tool: C:IconX)
+Stack 262144
+boing run Work:Projects/Jotter/Jotter.bbp
+```
+
 ### Icons
 
 Every program and document on the Workbench has an icon, a `.info` file beside it:
@@ -356,7 +457,7 @@ Every program and document on the Workbench has an icon, a `.info` file beside i
   there (the user may have chosen another one), and let the user switch icons off: Jotter has a
   **Settings > Create icons** item for this.
 
-*Listing 18.3* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.5* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -383,7 +484,8 @@ End Function
 ```
 
 A program running in the interpreter is not itself an executable, so pass the default tool
-explicitly there: `App.SaveIcon fileName, "Work:Jotter/Jotter"`.
+explicitly there: `App.SaveIcon fileName, "Work:Jotter/Jotter"` (see
+[Interpreted programs from Workbench](#interpreted-programs-from-workbench)).
 
 ## Workbench integration
 
@@ -396,7 +498,7 @@ Y As Integer)` runs with the number of icons and the drop position inside the wi
 control makes drops over that control call `<id>_OLEDragDrop` instead, with X and Y inside the
 control. `Me.OLEDropMode = 1` turns the AppWindow on from code.
 
-*Listing 18.4* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.6* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -424,7 +526,7 @@ with forms gets them while its event loop runs; a program without forms gets the
 `DoEvents`. Here is a complete program without a window: an AppIcon that tells you how big the
 files dropped on it are.
 
-*Listing 18.5* (`examples/book/ch18-desktop/listing-18-05.bas`)
+*Listing 18.7* (`examples/book/ch18-desktop/listing-18-07.bas`)
 
 ```basic
 ' FileSizes: an AppIcon on the Workbench that tells the size of the files dropped on it,
@@ -516,7 +618,7 @@ the window, quits, or opens or creates another document while the current one ha
 changes. `Form_QueryUnload` runs before the window closes (by its close gadget, Quit or
 `Unload`); setting `Cancel = True` keeps it open:
 
-*Listing 18.6* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.8* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -693,7 +795,7 @@ arrive there as usual ([Forms and controls](12-forms.md#the-keyboard)).
 - **The window title** names the program and the document: `Jotter: todo.txt`. Mark unsaved
   changes, for example with a `*`, and change the title when the document changes:
 
-*Listing 18.7* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.9* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -723,7 +825,7 @@ used, worth showing in the About requester). Each command that arrives calls
 `ARexx_Command(Cmd As String, Args As String, Result As String)`, with the first word in `Cmd`
 and the rest of the line in `Args`:
 
-*Listing 18.8* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.10* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -757,7 +859,7 @@ help. A program sends commands to another program's port with `App.SendARexx(por
 which returns the `RESULT` (and sets `App.ARexxRC`; error 5 if there is no such port), and
 starts a script with `App.RunARexx script`:
 
-*Listing 18.9* (`examples/book/ch18-desktop/listing-18-09.bas`)
+*Listing 18.11* (`examples/book/ch18-desktop/listing-18-11.bas`)
 
 ```basic
 ' Ask a running Jotter for its text
@@ -774,6 +876,145 @@ Print "Jotter is not running"
 
 The details are in [Menus, toolbars, status bars and dialogs](13-menus-dialogs.md).
 
+## Notifications
+
+A **notification** is a small message that appears for a few seconds in a corner of the screen
+and then goes away by itself; AmigaOS 4 shows them with **Ringhio**. Use one for news that
+needn't stop the user: a download has finished, a reminder is due, a job in the background
+failed. A requester would make the user click; a notification doesn't.
+
+| | What it does |
+|---|---|
+| `App.Notify title, text [, imagefile]` | shows a notification with a title and a text, and the picture `imagefile` (a picture file such as a PNG) if given. The program goes on at once. Error 5 if it can't be shown |
+| `App.NotifyResult` | the last answer of application.library to `Notify` (0 = queued), for finding out why one failed |
+| `App.Register` | registers the program with application.library without a notification; `True` if it worked (see [below](#quit-hide-and-show-from-the-system)) |
+
+Notifications go through **application.library**: the first `App.Notify` registers the program
+there under its `App.Title`, so set the title first if the program changes it. Ringhio's
+preferences decide where the message appears and for how long. If the notification server
+isn't running, `Notify` is error 5: a program that must tell the user something can catch the
+error and open a requester instead, as Reminder does:
+
+*Listing 18.12* (`examples/book/ch18-desktop/reminder/Reminder.bbp`)
+
+<!-- project: examples/book/ch18-desktop/reminder/Reminder.bbp -->
+```basic
+' a notification; a requester if notifications don't work (no Ringhio server running)
+Private Sub Tell(ByVal text As String)
+    On Error GoTo noRinghio
+    App.Notify "Reminder", text
+    Exit Sub
+noRinghio:
+    App.Request text, "_OK", "Reminder", vbInformation
+End Sub
+```
+
+Keep the text short: one or two lines that make sense on their own. Programs that call
+application.library themselves (see [Calling AmigaOS](17-amigaos.md)) find its tags, such as
+`APPNOTIFY_Title` and `REGAPP_Description`, in `BOING:bindings/application.bi`.
+
+## Commodities: a hotkey and Exchange
+
+**Commodities** are the AmigaOS programs that work in the background and react to the input of
+every program: a key combination that pops up a window, a screen blanker. The system's
+**Exchange** program lists them, with buttons to show, hide or remove each one. A Boing BASIC
+program becomes a commodity when it asks for a hotkey:
+
+| | What it does |
+|---|---|
+| `App.HotKey name, keys` | from now on, pressing `keys` anywhere calls `HotKey_Pressed` with `name`. `keys` is a commodities description: `"ctrl alt j"`, `"lcommand f1"`, `"shift help"` |
+| `HotKey_Pressed(Name As String)` | a Sub you write, in any module: the hotkey `Name` was pressed |
+
+The key description is the system's: the qualifiers `ctrl`, `shift` (`lshift`, `rshift`),
+`alt` (`lalt`, `ralt`), `lcommand` and `rcommand` (the Amiga keys), followed by a key: a letter
+or digit, `f1` to `f10`, `help`, `esc`, `space`, `return`, `tab`, `up`, `down`... The keys of a
+hotkey are taken: the active window doesn't get them, so choose a combination other programs
+are unlikely to use, and let the user change it (in a tooltype or a setting). A description
+commodities can't read is error 380; up to 32 hotkeys can be given (error 7 after that).
+
+The first hotkey also gives the program its entry in Exchange, named after `App.Title`. Its
+buttons call Subs of your program:
+
+| Exchange | Calls |
+|---|---|
+| **Show** | `App_Show()`: open the window and bring it to the front |
+| **Hide** | `App_Hide()`: hide (iconify) the window |
+| **Remove** | `App_Quit()`: quit (ask first if there is unsaved work) |
+| **Active** / **Inactive** | switches the hotkeys on and off (Boing BASIC does this itself) |
+
+The name in Exchange can be used by only one program at a time. When a second copy of the
+program asks for a hotkey, it gets error 5, and the copy that is already running gets an
+`App_Show` call instead: a simple way to bring the first copy to the front. The hotkeys and the
+Exchange entry are removed when the program ends.
+
+Jotter asks for **Ctrl-Alt-J**, which brings its window to the front from anywhere, and answers
+Exchange's buttons:
+
+*Listing 18.13* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+
+<!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
+```basic
+Private Sub PopUp()
+    Me.WindowState = 0                               ' open the window again if it is iconified
+    Me.SetFocus                                      ' to the front, and active
+End Sub
+
+Private Sub HotKey_Pressed(Name As String)
+    If Name = "popup" Then PopUp
+End Sub
+
+Private Sub App_Show()                               ' Exchange's Show, or a second Jotter started
+    PopUp
+End Sub
+
+Private Sub App_Hide()                               ' Exchange's Hide: iconify
+    Me.WindowState = 1
+End Sub
+
+Private Sub App_Quit()                               ' Exchange's Remove: like Quit, it asks first
+    PopUp
+    Unload Me
+End Sub
+```
+
+The hotkey itself is asked for in `Form_Load` ([Listing 18.1](#started-from-workbench-or-from-the-shell)),
+with `On Error Resume Next`, because it fails when Jotter is running already.
+
+A program with windows gets its hotkeys while its event loop runs; a program without windows
+gets them when it calls `DoEvents`, as Reminder does in its main loop. Reminder's
+**Ctrl-Alt-R** shows how long is left:
+
+*Listing 18.14* (`examples/book/ch18-desktop/reminder/Reminder.bbp`)
+
+<!-- project: examples/book/ch18-desktop/reminder/Reminder.bbp -->
+```basic
+' Ctrl-Alt-R, from any program
+Sub HotKey_Pressed(Name As String)
+    If Name = "left" Then Tell CLng((dueAt - elapsed) / 60) & " minutes left: " & message
+End Sub
+
+' Exchange's Remove, or a Quit sent through application.library
+Sub App_Quit()
+    quitting = True
+End Sub
+```
+
+`App.HotKey` works only on AmigaOS: on other systems it is error 438.
+
+### Quit, Hide and Show from the system
+
+`App_Quit`, `App_Hide` and `App_Show` are called for Exchange's buttons, and also when another
+program sends the program a quit, hide or show message through application.library, which it
+can do once the program is registered there (after its first `App.Notify`, or after
+`App.Register`). Like the other event Subs, they can be in any module and are called while the
+event loop runs or `DoEvents` is called.
+
+Write an `App_Quit` whenever your program has a hotkey or registers. Without one, a Quit ends
+a program with windows at once, closing its windows without `Form_QueryUnload`, so unsaved work
+is lost; a program without windows doesn't stop at all. In `App_Quit`, do what the program's
+own Quit does: `Unload` the main window (which asks about unsaved changes, and may be
+cancelled), or set the flag that ends the main loop.
+
 ## Settings in ENV: and ENVARC:
 
 AmigaOS keeps programs' settings as small files in two places: `ENVARC:` on disk, which survives
@@ -784,7 +1025,7 @@ default. `DeleteSetting app, section [, key]` removes a setting or a whole secti
 program's name as `app`: the user then finds every setting in `ENVARC:Jotter/` (and `remember=1`
 windows keep their place in the same drawer). More in [Files and the system](10-files.md).
 
-*Listing 18.10* (`examples/book/ch18-desktop/listing-18-10.bas`)
+*Listing 18.15* (`examples/book/ch18-desktop/listing-18-15.bas`)
 
 <!-- run -->
 ```basic
@@ -805,7 +1046,7 @@ AmigaOS settings editors (the programs in the `Prefs` drawer) have three buttons
 **Cancel**. `SaveSetting` is Save. For Use, write only the `ENV:` file; `GetSetting` finds it
 there first:
 
-*Listing 18.11* (`examples/book/ch18-desktop/prefs/Prefs.bbp`)
+*Listing 18.16* (`examples/book/ch18-desktop/prefs/Prefs.bbp`)
 
 <!-- project: examples/book/ch18-desktop/prefs/Prefs.bbp -->
 ```basic
@@ -863,7 +1104,7 @@ that. A program that starts with a form (`Startup=Form`) loads it first, so a tr
 starts with `Sub Main` instead, opens the catalog, and then shows its window with `Show vbModal`
 (which returns when the window is closed, ending the program):
 
-*Listing 18.12* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.17* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -886,7 +1127,7 @@ also the name of its file's module, or of a procedure such as `Main`.)
 In code, translate every text the user sees, and build sentences with placeholders rather than
 by joining pieces, because the word order differs between languages:
 
-*Listing 18.13* (`examples/book/ch18-desktop/listing-18-13.bas`)
+*Listing 18.18* (`examples/book/ch18-desktop/listing-18-18.bas`)
 
 <!-- run -->
 ```basic
@@ -923,7 +1164,7 @@ and by a Help item in the Project menu:
 - Without `App.HelpFile`, the Help key arrives in `Form_KeyDown` as `vbKeyHelp`, so a program
   can do something of its own with it (a game can show its keys).
 
-*Listing 18.14* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.19* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -949,7 +1190,7 @@ Version=1.0
 `Version Jotter` in a Shell then prints `Jotter 1.0`. The program can read the same numbers as
 `App.Major`, `App.Minor` and `App.Revision`, and the title as `App.Title`:
 
-*Listing 18.15* (`examples/book/ch18-desktop/listing-18-15.bas`)
+*Listing 18.20* (`examples/book/ch18-desktop/listing-18-20.bas`)
 
 <!-- run -->
 ```basic
@@ -971,7 +1212,7 @@ which works in the interpreter too:
 Raise the version when you release a new one, and write the date as day, month and year with
 dots. Jotter shows it in its About requester:
 
-*Listing 18.16* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.21* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -1006,7 +1247,7 @@ vlayout id=root
   timer id=tick interval=20
 ```
 
-*Listing 18.17* (`examples/book/ch18-desktop/game/Game.bbp`)
+*Listing 18.22* (`examples/book/ch18-desktop/game/Game.bbp`)
 
 <!-- project: examples/book/ch18-desktop/game/Game.bbp -->
 ```basic
@@ -1055,7 +1296,7 @@ remembers it). If the user chooses one that is big enough, `App.OpenScreen` open
 that mode before the form is loaded, so the form opens there; otherwise the form's
 `screen=own` opens the 800 x 600 screen:
 
-*Listing 18.18* (`examples/book/ch18-desktop/fullscreen/FullScreen.bbp`)
+*Listing 18.23* (`examples/book/ch18-desktop/fullscreen/FullScreen.bbp`)
 
 <!-- project: examples/book/ch18-desktop/fullscreen/FullScreen.bbp -->
 ```basic
@@ -1117,10 +1358,9 @@ Things to know about screens of your own:
 > - Choosing the public screen at run time (for example from a `PUBSCREEN` tooltype): `pubscreen=` is fixed in the `.afg`, and there is no property for it.
 > - Hiding the title bar of a screen opened with `App.OpenScreen`, and screens with their own palette or pens.
 > - Bold and italic window fonts: `Me.FontName` and `Me.FontSize` take only the name and size of a `ShowFont` result.
-> - Notifications (Ringhio pop-ups through application.library), and registering with application.library (single instance, Quit or Show from other programs); the generated `application.bi` lacks the `APPNOTIFY_` tag constants.
-> - Commodities: a hotkey to pop up the window, Show/Hide/Quit from Exchange.
-> - A Workbench start of `boing` itself (a project icon with `boing` as default tool): use an IconX script.
-> - AmigaDOS argument templates (`ReadArgs`, `FILE/M,PUBSCREEN/K`): parse `Command` yourself.
+> - application.library beyond notifications and the Quit, Hide and Show messages (for example its list of recently used documents), and notifications with buttons.
+> - Commodities other than hotkeys (filtering or changing the input of other programs).
+> - `/T` (toggle) and `/N/M` items in `App.ReadArgs` templates.
 > - "Use" for settings: `SaveSetting` always writes both `ENV:` and `ENVARC:`.
 > - Context-sensitive help (a guide node per control for the Help key), and gadget help texts shown in a status bar.
 > - Number and date formats from the user's Locale preferences: `Format` and the date functions don't follow the locale.
@@ -1136,14 +1376,20 @@ Things to know about screens of your own:
 - Windows open on the default public screen; `pubscreen=` names another one, and `screen=own`
   or `App.OpenScreen` (with a `ShowScreenMode` result) opens the program's own screen, which a
   `fullscreen=1` game window can cover.
-- Accept files from Workbench and the Shell (`App.Arg`), read tooltypes with defaults, and give
-  saved documents icons with `App.SaveIcon`.
+- Accept files from Workbench and the Shell (`App.Arg`), read tooltypes with defaults, take
+  options with an AmigaDOS template (`App.ReadArgs`, `App.ArgValue`; tooltypes from Workbench),
+  and give saved documents icons with `App.SaveIcon`.
+- A project icon with the default tool `boing` starts an interpreted program from Workbench,
+  with a console window that opens when it prints.
 - Use the ASL requesters, ask before discarding work, and name requester buttons after what
   they do.
 - Project, Edit, Settings menus with the standard Amiga-key shortcuts; Quit last; `...` on items
   that open a requester; `_` shortcut letters, `default=1` and `cancel=1` buttons and Help for
   the keyboard; the right button shows the menu bar, Shift or Ctrl + right button a context
   menu.
+- `App.Notify` shows a Ringhio notification. `App.HotKey` gives a hotkey (`HotKey_Pressed`) and
+  an Exchange entry; `App_Show`, `App_Hide` and `App_Quit` answer Exchange and application.library,
+  and every program with a hotkey needs an `App_Quit`.
 - An ARexx port, settings in `ENV:`/`ENVARC:`, catalogs, AmigaGuide help and a `$VER:` string
   make a program a full member of the desktop.
 

@@ -1,0 +1,7 @@
+# Reminder: a Ringhio notification after some minutes, a hotkey and an Exchange entry,
+# arguments from the Shell or tooltypes from Workbench (manual chapter 18)
+Name=Reminder
+Title=Reminder
+Version=1.0
+Startup=Sub Main
+Module=reminder.bas

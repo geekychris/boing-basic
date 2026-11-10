@@ -24,6 +24,7 @@ native, and checks the others compile.
 |---|---|---|
 | 2.1 | [ch02-shell/listing-02-01.bas](ch02-shell/listing-02-01.bas) | Running a program |
 | 2.2 | [ch02-shell/listing-02-02.bas](ch02-shell/listing-02-02.bas) | Running a program |
+| 2.3 | [ch02-shell/listing-02-03.bas](ch02-shell/listing-02-03.bas) | Running programs from Workbench |
 
 ## Program structure and data
 
@@ -345,22 +346,27 @@ native, and checks the others compile.
 |---|---|---|
 | 18.1 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Started from Workbench or from the Shell |
 | 18.2 | [ch18-desktop/listing-18-02.bas](ch18-desktop/listing-18-02.bas) | Tooltypes |
-| 18.3 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Icons |
-| 18.4 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | AppWindows: files dropped on a window |
-| 18.5 | [ch18-desktop/listing-18-05.bas](ch18-desktop/listing-18-05.bas) | AppIcons and AppMenu items |
-| 18.6 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Confirmation requesters |
-| 18.7 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Window titles, the busy pointer and hints |
-| 18.8 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | An ARexx port |
-| 18.9 | [ch18-desktop/listing-18-09.bas](ch18-desktop/listing-18-09.bas) | An ARexx port |
-| 18.10 | [ch18-desktop/listing-18-10.bas](ch18-desktop/listing-18-10.bas) | Settings in ENV: and ENVARC: |
-| 18.11 | [ch18-desktop/prefs/Prefs.bbp](ch18-desktop/prefs/Prefs.bbp) | Settings in ENV: and ENVARC: |
-| 18.12 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Translations: catalogs |
-| 18.13 | [ch18-desktop/listing-18-13.bas](ch18-desktop/listing-18-13.bas) | Translations: catalogs |
-| 18.14 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Help: AmigaGuide |
-| 18.15 | [ch18-desktop/listing-18-15.bas](ch18-desktop/listing-18-15.bas) | Version strings |
-| 18.16 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Version strings |
-| 18.17 | [ch18-desktop/game/Game.bbp](ch18-desktop/game/Game.bbp) | Games on the desktop |
-| 18.18 | [ch18-desktop/fullscreen/FullScreen.bbp](ch18-desktop/fullscreen/FullScreen.bbp) | A full-screen game on its own screen |
+| 18.3 | [ch18-desktop/reminder/Reminder.bbp](ch18-desktop/reminder/Reminder.bbp) | Arguments: templates and tooltypes |
+| 18.4 | [ch18-desktop/listing-18-04.bas](ch18-desktop/listing-18-04.bas) | Interpreted programs from Workbench |
+| 18.5 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Icons |
+| 18.6 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | AppWindows: files dropped on a window |
+| 18.7 | [ch18-desktop/listing-18-07.bas](ch18-desktop/listing-18-07.bas) | AppIcons and AppMenu items |
+| 18.8 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Confirmation requesters |
+| 18.9 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Window titles, the busy pointer and hints |
+| 18.10 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | An ARexx port |
+| 18.11 | [ch18-desktop/listing-18-11.bas](ch18-desktop/listing-18-11.bas) | An ARexx port |
+| 18.12 | [ch18-desktop/reminder/Reminder.bbp](ch18-desktop/reminder/Reminder.bbp) | Notifications |
+| 18.13 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Commodities: a hotkey and Exchange |
+| 18.14 | [ch18-desktop/reminder/Reminder.bbp](ch18-desktop/reminder/Reminder.bbp) | Commodities: a hotkey and Exchange |
+| 18.15 | [ch18-desktop/listing-18-15.bas](ch18-desktop/listing-18-15.bas) | Settings in ENV: and ENVARC: |
+| 18.16 | [ch18-desktop/prefs/Prefs.bbp](ch18-desktop/prefs/Prefs.bbp) | Settings in ENV: and ENVARC: |
+| 18.17 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Translations: catalogs |
+| 18.18 | [ch18-desktop/listing-18-18.bas](ch18-desktop/listing-18-18.bas) | Translations: catalogs |
+| 18.19 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Help: AmigaGuide |
+| 18.20 | [ch18-desktop/listing-18-20.bas](ch18-desktop/listing-18-20.bas) | Version strings |
+| 18.21 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Version strings |
+| 18.22 | [ch18-desktop/game/Game.bbp](ch18-desktop/game/Game.bbp) | Games on the desktop |
+| 18.23 | [ch18-desktop/fullscreen/FullScreen.bbp](ch18-desktop/fullscreen/FullScreen.bbp) | A full-screen game on its own screen |
 
 ## Networking and modern libraries
 
