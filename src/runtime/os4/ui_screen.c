@@ -46,7 +46,7 @@ struct TextAttr *bbf_font(const char *name, int size)
     o->ta.ta_YSize = size;
     o->tf = IDF ? IDF->OpenDiskFont(&o->ta) : IGraphics->OpenFont(&o->ta);
     if (!o->tf) {
-        free(o->ta.ta_Name);
+        free((void *)o->ta.ta_Name);
         free(o);
         return NULL;       /* no such font: the control keeps the default */
     }
@@ -62,7 +62,7 @@ void bbf_fonts_cleanup(void)
         ofont *o = fonts;
         fonts = o->next;
         if (o->tf) IGraphics->CloseFont(o->tf);
-        free(o->ta.ta_Name);
+        free((void *)o->ta.ta_Name);
         free(o);
     }
     if (IDF) IExec->DropInterface((struct Interface *)IDF);

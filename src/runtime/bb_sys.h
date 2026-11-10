@@ -28,6 +28,7 @@ void bb_sys_beep(void);
 
 char *bb_sys_clipboard_get(void);           /* Clipboard.GetText: "" if empty, NULL on error */
 int bb_sys_clipboard_set(const char *text); /* Clipboard.SetText: 0 = ok */
+extern int bb_sys_clip_unit;               /* Clipboard.Unit: the clipboard unit (0-255) both use */
 
 /* Dir(pattern [, attributes]): the first match, then bb_sys_dir_next() for the next ones
  * (Dir with no arguments); NULL when there are no more. The pattern's file part may use VB

@@ -1307,6 +1307,8 @@ static void add_vb_constants(Program *p)
         {"vbKeyRWin", T_LONG, 92, 0}, {"vbKeyHelp", T_LONG, 47, 0},
         {"vbDefault", T_LONG, 0, 0}, {"vbArrow", T_LONG, 1, 0}, {"vbCrosshair", T_LONG, 2, 0}, {"vbIbeam", T_LONG, 3, 0},
         {"vbHourglass", T_LONG, 11, 0}, {"vbSizeAll", T_LONG, 15, 0},
+        {"vbCFText", T_LONG, 1, 0}, {"vbCFBitmap", T_LONG, 2, 0}, {"vbCFMetafile", T_LONG, 3, 0}, {"vbCFDIB", T_LONG, 8, 0},
+        {"vbCFPalette", T_LONG, 9, 0}, {"vbCFEMetafile", T_LONG, 14, 0}, {"vbCFFiles", T_LONG, 15, 0}, {"vbCFRTF", T_LONG, -16639, 0},
         {"vbModal", T_LONG, 1, 0}, {"vbModeless", T_LONG, 0, 0}, {"vbMinimized", T_LONG, 1, 0},
         {"cdlOFNAllowMultiselect", T_LONG, 0x200, 0}, {"cdlOFNOverwritePrompt", T_LONG, 2, 0},
         {"cdlOFNFileMustExist", T_LONG, 0x1000, 0}, {"cdlOFNPathMustExist", T_LONG, 0x800, 0},

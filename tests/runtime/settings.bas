@@ -19,3 +19,7 @@ On Error GoTo 0
 Print App.ToolType("WIDTH", "640")
 Print App.FromWorkbench
 Print App.Str(12, "Open...")
+UseSetting "BoingUse", "S", "K", "used"
+Print GetSetting("BoingUse", "S", "K", "none")
+DeleteSetting "BoingUse"
+Print GetSetting("BoingUse", "S", "K", "gone")

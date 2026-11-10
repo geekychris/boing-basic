@@ -870,6 +870,7 @@ bb_value bb_printer_object(void);
 /* VB's registry settings, in ENV:/ENVARC: (AmigaOS) or ~/.boing/ (hosts) */
 bb_str *bb_getsetting(bb_str *app, bb_str *section, bb_str *key, bb_str *def);
 void bb_savesetting(bb_str *app, bb_str *section, bb_str *key, bb_str *value);
+void bb_usesetting(bb_str *app, bb_str *section, bb_str *key, bb_str *value);   /* ENV: only */
 void bb_deletesetting(bb_str *app, bb_str *section, bb_str *key);
 
 /* ------------------------------------------------------------------ */

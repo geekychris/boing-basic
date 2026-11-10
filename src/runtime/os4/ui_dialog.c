@@ -25,6 +25,7 @@ typedef struct dlg {
     int32 sw, sh, sd;
     int32 colors[256];
     int32 ncolors;
+    int32 colorindex;      /* ShowPalette: the colour picked (and the one it starts on) */
 } dlg;
 
 enum {
@@ -282,6 +283,16 @@ static int show_screenmode(bb_ctl *c)
     return !ok && d->cancelerror ? cdlCancel : 0;
 }
 
+/* a picture in one of the requesters' canvas controls, kept in a Canvas object so the forms
+   layer shows it again whenever the layout repaints the control's box */
+static void dlg_picture(bb_obj **cv, bb_ctl *ctl, const uint32_t *px, int32 w, int32 h)
+{
+    if (!ctl) return;
+    if (!*cv) *cv = bb_canvas_new(w, h, ctl);
+    bb_canvas_put_picture(*cv, px, w, h);
+    bb_canvas_ctl_refresh(ctl);
+}
+
 /* --- the colour requester: a form of its own, modal like InputBox -------------------------- */
 
 struct cbox {
@@ -301,7 +312,7 @@ static void cbox_show(struct cbox *b)
     b->rgb = r | g << 8 | bl << 16;
     static uint32_t px[64 * 24];
     for (int i = 0; i < 64 * 24; i++) px[i] = 0xFF000000u | (uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)bl;
-    canvas_plat_present(bb_form_ctl(b->f, "swatch"), px, 64, 24, 64);
+    dlg_picture(&b->canvas, bb_form_ctl(b->f, "swatch"), px, 64, 24);
     char hex[16];
     snprintf(hex, sizeof hex, "#%02X%02X%02X", r, g, bl);
     bb_fval s = { BB_FV_STR, 0, hex };
@@ -339,7 +350,7 @@ static int show_color(bb_ctl *c)
              "    vlayout weight=0\n"
              "      canvas id=swatch width=64 height=24\n"
              "      label id=hex text=\"#000000\"\n"
-             "  hlayout weight=0 even=1\n    button id=ok text=_OK\n    space\n    button id=cancel text=_Cancel\n",
+             "  hlayout weight=0 even=1\n    button id=ok text=_OK default=1\n    space\n    button id=cancel text=_Cancel cancel=1\n",
              d->title ? d->title : "Colour", (long)(col & 255), (long)((col >> 8) & 255), (long)((col >> 16) & 255));
     struct cbox box = { 0 };
     char err[200];
@@ -360,10 +371,153 @@ static int show_color(bb_ctl *c)
         ending = was_ending;
     }
     bbf_form_discard(f);
+    bb_obj_release(box.canvas);
     sleep_all(0);
     d->cancelled = !box.ok;
     if (box.ok) d->color = box.rgb;
     return !box.ok && d->cancelerror ? cdlCancel : 0;
+}
+
+/* --- ShowPalette: Colors(0 .. ColorCount-1) as swatches (16 a row); a click or the "Colour"
+   slider picks one, the RGB sliders change it ------------------------------------------- */
+
+#define PCELL 20
+
+struct pbox {
+    int done, ok, sel, n, loading;
+    int32 cols[256];
+    bb_form *f;
+    bb_obj *canvas;
+};
+
+static void pbox_draw(struct pbox *b)
+{
+    int rows = (b->n + 15) / 16, w = 16 * PCELL, h = rows * PCELL;
+    static uint32_t px[16 * PCELL * 16 * PCELL];
+    for (int i = 0; i < w * h; i++) px[i] = 0xFF888888u;
+    for (int i = 0; i < b->n; i++) {
+        int x0 = (i % 16) * PCELL, y0 = (i / 16) * PCELL;
+        int32 c = b->cols[i];
+        uint32_t argb = 0xFF000000u | (uint32_t)(c & 255) << 16 | (uint32_t)(c & 0xFF00) | (uint32_t)((c >> 16) & 255);
+        for (int y = 0; y < PCELL; y++)
+            for (int x = 0; x < PCELL; x++) {
+                int edge = x == 0 || y == 0 || x == PCELL - 1 || y == PCELL - 1;
+                int ring = x < 3 || y < 3 || x >= PCELL - 3 || y >= PCELL - 3;
+                uint32_t v = argb;
+                if (i == b->sel && ring) v = edge || x == 2 || y == 2 || x == PCELL - 3 || y == PCELL - 3 ? 0xFF000000u : 0xFFFFFFFFu;
+                else if (edge) v = 0xFF333333u;
+                px[(y0 + y) * w + x0 + x] = v;
+            }
+    }
+    dlg_picture(&b->canvas, bb_form_ctl(b->f, "pal"), px, w, h);
+    char hex[24];
+    int32 c = b->cols[b->sel];
+    snprintf(hex, sizeof hex, "%ld: #%02lX%02lX%02lX", (long)b->sel, (long)(c & 255), (long)((c >> 8) & 255), (long)((c >> 16) & 255));
+    bb_fval s = { BB_FV_STR, 0, hex };
+    bb_ctl_set(bb_form_ctl(b->f, "hex"), "Caption", -1, &s);
+}
+
+/* the sliders show colour sel */
+static void pbox_select(struct pbox *b, int sel)
+{
+    if (sel < 0 || sel >= b->n) return;
+    b->sel = sel;
+    b->loading = 1;
+    int32 c = b->cols[sel];
+    bb_fval v = { BB_FV_INT, 0, NULL };
+    v.i = sel;
+    bb_ctl_set(bb_form_ctl(b->f, "idx"), "Value", -1, &v);
+    v.i = c & 255;
+    bb_ctl_set(bb_form_ctl(b->f, "r"), "Value", -1, &v);
+    v.i = (c >> 8) & 255;
+    bb_ctl_set(bb_form_ctl(b->f, "g"), "Value", -1, &v);
+    v.i = (c >> 16) & 255;
+    bb_ctl_set(bb_form_ctl(b->f, "b"), "Value", -1, &v);
+    b->loading = 0;
+    pbox_draw(b);
+}
+
+static int pbox_event(void *ud, bb_form *f, const char *ctl, const char *event, int argc, int32_t *args)
+{
+    struct pbox *b = ud;
+    b->f = f;
+    if (!strcmp(event, "Click") && !strcmp(ctl, "ok")) b->done = b->ok = 1;
+    else if (!strcmp(event, "Click") && !strcmp(ctl, "cancel")) b->done = 1;
+    else if (!strcmp(ctl, "Form") && !strcmp(event, "Unload")) b->done = 1;
+    else if (!strcmp(ctl, "Form") && !strcmp(event, "KeyDown") && argc > 0 && args[0] == 27) b->done = 1;
+    else if (!strcmp(ctl, "Form") && !strcmp(event, "KeyDown") && argc > 0 && args[0] == 13) b->done = b->ok = 1;
+    else if (!strcmp(ctl, "pal") && !strcmp(event, "MouseDown") && argc >= 4 && args[2] >= 0 && args[3] >= 0) {
+        int i = (args[3] / PCELL) * 16 + args[2] / PCELL;
+        if (args[2] < 16 * PCELL && i < b->n) pbox_select(b, i);
+    } else if (!strcmp(ctl, "idx") && (!strcmp(event, "Scroll") || !strcmp(event, "Change"))) {
+        bb_fval v;
+        if (!b->loading && !bb_ctl_get(bb_form_ctl(f, "idx"), "Value", -1, &v) && v.i != b->sel) pbox_select(b, v.i);
+    } else if (!strcmp(event, "Scroll") || !strcmp(event, "Change")) {
+        if (b->loading) return 0;
+        bb_fval v;
+        int r = 0, g = 0, bl = 0;
+        if (!bb_ctl_get(bb_form_ctl(f, "r"), "Value", -1, &v)) r = v.i;
+        if (!bb_ctl_get(bb_form_ctl(f, "g"), "Value", -1, &v)) g = v.i;
+        if (!bb_ctl_get(bb_form_ctl(f, "b"), "Value", -1, &v)) bl = v.i;
+        b->cols[b->sel] = r | g << 8 | bl << 16;
+        pbox_draw(b);
+    } else if (!strcmp(ctl, "Form") && !strcmp(event, "Resize"))
+        pbox_draw(b);
+    return 0;
+}
+
+static int show_palette(bb_ctl *c)
+{
+    dlg *d = D(c);
+    char afg[1600];
+    int n = d->ncolors < 1 ? 1 : d->ncolors > 256 ? 256 : d->ncolors;
+    snprintf(afg, sizeof afg,
+             "window name=_palette title=\"%s\" resizable=0 mouse=1\n"
+             "vlayout id=root\n"
+             "  canvas id=pal width=%d height=%d\n"
+             "  hlayout weight=0\n"
+             "    slider id=idx label=\"C_olour\" min=0 max=%d level=0\n"
+             "    label id=hex text=\"0: #000000\" weight=0 minwidth=110\n"
+             "  slider id=r label=\"_Red\" min=0 max=255 level=0\n"
+             "  slider id=g label=\"_Green\" min=0 max=255 level=0\n"
+             "  slider id=b label=\"_Blue\" min=0 max=255 level=0\n"
+             "  hlayout weight=0 even=1\n    button id=ok text=_OK default=1\n    space\n    button id=cancel text=_Cancel cancel=1\n",
+             d->title ? d->title : "Palette", 16 * PCELL, ((n + 15) / 16) * PCELL, n - 1 > 0 ? n - 1 : 1);
+    struct pbox *box = calloc(1, sizeof *box);
+    if (!box) return 7;
+    box->n = n;
+    memcpy(box->cols, d->colors, sizeof box->cols);
+    char err[200];
+    bb_form *f = bb_form_load(afg, "PaletteDialog", pbox_event, NULL, box, err, sizeof err);
+    if (!f) {
+        free(box);
+        return 7;
+    }
+    box->f = f;
+    sleep_all(1);
+    if (bb_form_show(f) == 0) {
+        pbox_select(box, d->colorindex >= 0 && d->colorindex < n ? d->colorindex : 0);
+        uint32 sig = 0;
+        IIntuition->GetAttr(WINDOW_SigMask, f->winobj, &sig);
+        int was_ending = ending;
+        while (!box->done && f->loaded && f->win && !ending) {
+            uint32 got = IExec->Wait(sig | SIGBREAKF_CTRL_C);
+            if (got & SIGBREAKF_CTRL_C) break;
+            bbf_handle_form(f);
+        }
+        ending = was_ending;
+    }
+    bbf_form_discard(f);
+    bb_obj_release(box->canvas);
+    sleep_all(0);
+    int ok = box->ok;
+    d->cancelled = !ok;
+    if (ok) {
+        memcpy(d->colors, box->cols, sizeof d->colors);
+        d->colorindex = box->sel;
+    }
+    free(box);
+    return !ok && d->cancelerror ? cdlCancel : 0;
 }
 
 /* ShowMessage(prompt, "_Save|_Discard|_Cancel" [, title [, icon]]): 1-based button number */
@@ -409,6 +563,7 @@ int bbf_dialog_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
     if (IS("ScreenHeight")) return ret_int(out, d->sh);
     if (IS("ScreenDepth")) return ret_int(out, d->sd);
     if (IS("ColorCount")) return ret_int(out, d->ncolors);
+    if (IS("ColorIndex")) return ret_int(out, d->colorindex);
     if (IS("Colors")) {
         if (index < 0 || index >= d->ncolors) return 381;
         return ret_int(out, d->colors[index]);
@@ -433,6 +588,11 @@ int bbf_dialog_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
     if (IS("FontUnderline")) { d->underline = vint(v) != 0; return 0; }
     if (IS("Color")) { d->color = vint(v) & 0xFFFFFF; return 0; }
     if (IS("ScreenModeID")) { d->modeid = (uint32)vint(v); return 0; }
+    if (IS("ColorIndex")) {
+        if (vint(v) < 0 || vint(v) > 255) return 380;
+        d->colorindex = vint(v);
+        return 0;
+    }
     if (IS("ColorCount")) {
         int n = vint(v);
         if (n < 1 || n > 256) return 380;
@@ -461,6 +621,7 @@ int bbf_dialog_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv
     if (IS("ShowFont")) return show_font(c);
     if (IS("ShowScreenMode")) return show_screenmode(c);
     if (IS("ShowColor")) return show_color(c);
+    if (IS("ShowPalette")) return show_palette(c);
     if (IS("ShowMessage")) return show_message(c, argc, argv, ret);
     return 438;
 }

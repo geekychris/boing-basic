@@ -542,6 +542,63 @@ static void localize_node(afg_node *n, void *ud)
 
 void bbf_localize(afg_node *root) { afg_walk(root, localize_node, NULL); }
 
+/* number and date formats of the user's locale */
+static char dp_buf[8] = ".", gs_buf[8] = "";
+
+static void locale_seps(void)
+{
+    static int done;
+    if (done || !loc()) return;
+    done = 1;
+    struct Locale *l = ILoc->OpenLocale(NULL);
+    if (!l) return;
+    if (l->loc_DecimalPoint) snprintf(dp_buf, sizeof dp_buf, "%s", (char *)l->loc_DecimalPoint);
+    if (l->loc_GroupSeparator) snprintf(gs_buf, sizeof gs_buf, "%s", (char *)l->loc_GroupSeparator);
+    ILoc->CloseLocale(l);
+}
+
+const char *bb_app_plat_decimal_point(void) { locale_seps(); return dp_buf; }
+const char *bb_app_plat_group_separator(void) { locale_seps(); return gs_buf; }
+
+struct fdbuf { char *p; int n, o; };
+static uint32 put_char(struct Hook *h, struct Locale *l, uint32 c)
+{
+    struct fdbuf *b = h->h_Data;
+    (void)l;
+    if (b->o < b->n - 1) b->p[b->o++] = (char)c;
+    return 0;
+}
+
+/* d: VB date serial (days since 1899-12-30); AmigaOS dates count from 1978-01-01 = serial 28491 */
+int bb_app_plat_format_date(double d, const char *fmt, char *out, int n)
+{
+    if (!loc() || n < 2) return 0;
+    struct Locale *l = ILoc->OpenLocale(NULL);
+    if (!l) return 0;
+    const char *f = fmt;
+    if (!strcasecmp(fmt, "short")) f = (const char *)l->loc_ShortDateFormat;
+    else if (!strcasecmp(fmt, "long")) f = (const char *)l->loc_DateFormat;
+    else if (!strcasecmp(fmt, "time")) f = (const char *)l->loc_ShortTimeFormat;
+    else if (!strcasecmp(fmt, "datetime")) f = (const char *)l->loc_DateTimeFormat;
+    struct DateStamp ds;
+    double days = d - 28491.0, whole = (double)(int32)days;
+    if (days < 0 && whole != days) whole -= 1;
+    double frac = days - whole;
+    ds.ds_Days = (int32)whole;
+    ds.ds_Minute = (int32)(frac * 1440.0);
+    ds.ds_Tick = (int32)((frac * 1440.0 - ds.ds_Minute) * 60.0 * TICKS_PER_SECOND);
+    struct fdbuf b = { out, n, 0 };
+    struct Hook h;
+    memset(&h, 0, sizeof h);
+    h.h_Entry = (HOOKFUNC)put_char;
+    h.h_Data = &b;
+    ILoc->FormatDate(l, f ? f : "%x", &ds, &h);
+    out[b.o] = 0;
+    if (b.o && out[b.o - 1] == 0) b.o--;
+    ILoc->CloseLocale(l);
+    return 1;
+}
+
 /* --- AmigaGuide --------------------------------------------------------------------------- */
 
 static APTR guide_handle;
@@ -579,11 +636,23 @@ static void guide_messages(void)
     }
 }
 
+/* the Help key: the help file at the node of the control under the pointer (helpnode=), else
+   the window's helpnode=, else "main" */
 int bbf_app_help_key(bb_form *f)
 {
-    (void)f;
     if (!help_file) return 0;
-    show_help(help_file, "main");
+    const char *node = afg_has(f->afg, "helpnode") ? afg_get(f->afg, "helpnode") : "main";
+    if (f->win) {
+        int x = f->win->MouseX, y = f->win->MouseY;
+        for (int i = 0; i < f->nctls; i++) {
+            bb_ctl *c = f->ctls[i];
+            if (!c->obj || !c->visible || !afg_takes_space(c->kind) || c->kind == AFG_TOOL || !afg_has(c->node, "helpnode")) continue;
+            struct Gadget *g = (struct Gadget *)c->obj;
+            if (x >= g->LeftEdge && y >= g->TopEdge && x < g->LeftEdge + g->Width && y < g->TopEdge + g->Height)
+                node = afg_get(c->node, "helpnode");      /* inner controls come later and win */
+        }
+    }
+    show_help(help_file, node);
     return 1;
 }
 
@@ -607,7 +676,7 @@ static int clip_set_picture(bb_obj *canvas, int32 image)
     }
     int err = 7;
     struct IFFHandle *h_ = iff->AllocIFF();
-    struct ClipboardHandle *ch = h_ ? iff->OpenClipboard(PRIMARY_CLIP) : NULL;
+    struct ClipboardHandle *ch = h_ ? iff->OpenClipboard(bb_sys_clip_unit) : NULL;
     int rowbytes = ((w + 15) / 16) * 2;
     uint8 *row = malloc(rowbytes);
     if (h_ && ch && row) {
@@ -655,7 +724,7 @@ static int clip_set_picture(bb_obj *canvas, int32 image)
 static uint32_t *clip_read(int32 *pw, int32 *ph)
 {
     if (!dt()) return NULL;
-    Object *o = IDT->NewDTObject((APTR)0, DTA_SourceType, DTST_CLIPBOARD, DTA_GroupID, GID_PICTURE, PDTA_DestMode,
+    Object *o = IDT->NewDTObject((APTR)(uint32)bb_sys_clip_unit, DTA_SourceType, DTST_CLIPBOARD, DTA_GroupID, GID_PICTURE, PDTA_DestMode,
                                  PMODE_V43, PDTA_Remap, FALSE, TAG_DONE);
     if (!o) return NULL;
     struct BitMapHeader *bmh = NULL;
@@ -699,7 +768,7 @@ static int clip_get_picture(bb_obj *canvas, bb_fval *ret)
 {
     if (!canvas || !bb_is_canvas(canvas)) return 13;
     if (!dt()) return 5;
-    Object *o = IDT->NewDTObject((APTR)0, DTA_SourceType, DTST_CLIPBOARD, DTA_GroupID, GID_PICTURE, PDTA_DestMode,
+    Object *o = IDT->NewDTObject((APTR)(uint32)bb_sys_clip_unit, DTA_SourceType, DTST_CLIPBOARD, DTA_GroupID, GID_PICTURE, PDTA_DestMode,
                                  PMODE_V43, PDTA_Remap, FALSE, TAG_DONE);
     if (!o) return ri(ret, 0);
     struct BitMapHeader *bmh = NULL;
@@ -727,7 +796,7 @@ static int clip_get_picture(bb_obj *canvas, bb_fval *ret)
 static int clip_has_picture(bb_fval *ret)
 {
     if (!dt()) return ri(ret, 0);
-    Object *o = IDT->NewDTObject((APTR)0, DTA_SourceType, DTST_CLIPBOARD, DTA_GroupID, GID_PICTURE, TAG_DONE);
+    Object *o = IDT->NewDTObject((APTR)(uint32)bb_sys_clip_unit, DTA_SourceType, DTST_CLIPBOARD, DTA_GroupID, GID_PICTURE, TAG_DONE);
     if (o) IDT->DisposeDTObject(o);
     return ri(ret, vb_bool(o != NULL));
 }
