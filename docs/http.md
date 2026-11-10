@@ -123,7 +123,7 @@ The asynchronous calls start the request on a background task and return at once
 | `Busy` | True while the request runs |
 | `Wait([ms])` | waits until it ends (handling events meanwhile), at most `ms` milliseconds if given; True if it has ended |
 | `Cancel` | stops it; it then ends with `ErrorNumber` 18 |
-| `OnDone` | the name of a `Sub` with no arguments, called when the request ends |
+| `OnDone` | the name of a `Sub` with no arguments, called when the request ends (or use the events below) |
 | `OnProgress` | the name of a `Sub (got As Long, total As Long)`, called as data arrives; `total` is the `Content-Length`, or -1 if the server didn't send one |
 | `ErrorNumber`, `ErrorText` | how it ended: 0 and `""`, or the error (31101–31110, 18) |
 
@@ -149,7 +149,46 @@ Sub Progress(got As Long, total As Long)
 End Sub
 ```
 
-In a form, start the request in a button's `Click`, and handle the answer in the `OnDone` Sub:
+### Events
+
+An `Http` variable declared `WithEvents` raises events, handled by Subs named
+*variable*`_`*event*, like a form's controls:
+
+| Event | |
+|---|---|
+| `Done()` | the request ended with an answer (any HTTP status: check `Status`) |
+| `Failed(number As Long, text As String)` | it ended without one: `number` is `ErrorNumber` (31101–31110, or 18 after `Cancel`) |
+| `Progress(got As Long, total As Long)` | data arrived (`total` is -1 when the server didn't send a length) |
+
+In a form, start the request in a button's `Click` and handle the answer in the events:
+
+```basic
+Private WithEvents web As Http
+
+Private Sub FetchButton_Click()
+    Set web = CreateObject("Http")
+    web.GetAsync UrlField.Text
+    FetchButton.Enabled = False
+End Sub
+
+Private Sub web_Done()
+    FetchButton.Enabled = True
+    Page.Text = Utf8Decode(web.ResponseText)
+End Sub
+
+Private Sub web_Failed(number As Long, text As String)
+    FetchButton.Enabled = True
+    MsgBox text
+End Sub
+
+Private Sub web_Progress(got As Long, total As Long)
+    If total > 0 Then Status.Text = (got * 100 \ total) & "%"
+End Sub
+```
+
+### OnDone and OnProgress
+
+Without `WithEvents`, name the Subs to call instead (both ways can be used together):
 
 ```basic
 Private web As Http
@@ -202,10 +241,10 @@ default certificate store is Homebrew's.
 - `tests-net/os4-run.sh`: the same 38 checks on the AmigaOS 4 guest (QEMU), VM and native,
   through AmiSSL, against the test server on the Mac (reached at the QEMU gateway
   192.168.101.2). 2026-11-10: 38/38 both.
-- `tests-net/asynctest.bas` (in both runners): 16 checks of the asynchronous calls: `Busy` with
+- `tests-net/asynctest.bas` (in both runners): 19 checks of the asynchronous calls: `Busy` with
   `DoEvents`, `OnDone`, two requests at once finishing in their own order, `OnProgress` over a
   300 KB body, `Wait` with a limit, `Cancel`, error 5 for overlapping requests, `ErrorNumber` for
-  an unknown host, a POST, HTTPS (one and two at once).
+  an unknown host, a POST, HTTPS (one and two at once), and the `WithEvents` events.
 
 ## Not yet
 
