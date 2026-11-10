@@ -377,15 +377,14 @@ Const HUGE = 1E308 * 10
 must be a variable of exactly that type, not a constant, an expression or a variable of another
 type (see [AmigaOS](17-amigaos.md#arguments)).
 
-**the module 'm' hides the built-in class C: rename the module**: one of your modules has the
-name of a built-in class, usually because of its file name (`http.bas` is the module `http`,
-`canvas.bas` the module `canvas`). Module names win over the built-in classes, so `Dim h As
-Http` or `New Http` would mean the module. Rename the file, for example to `webfetch.bas`. The
-built-in classes are `Http`, `Canvas`, `Audio`, `Engine3D` and `Collection`, and the classes of
-any extensions the program uses. A program `http.bas` that starts with `Dim h As Http` gives
+**the module 'collection' hides the built-in class Collection: rename the module**: one of
+your modules is called `collection` (usually a file `collection.bas`). `Collection` is part of
+the language itself, so a module can't share its name; rename the file. (Modules named like the
+runtime's other classes, such as `http.bas` or `dictionary.bas`, are allowed: after `As` and
+`New` the name still means the class.)
 
 ```text
-http.bas:1:10: error: the module 'http' hides the built-in class Http: rename the module
+collection.bas:1:1: error: the module 'collection' hides the built-in class Collection: rename the module
 ```
 
 A module called `app`, `clipboard`, `printer` or `err` is allowed: the built-in object of that
