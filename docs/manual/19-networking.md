@@ -430,10 +430,10 @@ Sub of yours when it is done.
 | `Busy` | property | `True` while the request runs |
 | `Wait([ms])` | method | waits until the request has ended, handling events meanwhile; with `ms`, for at most that many milliseconds. Returns `True` if it has ended |
 | `Cancel` | method | stops the request; it then ends with `ErrorNumber` 18 |
-| `OnDone` | property | the name of a Sub without arguments, called once when the request has ended, however it ended |
+| `OnDone` | property | the name of a Sub without arguments, called once when the request has ended, however it ended (naming a Sub that doesn't exist is error 35 at once) |
 | `OnProgress` | property | the name of a `Sub (got As Long, total As Long)`, called as the answer arrives: `got` bytes so far of `total`, or `total` = -1 if the server didn't say how big the answer is |
-| `ErrorNumber` | property | how the request ended: 0 if an answer came, otherwise the error number (31101 to 31110, or 18 for cancelled) |
-| `ErrorText` | property | the error message, `""` when there was none |
+| `ErrorNumber` | property | how the request ended: 0 if an answer came, otherwise the error number (31101 to 31110, or 18 for cancelled); a waiting request (`Get`...) that fails sets it too |
+| `ErrorText` | property | the error message, `""` when there was none; a new request clears it |
 
 When the request has ended, `Status`, `StatusText`, `ResponseText`, `ResponseHeader(name)`,
 `ResponseHeaders`, `ContentType`, `Url`, `Redirects` and `BytesReceived` describe the answer, as
@@ -635,18 +635,14 @@ End Sub
 
 ### Cancelling
 
-`Cancel` asks the request to stop. It ends soon after with `ErrorNumber` 18 (and `OnDone` is
-called as for any other end). What had arrived until then stays in `ResponseText`, and
-`Status` is the status the server had sent: that is why you check `ErrorNumber` before
-`Status`. Calling `Cancel` when no request runs does nothing.
+`Cancel` stops the request at once, whatever it is doing: looking up the host name,
+connecting, waiting for the server's first reply or receiving the answer. The request then ends
+with `ErrorNumber` 18 (and `OnDone` is called as for any other end). After a cancelled or failed
+request `Status` is 0 and `ResponseText` is `""`, so nothing half-arrived is mistaken for an
+answer. Calling `Cancel` when no request runs does nothing.
 
-`Cancel` takes effect when the next piece of the answer arrives. A request that is still
-looking up the host name, connecting, or waiting for the server's first reply ends when that
-step is over, or when `Timeout` runs out. Keep `Timeout` moderate (10 to 30 seconds) in programs
-with a Cancel button.
-
-A program that ends while a request still runs simply stops it. In a form, cancel a running
-request in `Form_Unload`, and clear `OnDone` first so that it isn't called while the window
+When a program ends, requests that are still running are cancelled for you. In a form it is
+still tidier to cancel a running request in `Form_Unload`, and clear `OnDone` first so that it isn't called while the window
 goes away:
 
 *Listing 19.15* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
