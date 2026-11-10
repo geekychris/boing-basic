@@ -1,0 +1,6 @@
+# about.afg - a window shown beside the main one
+window name=aboutBox title="About People" width=220 height=0 toolwindow=1
+vlayout id=root
+  label text="People 1.0"
+  label text="A Boing BASIC example"
+  button id=close text="_Close"

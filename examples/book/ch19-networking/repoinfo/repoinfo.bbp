@@ -1,0 +1,4 @@
+# Boing BASIC project: a JSON API (GitHub's) shown in a form
+Name=RepoInfo
+Startup=Form repoinfo
+Form=repoinfo.afg

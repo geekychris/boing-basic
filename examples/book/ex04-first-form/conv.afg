@@ -1,0 +1,13 @@
+# AmiForge GUI (a Boing BASIC form: its code is in conv.bas)
+window name=conv title="Temperature Converter" width=320 height=0
+vlayout id=root
+  hlayout id=temps title="Temperature"
+    string id=celsius label="_Celsius" text=0 maxchars=12 hint="Degrees Celsius"
+    string id=fahrenheit label="_Fahrenheit" text=32 maxchars=12 hint="Degrees Fahrenheit"
+  checkbox id=whole text="_Whole degrees"
+  label id=feel text=" "
+  hlayout id=buttons even=1
+    button id=freezing text="F_reezing"
+    button id=boiling text="_Boiling"
+    space
+    button id=quit text="_Quit"

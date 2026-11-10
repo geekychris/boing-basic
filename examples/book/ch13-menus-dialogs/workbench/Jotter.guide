@@ -1,0 +1,13 @@
+@database Jotter.guide
+@node main "Jotter"
+Jotter is a small note pad, an example of the Boing BASIC manual.
+
+  @{"Commands" link commands}
+@endnode
+@node commands "ARexx commands"
+ADDRESS JOTTER
+
+  TEXT           returns the text
+  APPEND words   adds a line
+  QUIT           ends Jotter
+@endnode

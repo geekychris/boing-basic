@@ -1,0 +1,3 @@
+[[shot]]
+file = "shots/squash.png"
+run = { project = "Squash.bbp", args = "--auto", secs = 12, dumps = 3 }

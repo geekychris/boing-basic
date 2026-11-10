@@ -1,0 +1,11 @@
+# mathx.bbx - what mathx.c registers: two functions and a class
+function Clamp(ByVal x As Double, ByVal lo As Double, ByVal hi As Double) As Double
+function Lerp(ByVal a As Double, ByVal b As Double, ByVal t As Double) As Double
+class Stats
+  method Add(ByVal x As Double)
+  method Clear()
+  property Count As Long ReadOnly
+  property Mean As Double ReadOnly
+  property Min As Double ReadOnly
+  property Max As Double ReadOnly
+  property Name As String

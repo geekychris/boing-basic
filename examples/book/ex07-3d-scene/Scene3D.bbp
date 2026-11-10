@@ -1,0 +1,7 @@
+# Boing BASIC project: exercise 7 of the user manual, a small Engine3D scene: spinning models
+# over a chequered floor, with a camera you drive with the cursor keys.
+Name=Scene3D
+Startup=Form scene
+Module=World.bas
+Form=scene.afg
+Stack=262144

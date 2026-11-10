@@ -1,0 +1,5 @@
+# Events: a class that raises events, a module and a class that handle them (manual chapter 11)
+Name=Events
+Module=main.bas
+Class=Tank.cls
+Class=Logger.cls

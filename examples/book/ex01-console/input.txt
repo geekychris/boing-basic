@@ -1,0 +1,19 @@
+2
+7
+42
+84
+20
+70
+42
+1
+50
+25
+abc
+12
+23
+3
+The quick brown fox jumps over the lazy dog.
+It's  a   test, isn't it?
+
+9
+0

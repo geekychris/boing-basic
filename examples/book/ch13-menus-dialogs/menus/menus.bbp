@@ -1,0 +1,5 @@
+# Menus: a menu bar, shortcuts, checkmarks, a context menu and menus built at run time
+# (manual chapter 13)
+Name=Menus
+Startup=Form sketch
+Form=sketch.afg

@@ -1,0 +1,15 @@
+# jotter.afg - remember=1 keeps the window's place, iconify=1 adds an iconify gadget,
+# dropfiles=1 lets the user drop icons on the window
+window name=jotterWin title="$1:Jotter" width=400 height=220 remember=1 iconify=1 dropfiles=1
+vlayout id=root
+  texteditor id=ed
+  hlayout even=1 weight=0
+    button id=copyAll text="$2:_Copy all"
+    button id=pasteIn text="$3:_Paste"
+    button id=saveIt text="$4:_Save"
+    button id=hideIt text="$5:_Hide"
+  label id=status text=" "
+menu id=mnuProject text="$10:Project"
+  menu id=mnuAppIcon text="$13:Icon on Workbench" checkable=1
+  menu id=mnuHelp text="$11:Help..."
+  menu id=mnuQuit text="$12:Quit" key=Q

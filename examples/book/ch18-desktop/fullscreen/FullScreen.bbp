@@ -1,0 +1,6 @@
+# FullScreen: the game of chapter 18 on a screen of its own (manual chapter 18)
+Name=BoingCatchFS
+Title=Boing Catch
+Startup=Sub Main
+Module=Startup.bas
+Form=fullgame.afg

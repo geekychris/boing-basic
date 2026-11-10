@@ -1,0 +1,19 @@
+help
+i
+dance
+go up
+n
+take the key
+w
+take map
+inventory
+e
+s
+e
+drop map
+take pear
+drop map
+eat pear
+look
+e
+take lamp

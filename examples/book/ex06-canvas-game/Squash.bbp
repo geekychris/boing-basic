@@ -1,0 +1,4 @@
+# Boing BASIC project: exercise 6 of the user manual, a bat-and-ball game on a Canvas.
+Name=Squash
+Startup=Form squash
+Form=squash.afg

@@ -1,0 +1,21 @@
+# AmiForge GUI (a Boing BASIC form: its code is in board.bas)
+window name=board title="Sound Board" width=380 height=0
+vlayout id=root
+  vlayout id=musicGroup title="Music"
+    label id=songInfo text=" "
+    fuelgauge id=progress min=0 max=1 level=0
+    hlayout id=musicButtons even=1
+      button id=play text="_Play"
+      button id=pause text="P_ause"
+      button id=stopIt text="_Stop"
+    slider id=musicVol label="Volume" min=0 max=64 level=48
+  vlayout id=fxGroup title="Sound effects (or press 1 to 4)"
+    hlayout id=fxButtons even=1
+      button id=fxLaser text="Laser"
+      button id=fxCoin text="Coin"
+      button id=fxBoom text="Boom"
+      button id=fxJump text="Jump"
+    slider id=fxVol label="Volume" min=0 max=64 level=64
+    slider id=fxPan label="Left - right" min=-64 max=64 level=0
+  label id=status text=" "
+  timer id=tick interval=200 enabled=1

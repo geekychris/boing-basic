@@ -1,0 +1,4 @@
+# Boing BASIC project: the first step of exercise 4, a window with a label and a button.
+Name=Hello
+Startup=Form main
+Form=main.afg

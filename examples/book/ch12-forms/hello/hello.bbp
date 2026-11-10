@@ -1,0 +1,4 @@
+# Hello: the smallest form program (manual chapter 12)
+Name=Hello
+Startup=Form hello
+Form=hello.afg

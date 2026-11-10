@@ -1,0 +1,5 @@
+# Library: classes that hold other objects, Property Set, Me, a default member (manual chapter 11)
+Name=Library
+Module=main.bas
+Class=Book.cls
+Class=Shelf.cls

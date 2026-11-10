@@ -1,0 +1,6 @@
+# Boing BASIC project: exercise 3 of the user manual, a small bank with Account objects,
+# properties, events and a Collection.
+Name=Bank
+Startup=Sub Main
+Module=Main.bas
+Class=Account.cls

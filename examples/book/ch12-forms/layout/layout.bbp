@@ -1,0 +1,4 @@
+# Layout: rows, columns, frames, weights, a splitter and tabs (manual chapter 12)
+Name=Layout
+Startup=Form prefs
+Form=prefs.afg

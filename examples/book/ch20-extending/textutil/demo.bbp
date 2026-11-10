@@ -1,0 +1,5 @@
+# Boing BASIC project: the textutil extension (C++) and a program that uses it
+Name=TextutilDemo
+Startup=Sub Main
+Module=demo.bas
+Extension=textutil

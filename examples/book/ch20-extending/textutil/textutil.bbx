@@ -1,0 +1,8 @@
+# textutil.bbx - what textutil.cpp registers
+function WordTotal(ByVal text As String) As Long
+class WordCount
+  method Add(ByVal text As String)
+  method Count(ByVal word As String) As Long
+  method Top(ByVal n As Long) As String
+  property Distinct As Long ReadOnly
+  property Total As Long ReadOnly

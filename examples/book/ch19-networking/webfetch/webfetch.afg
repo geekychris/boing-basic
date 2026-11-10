@@ -1,0 +1,11 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=webfetch title="Web Fetch" width=560 height=360 resizable=1
+vlayout id=root
+  hlayout weight=0
+    string id=url label="URL" text="https://example.com/" maxchars=1024
+    button id=go text="_Get" weight=0
+  hlayout weight=0
+    checkbox id=headers text="Show _headers"
+    checkbox id=verify text="_Verify certificate" checked=1
+  texteditor id=page
+  label id=status text="Type a URL and press Get"

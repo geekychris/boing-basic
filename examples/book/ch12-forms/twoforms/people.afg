@@ -1,0 +1,8 @@
+# people.afg - the main window
+window name=people title="People" width=300 height=200
+vlayout id=root
+  listbrowser id=names items="Ada|Grace|Alan"
+  hlayout even=1 weight=0
+    button id=add text="_Add..."
+    button id=edit text="_Edit..."
+    button id=about text="A_bout"

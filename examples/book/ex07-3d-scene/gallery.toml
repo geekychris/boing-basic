@@ -1,0 +1,3 @@
+[[shot]]
+file = "shots/scene.png"
+run = { project = "Scene3D.bbp", secs = 8 }

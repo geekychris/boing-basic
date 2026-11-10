@@ -1,0 +1,4 @@
+# Game: a game window that behaves on the desktop (manual chapter 18)
+Name=BoingCatch
+Startup=Form game
+Form=game.afg

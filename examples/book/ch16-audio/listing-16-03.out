@@ -1,0 +1,5 @@
+all busy: low priority gets voice 0 
+high priority gets voice 9 
+engine voice 10  rate 16000  volume 50 
+stopped:True
+with effects off PlaySound gives 0 

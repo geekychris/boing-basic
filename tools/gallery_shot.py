@@ -105,22 +105,67 @@ def ours(m):
 
 
 def autocrop(before, after, pad=2):
-    """The box of the screen that changed (rows/columns with enough changed pixels)."""
+    """The box of the program's window: the biggest connected area of the screen that changed
+    (in 8x8 cells), so other windows that only changed their title bars (activation) are left out."""
     from PIL import ImageChops
     diff = ImageChops.difference(before, after).convert("L").point(lambda v: 255 if v > 24 else 0)
     w, h = diff.size
-    px = diff.load()
-    cols = [sum(1 for y in range(0, h, 2) if px[x, y]) for x in range(w)]
-    rows = [sum(1 for x in range(0, w, 2) if px[x, y]) for y in range(h)]
-    xs = [x for x, c in enumerate(cols) if c > 8]
-    ys = [y for y, c in enumerate(rows) if c > 8]
-    if not xs or not ys:
+    C = 8
+    cw, ch = (w + C - 1) // C, (h + C - 1) // C
+    small = diff.resize((cw, ch), resample=2)            # BILINEAR: the share of changed pixels
+    px = small.load()
+    cells = {(x, y) for y in range(ch) for x in range(cw) if px[x, y] > 40}
+    best, seen, comps = [], set(), []
+    for c in cells:
+        if c in seen:
+            continue
+        comp, stack = [], [c]
+        seen.add(c)
+        while stack:
+            x, y = stack.pop()
+            comp.append((x, y))
+            for n in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+                if n in cells and n not in seen:
+                    seen.add(n)
+                    stack.append(n)
+        comps.append(comp)
+    # prefer the newly opened window: it is the active one, with a blue title bar
+    ap = after.load()
+
+    def blue_title(comp):
+        x0 = min(x for x, _ in comp) * C; x1 = min(w, (max(x for x, _ in comp) + 1) * C)
+        y0 = min(y for _, y in comp) * C
+        n = b = 0
+        for y in range(y0, min(h, y0 + 24), 2):
+            for x in range(x0, x1, 4):
+                r, g, bl = ap[x, y]
+                n += 1
+                b += bl > 150 and bl > r + 40
+        return b / n if n else 0
+    for comp in comps:
+        if len(comp) > 20 and blue_title(comp) > 0.3 and (not best or blue_title(best) <= 0.3 or len(comp) > len(best)):
+            best = comp
+    if not best:
+        best = max(comps, key=len) if comps else []
+    if not best:
         return None
-    return (max(0, xs[0] - pad), max(0, ys[0] - pad), min(w, xs[-1] + 1 + pad), min(h, ys[-1] + 1 + pad))
+    x0 = min(x for x, _ in best) * C; x1 = (max(x for x, _ in best) + 1) * C
+    y0 = min(y for _, y in best) * C; y1 = (max(y for _, y in best) + 1) * C
+    # tighten to the changed pixels inside that box
+    box = diff.crop((x0, y0, min(w, x1), min(h, y1))).getbbox()
+    if box:
+        x0, y0, x1, y1 = x0 + box[0], y0 + box[1], x0 + box[2], y0 + box[3]
+    return (max(0, x0 - pad), max(0, y0 - pad), min(w, x1 + pad), min(h, y1 + pad))
+
+def exdir_of(ex):
+    """An example's directory: a name under examples/, or a path (examples/book/ex04-first-form)."""
+    return os.path.abspath(ex) if os.sep in ex else os.path.join(ROOT, "examples", ex)
 
 
 def shoot(ex, shot, keep_full):
-    exdir = os.path.join(ROOT, "examples", ex)
+    exdir = exdir_of(ex)
+    rel = os.path.relpath(exdir, ROOT)
+    ex = os.path.basename(exdir)
     run = shot["run"]
     src = os.path.join(exdir, run.get("project", ""))
     exe = None
@@ -131,12 +176,12 @@ def shoot(ex, shot, keep_full):
     out_png = os.path.join(exdir, shot["file"])
     with g.testing("Boing BASIC gallery: screenshot of " + ex):
         fl = files_of(src, run.get("files", [])) if run.get("project") else []
-        dirs = sorted({os.path.dirname(amiga(p)) for p in fl} | {DEST + "examples/" + ex})
+        dirs = sorted({os.path.dirname(amiga(p)) for p in fl} | {DEST + rel})
         mk = sorted({"/".join(x.split("/")[:i]) for x in dirs for i in range(2, x.count("/") + 2)})
         m.tool("amiga_dos_command", command="makedir RAM:bbdoc " + " ".join(mk) + " QUIET")
         for f in fl:
             g.push(m, f, amiga(f))
-        d = DEST + "examples/" + ex
+        d = DEST + rel
         if exe:
             g.push(m, exe, d + "/" + ex)
             cmd = "%s/%s %s" % (d, ex, run.get("args", ""))
@@ -232,7 +277,7 @@ def main():
         print(__doc__)
         return 2
     ex, want = args[0], args[1:]
-    meta = tomllib.load(open(os.path.join(ROOT, "examples", ex, "gallery.toml"), "rb"))
+    meta = tomllib.load(open(os.path.join(exdir_of(ex), "gallery.toml"), "rb"))
     rc = 0
     for shot in meta.get("shot", []):
         name = os.path.splitext(os.path.basename(shot["file"]))[0]

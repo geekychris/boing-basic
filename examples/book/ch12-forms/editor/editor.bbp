@@ -1,0 +1,4 @@
+# Editor: a text editor control, a file chooser and keyboard focus (manual chapter 12)
+Name=Editor
+Startup=Form notes
+Form=notes.afg

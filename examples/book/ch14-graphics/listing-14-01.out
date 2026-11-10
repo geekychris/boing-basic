@@ -1,0 +1,5 @@
+new canvas: 320 x 200 
+pixel in the box: &HFF
+pixel in the disc: &HFFFF
+outside:-1 
+hash: 1752801191 

@@ -1,0 +1,4 @@
+# Prefs: a settings editor with Save, Use and Cancel (manual chapter 18)
+Name=AlarmPrefs
+Startup=Form prefs
+Form=prefs.afg

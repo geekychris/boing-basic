@@ -1,0 +1,5 @@
+# Boing BASIC project: exercise 8 of the user manual, a sound board: a ProTracker module with
+# play/pause/stop and a volume slider, and sound effects synthesised by the program.
+Name=SoundBoard
+Startup=Form board
+Form=board.afg

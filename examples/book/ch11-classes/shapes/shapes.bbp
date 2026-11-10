@@ -1,0 +1,6 @@
+# Shapes: an interface (IShape) and two classes that implement it (manual chapter 11)
+Name=Shapes
+Module=main.bas
+Class=IShape.cls
+Class=Circle.cls
+Class=Rectangle.cls

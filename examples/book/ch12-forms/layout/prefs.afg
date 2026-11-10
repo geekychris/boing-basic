@@ -1,0 +1,21 @@
+# prefs.afg - a preferences window
+window name=prefs title="Preferences" width=420 height=260 remember=1
+vlayout id=root
+  tabs id=pages selected=0
+    vlayout title="General"
+      vlayout title="You"
+        string id=userName label="Name" text=""
+        string id=email label="E-mail" text=""
+      hlayout frame=field
+        checkbox id=autosave text="Save every"
+        integer id=minutes value=5 min=1 max=60 weight=0 minwidth=60
+        label text="minutes"
+      space
+    hlayout title="Folders" splitter=1
+      listbrowser id=folders items="Work:|RAM:|DH1:Projects" weight=30
+      vlayout weight=70
+        label id=folderInfo text="Choose a folder"
+        space
+  hlayout even=1 weight=0
+    button id=ok text="_OK"
+    button id=cancel text="_Cancel"

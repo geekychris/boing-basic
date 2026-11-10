@@ -1,0 +1,4 @@
+# Controls: one of each basic control and its events (manual chapter 12)
+Name=Controls
+Startup=Form controls
+Form=controls.afg

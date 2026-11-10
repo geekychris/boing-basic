@@ -1,0 +1,6 @@
+# Boing BASIC project: exercise 5 of the user manual, a notes editor with menus, a toolbar,
+# a status bar, file requesters, a Find window and saved settings.
+Name=Notes
+Startup=Form main
+Form=main.afg
+Form=findwin.afg

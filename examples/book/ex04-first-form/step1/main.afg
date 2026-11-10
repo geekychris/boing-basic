@@ -1,0 +1,5 @@
+# AmiForge GUI (a Boing BASIC form: its code is in main.bas)
+window name=main title="Hello" width=240
+vlayout id=root
+  label id=message text="Press the button."
+  button id=hello text="_Say hello"
