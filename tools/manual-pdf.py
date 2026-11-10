@@ -163,8 +163,8 @@ def convert(stem, known):
     adoc = re.sub(r"link:([^\[\s]+)\[([^\]]*)\]", link, adoc)
 
     # "Listing N.M (path)" paragraphs -> the title of the block that follows
-    adoc = re.sub(r"_Listing (\d+\.\d+)_ \(`([^`]+)`\)\n\n\[source,basic\]",
-                  lambda mm: ".Listing %s (`%s`)\n[source,basic]" % (mm.group(1), mm.group(2)), adoc)
+    adoc = re.sub(r"_Listing (\d+\.\d+)_ \((BBCODESPAN\d+X)\)\n\n\[source,basic\]",
+                  lambda mm: ".Listing %s (%s)\n[source,basic]" % (mm.group(1), mm.group(2)), adoc)
     adoc = adoc.replace("[source,basic]", "[source,boingbasic]")   # tools/manual-pdf-lexer.rb
     adoc = re.sub(r"\[source,(output|text)\]", "[listing]", adoc)
 
@@ -175,6 +175,8 @@ def convert(stem, known):
         title = cap if cap else alt
         return ".%s\nimage::%s[%s]\n" % (title, full, alt.replace(",", ""))
     adoc = re.sub(r"^image:([^\[\s]+)\[([^\]]*)\]\n(\n_([^\n]+)_\n)?", figure, adoc, flags=re.M)
+    if re.search(r"^_Listing \d+\.\d+_", adoc, re.M):
+        raise SystemExit("manual-pdf: %s: a Listing caption wasn't turned into a block title" % stem)
     adoc = restore_code_spans(adoc, spans)
     open(os.path.join(OUT, stem.replace("/", "_") + ".adoc"), "w", encoding="utf-8").write(adoc)
 
