@@ -23,7 +23,7 @@ try:
         if os.path.exists(pf): break
         time.sleep(0.1)
     hp, sp, ca = open(pf).read().split()
-    tests = ["httptest", "asynctest", "sessiontest"]
+    tests = ["httptest", "asynctest", "sessiontest", "asyncexit"]
     m = g.MCP(g.URL)
     ok = True
     with g.testing("Boing BASIC Http tests"):
@@ -44,15 +44,32 @@ try:
             if mode in ("vm", "both"): runs.append(("vm", "RAM:bbnet/boing run RAM:bbnet/%s.bas %s" % (t, args)))
             if mode in ("native", "both"): runs.append(("native", "RAM:bbnet/%s %s" % (t, args)))
             for label, cmd in runs:
-                out = g.run_bg(m, cmd, "RAM:bbnet/%s-%s.out" % (t, label), limit=300)
+                out = g.run_bg(m, cmd, "RAM:bbnet/%s-%s-%d.out" % (t, label, int(time.time())), limit=60 if t == "asyncexit" else 300)   # a fresh name: a hung earlier run keeps its file open
                 got = "\n".join(l for l in out.replace("\r", "").split("\n") if re.match(r"^(ok|not ok|PASS|FAIL)", l)) + "\n"
                 same = got == expected
                 ok &= same
                 print("== %s %s: %s" % (t, label, "PASS (output == %s.out)" % t if same else "FAIL"))
                 if not same: print(out)
+        if not os.path.exists("build/os4/tasks"):
+            subprocess.check_call(["tools/build-os4.sh", "build/os4/tasks"])
+        print(g.push(m, "build/os4/tasks", "RAM:bbnet/tasks"))
+        time.sleep(3)                           # a crash at exit shows its requester a moment later
         n = g.reapers(m)
         if n:
             print("GRIM REAPER: %d" % n); ok = False
+    # nothing may be left running: no worker process, no test program. Checked with the banner
+    # down (g.quiet), since while it is up ended processes can't finish leaving.
+    with g.quiet():
+        for what in ("Boing BASIC worker", "RAM:bbnet/"):
+            left = ""
+            for _ in range(15):                 # a program may still be ending
+                left = m.tool("amiga_dos_command", command='RAM:bbnet/tasks "%s"' % what)
+                if "0 task(s)" in left: break
+                time.sleep(2)
+            if "0 task(s)" not in left:
+                print("LEFT RUNNING:", left.strip()); ok = False
+            else:
+                print("left running (%s): none" % what)
     print("os4 http test:", "PASS" if ok else "FAIL")
     sys.exit(0 if ok else 1)
 finally:

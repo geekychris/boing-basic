@@ -76,6 +76,7 @@ typedef struct http_obj {
 } http_obj;
 
 static http_obj *busy_list;
+static void clear_answer(http_obj *h);
 
 static char *dupstr(const char *s) { return strdup(s ? s : ""); }
 
@@ -179,7 +180,13 @@ static void request(http_obj *h, const char *method, const char *url, const char
     int rc = bb_http_do(&rq, &h->resp, err, sizeof err);
     h->have_resp = 1;
     free(hdrs);
-    if (rc) bb_raise(rc, err);
+    h->err_number = rc;
+    free(h->err_text);
+    h->err_text = dupstr(rc ? err : "");
+    if (rc) {
+        clear_answer(h);
+        bb_raise(rc, err);
+    }
 }
 
 /* --- asynchronous requests ---------------------------------------------------------------- */
@@ -196,7 +203,12 @@ static int job_progress(void *ud, long got, long total)
 static void job_run(void *arg)
 {
     job *j = arg;
+    bb_net_set_cancel(&j->cancel);          /* Cancel ends a connect or a wait for data at once */
     j->rc = bb_http_do(&j->req, &j->resp, j->err, sizeof j->err);
+    if (j->rc && j->cancel) {               /* (a TLS handshake broken off reports a TLS error) */
+        j->rc = 18;
+        snprintf(j->err, sizeof j->err, "cancelled");
+    }
     if (j->req.session) bb_http_session_close(j->req.session);   /* a connection this worker kept */
     bb_net_task_done();                     /* this worker's bsdsocket / AmiSSL (OS4) */
     j->done = 1;
@@ -228,6 +240,14 @@ static void call_named(const char *name, int argc, bb_value *argv)
     if (e) bb_raise(e, NULL);
 }
 
+static void clear_answer(http_obj *h)
+{
+    h->resp.status = 0;
+    free(h->resp.body);
+    h->resp.body = NULL;
+    h->resp.body_len = 0;
+}
+
 /* the request of h finished: take the answer (the main task) */
 static void finish(http_obj *h)
 {
@@ -238,6 +258,7 @@ static void finish(http_obj *h)
     memset(&j->resp, 0, sizeof j->resp);
     h->have_resp = 1;
     h->err_number = j->rc;
+    if (j->rc) clear_answer(h);             /* no half answers after an error */
     free(h->err_text);
     h->err_text = dupstr(j->rc ? j->err : "");
     h->job = NULL;
@@ -296,6 +317,24 @@ void bb_http_async_poll(void)
     polling = 0;
 }
 
+/* At program end (End, the last line, an error, Ctrl-C): cancel the requests still running and
+   wait for their workers. On OS4 a worker is a child process of the program, which DOS would
+   otherwise keep suspended until it ends. */
+static int exit_hook;
+static void stop_workers(void)
+{
+    for (http_obj *h = busy_list; h; h = h->next_busy)
+        if (h->job) {
+            h->job->cancel = 1;
+            bb_plat_thread_break(h->job->thread);
+        }
+    for (http_obj *h = busy_list; h; h = h->next_busy)
+        if (h->job && h->job->thread) {
+            bb_plat_thread_join(h->job->thread);
+            h->job->thread = NULL;
+        }
+}
+
 static void start_async(http_obj *h, const char *method, const char *url, const char *body, long blen,
                         const char *ctype)
 {
@@ -334,8 +373,14 @@ static void start_async(http_obj *h, const char *method, const char *url, const 
     j->req.session = &h->session;
     j->total = -1;
     h->err_number = 0;
+    free(h->err_text);
+    h->err_text = dupstr("");
     h->reported = -1;
     h->job = j;
+    if (!exit_hook) {
+        exit_hook = 1;
+        atexit(stop_workers);
+    }
     bb_obj_retain(&h->hdr);                 /* kept alive while the request runs */
     h->next_busy = busy_list;
     busy_list = h;
@@ -460,7 +505,10 @@ static void h_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         free(a);
         return;
     case M_CANCEL:
-        if (h->job) h->job->cancel = 1;
+        if (h->job) {
+            h->job->cancel = 1;
+            bb_plat_thread_break(h->job->thread);
+        }
         return;
     case M_WAIT: {                           /* Wait [timeoutMs]: True when done */
         long limit = present(argc, argv, 0) ? arg_long(argc, argv, 0) : -1;
@@ -483,8 +531,15 @@ static void h_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
     case P_ONPROGRESS: {
         char **slot = id == P_ONDONE ? &h->ondone : &h->onprogress;
         if (set) {
+            char *name = arg_str(argc, argv, argc - 1, NULL);
+            if (*name && !bb_find_proc(NULL, name)) {   /* say so here, not later inside DoEvents */
+                char m[200];
+                snprintf(m, sizeof m, "Http: there is no Sub %.100s", name);
+                free(name);
+                bb_raise(35, m);
+            }
             free(*slot);
-            *slot = arg_str(argc, argv, argc - 1, NULL);
+            *slot = name;
         } else
             *ret = bb_v_str(bb_str_from_c(*slot ? *slot : ""));
         return;

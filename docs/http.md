@@ -169,8 +169,18 @@ The asynchronous calls start the request on a background task and return at once
 | `OnProgress` | the name of a `Sub (got As Long, total As Long)`, called as data arrives; `total` is the `Content-Length`, or -1 if the server didn't send one |
 | `ErrorNumber`, `ErrorText` | how it ended: 0 and `""`, or the error (31101–31110, 18) |
 
-When it has ended, `Status`, `ResponseText`, `ResponseBody`, `GetResponseHeader` and
-`StatusText` hold the answer, as after a `Get`. Errors are **not** raised: check `ErrorNumber`.
+When it has ended, `Status`, `StatusText`, `ResponseText`, `ResponseHeader(name)` and
+`ResponseHeaders` hold the answer, as after a `Get`. Errors are **not** raised: check
+`ErrorNumber`. After an error (or `Cancel`) there is no answer: `Status` is 0 and `ResponseText`
+is `""`. Starting a request clears `ErrorNumber` and `ErrorText`.
+
+`Cancel` takes effect at once, also while the request is still connecting or waiting for the
+answer (on AmigaOS 4 it sends the worker a Ctrl-C, which ends its network calls). Only a host
+name lookup that's under way can't be interrupted; it ends by itself. Setting `OnDone` or
+`OnProgress` to the name of a Sub that doesn't exist raises error 35 there and then.
+
+When the program ends (the last line, `End`, an error, Ctrl-C) with requests still running,
+they are cancelled and the program waits for their workers, so none is left behind.
 
 `OnDone` and `OnProgress` run in the program's own task, never in the background, so they can
 change forms and variables freely. They are called while the program handles events: in a
@@ -184,7 +194,7 @@ web.GetAsync "https://example.com/files/game.lha"
 Do While web.Busy
     DoEvents
 Loop
-If web.ErrorNumber = 0 Then Print Len(web.ResponseBody); " bytes"
+If web.ErrorNumber = 0 Then Print Len(web.ResponseText); " bytes"
 
 Sub Progress(got As Long, total As Long)
     If total > 0 Then StatusBar.Text = (got * 100 \ total) & "%"
@@ -283,10 +293,14 @@ default certificate store is Homebrew's.
 - `tests-net/os4-run.sh`: the same 38 checks on the AmigaOS 4 guest (QEMU), VM and native,
   through AmiSSL, against the test server on the Mac (reached at the QEMU gateway
   192.168.101.2). 2026-11-10: 38/38 both.
-- `tests-net/asynctest.bas` (in both runners): 19 checks of the asynchronous calls: `Busy` with
+- `tests-net/asynctest.bas` (in both runners): 24 checks of the asynchronous calls: `Busy` with
   `DoEvents`, `OnDone`, two requests at once finishing in their own order, `OnProgress` over a
   300 KB body, `Wait` with a limit, `Cancel`, error 5 for overlapping requests, `ErrorNumber` for
-  an unknown host, a POST, HTTPS (one and two at once), and the `WithEvents` events.
+  an unknown host, a POST, HTTPS (one and two at once), Cancel while waiting for headers and
+  while connecting (immediate), no half answer after an error, a missing OnDone Sub, and the
+  `WithEvents` events. `tests-net/asyncexit.bas` ends with three requests running. On the
+  AmigaOS 4 guest the runner then checks (with `DH1:bbtools/tasks`, built from
+  `tools/os4/tasks.c`) that no worker process and no test program is left.
 - `tests-net/sessiontest.bas` (in both runners): 31 checks of kept connections (reuse, a POST, the
   server's `Connection: close`, a connection the server dropped, `KeepAlive = False`, chunked
   answers, HTTPS) and cookies (Path, longer paths first, replacing, `Max-Age=0`, `Expires`,

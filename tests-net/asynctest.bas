@@ -111,6 +111,27 @@ Sub Main()
         Check True, "(no TLS here)"
     End If
 
+    ' Cancel ends a request at once, also before any data came
+    Dim t0 As Double
+    h1.GetAsync base & "/slow"
+    t0 = Timer
+    h1.Cancel
+    Check h1.Wait(3000) And Timer - t0 < 3, "Cancel while waiting for the answer's headers is immediate"
+    Check h1.ErrorNumber = 18 And h1.Status = 0 And h1.ResponseText = "", "a cancelled request leaves no half answer"
+    h1.Timeout = 20000
+    h1.GetAsync "http://10.255.255.1/"
+    t0 = Timer
+    h1.Cancel
+    Check h1.Wait(3000) And Timer - t0 < 3 And h1.ErrorNumber <> 0, "Cancel while connecting is immediate"
+    h1.Timeout = 30000
+    h1.GetAsync base & "/hello"
+    Check h1.ErrorText = "" And h1.ErrorNumber = 0, "a new request clears ErrorText"
+    ok = h1.Wait()
+    On Error Resume Next
+    h1.OnDone = "NoSuchSub"
+    Check Err.Number = 35, "OnDone naming a missing Sub: error 35 at once"
+    On Error GoTo 0
+
     ' events: Dim WithEvents ev As Http
     Set ev = CreateObject("Http")
     ev.GetAsync base & "/big?n=100000"

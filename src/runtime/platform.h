@@ -36,6 +36,9 @@ int bb_plat_utc_offset(void);                            /* minutes local time i
    bb_plat_wake_mask() in what it waits for (OS4: a signal; 0 on the host). */
 void *bb_plat_thread_start(void (*fn)(void *), void *arg);
 void bb_plat_thread_join(void *t);
+/* interrupt a running worker's blocking network calls (OS4: Ctrl-C to its process; the host:
+   nothing, the net layer polls the cancel flag set with bb_net_set_cancel) */
+void bb_plat_thread_break(void *t);
 void bb_plat_wake(void);
 unsigned long bb_plat_wake_mask(void);
 void bb_plat_sleep_ms(long ms);

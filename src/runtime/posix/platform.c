@@ -289,5 +289,6 @@ void bb_plat_thread_join(void *p)
     free(t);
 }
 
+void bb_plat_thread_break(void *p) { (void)p; }
 void bb_plat_wake(void) {}
 unsigned long bb_plat_wake_mask(void) { return 0; }
