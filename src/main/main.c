@@ -9,6 +9,14 @@
 #include "../runtime/bb_sys.h"
 #include "../compiler/rtmembers.h"
 
+/* AmigaOS 4's libstdc++ is built with thread support: C++ objects and links need -athread=native */
+#ifdef __amigaos4__
+#define CXX_THREADS " -athread=native"
+#else
+#define CXX_THREADS ""
+#endif
+
+
 #ifndef BOING_VERSION
 #define BOING_VERSION "0.1"
 #endif
@@ -160,7 +168,7 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
             size_t n2 = strlen(f);
             int isx = (n2 > 4 && !strcasecmp(f + n2 - 4, ".cpp")) || (n2 > 3 && !strcasecmp(f + n2 - 3, ".cc"));
             char *o = xsprintf("%s.x%d.o", outp, k);
-            char *c1 = xsprintf("%s %s %s %s%s%s -c \"%s\" -o \"%s\"", isx ? cxxc : cc, fl, o2, q1, inc, q2, f, o);
+            char *c1 = xsprintf("%s %s%s %s %s%s%s -c \"%s\" -o \"%s\"", isx ? cxxc : cc, fl, isx ? CXX_THREADS : "", o2, q1, inc, q2, f, o);
             if (system(c1) != 0) { fprintf(stderr, "boing: %s compiler failed: %s\n", isx ? "C++" : "C", c1); return 1; }
             buf_printf(&objs, " \"%s\"", o);
             if (isx) cxx = 1;
@@ -169,7 +177,7 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
            only the 440/460 has (real X5000, A1222 and G3/G4 machines crash); see docs/os4.md.
            AmigaDOS only strips quotes that open an argument: quote the whole "-I..." / "-L..." */
 #ifdef __amigaos4__
-        cmd = xsprintf("%s %s %s %s%s%s %s\"%s\"%s%s -o \"%s\" \"-L%s\" -lboing -lauto -lm %s", cxx ? cxxc : cc, fl, o2, q1, inc, q2,
+        cmd = xsprintf("%s %s%s %s %s%s%s %s\"%s\"%s%s -o \"%s\" \"-L%s\" -lboing -lauto -lm %s", cxx ? cxxc : cc, fl, cxx ? CXX_THREADS : "", o2, q1, inc, q2,
                        cxx ? "-x c " : "", cpath, cxx ? " -x none" : "", objs.p, outp, lib, extra ? extra : "");
 #else
         cmd = xsprintf("%s %s %s%s%s %s\"%s\"%s%s -o \"%s\" -L\"%s\" -lboing -lm %s", cxx ? cxxc : cc, o2, q1, inc, q2,
@@ -349,13 +357,13 @@ static int cmd_vm(const char *argv0, int argc, char **argv)
             size_t n2 = strlen(fsrc);
             int isx = (n2 > 4 && !strcasecmp(fsrc + n2 - 4, ".cpp")) || (n2 > 3 && !strcasecmp(fsrc + n2 - 3, ".cc"));
             char *o = xsprintf("%s.x%d.o", out, k + 1);
-            char *c1 = xsprintf("%s %s \"-I%s\" -c \"%s\" -o \"%s\"", isx ? cxxc : cc, fl, inc, fsrc, o);
+            char *c1 = xsprintf("%s %s%s \"-I%s\" -c \"%s\" -o \"%s\"", isx ? cxxc : cc, fl, isx ? CXX_THREADS : "", inc, fsrc, o);
             if (system(c1) != 0) { fprintf(stderr, "boing vm: compiler failed: %s\n", c1); return 1; }
             buf_printf(&objs, " \"%s\"", o);
             if (isx) cxx = 1;
         }
 #ifdef __amigaos4__
-        cmd = xsprintf("%s -mcrt=newlib -mcpu=powerpc%s -o \"%s\" \"-L%s\" -lboingvm -lboing -lauto -lm", cxx ? cxxc : cc, objs.p, out, lib);
+        cmd = xsprintf("%s -mcrt=newlib -mcpu=powerpc%s%s -o \"%s\" \"-L%s\" -lboingvm -lboing -lauto -lm", cxx ? cxxc : cc, cxx ? CXX_THREADS : "", objs.p, out, lib);
 #else
         cmd = xsprintf("%s%s -o \"%s\" -L\"%s\" -lboingvm -lboing -lm", cxx ? cxxc : cc, objs.p, out, lib);
 #endif
