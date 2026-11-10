@@ -2344,6 +2344,7 @@ int vm_run(VMImage *img, int argc, char **argv)
         vm.frames = (Frame *)xcalloc((size_t)vm.maxframes, sizeof(Frame));
     }
     bb_set_program(&vm_ops);
+    if (img->title && *img->title) bb_set_app_title(img->title);     /* the project's Title= / Name= */
     {
         bb_errframe f;
         bb_frame_push(&f);

@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 #include <stdarg.h>
 
 int is_lvalue(Node *e);
@@ -2267,7 +2268,18 @@ int emit_c(Program *p, Buf *outb, int debug)
     buf_printf(outb, "\n#ifdef __amigaos4__\nstatic const char __attribute__((used)) bb_stack_cookie_[] = \"$STACK:%d\";\n#endif\n",
                e->p->stack > 0 ? e->p->stack : 262144);
     /* main */
-    buf_puts(outb, "\nint main(int argc, char **argv)\n{\n    int i;\n    bb_rt_init(argc, argv);\n    bb_set_program(&bb_ops);\n");
+    {
+        /* the project's Title= (else Name=): App.Title, and with Version= the $VER string */
+        const char *t = p->title ? p->title : p->name;
+        if (p->version && t) {
+            time_t now = time(NULL);
+            struct tm *tm = localtime(&now);
+            char *v = xsprintf("$VER: %s %s (%02d.%02d.%04d)", t, p->version, tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900);
+            buf_printf(outb, "\nstatic const char __attribute__((used)) bb_version_[] = %s;\n", cstrlit(v, (int)strlen(v)));
+        }
+        buf_puts(outb, "\nint main(int argc, char **argv)\n{\n    int i;\n    bb_rt_init(argc, argv);\n    bb_set_program(&bb_ops);\n");
+        if (t) buf_printf(outb, "    bb_set_app_title(%s);\n", cstrlit(t, (int)strlen(t)));
+    }
     buf_puts(outb, "    bb_vk_null.type = BB_NULL;\n    bb_vk_missing = bb_v_missing();\n");
     buf_printf(outb, "    for (i = 0; i < %d; i++) bb_k[i] = bb_str_lit(bb_klit[i], bb_klen[i]);\n", nlits);
     for (i = 0; i < p->nglobals; i++) {

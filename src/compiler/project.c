@@ -190,7 +190,14 @@ static int load_project(Program *p, const char *path)
             if (!m->form_name) m->form_name = xstrdup(m->name);
         } else if (name_eq(key, "Startup")) startup = xstrdup(val);
         else if (name_eq(key, "Stack")) p->stack = atoi(val);
-        else if (name_eq(key, "Icon") || name_eq(key, "Uses") || name_eq(key, "Version") || name_eq(key, "Title")) {
+        else if (name_eq(key, "Title")) p->title = xstrdup(val);
+        else if (name_eq(key, "Version")) {
+            /* "1.2.3" (or 1.2, 1): App.Major/Minor/Revision and the $VER string */
+            p->version = xstrdup(val);
+            p->ver_major = atoi(val);
+            p->ver_minor = strchr(val, '.') ? atoi(strchr(val, '.') + 1) : 0;
+            p->ver_rev = strchr(val, '.') && strchr(strchr(val, '.') + 1, '.') ? atoi(strchr(strchr(val, '.') + 1, '.') + 1) : 0;
+        } else if (name_eq(key, "Icon") || name_eq(key, "Uses")) {
             /* used by the platform build */
         } else diag_warn(p, 0, lineno, 1, "unknown project key '%s'", key);
     }

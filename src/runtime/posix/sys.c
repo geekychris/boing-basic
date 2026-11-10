@@ -72,7 +72,7 @@ void bb_sys_init(int argc, char **argv, const char *app_dir)
     const char *s = strrchr(p, '/');
     exename = xstrdup(s ? s + 1 : p);
     char *dot = strrchr(exename, '.');
-    if (dot && !strcasecmp(dot, ".bas")) *dot = 0;
+    if (dot && (!strcasecmp(dot, ".bas") || !strcasecmp(dot, ".bbp") || !strcasecmp(dot, ".bbc"))) *dot = 0;
 }
 
 const char *bb_sys_command(void) { return command ? command : ""; }

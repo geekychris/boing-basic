@@ -1,0 +1,6 @@
+# App.Title / Version= / App.Major..Revision / App.Title = x / args (docs/ui.md)
+Name=AppVer
+Title=App Version Test
+Version=2.5.7
+Module=appver.bas
+Startup=Sub Main

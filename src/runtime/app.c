@@ -97,12 +97,26 @@ static int app_get(const char *name, int index, bb_fval *out)
         bb_str_release(t);
         return ret_s(out, c);
     }
+    /* the program's arguments (argv[1..]; on AmigaOS the Workbench ones come from the platform) */
+    if (IS("ArgCount") || IS("Arg")) {
+        int e = bb_app_plat_get(name, index, out);
+        if (e != 438) return e;
+        if (IS("ArgCount")) return ret_i(out, bb_sys_argc());
+        if (index < 0 || index >= bb_sys_argc()) return 381;
+        return ret_s(out, strdup(bb_sys_argv(index)));
+    }
     return bb_app_plat_get(name, index, out);
 }
 
 static int app_call(const char *name, int argc, const bb_fval *argv, bb_fval *ret)
 {
     char b0[16], b1[16], b2[16];
+    if (IS("Arg") && argc == 1) {       /* App.Arg(i) used as a function */
+        bb_fval tmp;
+        int e = app_get("Arg", fi(&argv[0]), &tmp);
+        *ret = tmp;
+        return e;
+    }
     if (IS("Request")) {        /* App.Request(prompt, "_A|_B|_C" [, title [, icon]]) */
         if (argc < 2) return 450;
         return ret_i(ret, bb_ui_request(fs(&argv[0], b0), fs(&argv[1], b1),
@@ -132,7 +146,11 @@ static void obj_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
     if (kind & (BB_INV_LET | BB_INV_SET)) {
         int idx = argc == 2 ? fi(&args[0]) : -1;
         if (argc < 1 || argc > 2) err = 450;
-        else if (o->which == O_APP) err = bb_app_plat_set(name, idx, &args[argc - 1]);
+        else if (o->which == O_APP && !strcasecmp(name, "Title")) {
+            char b[16];
+            bb_set_app_title(fs(&args[0], b));
+            err = 0;
+        } else if (o->which == O_APP) err = bb_app_plat_set(name, idx, &args[argc - 1]);
         else if (o->which == O_PRN) err = bb_prn_plat_set(name, idx, &args[argc - 1]);
     } else {
         if ((kind & BB_INV_GET) && argc <= 1) {
@@ -149,7 +167,17 @@ static void obj_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
     }
     for (i = 0; i < argc; i++) bb_str_release(holds[i]);
     if (err) bb_raise(err, NULL);
-    if (!(kind & (BB_INV_LET | BB_INV_SET))) *ret = bb_value_from_fv(&out);
+    if (!(kind & (BB_INV_LET | BB_INV_SET))) {
+        /* the App members that are Booleans in VB come back as Booleans (False, not 0) */
+        static const char *const bools[] = { "FromWorkbench", "HasPicture", "HasText", NULL };
+        int i2;
+        for (i2 = 0; bools[i2]; i2++)
+            if (!strcasecmp(name, bools[i2]) && out.type == BB_FV_INT) {
+                *ret = bb_v_bool(out.i != 0);
+                return;
+            }
+        *ret = bb_value_from_fv(&out);
+    }
 }
 
 static const bb_class app_class = {"App", sizeof(appobj), app_find, obj_invoke, NULL, NULL, NULL, 0, NULL, 0, NULL, NULL};

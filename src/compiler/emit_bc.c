@@ -2196,5 +2196,6 @@ VMImage *emit_bytecode(Program *p)
         g->form_path[g->nforms] = m->afg_path;
         g->nforms++;
     }
+    g->title = p->title ? p->title : p->name;
     return p->nerrors ? NULL : g;
 }

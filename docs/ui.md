@@ -324,6 +324,26 @@ Clipboard.SetPicture/GetPicture/HasPicture (tested in tests-os4/uibas); AppWindo
 AppIcon and AppMenuItem are implemented but not yet tested on the guest (they need a
 Workbench drag, which the tests can't do yet).
 
+## Project version and title
+
+```
+Name=Paint
+Title=Boing Paint
+Version=1.4.2
+```
+
+- `App.Title` is `Title=`, else `Name=`, else the program's name (without `.bas`/`.bbp`); it can
+  be assigned (`App.Title = "Paint - " & doc`). Requester titles, `App.EnvPath`, `remember=1`
+  window boxes and the like use it.
+- `App.Major`, `App.Minor`, `App.Revision` are the numbers of `Version=` (constants; 0 without it).
+- A native build gets an AmigaOS version string, `$VER: Boing Paint 1.4.2 (09.11.2026)`, so
+  `Version` in a shell and Workbench's information window show it.
+- Started from Workbench the program's name, `App.Path` and `App.Title` come from the
+  Workbench start (a native program's `argc` is 0 there). Note: on OS 4.1 FE `WBRun` and
+  `OpenWorkbenchObject` start programs with a CLI (`argc` 1), so `App.FromWorkbench` is True only
+  for a real Workbench start (double-click).
+- An iconified window's icon shows the window's current `Caption`.
+
 ## 7. ARexx, preferences, locale, help
 
 ### ARexx port

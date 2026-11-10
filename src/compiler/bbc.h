@@ -378,6 +378,9 @@ struct Program {
     Module *startup;
     Proc *startup_proc;
     char *name;
+    char *title;                        /* Title= (App.Title; else Name=) */
+    char *version;                      /* Version= as written ("1.2.3"), NULL = none */
+    int ver_major, ver_minor, ver_rev;  /* App.Major / Minor / Revision */
     int stack;
     char *c_name;                       /* the generated C file's name (#line back to it) */
     FILE *diag_out;

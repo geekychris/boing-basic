@@ -6,7 +6,7 @@
 #include "../runtime/boing.h"
 
 #define BBC_MAGIC "BBC1"
-#define BBC_VERSION 10
+#define BBC_VERSION 11
 
 /* array operands of the register forms: slot >= 0, global -1 - index, field of Me BB_ME_OPND - index */
 #define BB_ME_OPND (-0x20000000)
@@ -199,6 +199,7 @@ typedef struct VMImage {
     int32_t *form_mod;
     char **form_name, **form_afg, **form_path;
     int32_t startup_form;       /* index into forms, -1 = none */
+    char *title;                /* App.Title from the project (Title=, else Name=), "" = none */
 } VMImage;
 
 extern const char *const bb_opnames[];

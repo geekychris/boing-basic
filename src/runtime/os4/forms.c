@@ -1226,6 +1226,8 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
         if (want && f->win && afg_get_bool(f->afg, "iconify")) {
             box_save(f);
             bbf_app_window_close(f);
+            /* the icon's title is the window's current Caption */
+            IIntuition->SetAttrs(f->winobj, WINDOW_IconTitle, (uint32)(f->self.text ? f->self.text : afg_get(f->afg, "title")), TAG_DONE);
             IIntuition->IDoMethod(f->winobj, WM_ICONIFY);
             f->win = NULL;
             f->iconified = 1;
@@ -1897,6 +1899,8 @@ void bbf_handle_form(bb_form *f)
         if (cl == WMHI_ICONIFY) {
             box_save(f);
             bbf_app_window_close(f);
+            /* the icon's title is the window's current Caption */
+            IIntuition->SetAttrs(f->winobj, WINDOW_IconTitle, (uint32)(f->self.text ? f->self.text : afg_get(f->afg, "title")), TAG_DONE);
             IIntuition->IDoMethod(f->winobj, WM_ICONIFY);
             f->win = NULL;
             f->iconified = 1;
@@ -2084,11 +2088,12 @@ struct Window *bbf_front_window(void)
 
 static const char *prog_name(void)
 {
-    static char name[64];
-    if (!name[0]) {
-        if (!IDOS->GetCliProgramName(name, sizeof name) || !name[0]) strcpy(name, "Boing BASIC");
-        else strcpy(name, (char *)IDOS->FilePart(name));
-    }
+    /* App.Title: the project's Title=/Name=, App.Title = ..., else the program's name */
+    static char name[128];
+    bb_str *t = bb_app_title();
+    snprintf(name, sizeof name, "%s", bb_str_ptr(t));
+    bb_str_release(t);
+    if (!name[0]) strcpy(name, "Boing BASIC");
     return name;
 }
 

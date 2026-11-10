@@ -1337,11 +1337,15 @@ static Node *resolve_dot(Ctx *c, Node *e, NodeList *args, int mode)
             const char *on = name_eq(base->name, "App") ? "App" : name_eq(base->name, "Clipboard") ? "Clipboard" : "Printer";
             char *bn = xsprintf("__%s.%s", on, e->name);
             int bi = builtin_find(bn);
+            /* App.Title = x: assignments go to the runtime's App object */
+            if (bi >= 0 && (mode == M_LVAL || mode == M_SETLVAL)) bi = -1;
             if (bi < 0) {
                 if (name_eq(base->name, "App") && (name_eq(e->name, "Major") || name_eq(e->name, "Minor") || name_eq(e->name, "Revision"))) {
+                    /* the project's Version= (0 without one) */
                     CVal z;
                     memset(&z, 0, sizeof z);
                     z.type = T_INTEGER;
+                    z.i = name_eq(e->name, "Major") ? c->prog->ver_major : name_eq(e->name, "Minor") ? c->prog->ver_minor : c->prog->ver_rev;
                     return mk_const_node(e, &z);
                 }
                 /* the other members are late bound on the runtime's App / Clipboard / Printer

@@ -14,6 +14,7 @@
 #include <proto/dos.h>
 #include <proto/intuition.h>
 #include <proto/textclip.h>
+#include <workbench/startup.h>
 
 static char *command, *app_path, *exename;
 
@@ -39,6 +40,7 @@ static void *sys_wbmsg;
 
 void *bb_sys_wbstartup(void) { return sys_wbmsg; }
 int bb_sys_argc(void) { return sys_argc > 1 ? sys_argc - 1 : 0; }
+int bb_sys_raw_argc(void) { return sys_argc; }
 const char *bb_sys_argv(int i) { return i >= 0 && i + 1 < sys_argc ? sys_argv[i + 1] : ""; }
 
 void bb_sys_init(int argc, char **argv, const char *app_dir)
@@ -69,10 +71,13 @@ void bb_sys_init(int argc, char **argv, const char *app_dir)
         app_path = lock_name(IDOS->GetProgramDir());
     if (!app_path) app_path = xstrdup("");
     free(exename);
-    const char *p = argc > 0 && argv[0] ? argv[0] : "";
+    /* from Workbench (argc 0) the program's name is the first WBArg's */
+    struct WBStartup *wbs = argc == 0 ? (struct WBStartup *)argv : NULL;
+    const char *p = argc > 0 && argv[0] ? argv[0]
+                  : wbs && wbs->sm_NumArgs > 0 && wbs->sm_ArgList[0].wa_Name ? (const char *)wbs->sm_ArgList[0].wa_Name : "";
     exename = xstrdup((const char *)IDOS->FilePart(p));
     char *dot = strrchr(exename, '.');
-    if (dot && !strcasecmp(dot, ".bas")) *dot = 0;
+    if (dot && (!strcasecmp(dot, ".bas") || !strcasecmp(dot, ".bbp") || !strcasecmp(dot, ".bbc"))) *dot = 0;
 }
 
 const char *bb_sys_command(void) { return command ? command : ""; }

@@ -129,6 +129,7 @@ int vm_save(VMImage *g, const char *path)
     w32(&w, g->nforms);
     w32(&w, g->startup_form);
     for (i = 0; i < g->nforms; i++) { w32(&w, g->form_mod[i]); wstr(&w, g->form_name[i]); wstr(&w, g->form_afg[i]); wstr(&w, g->form_path[i]); }
+    wstr(&w, g->title ? g->title : "");
     fwrite("END!", 1, 4, w.f);
     if (fclose(w.f) != 0) w.err = 1;
     if (w.err) fprintf(stderr, "boing: error writing %s\n", path);
@@ -325,6 +326,7 @@ VMImage *vm_load(const char *path)
     for (i = 0; i < g->nforms && !r.err; i++) {
         g->form_mod[i] = r32(&r); g->form_name[i] = rstr(&r); g->form_afg[i] = rstr(&r); g->form_path[i] = rstr(&r);
     }
+    g->title = rstr(&r);
     if (r.err || r.p + 4 > r.e || memcmp(r.p, "END!", 4) != 0) {
         free(buf);
         return NULL;

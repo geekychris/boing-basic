@@ -731,7 +731,15 @@ static int clip_has_picture(bb_fval *ret)
 
 int bb_app_plat_get(const char *prop, int index, bb_fval *out)
 {
-    if (IS("FromWorkbench")) return ri(out, vb_bool(bb_sys_wbstartup() != NULL));
+    /* a process without a CLI was started by Workbench (also when the C library kept the
+       WBStartup message to itself and main() got argc 1) */
+    if (IS("StartInfo")) {          /* diagnostics: how the program was started */
+        extern int bb_sys_raw_argc(void);
+        char b[96];
+        snprintf(b, sizeof b, "argc=%d cli=%p wbmsg=%p", bb_sys_raw_argc(), (void *)IDOS->Cli(), bb_sys_wbstartup());
+        return rs(out, b);
+    }
+    if (IS("FromWorkbench")) return ri(out, vb_bool(bb_sys_wbstartup() != NULL || IDOS->Cli() == NULL));
     if (IS("ToolTypeCount")) return ri(out, tooltype_count());
     if (IS("ToolTypes")) {
         struct DiskObject *d = program_icon();
