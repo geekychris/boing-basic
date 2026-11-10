@@ -89,6 +89,7 @@ about 1400 bytes to stay in one network packet).
 | `Connected` | True while connected |
 | `RemoteHost`, `RemotePort` | the other side (for UDP, the sender of the last datagram read) |
 | `LocalHost`, `LocalPort` | this side's address and port |
+| `MachineAddress` | this machine's IPv4 address on the network (the one others use to reach it; "127.0.0.1" without a network) |
 | `Timeout` | milliseconds the waiting calls wait; default 30000 |
 | `Protocol` | "TCP" or "UDP" |
 | `Tag` | any value the program wants to keep with the socket (a user name, say) |
@@ -172,19 +173,24 @@ The waiting calls raise run-time errors, catchable with `On Error` (the same num
 makes a socket doesn't need a running TCP/IP stack. All sockets are non-blocking; the waiting
 calls use `WaitSelect` with Ctrl-C, so they can be interrupted. A form program with sockets waits
 in `WaitSelect` for the sockets and the window, timer and ARexx signals together, so it uses no
-CPU while idle. Host names are resolved with `gethostbyname` (no timeout). IPv4 only.
+CPU while idle. Host names are resolved with `gethostbyname`, which has no timeout: with no
+reachable DNS server an unknown name can take minutes, so prefer addresses on such setups.
+IPv4 only. Some Roadshow setups have no loopback interface, so `127.0.0.1` can't be used
+there; `MachineAddress` gives the address to use for talking to yourself.
 
 **Host (macOS, Linux).** BSD sockets with `poll`; IPv4.
 
 ## Tests
 
 - `tests/socket/tcpudp.bas` (part of `make test`, VM, JIT and native): a server and clients in one
-  program over 127.0.0.1: waiting calls, lines, a 200 KB transfer, binary data, timeouts, refused
-  and unresolvable connections, events (Connect, ConnectionRequest, DataArrival, Close, Error,
-  ClientDataArrival, ClientClose) and UDP.
+  program over 127.0.0.1 (or `MachineAddress` where there is no loopback): waiting calls, lines,
+  a 200 KB transfer, binary data, timeouts, refused connections, events (Connect,
+  ConnectionRequest, DataArrival, Close, Error, ClientDataArrival, ClientClose) and UDP.
 - `tests-net/sockform` (`tests-net/socket-run.sh`, part of `make test`): socket events in a form
-  program interleaved with a Timer (headless forms, VM and native).
-- On the AmigaOS 4 guest: `tools/os4guest.py bas tests/socket/tcpudp.bas both`.
+  program interleaved with a Timer (headless forms, VM and native); `tests-net/sockresolve.bas`
+  an unknown host name (host only).
+- On the AmigaOS 4 guest: `tools/os4-libtest.py tests/socket/tcpudp.bas both`.
+- Example: `examples/chat`, a chat room form program (host or join).
 
 ## Not yet
 
