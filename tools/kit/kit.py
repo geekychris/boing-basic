@@ -18,6 +18,7 @@ import importlib.util
 import os
 import re
 import shutil
+import struct
 import sys
 import time
 
@@ -504,7 +505,15 @@ def assemble(o):
     drawer = lambda name: shutil.copy(os.path.join(icons, "drawer.info"), os.path.join(top, name + ".info"))
     # the IDE and the language
     shutil.copy2(os.path.join(af, "build", "AmiForge"), os.path.join(top, "AmiForge"))
-    shutil.copy(os.path.join(icons, "AmiForge.info"), os.path.join(top, "AmiForge.info"))
+    # AmiForge.info carries the desktop place of the left-out icon (do_CurrentX/Y): install-kit
+    # also places and snapshots it through Workbench, but a snapshot can be lost when the guest is
+    # restarted before the disk is flushed, and without a position Workbench put it at the top
+    # left, behind the windows there. KIT_ICON_XY (default 1160,468: the right edge of 1280x720).
+    info = bytearray(open(os.path.join(icons, "AmiForge.info"), "rb").read())
+    x, y = (int(v) for v in os.environ.get("KIT_ICON_XY", "1160,468").split(","))
+    assert info[:2] == b"\xe3\x10" and info[48] == 3, "AmiForge.info isn't a tool icon"
+    info[58:66] = struct.pack(">ii", x, y)
+    open(os.path.join(top, "AmiForge.info"), "wb").write(bytes(info))
     shutil.copy2(os.path.join(bb, "build", "os4", "boing"), os.path.join(top, "boing"))
     os.makedirs(os.path.join(top, "lib"))
     shutil.copy2(os.path.join(bb, "build", "os4", "libboing.a"), os.path.join(top, "lib", "libboing.a"))

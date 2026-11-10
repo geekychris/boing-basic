@@ -89,8 +89,7 @@ def start_amiforge(m):
         raise RuntimeError("an AmiForge is already running on the guest (someone else's?): not touching it")
     ways = [("Workbench ARexx ICON OPEN", lambda: m.tool("amiga_arexx_send", port="WORKBENCH",
                                                         command="ICON WINDOW ROOT NAMES AmiForge SELECT OPEN")),
-            ("WBRun (as Workbench starts it)", lambda: m.tool("amiga_dos_command",
-                                                              command="run >NIL: C:WBRun %s/AmiForge" % DEST))]
+            ("WBRun (as Workbench starts it)", lambda: g.run_bg_cmd(m, "C:WBRun %s/AmiForge" % DEST))]
     for (what, do), wait in zip(ways, (10, 30)):
         log("start AmiForge: %s: %s" % (what, do()))
         for _ in range(wait):

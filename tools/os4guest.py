@@ -88,15 +88,15 @@ AMIGA_MCP = os.environ.get("AMIGA_MCP", os.path.expanduser("~/code/claude_world/
 
 
 class MCP:
-    def __init__(self, url):
-        self.url, self.sid = url, None
+    def __init__(self, url, timeout=600):
+        self.url, self.sid, self.timeout = url, None, timeout
 
     def _post(self, body):
         h = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
         if self.sid:
             h["mcp-session-id"] = self.sid
         with urllib.request.urlopen(urllib.request.Request(self.url, json.dumps(body).encode(), h),
-                                    timeout=600) as r:
+                                    timeout=self.timeout) as r:
             raw = r.read().decode()
             self.sid = r.headers.get("mcp-session-id") or self.sid
         msgs = [json.loads(l[5:]) for l in raw.splitlines() if l.startswith("data:")]
@@ -154,8 +154,18 @@ def fifo_ticket():
 
 
 def _give_up(why):
-    """leave the process (which releases the emulator lock); tests replace this"""
+    """leave the process (which releases the emulator lock); tests replace this. The programs this
+    session started go first (Ctrl-C), unless the bridge is silent (then they're only listed)."""
     sys.stderr.write("os4guest: giving up the guest: %s\n" % why)
+    try:
+        if "silent" in why or "disconnected" in why:
+            if SESSION["procs"]:
+                sys.stderr.write("os4guest: WARNING: the bridge is silent, so these programs of this session may "
+                                 "still run on the guest: %s\n" % _proc_list(SESSION["procs"]))
+        else:
+            end_session(MCP(URL, timeout=20))
+    except Exception as e:
+        sys.stderr.write("os4guest: cleaning up the session failed: %s\n" % e)
     sys.stderr.flush()
     os._exit(3)
 
@@ -213,6 +223,101 @@ def bridge_alive(max_age=150):
     return (datetime.datetime.now(datetime.timezone.utc) - t).total_seconds() < max_age
 
 
+# --- the programs a session starts ---------------------------------------------------------
+# A program started in the background (run >NIL:) keeps running after its session gives up the
+# guest, and a busy leftover starves the next session (TCP at ~100 KB/s, heartbeats stalled,
+# the bridge dead in the end). So every background start goes through run_bg_cmd(), which
+# records the CLI numbers it added; end_session() sends them Ctrl-C (then a full break), checks
+# `status` and warns about any that survive. protect=True (the kit's swap script: breaking it
+# half-way is worse than letting it finish) is only reported.
+SESSION = {"procs": {}}         # CLI number -> (command, protected)
+
+
+def status_procs(m):
+    """CLI number -> command of the guest's CLI processes (`status`)."""
+    out = m.tool("amiga_dos_command", command="status")
+    return {int(n): c.strip() for n, c in re.findall(r"Process\s+(\d+): Loaded as command: (.*)", out)}
+
+
+def _proc_list(procs):
+    return ", ".join("CLI %d (%s)" % (n, c[0] if isinstance(c, tuple) else c) for n, c in sorted(procs.items()))
+
+
+def run_bg_cmd(m, cmdline, protect=False):
+    """`run >NIL: cmdline` on the guest, remembering the processes it started for end_session().
+    Returns their CLI numbers."""
+    before = status_procs(m)
+    out = m.tool("amiga_dos_command", command="run >NIL: " + cmdline)
+    after = status_procs(m)
+    new = {n: c for n, c in after.items() if n not in before or before[n] != c}
+    for n, c in new.items():
+        if c.lower() != "status":
+            SESSION["procs"][n] = (c, protect)
+    return out
+
+
+def end_session(m):
+    """Ctrl-C to every process this session started that still runs, then a full break to any
+    that ignore it; warn loudly about survivors (and about protected ones, which aren't broken).
+    Returns the survivors."""
+    import time
+    mine = dict(SESSION["procs"])
+    SESSION["procs"] = {}
+    if not mine:
+        return {}
+    running = status_procs(m)
+    alive = {n: v for n, v in mine.items() if running.get(n) == v[0]}
+    for sig in ("C", "ALL"):
+        targets = [n for n, v in alive.items() if not v[1]]
+        if not targets:
+            break
+        for n in targets:
+            m.tool("amiga_dos_command", command="break %d %s" % (n, sig))
+        time.sleep(3)
+        running = status_procs(m)
+        alive = {n: v for n, v in alive.items() if running.get(n) == v[0]}
+    if alive:
+        sys.stderr.write("os4guest: WARNING: still running on the guest after this session: %s%s\n" % (
+            _proc_list(alive), " (protected: left to finish)" if all(v[1] for v in alive.values()) else ""))
+    return alive
+
+
+# ready tasks other than these, at priority >= 0, at the start of a session are suspect
+# (infra-m1b's tasklist; an idle guest shows about 3-7 READY)
+TASKS_OK = ("dos_signal_server", "dos_appdir_server", "idle.task", "AmiDock", "claude_busy", "amiga-bridge",
+            "Background CLI", "tasklist", "input.device", "Workbench", "RinghioServer")
+CMDS_OK = ("amiga-bridge", "claude_busy", "tasklist")     # a CLI running one of these is fine
+
+
+def suspect_tasks(listing):
+    """(name, cmd, priority) of READY tasks at priority >= 0 that aren't the usual ones."""
+    out = []
+    for m_ in re.finditer(r"^READY\s+pri=\s*(-?\d+)\s+\S+\s+pid=\s*\d+\s+ppid=\s*\d+\s+cli=\s*\d+\s+"
+                          r"cmd=\[(.*?)\]\s+name=\[(.*?)\]", listing, re.M):
+        pri, cmd, name = int(m_.group(1)), m_.group(2), m_.group(3)
+        if pri < 0:
+            continue
+        # a CLI process is judged by the command it runs (a Background CLI running boing at
+        # priority 0 is a busy leftover); a task without one by its name
+        ok_ = any(k.lower() in cmd.lower() for k in CMDS_OK) if cmd else \
+            any(k.lower() in name.lower() for k in TASKS_OK)
+        if not ok_:
+            out.append((name, cmd, pri))
+    return out
+
+
+def task_snapshot(m):
+    """At a session's start: warn about busy leftovers (READY at priority >= 0) on the guest."""
+    out = m.tool("amiga_dos_command", command="DH1:bbtools/tasklist")
+    if "TASKS" not in out:
+        return None                     # no tasklist on this guest (os4guest.py setup installs it)
+    bad = suspect_tasks(out)
+    if bad:
+        sys.stderr.write("os4guest: WARNING: busy on the guest before this session (READY, priority >= 0): %s\n"
+                         % "; ".join("%s%s pri %d" % (n, " [%s]" % c if c else "", p) for n, c, p in bad))
+    return bad
+
+
 @contextlib.contextmanager
 def testing(message):
     if os.environ.get("BB_BANNER") == "0":
@@ -225,12 +330,21 @@ def testing(message):
     with fifo_ticket():
         with claude_testing(URL, message):
             done = watchdog()   # timed from getting this lock, not from queueing
+            SESSION["procs"] = {}
             try:
                 if not bridge_alive():
                     sys.stderr.write("os4guest: the guest's bridge isn't answering (no heartbeat): not starting\n")
                     os._exit(3)
+                try:
+                    task_snapshot(MCP(URL, timeout=60))
+                except Exception as e:
+                    sys.stderr.write("os4guest: task snapshot failed: %s\n" % e)
                 yield
             finally:
+                try:
+                    end_session(MCP(URL, timeout=60))
+                except Exception as e:
+                    sys.stderr.write("os4guest: cleaning up the session failed: %s\n" % e)
                 done.set()      # this session's deadline ends with it
 
 
@@ -300,16 +414,16 @@ def _remote_serve():
     return d
 
 
-def _fetch_timeout(data):
-    """Seconds to let bbfetch run: amiga_dos_command's 30 s default cut a 24 MB kit push short, and
-    the retry on the next gateway then found the first fetch's .part file still open."""
-    return max(30.0, 60.0 + len(data) / 100000.0)
+def _fetch_timeout(size):
+    """Seconds one bbfetch attempt may take: the guest fetches at several MB/s, so size at 1 MB/s
+    plus 30 s; a slower one is a stalled TCP connection (they trickle at ~100 KB/s while a new
+    connection runs at full speed: retry instead of waiting)."""
+    return 30.0 + size / 1000000.0
 
 
-def _wait_fetch(m, dest, size, limit=180):
-    """bbfetch is still running on a slow guest (the bridge reports "[RUNNING]" after 30 s): wait
-    for the file to appear with its full size (bbfetch renames it into place only when the CRC
-    matched)."""
+def _wait_fetch(m, dest, size, limit):
+    """bbfetch is still running (the bridge answers "[RUNNING]" after its own wait): wait for the
+    file to appear with its full size (bbfetch renames it into place only when the CRC matched)."""
     import time
     t0 = time.time()
     while time.time() - t0 < limit:
@@ -317,43 +431,85 @@ def _wait_fetch(m, dest, size, limit=180):
         out = m.tool("amiga_dos_command", command='list "%s" LFORMAT "%%L"' % dest)
         if out.strip().split("\n")[-1].strip() == str(size):
             return "OK %d (finished late)" % size
-    return "bbfetch didn't finish within %d s" % limit
+    return "FAIL still running after %d s" % limit
+
+
+def _stop_fetches(m):
+    """Ctrl-C to every bbfetch still running (an older bbfetch has no deadline of its own); it
+    deletes its .part file."""
+    import time
+    for _ in range(6):
+        st = m.tool("amiga_dos_command", command="status")
+        procs = re.findall(r"Process\s+(\d+): Loaded as command: \S*bbfetch", st)
+        if not procs:
+            return
+        for p in procs:
+            m.tool("amiga_dos_command", command="break %s C" % p)
+        time.sleep(3)
+
+
+def _slow_timeout(size):
+    """The last attempt's limit, after the fast ones: a busy guest can fetch at a few hundred KB/s
+    on every connection, and is then slow rather than stalled (100 KB/s plus 60 s)."""
+    return 60.0 + size / 100000.0
+
+
+def _fetch(m, urls, dest, size, crc):
+    """Fetch with bbfetch: each URL (one per gateway) gets two attempts, the second on a new
+    connection, each limited to _fetch_timeout(size) (bbfetch's own MAXSECONDS, and a wait on this
+    side for an older bbfetch without one); then one slow attempt (_slow_timeout) on the first
+    gateway that connected. Returns bbfetch's last answer."""
+    def attempt(url, limit):
+        out = m.tool("amiga_dos_command", command='%s %s "%s" %s %d' % (FETCH, url, dest, crc, int(limit)),
+                     timeout=limit + 15)
+        if "[RUNNING]" in out:
+            out = _wait_fetch(m, dest, size, limit)
+        return out
+
+    out, reached = "", []
+    for url in urls:
+        for n in (1, 2):
+            out = attempt(url, _fetch_timeout(size))
+            if "OK %d" % size in out:
+                return out
+            if "FAIL connect" in out:
+                break                   # this gateway isn't the guest's: the next one
+            if url not in reached:
+                reached.append(url)
+            _stop_fetches(m)
+            sys.stderr.write("os4guest: fetch attempt %d of %s: %s; %s\n" % (
+                n, url, out.strip()[:110], "retrying on a new connection" if n == 1 else "next gateway"))
+    if reached:
+        sys.stderr.write("os4guest: one slow attempt on %s (the guest may just be busy)\n" % reached[0])
+        out = attempt(reached[0], _slow_timeout(size))
+        if "OK %d" % size not in out:
+            _stop_fetches(m)
+    return out
 
 
 def http_push(m, local, dest):
     import zlib
+    data = open(local, "rb").read()
+    crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
+    name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
     if SSH:
         import subprocess
         d = _remote_serve()
-        name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
         subprocess.run(["scp", "-q", "-o", "BatchMode=yes", local, "%s:%s/%s" % (SSH, d, name)], check=True)
-        data = open(local, "rb").read()
-        crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
         try:
-            out = ""
-            for gw in GATEWAYS:
-                out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' %
-                             (FETCH, gw, REMOTE_PORT, name, dest, crc), timeout=_fetch_timeout(data))
-                if "OK %d" % len(data) in out:
-                    return "pushed %s (%d bytes, HTTP via %s, crc %s)" % (dest, len(data), SSH, crc)
+            out = _fetch(m, ["http://%s:%d/%s" % (gw, REMOTE_PORT, name) for gw in GATEWAYS], dest, len(data), crc)
+            if "OK %d" % len(data) in out:
+                return "pushed %s (%d bytes, HTTP via %s, crc %s)" % (dest, len(data), SSH, crc)
             raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))
         finally:
             _ssh("rm -f %s/%s" % (d, name))
     srv, d = _serve()
-    name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
     shutil.copy(local, os.path.join(d, name))
-    data = open(local, "rb").read()
-    crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
     port = srv.server_address[1]
     try:
-        out = ""
-        for gw in GATEWAYS:
-            out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' % (FETCH, gw, port, name, dest, crc),
-                         timeout=_fetch_timeout(data))
-            if "[RUNNING]" in out:
-                out = _wait_fetch(m, dest, len(data))
-            if "OK %d" % len(data) in out:
-                return "pushed %s (%d bytes, HTTP, crc %s)" % (dest, len(data), crc)
+        out = _fetch(m, ["http://%s:%d/%s" % (gw, port, name) for gw in GATEWAYS], dest, len(data), crc)
+        if "OK %d" % len(data) in out:
+            return "pushed %s (%d bytes, HTTP, crc %s)" % (dest, len(data), crc)
         raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))
     finally:
         os.unlink(os.path.join(d, name))
@@ -439,7 +595,7 @@ def run_bg(m, cmd, outf, limit=None):
     import time
     limit = limit or float(os.environ.get("BB_TEST_TIMEOUT", "180"))
     m.tool("amiga_dos_command", command="delete %s QUIET" % outf)
-    m.tool("amiga_dos_command", command="run >NIL: %s >%s *>%s.err" % (cmd, outf, outf))
+    run_bg_cmd(m, "%s >%s *>%s.err" % (cmd, outf, outf))
     t0, out = time.time(), ""
     while time.time() - t0 < limit:
         time.sleep(2)
@@ -587,12 +743,13 @@ def reapers(m, kill=False):
 
 
 def setup(m):
-    """Install DH1:bbtools/bbfetch and ptr: the cross-built ones (build/os4, tools/build-os4.sh)
+    """Install DH1:bbtools/bbfetch, ptr and tasklist (infra-m1b's ready-task lister, for the
+    session-start snapshot): the cross-built ones (build/os4, tools/build-os4.sh)
     over the bridge when they exist (no SDK needed on the guest), else built on the guest with
     the SDK's GCC."""
     src = os.path.join(ROOT, "tools/os4/bbfetch.c")
     m.tool("amiga_dos_command", command="makedir DH1:bbtools QUIET")
-    built = [os.path.join(ROOT, "build/os4", t) for t in ("bbfetch", "ptr")]
+    built = [os.path.join(ROOT, "build/os4", t) for t in ("bbfetch", "ptr", "tasklist")]
     if all(os.path.exists(b) for b in built):
         for b in built:
             print(bridge_push(m, b, "DH1:bbtools/" + os.path.basename(b)))
@@ -600,11 +757,12 @@ def setup(m):
         return
     bridge_push(m, src, "DH1:bbtools/bbfetch.c")
     bridge_push(m, os.path.join(ROOT, "tools/os4/ptr.c"), "DH1:bbtools/ptr.c")
+    bridge_push(m, os.path.join(ROOT, "tools/os4/tasklist.c"), "DH1:bbtools/tasklist.c")
     # compile in the background (GCC takes longer than the bridge's 30 s command timeout)
     import time
-    for tool in ("bbfetch", "ptr"):
+    for tool in ("bbfetch", "ptr", "tasklist"):
         m.tool("amiga_dos_command", command="delete DH1:bbtools/%s QUIET" % tool)
-        m.tool("amiga_dos_command", command="run >NIL: SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 "
+        run_bg_cmd(m, "SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 "
                "-o DH1:bbtools/%s DH1:bbtools/%s.c -lauto >RAM:%s.log" % (tool, tool, tool))
         t0 = time.time()
         while time.time() - t0 < 900:       # GCC on the guest: 15 s to several minutes
@@ -647,7 +805,7 @@ def run_script(m, cmd, outf, limit=300):
     finally:
         os.unlink(tmp.name)
     m.tool("amiga_dos_command", command="delete %s QUIET" % outf)
-    m.tool("amiga_dos_command", command="run >NIL: execute %s" % script)
+    run_bg_cmd(m, "execute %s" % script)
     t0, out = time.time(), ""
     while time.time() - t0 < limit:
         time.sleep(2)
@@ -746,7 +904,7 @@ def main():
                 # in the bridge's own shell (its stack, no background CLI); a hang blocks the bridge
                 print(m.tool("amiga_dos_command", command=" ".join(["RAM:bbtest/" + name] + args[1:])))
                 return 0
-            m.tool("amiga_dos_command", command="run >NIL: %s >%s" % (" ".join(["RAM:bbtest/" + name] + args[1:]), outf))
+            run_bg_cmd(m, "%s >%s" % (" ".join(["RAM:bbtest/" + name] + args[1:]), outf))
             limit = float(os.environ.get("BB_TEST_TIMEOUT", "180"))
             t0, out = time.time(), ""
             while time.time() - t0 < limit:
