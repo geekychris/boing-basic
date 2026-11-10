@@ -1,5 +1,7 @@
 /* tasklist - ready/waiting tasks: state, priority, process id/parent id, CLI number,
- * CLI command name, task name. Read-only (walks the lists under Disable()). */
+ * CLI command name, task name. Read-only (walks the lists under Disable()).
+ * `tasklist NAME`: only the tasks whose name or command contains NAME, then "N task(s) named
+ * *NAME", and exit 5 when there is at least one (tests-net/os4-run.sh's leftover check). */
 #include <exec/execbase.h>
 #include <exec/tasks.h>
 #include <dos/dosextens.h>
@@ -10,7 +12,9 @@
 #define SYSB ((struct ExecBase *)SysBase)
 struct E { char name[64]; char cmd[80]; LONG pri; int ready; LONG cli; ULONG pid, ppid; int proc; };
 static struct E e[400];
-int main(void) {
+int main(int argc, char **argv) {
+    const char *want = argc > 1 ? argv[1] : NULL;
+    int found = 0;
     int n = 0, i, nready = 0; struct Node *nd;
     Disable();
     for (i = 0; i < 2; i++) {
@@ -36,10 +40,17 @@ int main(void) {
         }
     }
     Enable();
-    printf("TASKS %d READY %d (this tasklist is the running one)\n", n, nready);
-    for (i = 0; i < n; i++)
+    if (!want) printf("TASKS %d READY %d (this tasklist is the running one)\n", n, nready);
+    for (i = 0; i < n; i++) {
+        if (want && !strstr(e[i].name, want) && !strstr(e[i].cmd, want)) continue;
+        found++;
         printf("%-5s pri=%4ld %s pid=%3lu ppid=%3lu cli=%2ld cmd=[%s] name=[%s]\n", e[i].ready ? "READY" : "wait",
                (long)e[i].pri, e[i].proc ? "proc" : "task", (unsigned long)e[i].pid, (unsigned long)e[i].ppid,
                (long)e[i].cli, e[i].cmd, e[i].name);
+    }
+    if (want) {
+        printf("%d task(s) named *%s\n", found, want);
+        return found ? 5 : 0;
+    }
     return 0;
 }
