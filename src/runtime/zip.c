@@ -133,7 +133,8 @@ static void bad_zip(zip_obj *z, const char *why)
 
 static void read_directory(zip_obj *z)
 {
-    unsigned char buf[65536 + 22];
+    enum { TAIL = 65536 + 22 };
+    unsigned char *buf;                 /* on the heap: AmigaOS stacks can be small */
     long size, start, i, n;
     unsigned char *eocd = NULL;
     uint32_t cdoff, cdsize;
@@ -141,7 +142,8 @@ static void read_directory(zip_obj *z)
     fseek(z->f, 0, SEEK_END);
     size = ftell(z->f);
     if (size < 22) bad_zip(z, "too short");
-    start = size > (long)sizeof buf ? size - (long)sizeof buf : 0;
+    start = size > (long)TAIL ? size - (long)TAIL : 0;
+    buf = malloc(TAIL);
     fseek(z->f, start, SEEK_SET);
     n = (long)fread(buf, 1, (size_t)(size - start), z->f);
     for (i = n - 22; i >= 0; i--)
@@ -149,10 +151,14 @@ static void read_directory(zip_obj *z)
             eocd = buf + i;
             break;
         }
-    if (!eocd) bad_zip(z, "no end of central directory");
+    if (!eocd) {
+        free(buf);
+        bad_zip(z, "no end of central directory");
+    }
     count = rd16(eocd + 10);
     cdsize = rd32(eocd + 12);
     cdoff = rd32(eocd + 16);
+    free(buf);
     if (cdoff == 0xFFFFFFFFu || count == 0xFFFF) bad_zip(z, "ZIP64 archives aren't supported");
     if ((long)cdoff + (long)cdsize > size) bad_zip(z, "the directory is outside the file");
     {
