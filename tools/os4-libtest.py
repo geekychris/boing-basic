@@ -87,9 +87,7 @@ def main():
     m = g.MCP(g.URL)
     ok = True
     with g.testing("Boing BASIC library test " + os.path.basename(src)):
-        parts = rdir.split("/")
-        # (OS4's MakeDir has no QUIET switch: it would make a drawer called QUIET)
-        m.tool("amiga_dos_command", command="makedir " + " ".join("/".join(parts[:i]) for i in range(1, len(parts) + 1)))
+        # no MakeDir: os4guest.push creates the parent drawers (and MakeDir has no QUIET switch)
         for f in [src] + data:
             g.push(m, f, rdir + "/" + os.path.basename(f))
         runs = []
