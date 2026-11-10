@@ -322,6 +322,8 @@ bb_str *bb_app_exename(void) { return bb_str_from_c(bb_sys_app_exename()); }
 static bb_str *app_title;
 void bb_set_app_title(const char *t) { bb_str_set(&app_title, bb_str_from_c(t)); }
 bb_str *bb_app_title(void) { return app_title ? bb_str_retain(app_title) : bb_app_exename(); }
+int bb_sys_clip_unit;
+
 bb_str *bb_clipboard_get(void)
 {
     char *t = bb_sys_clipboard_get();

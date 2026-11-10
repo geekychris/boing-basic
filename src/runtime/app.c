@@ -126,10 +126,103 @@ static int app_call(const char *name, int argc, const bb_fval *argv, bb_fval *re
     return bb_app_plat_call(name, argc, argv, ret);
 }
 
+/* App.FormatNumber(x [, decimals]): grouped digits and the decimal point of the user's locale */
+static bb_value format_number(int argc, bb_value *argv)
+{
+    bb_value t;
+    double x = bb_v_to_double(bb_v_deref(&argv[0], &t));
+    int dec = argc > 1 && !(argv[1].type == BB_ERROR && (argv[1].flags & BB_VF_MISSING)) ? (int)bb_v_to_long(bb_v_deref(&argv[1], &t)) : 2;
+    char raw[64], out[96];
+    const char *dp = bb_app_plat_decimal_point(), *gs = bb_app_plat_group_separator();
+    int neg = x < 0, i, n, o = 0, intlen;
+    if (dec < 0) dec = 0;
+    if (dec > 10) dec = 10;
+    snprintf(raw, sizeof raw, "%.*f", dec, neg ? -x : x);
+    n = (int)strlen(raw);
+    intlen = strchr(raw, '.') ? (int)(strchr(raw, '.') - raw) : n;
+    if (neg) out[o++] = '-';
+    for (i = 0; i < intlen; i++) {
+        out[o++] = raw[i];
+        if (*gs && (intlen - i - 1) % 3 == 0 && i < intlen - 1) { strcpy(out + o, gs); o += (int)strlen(gs); }
+    }
+    if (dec) { strcpy(out + o, dp); o += (int)strlen(dp); strcpy(out + o, raw + intlen + 1); o += dec; }
+    out[o] = 0;
+    return bb_v_str(bb_str_from_c(out));
+}
+
+static bb_value format_date(int argc, bb_value *argv)
+{
+    bb_value t;
+    double d = bb_v_to_double(bb_v_deref(&argv[0], &t));
+    char out[128];
+    bb_str *fmt = argc > 1 && !(argv[1].type == BB_ERROR && (argv[1].flags & BB_VF_MISSING)) ? bb_v_to_str(bb_v_deref(&argv[1], &t)) : NULL;
+    if (!bb_app_plat_format_date(d, fmt ? bb_str_ptr(fmt) : "short", out, sizeof out)) {
+        /* hosts: ISO style */
+        bb_value v = bb_v_date(d);
+        bb_str *s = bb_v_to_str(&v);
+        snprintf(out, sizeof out, "%s", bb_str_ptr(s));
+        bb_str_release(s);
+    }
+    bb_str_release(fmt);
+    return bb_v_str(bb_str_from_c(out));
+}
+
+/* Clipboard.Unit (the unit every Clipboard call uses), Clipboard.HasText, Clipboard.GetFormat(fmt):
+   1 if handled */
+static int clip_has_picture(void)
+{
+    bb_fval out;
+    memset(&out, 0, sizeof out);
+    return !bb_clip_plat_call("HasPicture", 0, NULL, &out) && out.type == BB_FV_INT && out.i;
+}
+
+static int clip_has_text(void)
+{
+    char *t = bb_sys_clipboard_get();
+    int r = t && *t;
+    free(t);
+    return r;
+}
+
+static int clip_member(const char *name, int kind, int argc, bb_value *argv, bb_value *ret)
+{
+    bb_value t;
+    if (!strcasecmp(name, "Unit")) {
+        if (kind & (BB_INV_LET | BB_INV_SET)) {
+            int32_t u;
+            if (argc != 1) bb_raise(450, NULL);
+            u = (int32_t)bb_v_to_double(bb_v_deref(&argv[0], &t));
+            if (u < 0 || u > 255) bb_raise(380, NULL);
+            bb_sys_clip_unit = u;
+        } else if (argc == 0)
+            *ret = bb_v_long(bb_sys_clip_unit);
+        else
+            bb_raise(450, NULL);
+        return 1;
+    }
+    if (kind & (BB_INV_LET | BB_INV_SET)) return 0;
+    if (!strcasecmp(name, "HasText") && argc == 0) {
+        *ret = bb_v_bool(clip_has_text());
+        return 1;
+    }
+    if (!strcasecmp(name, "GetFormat") && argc == 1) {
+        int32_t f = (int32_t)bb_v_to_double(bb_v_deref(&argv[0], &t));
+        /* vbCFText 1, vbCFBitmap 2, vbCFDIB 8 (vbCFRTF etc.: False) */
+        *ret = bb_v_bool(f == 1 ? clip_has_text() : (f == 2 || f == 8) ? clip_has_picture() : 0);
+        return 1;
+    }
+    return 0;
+}
+
 static void obj_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
 {
     appobj *o = (appobj *)self;
     const char *name = anames[id];
+    if (o->which == O_APP && (kind & BB_INV_METHOD) && argc >= 1 && !strcasecmp(name, "FormatNumber")) { *ret = format_number(argc, argv); return; }
+    if (o->which == O_APP && (kind & BB_INV_METHOD) && argc >= 1 && !strcasecmp(name, "FormatDate")) { *ret = format_date(argc, argv); return; }
+    if (o->which == O_APP && (kind & BB_INV_GET) && argc == 0 && !strcasecmp(name, "DecimalPoint")) { *ret = bb_v_str(bb_str_from_c(bb_app_plat_decimal_point())); return; }
+    if (o->which == O_APP && (kind & BB_INV_GET) && argc == 0 && !strcasecmp(name, "GroupSeparator")) { *ret = bb_v_str(bb_str_from_c(bb_app_plat_group_separator())); return; }
+    if (o->which == O_CLIP && clip_member(name, kind, argc, argv, ret)) return;
     bb_fval args[8], out;
     bb_str *holds[8];
     int i, err = 438;
@@ -279,11 +372,11 @@ static void mkdirs(char *path)
     }
 }
 
-void bb_savesetting(bb_str *app, bb_str *section, bb_str *key, bb_str *value)
+static void save_setting(bb_str *app, bb_str *section, bb_str *key, bb_str *value, int use_only)
 {
     int arch, ok = 0;
     if (!bb_str_ptr(section)[0] || !bb_str_ptr(key)[0]) bb_raise(5, NULL);
-    for (arch = 0; arch < 2; arch++) {
+    for (arch = 0; arch < (use_only ? 1 : 2); arch++) {
         const char *dir = bb_app_settings_dir(arch);
         char *p = setting_path(dir, app, section, key);
         FILE *f;
@@ -299,6 +392,11 @@ void bb_savesetting(bb_str *app, bb_str *section, bb_str *key, bb_str *value)
     }
     if (!ok) bb_raise(75, NULL);
 }
+
+/* SaveSetting: ENV: and ENVARC: (kept over a reboot); UseSetting: ENV: only, the "Use" of
+   AmigaOS preferences (until the next boot) */
+void bb_savesetting(bb_str *app, bb_str *section, bb_str *key, bb_str *value) { save_setting(app, section, key, value, 0); }
+void bb_usesetting(bb_str *app, bb_str *section, bb_str *key, bb_str *value) { save_setting(app, section, key, value, 1); }
 
 /* delete a directory's files and (one level of) sub-directories, then the directory */
 static void remove_tree(const char *dir, int depth)

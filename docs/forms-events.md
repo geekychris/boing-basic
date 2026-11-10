@@ -37,7 +37,8 @@ program's own test mode can so run in `make test`, under sanitizers too (see
 | `Name` | String, R/O | `id` | |
 | `Enabled` | Boolean | `disabled` (inverted) | `GA_Disabled` |
 | `Visible` | Boolean | — | hides the control and relayouts the window |
-| `ToolTipText` | String | `hint` | `GA_HintInfo` |
+| `ToolTipText` | String | `hint` | `GA_HintInfo`; also the status-bar line with `statusbar hints=1` |
+| `HelpNode` | String | `helpnode` | the AmigaGuide node the Help key opens while the pointer is over the control |
 | `Tag` | String | — | free for the program |
 | `ContextMenu` | String | `contextmenu` | the hidden top-level `menu` that Shift/Ctrl + right mouse button opens over the control |
 | `Left`, `Top`, `Width`, `Height` | Long, R/O | — | pixels, inside the window; set by the layout |
@@ -470,6 +471,7 @@ statusbar id=sb panels="Ready|Ln 1|100%" widths="0|60|50"
 | `Panel(i)` | String | `panels` | panel i |
 | `PanelCount` | Long, R/O | | |
 | | | `widths` | pixel widths, 0 = takes the rest |
+| | | `hints` | 1: panel 0 shows the `hint` of the control under the pointer |
 
 No events.
 
@@ -601,11 +603,13 @@ commondialog id=dlg title="Open a picture" filter="Pictures|#?.(png|iff|jpg)"
 | `Cancelled` | Boolean, R/O | — | |
 | `FontName`, `FontSize`, `FontBold`, `FontItalic`, `FontUnderline` | | — | ShowFont |
 | `Color` | Long | — | ShowColor |
+| `Colors(i)`, `ColorCount`, `ColorIndex` | Long | — | ShowPalette: the palette (in and out) and the colour picked |
 | `ScreenModeID`, `ScreenWidth`, `ScreenHeight`, `ScreenDepth` | Long | — | ShowScreenMode |
 | `ShowOpen` | method | | |
 | `ShowSave` | method | | |
 | `ShowFont` | method | | |
 | `ShowColor` | method | | |
+| `ShowPalette` | method | | edits `Colors(0 .. ColorCount-1)` |
 | `ShowScreenMode` | method | | |
 | `ShowMessage(prompt, buttons [, title [, icon]])` | method | | returns the button number, 1 = leftmost |
 

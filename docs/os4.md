@@ -142,8 +142,10 @@ error ends the wait.
 | `tests/os4/ui_bars_test.c` | toolbar (click, menu= link), status bar, image, CommonDialog: custom-button requester, asl open (Esc, CancelError, Return), colour requester | 25/25 (local) |
 | `tests/os4/ui_controls_test.c` | TextEditor selection/find/replace, ListBrowser columns/sort/multi-select, tabs, TreeView, Grid (typed cell edit, keys) | 35/35 (local) |
 | `tests/os4/ui_forms2_test.c` | Show vbModal, iconify/WindowState, remember=1 | 9/9 (local) |
+| `tests/os4/ui_prefs_test.c` | ShowPalette (Return, Esc, a click on a swatch + the Red slider, swatches drawn on screen), status-bar hints, HelpNode | 14/14 (m1c, 2026-11-10) |
 | `tests/os4/ui_leak_test.c` | every UI kind loaded/freed 50 times vs a plain form (AvailMem; noisy on a busy guest) | informational |
 | `tests-os4/uibas/` | the same from BASIC: menus, toolbar, CommonDialog object, settings, App, ARexx round trip via RX, SaveIcon, clipboard pictures | 30/30 VM, JIT and native (local) |
+| `tests-os4/prefs/` (`tools/os4guest.py bas`) | UseSetting (ENV: only) vs SaveSetting, locale FormatNumber/FormatDate/separators, Clipboard.Unit 5 (IFF FTXT), GetFormat | 13/13 VM and native (m1c, 2026-11-10) |
 | `tests/os4/sys_test.c` | Command, App.Path, Shell, Environ, Dir with patterns and vbDirectory, Kill, MkDir/RmDir, FileCopy, Name, clipboard (restored afterwards) | 30/30 |
 
 Input injection uses input.device (`IND_WRITEEVENT`) from inside the test, at the control's

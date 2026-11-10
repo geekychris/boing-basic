@@ -4,7 +4,7 @@
 # hard timeout (BB_TEST_TIMEOUT for the run itself; BB_WAIT bounds the wait for the lock as well); a test still running afterwards is stopped with Ctrl-C (its forms loop ends and
 # closes its window), and Grim Reapers are reported and closed.
 cd "$(dirname "$0")/.." || exit 2
-tests=${*:-"ui_menu_test ui_mouse_test ui_bars_test ui_controls_test ui_forms2_test ui_load_test"}
+tests=${*:-"ui_menu_test ui_mouse_test ui_bars_test ui_controls_test ui_forms2_test ui_load_test ui_prefs_test"}
 fail=0
 for t in $tests; do
     out=$(BB_TEST_TIMEOUT=${BB_TEST_TIMEOUT:-200} BB_KILL_REAPERS=1 timeout ${BB_WAIT:-3600} tools/os4guest.py test build/os4/tests/$t 2>&1)
@@ -15,7 +15,7 @@ for t in $tests; do
     if [ -n "$cli" ]; then
         # a requester it left open first gets Esc (only while it's the active window), then Ctrl-C
         timeout 120 tools/os4guest.py push build/os4/tests/ui_closereq RAM:bbtest/ui_closereq >/dev/null 2>&1
-        timeout 60 tools/os4guest.py dos 'RAM:bbtest/ui_closereq "Bars test" "Bars test dialog" "forms_test" "Boing forms2 dialog"' 2>/dev/null | sed "s/^/$t: /"
+        timeout 60 tools/os4guest.py dos 'RAM:bbtest/ui_closereq "Bars test" "Bars test dialog" "forms_test" "Boing forms2 dialog" "Palette test"' 2>/dev/null | sed "s/^/$t: /"
     fi
     for c in $cli; do
         echo "$t: still running (CLI $c): sending Ctrl-C"

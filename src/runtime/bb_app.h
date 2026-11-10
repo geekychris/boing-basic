@@ -20,6 +20,13 @@ int bb_prn_plat_call(const char *method, int argc, const bb_fval *argv, bb_fval 
  * module (the startup form's first) with the arguments; 1 if there was such a sub. */
 int bb_app_event(const char *name, int argc, bb_value *argv);
 
+/* Locale (docs/ui.md): the user's decimal point and group separator ("." and "" by default),
+ * and a date (VB serial) in the locale's format: fmt "short" (default), "long", "time", "datetime"
+ * or a locale.library %-format. 0 if the platform has nothing (the portable code formats). */
+const char *bb_app_plat_decimal_point(void);
+const char *bb_app_plat_group_separator(void);
+int bb_app_plat_format_date(double d, const char *fmt, char *out, int n);
+
 /* the directory the settings live in: ENV: / ENVARC: on AmigaOS, ~/.boing/ (both) on hosts */
 const char *bb_app_settings_dir(int archive);
 

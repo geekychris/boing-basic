@@ -676,7 +676,7 @@ static const char *const mouse_events[] = { "MouseDown", "MouseUp", "MouseMove",
 
 static int wants_mouse(bb_form *f, bb_ctl *c)
 {
-    if (afg_get(f->afg, "name")[0] == '_') return 0;     /* the runtime's own requesters */
+    if (afg_get(f->afg, "name")[0] == '_' && !afg_get_bool(f->afg, "mouse")) return 0;     /* the runtime's own requesters */
     for (int i = 0; mouse_events[i]; i++)
         if (!f->has || f->has(f->ud, f, c->name, mouse_events[i])) return 1;
     return 0;
@@ -710,6 +710,38 @@ static void canvas_xy(bb_ctl *c, int wx, int wy, int32_t *x, int32_t *y)
 
 int bbf_vb_shift(uint32 q);
 #define vb_shift bbf_vb_shift
+
+/* statusbar hints=1: the hint of the control under the pointer in the status bar's first panel
+   (its own text again when the pointer is over nothing with a hint) */
+static void status_hint(bb_form *f, int x, int y)
+{
+    bb_ctl *sb = NULL;
+    for (int i = 0; i < f->nctls && !sb; i++)
+        if (f->ctls[i]->kind == AFG_STATUSBAR && afg_get_bool(f->ctls[i]->node, "hints")) sb = f->ctls[i];
+    if (!sb) return;
+    const char *hint = NULL;
+    for (int i = 0; i < f->nctls; i++) {
+        bb_ctl *c = f->ctls[i];
+        if (!c->obj || !c->visible || !c->hint || !*c->hint || !afg_takes_space(c->kind)) continue;
+        struct Gadget *g = (struct Gadget *)c->obj;
+        if (x >= g->LeftEdge && y >= g->TopEdge && x < g->LeftEdge + g->Width && y < g->TopEdge + g->Height) hint = c->hint;
+    }
+    bb_fval cur;
+    if (hint) {
+        if (!sb->extra) {          /* the program's own text, to put back later */
+            bb_ctl_get(sb, "Panel", 0, &cur);
+            sb->extra = xstrdup(cur.s ? cur.s : "");
+        }
+        bb_fval v = { BB_FV_STR, 0, hint, NULL };
+        bb_ctl_set(sb, "Panel", 0, &v);
+    } else if (sb->extra) {
+        bb_fval v = { BB_FV_STR, 0, sb->extra, NULL };
+        char *old = sb->extra;
+        sb->extra = NULL;
+        bb_ctl_set(sb, "Panel", 0, &v);
+        free(old);
+    }
+}
 
 /* RightButton canvases: the right button goes to the canvas (not the menus) while the pointer
    is over it, the classic paint program behaviour (WFLG_RMBTRAP set only there) */
@@ -779,6 +811,7 @@ static void mouse_events_handle(bb_form *f)
         }
         bb_ctl *c = f->capture && f->buttons ? f->capture : mouse_target(f, e.x, e.y);
         if (e.mcls == IDCMP_MOUSEMOVE) {
+            status_hint(f, e.x, e.y);
             rmb_trap(f, e.x, e.y);
             bbf_update_pointer(f, e.x, e.y);
         }
@@ -969,6 +1002,7 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     for (int i = 0; i < f->nctls; i++) {
         if (f->ctls[i]->kind == AFG_CANVAS && f->ctls[i]->name[0] && wants_mouse(f, f->ctls[i])) f->mouse_wanted = 1;
         if (f->ctls[i]->kind == AFG_GRID) f->mouse_wanted = 1;
+        if (f->ctls[i]->kind == AFG_STATUSBAR && afg_get_bool(f->ctls[i]->node, "hints")) f->mouse_wanted = 1;
         if (f->ctls[i]->kind == AFG_CANVAS) {
             f->ctls[i]->rmb = afg_get_bool(f->ctls[i]->node, "rmb");
             f->ctls[i]->fill = afg_get_bool(f->ctls[i]->node, "fill");
@@ -1286,6 +1320,7 @@ int bb_ctl_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
     if (IS("Name")) return ret_str(c, out, c->name);
     if (IS("Tag")) return ret_str(c, out, c->tagstr);
     if (k == AFG_MENU) return c->dead ? 364 : bbf_menu_get(c, prop, out);
+    if (IS("HelpNode")) return ret_str(c, out, afg_get(c->node, "helpnode"));
     if (!c->obj && k != AFG_TIMER) return bbf_ext_get(c, prop, index, out);      /* tool, commondialog */
     if (IS("ContextMenu")) return ret_str(c, out, c->ctxmenu ? c->ctxmenu : afg_get(c->node, "contextmenu"));
     if (k == AFG_TIMER) {
@@ -1420,6 +1455,10 @@ int bb_ctl_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         return 0;
     }
     if (k == AFG_MENU) return c->dead ? 364 : bbf_menu_set(c, prop, v);
+    if (IS("HelpNode")) {
+        afg_set(c->node, "helpnode", vstr(v, buf));
+        return 0;
+    }
     if (!c->obj && k != AFG_TIMER) return bbf_ext_set(c, prop, index, v);
     if (IS("ContextMenu")) {
         free(c->ctxmenu);

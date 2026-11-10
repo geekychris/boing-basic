@@ -14,6 +14,8 @@
 #include <proto/dos.h>
 #include <proto/intuition.h>
 #include <proto/textclip.h>
+#include <proto/iffparse.h>
+#include <libraries/iffparse.h>
 #include <workbench/startup.h>
 
 static char *command, *app_path, *exename;
@@ -128,8 +130,95 @@ static struct TextClipIFace *textclip(void)
     return ifc;
 }
 
+/* units other than 0 (textclip.library only knows unit 0): IFF FTXT CHRS through iffparse */
+#define ID_FTXT MAKE_ID('F', 'T', 'X', 'T')
+#define ID_CHRS MAKE_ID('C', 'H', 'R', 'S')
+
+static struct IFFParseIFace *iffparse(void)
+{
+    static struct Library *lib;
+    static struct IFFParseIFace *ifc;
+    if (!ifc) {
+        lib = IExec->OpenLibrary("iffparse.library", 39);
+        if (lib) ifc = (void *)IExec->GetInterface(lib, "main", 1, NULL);
+    }
+    return ifc;
+}
+
+/* opens unit u for reading or writing; NULL on error */
+static struct IFFHandle *clip_open(struct IFFParseIFace *iff, int u, int mode)
+{
+    struct IFFHandle *h = iff->AllocIFF();
+    if (!h) return NULL;
+    struct ClipboardHandle *ch = iff->OpenClipboard(u);
+    if (!ch) {
+        iff->FreeIFF(h);
+        return NULL;
+    }
+    h->iff_Stream = (uint32)ch;
+    iff->InitIFFasClip(h);
+    if (iff->OpenIFF(h, mode)) {
+        iff->CloseClipboard(ch);
+        iff->FreeIFF(h);
+        return NULL;
+    }
+    return h;
+}
+
+static void clip_close(struct IFFParseIFace *iff, struct IFFHandle *h)
+{
+    iff->CloseIFF(h);
+    iff->CloseClipboard((struct ClipboardHandle *)h->iff_Stream);
+    iff->FreeIFF(h);
+}
+
+static char *unit_get(int u)
+{
+    struct IFFParseIFace *iff = iffparse();
+    if (!iff) return NULL;
+    struct IFFHandle *h = clip_open(iff, u, IFFF_READ);
+    if (!h) return xstrdup("");                /* an empty unit */
+    char *o = NULL;
+    size_t n = 0;
+    iff->StopChunk(h, ID_FTXT, ID_CHRS);
+    /* every CHRS chunk of every FTXT form, one after another */
+    for (;;) {
+        int32 e = iff->ParseIFF(h, IFFPARSE_SCAN);
+        if (e == IFFERR_EOC) continue;
+        if (e) break;
+        struct ContextNode *cn = iff->CurrentChunk(h);
+        if (!cn || cn->cn_Size <= 0) continue;
+        char *p = realloc(o, n + cn->cn_Size + 1);
+        if (!p) break;
+        o = p;
+        int32 r = iff->ReadChunkBytes(h, o + n, cn->cn_Size);
+        if (r > 0) n += r;
+    }
+    clip_close(iff, h);
+    if (!o) return xstrdup("");
+    o[n] = 0;
+    return o;
+}
+
+static int unit_set(int u, const char *text)
+{
+    struct IFFParseIFace *iff = iffparse();
+    if (!iff) return 5;
+    struct IFFHandle *h = clip_open(iff, u, IFFF_WRITE);
+    if (!h) return 5;
+    int32 len = strlen(text), err = 5;
+    if (!iff->PushChunk(h, ID_FTXT, ID_FORM, IFFSIZE_UNKNOWN)) {
+        if (!iff->PushChunk(h, 0, ID_CHRS, len) && iff->WriteChunkBytes(h, (APTR)text, len) == len && !iff->PopChunk(h))
+            err = 0;
+        if (iff->PopChunk(h)) err = 5;
+    }
+    clip_close(iff, h);
+    return err;
+}
+
 char *bb_sys_clipboard_get(void)
 {
+    if (bb_sys_clip_unit) return unit_get(bb_sys_clip_unit);
     struct TextClipIFace *t = textclip();
     if (!t) return NULL;
     STRPTR buf = NULL;
@@ -146,6 +235,7 @@ char *bb_sys_clipboard_get(void)
 
 int bb_sys_clipboard_set(const char *text)
 {
+    if (bb_sys_clip_unit) return unit_set(bb_sys_clip_unit, text);
     struct TextClipIFace *t = textclip();
     if (!t) return 5;
     return t->WriteClipVector(text, strlen(text)) ? 0 : 5;

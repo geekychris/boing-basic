@@ -16,7 +16,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-static char *command, *app_path, *exename, *clip;
+static char *command, *app_path, *exename;
+static char *clip[256];       /* one per Clipboard.Unit */
 
 static char *xstrdup(const char *s)
 {
@@ -107,12 +108,12 @@ void bb_sys_beep(void)
 }
 
 /* a process-local clipboard: tests must not touch the user's real one */
-char *bb_sys_clipboard_get(void) { return xstrdup(clip ? clip : ""); }
+char *bb_sys_clipboard_get(void) { return xstrdup(clip[bb_sys_clip_unit & 255] ? clip[bb_sys_clip_unit & 255] : ""); }
 
 int bb_sys_clipboard_set(const char *text)
 {
-    free(clip);
-    clip = xstrdup(text);
+    free(clip[bb_sys_clip_unit & 255]);
+    clip[bb_sys_clip_unit & 255] = xstrdup(text);
     return 0;
 }
 

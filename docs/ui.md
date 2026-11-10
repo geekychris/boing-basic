@@ -105,6 +105,9 @@ behave like that menu item: `tool id=tbOpen menu=mnuOpen` calls `mnuOpen_Click` 
 its `Enabled`.
 
 `statusbar` is a row of recessed text panels. `widths` are pixel widths, 0 = takes the rest.
+With `hints=1` the status bar shows the `hint=` of the control under the pointer in panel 0
+(the program's own text comes back when the pointer leaves it), the usual place for help
+lines in Amiga programs; the hint is also the control's help bubble (GA_HintInfo).
 
 | Property | Type | Notes |
 |---|---|---|
@@ -130,7 +133,7 @@ one in code: `Set dlg = CreateObject("Boing.CommonDialog")`.
 | `ShowFont` | asl font requester |
 | `ShowScreenMode` | asl screen mode requester |
 | `ShowColor` | a colour requester (palette + RGB sliders) |
-| `ShowPalette` | edit a palette of up to 256 colours (`Colors(i)`, `ColorCount`) |
+| `ShowPalette` | edit a palette of up to 256 colours: swatches 16 a row (a click or the Colour slider picks one, the RGB sliders change it); `Colors(i)`, `ColorCount` in and out, `ColorIndex` the colour picked (and the one it starts on) |
 | `ShowMessage(prompt, buttons [, title [, icon]])` | a requester with your own buttons (`"_Save\|_Discard\|_Cancel"`); returns the 1-based number of the button chosen (Esc / close = the last button) |
 
 | Property | Type | Notes |
@@ -147,7 +150,7 @@ one in code: `Set dlg = CreateObject("Boing.CommonDialog")`.
 | `Cancelled` | Boolean, R/O | the last Show* was cancelled (simpler than CancelError) |
 | `FontName`, `FontSize`, `FontBold`, `FontItalic`, `FontUnderline` | | the font (FontName as `"DejaVu Sans Mono"`, without `.font`) |
 | `Color` | Long | VB colour (`RGB()`) |
-| `Colors(i)`, `ColorCount` | Long | ShowPalette |
+| `Colors(i)`, `ColorCount`, `ColorIndex` | Long | ShowPalette |
 | `ScreenModeID`, `ScreenWidth`, `ScreenHeight`, `ScreenDepth` | Long | ShowScreenMode |
 
 Requesters open on the form's screen, centred on the active window, and block the form's
@@ -157,9 +160,9 @@ Also on the App object: `App.Request(prompt, "_Save|_Discard|_Cancel" [, title [
 same requester without a CommonDialog.
 
 Status: **done**: ShowOpen/ShowSave (multi-select, patterns, overwrite prompt, CancelError),
-ShowFont, ShowScreenMode, ShowColor, ShowMessage, CreateObject("Boing.CommonDialog")
-(tests/os4/ui_bars_test.c, tests-os4/uibas). `ShowPalette` is **not done** (the
-`Colors(i)`/`ColorCount` properties exist).
+ShowFont, ShowScreenMode, ShowColor, ShowPalette, ShowMessage, CreateObject("Boing.CommonDialog")
+(tests/os4/ui_bars_test.c, tests/os4/ui_prefs_test.c, tests-os4/uibas). OK and Cancel in the
+colour and palette requesters are `default=1` / `cancel=1` (Return / Esc).
 
 ## 4. Richer controls
 
@@ -308,7 +311,9 @@ Status: **done** (tests/os4/ui_forms2_test.c 9/9 on the local guest). **Not done
 | `Me.OLEDropMode = 1` / `dropfiles=1` | the form is an AppWindow: files dropped on it fire `Form_OLEDragDrop(Count As Integer, X As Integer, Y As Integer)` or, over a control with `dropfiles=1`, `<id>_OLEDragDrop(...)`; `App.DropFile(i)` (full paths) |
 | `App.ShowAppIcon name [, iconfile]` / `App.HideAppIcon` | an AppIcon on the Workbench: `AppIcon_DblClick()`, `AppIcon_DragDrop(Count As Integer)` |
 | `App.AddAppMenuItem(text)` | a Workbench Tools menu item; returns its index; `AppMenu_Click(Index As Integer, Count As Integer)` (files selected in Workbench: `App.DropFile(i)`) |
-| `Clipboard.GetText` / `SetText` | (exists) |
+| `Clipboard.GetText` / `SetText` | text (unit 0: textclip.library; other units: IFF FTXT) |
+| `Clipboard.Unit` | the clipboard unit (0-255) every Clipboard call uses; 0 = the one all programs share; others are for your own (e.g. a second clipboard) |
+| `Clipboard.HasText`, `Clipboard.GetFormat(fmt)` | Boolean; `vbCFText` (1), `vbCFBitmap` (2) / `vbCFDIB` (8): a picture; other formats False |
 | `Clipboard.SetPicture canvas [, imageId]` | the canvas's picture (or one of its images) on the clipboard as a 24-bit IFF ILBM |
 | `Clipboard.GetPicture(canvas)` | the clipboard's picture into the canvas's back buffer (resized); True if there was one |
 | `Clipboard.GetImage(canvas)` | the clipboard's picture as a new image of the canvas: its id, 0 if none |
@@ -323,6 +328,12 @@ Status: **done** for ToolType/ToolTypes/ToolTypeCount, FromWorkbench, ArgCount/A
 Clipboard.SetPicture/GetPicture/HasPicture (tested in tests-os4/uibas); AppWindow drops,
 AppIcon and AppMenuItem are implemented but not yet tested on the guest (they need a
 Workbench drag, which the tests can't do yet).
+
+**Dragging out of the program** (to Workbench or another program) is not possible: AmigaOS 4
+has no drag-and-drop protocol between programs, only drops *onto* AppWindows and AppIcons
+(files from Workbench). Give the user the data another way: `Clipboard.SetText` /
+`SetPicture`, or save a file with `App.SaveIcon` so it can be dragged from its drawer.
+Dragging inside a window (listbrowser / treeview reordering, canvas MouseDown/MouseMove) works.
 
 ## Project version and title
 
@@ -424,8 +435,10 @@ RC; error 5 if there is no such port); `App.RunARexx "script.rexx"` runs a scrip
 ### Preferences: `GetSetting` / `SaveSetting` / `DeleteSetting` (VB)
 
 `SaveSetting appname, section, key, value` writes `ENVARC:<appname>/<section>/<key>` and
-`ENV:...` (so the setting survives a reboot); `GetSetting(appname, section, key [, default])`
-reads ENV:, then ENVARC:. `DeleteSetting appname, section [, key]`.
+`ENV:...` (so the setting survives a reboot); `UseSetting appname, section, key, value` writes
+ENV: only, until the next reboot (the "Use" button of Amiga prefs editors next to "Save");
+`GetSetting(appname, section, key [, default])` reads ENV:, then ENVARC:.
+`DeleteSetting appname, section [, key]` removes it from both.
 `App.EnvPath` is `ENVARC:<App.Title>` for files of your own.
 
 ### Locale catalogs
@@ -436,13 +449,28 @@ default. Menus and controls can use `$id:default` texts in the `.afg` (e.g.
 `text="$12:Open..."`): looked up when the form loads, so a translated catalog changes the GUI.
 `App.Language` is the language in use.
 
+### Number and date formats (locale.library)
+
+| | |
+|---|---|
+| `App.FormatNumber(x [, decimals])` | `x` with the user's decimal point and thousands separator (decimals default 2) |
+| `App.FormatDate(d [, format])` | a Date in the user's format: `"short"` (default), `"long"`, `"time"`, `"datetime"`, or a locale.library FormatDate template (`"%Y-%m-%d"`, `"%A %e %B"`) |
+| `App.DecimalPoint`, `App.GroupSeparator` | the user's separators (strings) |
+
+On hosts (posix build) they use "." and "," and ISO dates.
+
 ### AmigaGuide help
 
 `App.ShowHelp "PROGDIR:Paint.guide" [, "node"]` opens the help (amigaguide.library,
 asynchronously); `App.HelpFile = "..."` makes the Help key open it at its `main` node.
+Per control: `helpnode=` in the .afg (property `HelpNode`) — the Help key opens the node of
+the control under the pointer, else the window's `helpnode=`, else `main`.
 
 Status: **done**: the ARexx port and SendARexx/RunARexx, GetSetting/SaveSetting/DeleteSetting
-(tests/runtime/settings.bas on the host; ENV: on the guest in tests-os4/uibas), App.Str and
+(tests/runtime/settings.bas on the host; ENV: on the guest in tests-os4/uibas), UseSetting,
+FormatNumber/FormatDate/DecimalPoint/GroupSeparator and Clipboard.Unit/GetFormat
+(tests/runtime/clipunit.bas; tests-os4/prefs 13/13 VM and native on m1c), HelpNode and
+status-bar hints (tests/os4/ui_prefs_test.c 14/14 on m1c), App.Str and
 `$id:` texts without a catalog. OpenCatalog with a real catalog and ShowHelp are implemented
 but not yet tested on the guest.
 

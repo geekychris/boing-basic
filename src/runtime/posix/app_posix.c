@@ -22,6 +22,10 @@ const char *bb_app_settings_dir(int archive)
 
 static char hold[1024];
 
+const char *bb_app_plat_decimal_point(void) { return "."; }
+const char *bb_app_plat_group_separator(void) { return ","; }
+int bb_app_plat_format_date(double d, const char *fmt, char *out, int n) { (void)d; (void)fmt; (void)out; (void)n; return 0; }
+
 int bb_app_plat_get(const char *prop, int index, bb_fval *out)
 {
     (void)index;
