@@ -101,6 +101,7 @@ struct bb_ctl {
     int fill;                /* canvas: fill=1, the picture follows the control size */
     int32 mx, my;            /* canvas: the last mouse position over it (MouseX/MouseY) */
     int ptr;                 /* canvas / form: MousePointer (VB value) */
+    char hotkey;             /* the letter after `_` in its text or label (lower case), 0 = none */
 };
 
 struct bb_form {
@@ -139,6 +140,11 @@ struct bb_form {
     int modal_depth;         /* > 0 while shown with vbModal */
     struct AppWindow *appwin;
     int curptr;              /* the pointer type set on the window now */
+    struct Screen *pubscr;   /* pubscreen=: locked from load until the window is open */
+    struct TextAttr *tattr;  /* the window's font (font= / Me.FontName), NULL = the screen's */
+    char *scrtitle;          /* Me.ScreenTitle set at run time */
+    int ctxkey;              /* context menus: 1 = only with Shift/Ctrl + RMB (default), 0 = any RMB */
+    volatile uint16 qualstate; /* the qualifiers of the last key / mouse message of the window */
 };
 
 
@@ -267,6 +273,19 @@ void bbf_app_cleanup(void);
 int bbf_app_help_key(bb_form *f);
 void bbf_localize(afg_node *root);
 const char *bbf_app_str(int32 id, const char *def);
+
+/* ui_screen.c */
+struct TextAttr *bbf_font(const char *name, int size);
+void bbf_fonts_cleanup(void);
+void bbf_control_font(bb_ctl *c, tags *t);
+struct Screen *bbf_own_screen(void);
+int bbf_open_screen(uint32 modeid, int w, int h, int depth, const char *title, int showtitle);
+int bbf_close_screen(void);
+void bbf_screen_tags(bb_form *f, tags *t, int *placed);
+void bbf_screen_unlock(bb_form *f);
+int bbf_screen_get(bb_form *f, const char *prop, bb_fval *out);
+int bbf_screen_set(bb_form *f, const char *prop, const bb_fval *v);
+void bbf_menus_cleanup(void);
 
 /* ui_menu.c */
 int bbf_menus_build(bb_form *f, tags *wintags);    /* adds WINDOW_MenuStrip etc.; 0 = failed */

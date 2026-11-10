@@ -11,6 +11,7 @@
 #include "../boing.h"     /* bb_app_title for remembered window boxes */
 #include "../platform.h"  /* bb_plat_seconds: timers keep a fixed timeline */
 #include <intuition/pointerclass.h>
+#include <ctype.h>
 
 /* ReAction's layout code is stack hungry, and a program started from a background CLI (or
  * Workbench) may get only a few KB: every program linking the forms gets 256 KB. (A
@@ -209,6 +210,7 @@ static void list_changed(bb_ctl *c)
 
 void bbf_gadget_tags(bb_ctl *c, tags *t)
 {
+    bbf_control_font(c, t);
     tg(t, GA_ID, c->gid);
     tg(t, GA_RelVerify, TRUE);
     if (afg_get_bool(c->node, "disabled")) tg(t, GA_Disabled, TRUE);
@@ -486,6 +488,13 @@ static void collect(afg_node *n, void *ud)
         c->interval = afg_get_int(n, "interval");
         c->enabled = afg_get_bool(n, "enabled");
     }
+    /* keyboard shortcut: the letter after `_` in its text, or in its label= */
+    {
+        const char *src = afg_has(n, "text") ? afg_get(n, "text") : afg_get(n, "label");
+        const char *u = strchr(src, '_');
+        if (n->kind == AFG_MENU || n->kind == AFG_TOOL) u = NULL;     /* those have their own keys */
+        if (u && u[1]) c->hotkey = (char)tolower((unsigned char)u[1]);
+    }
     f->ctls = realloc(f->ctls, (f->nctls + 1) * sizeof *f->ctls);
     f->ctls[f->nctls++] = c;
 }
@@ -623,6 +632,8 @@ static void form_free(bb_form *f)
     free(f->self.tagstr);
     free(f->self.text);
     free(f->self.ctxmenu);
+    free(f->scrtitle);
+    bbf_screen_unlock(f);
     free(f->ret);
     free(f->file);
     afg_free(f->afg);
@@ -634,6 +645,7 @@ static uint32 idcmp_func(struct Hook *h, Object *wobj, struct IntuiMessage *m)
 {
     (void)wobj;
     bb_form *f = h->h_Data;
+    f->qualstate = m->Qualifier;
     if (m->Class == IDCMP_IDCMPUPDATE) {
         uint16 gid = (uint16)IUtility->GetTagData(GA_ID, 0, (struct TagItem *)m->IAddress);
         for (int i = 0; i < f->nupd; i++)
@@ -927,12 +939,17 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     tg(&t, WA_Title, (uint32)afg_get(a, "title"));
     int box[4], remembered = afg_get_bool(a, "remember") && box_load(f, box);
     int tool = afg_get_bool(a, "toolwindow");
-    tg(&t, WA_DragBar, TRUE);
-    tg(&t, WA_CloseGadget, TRUE);
-    tg(&t, WA_DepthGadget, !tool);
+    int placed = 0;       /* full-screen windows get their box from the screen */
+    f->ctxkey = strcasecmp(afg_get(a, "contextmenukey"), "always") != 0;
+    bbf_screen_tags(f, &t, &placed);
+    int bare = placed || afg_get_bool(a, "borderless");
+    tg(&t, WA_DragBar, !bare);
+    tg(&t, WA_CloseGadget, !bare);
+    tg(&t, WA_DepthGadget, !tool && !bare);
     tg(&t, WA_Activate, TRUE);
-    tg(&t, WA_SizeGadget, afg_get_bool(a, "resizable") && !tool);
-    if (remembered) {
+    tg(&t, WA_SizeGadget, afg_get_bool(a, "resizable") && !tool && !bare);
+    if (placed) {
+    } else if (remembered) {
         tg(&t, WA_Left, box[0]);
         tg(&t, WA_Top, box[1]);
         tg(&t, WA_Width, box[2]);
@@ -973,7 +990,7 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
         form_free(f);
         return NULL;
     }
-    if (!remembered) tg(&t, WINDOW_Position, WPOS_CENTERSCREEN);
+    if (!remembered && !placed) tg(&t, WINDOW_Position, WPOS_CENTERSCREEN);
     tg(&t, WINDOW_GadgetHelp, TRUE);
     f->idcmp_hook.h_Entry = (HOOKFUNC)idcmp_func;
     f->idcmp_hook.h_Data = f;
@@ -1048,6 +1065,8 @@ int bb_form_show(bb_form *f)
     f->win = (struct Window *)IIntuition->IDoMethod(f->winobj, WM_OPEN);
     if (!f->win) return 7;
     f->self.visible = 1;
+    bbf_screen_unlock(f);
+    if (f->scrtitle) IIntuition->SetWindowTitles(f->win, (STRPTR)~0, f->scrtitle);
     f->curptr = POINTERTYPE_NORMAL;
     bbf_app_window_open(f);
     if (f->self.ptr || !f->mouse_wanted) bbf_update_pointer(f, -1, -1);
@@ -1166,6 +1185,12 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
     if (IS("Left")) return ret_int(out, w ? w->LeftEdge : 0);
     if (IS("Top")) return ret_int(out, w ? w->TopEdge : 0);
     if (IS("ContextMenu")) return ret_str(&f->self, out, f->self.ctxmenu ? f->self.ctxmenu : afg_get(f->afg, "contextmenu"));
+    if (IS("ContextMenuKey")) return ret_int(out, f->ctxkey);
+    if (IS("ContextQualifier")) { extern int bbf_ctx_lastqual; return ret_int(out, bbf_ctx_lastqual); }   /* diagnostics */
+    {
+        int e = bbf_screen_get(f, prop, out);
+        if (e != 438) return e;
+    }
     if (IS("ContextControl")) return ret_str(&f->self, out, f->ctx_control ? f->ctx_control : "");
     if (IS("OLEDropMode")) return ret_int(out, f->dropmode || afg_get_bool(f->afg, "dropfiles"));
     if (IS("MousePointer")) return ret_int(out, f->self.ptr);
@@ -1209,6 +1234,11 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
         free(f->self.ctxmenu);
         f->self.ctxmenu = xstrdup(vstr(v, buf));
         return 0;
+    }
+    if (IS("ContextMenuKey")) { f->ctxkey = vint(v) != 0; return 0; }
+    {
+        int e = bbf_screen_set(f, prop, v);
+        if (e != 438) return e;
     }
     if (IS("MousePointer")) {
         f->self.ptr = vint(v);
@@ -1738,10 +1768,68 @@ int bbf_map_key(int raw, uint32 qual)
     return IKM->MapRawKey(&ie, ch, sizeof ch, NULL) == 1 ? (unsigned char)ch[0] : 0;
 }
 
+/* a shortcut letter, Return (a default=1 button) or Esc (a cancel=1 button): 1 if a control took it */
+static int key_shortcut(bb_form *f, int raw, uint32 q)
+{
+    for (int i = 0; i < f->nctls; i++)       /* a grid with the focus has the keys */
+        if (f->ctls[i]->kind == AFG_GRID && bbf_grid_focused(f->ctls[i])) return 0;
+    if (q & (IEQUALIFIER_LCOMMAND | IEQUALIFIER_RCOMMAND | IEQUALIFIER_CONTROL)) return 0;   /* menus, programs */
+    int ch = bbf_map_key(raw, q & ~(IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT));
+    if (!ch) return 0;
+    bb_ctl *hit = NULL;
+    for (int i = 0; i < f->nctls && !hit; i++) {
+        bb_ctl *c = f->ctls[i];
+        if (!c->obj || !c->visible || (((struct Gadget *)c->obj)->Flags & GFLG_DISABLED)) continue;
+        if ((ch == 13 && c->kind == AFG_BUTTON && afg_get_bool(c->node, "default")) ||
+            (ch == 27 && c->kind == AFG_BUTTON && afg_get_bool(c->node, "cancel")) ||
+            (ch > 32 && c->hotkey == tolower(ch)))
+            hit = c;
+    }
+    if (!hit) return 0;
+    switch (hit->kind) {
+    case AFG_BUTTON:
+        fire0(hit, "Click");
+        break;
+    case AFG_CHECKBOX: {
+        bb_fval v = { BB_FV_INT, get_attr(hit, CHECKBOX_Checked) ? 0 : 1, NULL, NULL };
+        bb_ctl_set(hit, "Value", -1, &v);      /* fires Click */
+        break;
+    }
+    case AFG_STRING: case AFG_INTEGER: case AFG_TEXTEDITOR:
+        bb_ctl_call(hit, "SetFocus", 0, NULL, NULL);
+        break;
+    case AFG_CHOOSER: case AFG_RADIO: case AFG_TABS: case AFG_LISTBROWSER: {
+        /* the next item (Shift: the previous one), as the OS4 convention for keyed cycle gadgets */
+        int n = hit->kind == AFG_TABS ? hit->nitems : hit->nitems;
+        if (n <= 0) break;
+        bb_fval cur;
+        bb_ctl_get(hit, hit->kind == AFG_TABS ? "Tab" : "ListIndex", -1, &cur);
+        int i = cur.i + ((q & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT)) ? -1 : 1);
+        if (i < 0) i = n - 1;
+        if (i >= n) i = 0;
+        bb_fval v = { BB_FV_INT, i, NULL, NULL };
+        bb_ctl_set(hit, hit->kind == AFG_TABS ? "Tab" : "ListIndex", -1, &v);     /* fires Click */
+        break;
+    }
+    default:
+        return 0;
+    }
+    return 1;
+}
+
 static void raw_key(bb_form *f, int code)
 {
     uint32 q = 0;
     IIntuition->GetAttr(WINDOW_Qualifier, f->winobj, &q);
+    {
+        /* the held qualifiers for the context-menu hook: q is the event's, plus the key itself */
+        int r = code & 0x7F, up = code & IECODE_UP_PREFIX;
+        static const uint16 bits[8] = { IEQUALIFIER_LSHIFT, IEQUALIFIER_RSHIFT, 0, IEQUALIFIER_CONTROL,
+                                        IEQUALIFIER_LALT, IEQUALIFIER_RALT, IEQUALIFIER_LCOMMAND, IEQUALIFIER_RCOMMAND };
+        uint16 s = (uint16)q;
+        if (r >= 0x60 && r <= 0x67) s = up ? s & ~bits[r - 0x60] : s | bits[r - 0x60];
+        f->qualstate = s;
+    }
     int up = code & IECODE_UP_PREFIX, raw = code & 0x7F;
     if (raw >= 0x60 && raw <= 0x67) {
         /* qualifier keys: KeyDown/KeyUp with the side-specific code (vbKeyLShift 160,
@@ -1764,6 +1852,7 @@ static void raw_key(bb_form *f, int code)
         return;
     }
     if (raw == 0x5F && !up && bbf_app_help_key(f)) return;     /* Help with App.HelpFile set */
+    if (!up && key_shortcut(f, raw, q)) return;                 /* `_` letters, default/cancel buttons */
     if (!up)
         for (int i = 0; i < f->nctls; i++)       /* a grid with the focus takes the keys */
             if (f->ctls[i]->kind == AFG_GRID && bbf_grid_focused(f->ctls[i]) && bbf_grid_key(f->ctls[i], raw, q)) return;
@@ -1933,6 +2022,7 @@ void bbf_handle_form(bb_form *f)
             fire(f, "Form", "Activate", 0, NULL);
             break;
         case WMHI_INACTIVE:
+            f->qualstate = 0;      /* keys released elsewhere don't reach us */
             fire(f, "Form", "Deactivate", 0, NULL);
             break;
         case WMHI_NEWSIZE:
@@ -2063,6 +2153,9 @@ void bb_forms_cleanup(void)
     KeymapLib = NULL;
     bbf_ext_cleanup();
     bbf_app_cleanup();
+    bbf_close_screen();
+    bbf_fonts_cleanup();
+    bbf_menus_cleanup();
     if (ILB) IExec->DropInterface((struct Interface *)ILB);
     if (ICH) IExec->DropInterface((struct Interface *)ICH);
     if (ILO) IExec->DropInterface((struct Interface *)ILO);

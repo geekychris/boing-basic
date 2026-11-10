@@ -7,6 +7,9 @@
  * is its MA_ID, so ctl_by_gid finds it on a pick. */
 #include "forms_int.h"
 #include <proto/graphics.h>
+#include <proto/input.h>
+#include <devices/input.h>
+#include <devices/inputevent.h>
 
 /* "_Open..." -> "Open..." (the .afg marks shortcuts of gadgets with _, menus have MA_Key) */
 char *bbf_strip_underscore(const char *s)
@@ -125,11 +128,53 @@ static bb_ctl *find_menu(bb_form *f, const char *name)
     return NULL;
 }
 
+/* the qualifiers held now (input.device's PeekQualifier): context menus need Shift or Ctrl with
+   the right button by default, so a plain right click still shows the menu bar (OS4's convention) */
+static struct IOStdReq *in_req;
+static struct MsgPort *in_port;
+static struct InputIFace *IIn;
+
+int bbf_ctx_lastqual;            /* diagnostics: the qualifiers the last context-menu query saw */
+
+static uint16 qualifiers(void)
+{
+    if (!IIn) {
+        if (!in_port) in_port = IExec->AllocSysObjectTags(ASOT_PORT, TAG_DONE);
+        if (in_port && !in_req) {
+            in_req = IExec->AllocSysObjectTags(ASOT_IOREQUEST, ASOIOR_Size, sizeof(struct IOStdReq), ASOIOR_ReplyPort, in_port, TAG_DONE);
+            if (in_req && IExec->OpenDevice("input.device", 0, (struct IORequest *)in_req, 0)) {
+                IExec->FreeSysObject(ASOT_IOREQUEST, in_req);
+                in_req = NULL;
+            }
+        }
+        if (in_req) IIn = (void *)IExec->GetInterface((struct Library *)in_req->io_Device, "main", 1, NULL);
+    }
+    return IIn ? IIn->PeekQualifier() : 0;
+}
+
+void bbf_menus_cleanup(void)
+{
+    if (IIn) IExec->DropInterface((struct Interface *)IIn);
+    IIn = NULL;
+    if (in_req) {
+        IExec->CloseDevice((struct IORequest *)in_req);
+        IExec->FreeSysObject(ASOT_IOREQUEST, in_req);
+    }
+    in_req = NULL;
+    if (in_port) IExec->FreeSysObject(ASOT_PORT, in_port);
+    in_port = NULL;
+}
+
 /* WA_ContextMenuHook: runs in Intuition's input handler, so it only reads */
 static uint32 ctx_hook_func(struct Hook *h, struct Window *w, struct ContextMenuMsg *msg)
 {
     bb_form *f = h->h_Data;
     if (msg->State != CM_QUERY || !f->loaded) return 0;
+    /* IIn was opened by our own task (bbf_menus_build); PeekQualifier only reads */
+    /* the keyboard's state, and the window's last key/mouse message (injected input too) */
+    uint16 q = (IIn ? IIn->PeekQualifier() : 0) | f->qualstate;
+    bbf_ctx_lastqual = q | 0x10000;
+    if (f->ctxkey && !(q & (IEQUALIFIER_LSHIFT | IEQUALIFIER_RSHIFT | IEQUALIFIER_CONTROL))) return 0;   /* the menu bar */
     const char *name = NULL;
     bb_ctl *c = ctx_target(f, w->MouseX, w->MouseY, &name);
     if (!c) return 0;
@@ -170,6 +215,7 @@ int bbf_menus_build(bb_form *f, tags *wintags)
     }
     tg(wintags, WINDOW_MenuStrip, (uint32)f->menustrip);
     if (anyctx) {
+        qualifiers();            /* opens input.device's interface here, in our task */
         f->ctx_hook.h_Entry = (HOOKFUNC)ctx_hook_func;
         f->ctx_hook.h_Data = f;
         tg(wintags, WA_ContextMenuHook, (uint32)&f->ctx_hook);

@@ -74,8 +74,8 @@ The form's methods for menus:
 | `Me.Controls(name)` | any control by name (also menus added at run time) |
 
 **Context menus**: `contextmenu=<menu id>` on any control (or on the window) names a hidden
-top-level menu that the right mouse button opens over that control, the OS4 way
-(`WA_ContextMenuHook`). At run time `ctl.ContextMenu = "mnuCanvas"` (or `""` to remove).
+top-level menu that Shift or Ctrl + the right mouse button opens over that control
+(`WA_ContextMenuHook`; a plain right click shows the menu bar, see Keyboard below). At run time `ctl.ContextMenu = "mnuCanvas"` (or `""` to remove).
 `Me.ContextControl` is the name of the control the last context menu was opened over.
 
 Style guide notes: put Quit last in the first menu with `key=Q`, About in it too; use `...`
@@ -343,6 +343,38 @@ Version=1.4.2
   `OpenWorkbenchObject` start programs with a CLI (`argc` 1), so `App.FromWorkbench` is True only
   for a real Workbench start (double-click).
 - An iconified window's icon shows the window's current `Caption`.
+
+## Screens and fonts
+
+| .afg key (window) | |
+|---|---|
+| `pubscreen="Name"` | open on that public screen (falls back to the Workbench) |
+| `screen=own` | the program's own screen: `screenmode=0x...` (a ShowScreenMode `ScreenModeID`), `screenwidth=`, `screenheight=`, `screendepth=`, `screentitle=`; every form loaded afterwards opens there (`screen=workbench` opts out). It closes at the end, or with `App.CloseScreen` once no window is on it |
+| `fullscreen=1` | a borderless backdrop window covering its screen (games); on `screen=own` the screen's title bar is hidden |
+| `borderless=1`, `backdrop=1` | |
+| `screentitle="..."` | the screen's title while this window is active (`WA_ScreenTitle`); `Me.ScreenTitle` at run time |
+| `font="DejaVu Sans" fontsize=13` | the window's font (every control uses it); also on single controls |
+
+`App.OpenScreen modeid [, width, height, depth [, title]]` opens the program's screen from code,
+typically with `dlg.ScreenModeID`, `dlg.ScreenWidth`... after `dlg.ShowScreenMode`.
+`Me.FontName` / `Me.FontSize` change the window's font at run time (after `dlg.ShowFont`:
+`Me.FontName = dlg.FontName: Me.FontSize = dlg.FontSize`). `Me.ScreenWidth` / `ScreenHeight`
+give the size of the window's screen.
+
+## Keyboard
+
+- The letter after `_` in a control's text or `label=` is its shortcut (no qualifier, or with
+  Shift): a button is clicked, a check box toggled, a string/integer/editor gets the input, a
+  chooser/radio/tabs/list moves to its next item (Shift: the previous one). Amiga and Ctrl
+  combinations stay with the menus and the program.
+- `button ... default=1` is clicked by Return, `button ... cancel=1` by Esc (when no text gadget
+  has the input).
+- The right mouse button always shows the menu bar (the OS4 convention). A control's
+  `contextmenu=` opens with **Shift or Ctrl + right button**; `contextmenukey=always` on the
+  window (or `Me.ContextMenuKey = 0`) opens it with a plain right click as before. Canvases with
+  `rmb=1` (paint programs) get the right button themselves.
+
+Status: **done** (tests/os4/ui_desktop_test.c 12/12, ui_menu_test 25/25 on m1b).
 
 ## 7. ARexx, preferences, locale, help
 

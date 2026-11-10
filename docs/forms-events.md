@@ -39,7 +39,7 @@ program's own test mode can so run in `make test`, under sanitizers too (see
 | `Visible` | Boolean | — | hides the control and relayouts the window |
 | `ToolTipText` | String | `hint` | `GA_HintInfo` |
 | `Tag` | String | — | free for the program |
-| `ContextMenu` | String | `contextmenu` | the hidden top-level `menu` the right mouse button opens over the control |
+| `ContextMenu` | String | `contextmenu` | the hidden top-level `menu` that Shift/Ctrl + right mouse button opens over the control |
 | `Left`, `Top`, `Width`, `Height` | Long, R/O | — | pixels, inside the window; set by the layout |
 
 Methods every gadget has: `SetFocus` (activates a string/integer/texteditor gadget; does
@@ -60,6 +60,11 @@ but no `Enabled`, `ToolTipText` or `SetFocus`.
 | `Enabled` | Boolean | — | `False` = busy pointer and no input |
 | `WindowState` | Integer | — | 0 normal, 1 iconified (needs `iconify=1`) |
 | | | `remember` | the window box is saved in ENV:/ENVARC: and used next time |
+| `ScreenTitle` | String | `screentitle` | the screen title while the window is active |
+| `FontName`, `FontSize` | String, Long | `font`, `fontsize` | the window's font |
+| `ScreenWidth`, `ScreenHeight` | Long, R/O | — | the window's screen |
+| `ContextMenuKey` | Long | `contextmenukey` | 1 (default): context menus need Shift/Ctrl + RMB; 0 / `always`: any RMB |
+| | | `pubscreen`, `screen`, `screenmode`, `screenwidth`, `screenheight`, `screendepth`, `fullscreen`, `borderless`, `backdrop` | see ui.md, Screens and fonts |
 | | | `iconify` | an iconify gadget |
 | | | `toolwindow` | no size or depth gadget |
 | | | `dropfiles` | an AppWindow (see Drag and drop) |
@@ -111,8 +116,10 @@ Alt, `vbKeyLWin` (91) / `vbKeyRWin` (92) for left/right Amiga, `vbKeyCapital` (2
 
 | Property | Type | Design-time key | Notes |
 |---|---|---|---|
-| `Caption` | String | `text` | `_` marks the keyboard shortcut |
+| `Caption` | String | `text` | `_` marks the keyboard shortcut (the key clicks it) |
 | `Text` | String | `text` | same as `Caption` |
+| | | `default` | Return clicks it |
+| | | `cancel` | Esc clicks it |
 
 | Event | Signature |
 |---|---|

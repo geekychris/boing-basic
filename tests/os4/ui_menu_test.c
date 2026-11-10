@@ -157,7 +157,19 @@ static void script(void)
         if (ready_mouse() && bb_ctl_screen_box(C("ok"), &ox, &oy, &ow, &oh)) {
             pointer(ox + ow / 2, oy + oh / 2);
             IDOS->Delay(2);
-            mbutton(IECODE_RBUTTON, 0);
+            /* context menus open with Shift + RMB (a plain RMB is the menu bar) */
+            struct InputEvent ie;
+            memset(&ie, 0, sizeof ie);
+            ie.ie_Class = IECLASS_RAWKEY;
+            ie.ie_Code = 0x60;
+            ie.ie_Qualifier = IEQUALIFIER_LSHIFT;
+            inject(&ie);
+            IDOS->Delay(2);
+            memset(&ie, 0, sizeof ie);      /* the press carries the Shift as well */
+            ie.ie_Class = IECLASS_RAWMOUSE;
+            ie.ie_Code = IECODE_RBUTTON;
+            ie.ie_Qualifier = IEQUALIFIER_RBUTTON | IEQUALIFIER_LSHIFT;
+            inject(&ie);
         } else
             step = 10;
         break;
@@ -168,11 +180,17 @@ static void script(void)
             IDOS->Delay(1);
         }
         break;
-    case 9:
+    case 9: {
         mbutton(IECODE_RBUTTON, 1);
+        struct InputEvent ie;
+        memset(&ie, 0, sizeof ie);
+        ie.ie_Class = IECLASS_RAWKEY;
+        ie.ie_Code = 0x60 | IECODE_UP_PREFIX;
+        inject(&ie);
         break;
+    }
     case 10:
-        printf("# context menu: A %d, B %d, ContextControl \"%s\"\n", c_ctxa, c_ctxb, gets_("Form", "ContextControl"));
+        printf("# context menu: A %d, B %d, ContextControl \"%s\", qualifier seen %x\n", c_ctxa, c_ctxb, gets_("Form", "ContextControl"), geti("Form", "ContextQualifier"));
         check(c_ctxa + c_ctxb == 1, "the right mouse button over ok opened mnuCtx and picked an item");
         check(!strcmp(gets_("Form", "ContextControl"), "ok"), "Me.ContextControl = \"ok\"");
         seti("tick", "Enabled", 0);

@@ -835,6 +835,13 @@ int bb_app_plat_call(const char *method, int argc, const bb_fval *argv, bb_fval 
         if (argc < 1) return 450;
         return rs(ret, bbf_app_str(vint(&argv[0]), argstr(argc, argv, 1, b1)));
     }
+    if (IS("OpenScreen")) {      /* App.OpenScreen modeid [, width, height, depth [, title]] */
+        if (argc < 1) return 450;
+        return bbf_open_screen((uint32)vint(&argv[0]), argc > 1 && argv[1].type != BB_FV_NONE ? vint(&argv[1]) : 0,
+                               argc > 2 && argv[2].type != BB_FV_NONE ? vint(&argv[2]) : 0,
+                               argc > 3 && argv[3].type != BB_FV_NONE ? vint(&argv[3]) : 0, argstr(argc, argv, 4, b0), 1);
+    }
+    if (IS("CloseScreen")) return ri(ret, vb_bool(bbf_close_screen()));
     if (IS("ShowHelp")) {
         if (argc < 1) return 450;
         return show_help(argstr(argc, argv, 0, b0), argstr(argc, argv, 1, b1));
