@@ -60,6 +60,9 @@ const char *canvas_plat_blit_info(void);
 /* Show w x h pixels (rows of `stride` pixels, 0xAARRGGBB) in the control. Returns 0, or 1
  * when the control has no open window (nothing shown). */
 int canvas_plat_present(bb_ctl *ctl, const uint32_t *px, int32_t w, int32_t h, int32_t stride);
+/* the same, enlarged s times on the way (no scaled copy in between); -1 = not done here, the
+   caller scales into a buffer and uses canvas_plat_present */
+int canvas_plat_present_scaled(bb_ctl *ctl, const uint32_t *px, int32_t w, int32_t h, int32_t s);
 /* Load a picture file (any format the platform knows) into a new malloc'd 0xAARRGGBB buffer;
  * NULL if the platform can't (the portable code then tries PPM itself). */
 uint32_t *canvas_plat_load_picture(const char *path, int32_t *w, int32_t *h);

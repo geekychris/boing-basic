@@ -1,0 +1,5 @@
+# AmiForge GUI
+window name=fullscreen title="blit fullscreen" width=640 height=480 screen=own screenwidth=640 screenheight=480 screendepth=16 fullscreen=1
+vlayout id=root
+  canvas id=view width=320 height=240 scale=2
+  timer id=tick interval=250 enabled=1

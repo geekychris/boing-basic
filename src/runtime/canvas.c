@@ -549,6 +549,7 @@ static void present(bb_canvas *c)
         canvas_plat_present(c->ctl, c->back, c->w, c->h, c->w);
         return;
     }
+    if (canvas_plat_present_scaled(c->ctl, c->back, c->w, c->h, s) == 0) return;
     sw = c->w * s;
     if (!c->sbuf) {
         c->sbuf = (uint32_t *)malloc((size_t)sw * (size_t)(c->h * s) * 4);
