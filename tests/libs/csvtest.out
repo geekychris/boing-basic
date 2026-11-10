@@ -1,0 +1,29 @@
+headers:name|age|city age column 1 
+ 1  2  3  [Ann] [34] [Bonn, Germany]
+ 2  3  3  [Bob "B" Smith] [41] []
+ 3  5  3  [Cy] [7] [two\nlines]
+ 4  7  3  [Dee] [] []
+at end:TrueFalse 0 
+1| 2 |3
+a|b;c|d
+1|2|3
+a|"b|c" 3 
+x|y	z| 2 
+ReadAll: 2  3 
+[a][b][c][]
+[1][2][][]
+[x][y][z][extra]
+plain,"with,comma","with ""quote"""," lead","multi
+line",3.5,True,,
+"a","1",""
+"x;y";z
+id,text\n1,"a, b"\n2,c\r\n
+[]
+quote= 8  say "hi"
+nl= 3  a\nb
+bin= 3  x\0y
+delimiter: 380 
+same: 380 
+open: 53 
+column: 5  no column named c
+short:[] 0 

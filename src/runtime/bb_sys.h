@@ -24,6 +24,16 @@ const char *bb_sys_app_exename(void);   /* App.EXEName: the program name without
 long bb_sys_shell(const char *cmd, int wait);
 
 char *bb_sys_environ(const char *name);     /* Environ("name"): NULL if unset */
+/* Process.SetEnv: set (value NULL: remove) a variable for this program and the commands it
+ * runs (a local shell variable on AmigaOS). 0 = ok. */
+int bb_sys_setenv(const char *name, const char *value);
+
+/* Process.Run: run cmd (a shell command line) with in[0..inlen) as its input (in NULL: no
+ * input), wait for it, and return its exit code (the return code on AmigaOS) with what it wrote
+ * to standard output and standard error in malloc'd buffers *out / *eout (lengths *outlen /
+ * *eoutlen). -1 when it couldn't be started, with a message in err. */
+int bb_sys_run(const char *cmd, const char *in, long inlen, char **out, long *outlen, char **eout, long *eoutlen,
+               char *err, int errsz);
 void bb_sys_beep(void);
 
 char *bb_sys_clipboard_get(void);           /* Clipboard.GetText: "" if empty, NULL on error */
