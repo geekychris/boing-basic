@@ -344,7 +344,18 @@ void bb_sleep_ms(bb_long ms) { bb_console_flush(); bb_plat_sleep_ms(ms); bb_poll
 
 static bb_int (*g_doevents)(void);
 void bb_set_doevents(bb_int (*fn)(void)) { g_doevents = fn; }
-bb_int bb_doevents(void) { bb_int r; bb_console_flush(); bb_http_async_poll(); r = g_doevents ? g_doevents() : 0; bb_poll_slow(); return r; }
+static bb_int (*g_net_doevents)(void);     /* sockets (socket.c) */
+void bb_set_net_doevents(bb_int (*fn)(void)) { g_net_doevents = fn; }
+bb_int bb_doevents(void)
+{
+    bb_int r;
+    bb_console_flush();
+    bb_http_async_poll();
+    r = g_doevents ? g_doevents() : 0;
+    if (g_net_doevents) g_net_doevents();
+    bb_poll_slow();
+    return r;
+}
 bb_long bb_rgb(bb_long r, bb_long g, bb_long b)
 {
     return (bb_long)((r & 255) | ((g & 255) << 8) | ((b & 255) << 16));

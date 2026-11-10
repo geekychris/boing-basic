@@ -8,6 +8,8 @@
 #ifndef BB_NET_H
 #define BB_NET_H
 
+#include <stdint.h>
+
 enum {
     BB_E_NET_URL = 31101,       /* bad or unsupported URL */
     BB_E_NET_RESOLVE = 31102,   /* the host name can't be resolved */
@@ -44,5 +46,39 @@ void bb_net_task_done(void);
 
 /* Is TLS available? 1, or 0 with the reason in why. */
 int bb_net_tls_available(char *why, int whylen);
+
+
+/* --- sockets for the Socket class (socket.c) ------------------------------------------------
+ * IPv4. A bb_net made here is non-blocking: reads and writes below never wait unless they take
+ * a timeout. bb_net_read/bb_net_write work on connected ones too (with their timeouts). */
+enum { BB_NET_RD = 1, BB_NET_WR = 2 };
+#define BB_NET_SIG_BREAK 0x1000u      /* Ctrl-C (SIGBREAKF_CTRL_C) in bb_net_wait's *sigs */
+
+/* resolve host (waits for the resolver) and start connecting; finish when writable */
+int bb_net_connect_start(const char *host, int port, bb_net **out, char *err, int errlen);
+/* after the socket became writable: 0 connected, or an error number */
+int bb_net_connect_finish(bb_net *n, char *err, int errlen);
+/* TCP server socket on address (NULL or "" = any) and port (0 = any free one) */
+int bb_net_listen(const char *addr, int port, int backlog, bb_net **out, char *err, int errlen);
+/* take a waiting connection: 0 with *out (NULL when none is waiting), or an error number */
+int bb_net_accept(bb_net *l, bb_net **out, char *err, int errlen);
+/* UDP socket bound to address/port (port 0 = any free one) */
+int bb_net_udp(const char *addr, int port, bb_net **out, char *err, int errlen);
+int bb_net_sendto(bb_net *n, const char *host, int port, const void *p, int len, char *err, int errlen);
+/* the next datagram: its length (0 is a valid empty datagram), -1 when none is waiting, or
+ * -(error number); host/port receive the sender */
+int bb_net_recvfrom(bb_net *n, void *p, int len, char *host, int hostlen, int *port, char *err, int errlen);
+/* bytes that can be read now without waiting: > 0, 0 none, -1 the peer closed (end of stream)
+ * or the connection failed. For UDP the size of the next datagram (0 none waiting). */
+int bb_net_pending(bb_net *n);
+/* write what fits now: the count (may be 0), or -(error number) */
+int bb_net_send_some(bb_net *n, const void *p, int len, char *err, int errlen);
+/* the local (peer = 0) or remote address as dotted quad and port */
+void bb_net_addr(bb_net *n, int peer, char *host, int hostlen, int *port);
+/* wait until one of the sockets is ready (want[i]: BB_NET_RD|BB_NET_WR; got[i] receives what
+ * is), at most timeout_ms (-1 = no limit, 0 = just look). On AmigaOS also until one of the
+ * signals in *sigs arrives (WaitSelect); *sigs receives the signals that did. sigs may be NULL.
+ * Returns the number of ready sockets, 0 (timeout or a signal), or -1 on an error. */
+int bb_net_wait(bb_net **ns, const int *want, int *got, int count, int timeout_ms, uint32_t *sigs);
 
 #endif

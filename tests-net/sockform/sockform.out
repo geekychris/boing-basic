@@ -1,0 +1,6 @@
+client: connected
+server: connection from 127.0.0.1
+client: echo one
+client: echo two
+client: echo bye
+client: server closed; status echo bye; timer ran: True

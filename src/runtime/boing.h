@@ -899,6 +899,7 @@ void bb_sleep_ms(bb_long ms);
 void bb_http_async_poll(void);              /* async Http requests: progress, OnDone (http_obj.c) */
 bb_int bb_doevents(void);                    /* lets a GUI runtime process events */
 void bb_set_doevents(bb_int (*fn)(void));    /* installed by the forms runtime */
+void bb_set_net_doevents(bb_int (*fn)(void));    /* installed by socket.c */
 bb_long bb_rgb(bb_long r, bb_long g, bb_long b);
 bb_long bb_erl(void);
 bb_str *bb_error_fn(const bb_value *num);    /* Error$(n) */

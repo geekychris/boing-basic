@@ -77,6 +77,7 @@ test: all
 	@for f in tests/c/*.c; do $(CC) $(WARN) $(CFLAGS) -I$(B)/include -o $(B)/ctest_$$(basename $$f .c) $$f $(B)/libboing.a -lm && $(B)/ctest_$$(basename $$f .c) || exit 1; done
 	@sh tests/run.sh
 	@sh tests-net/run.sh $(CURDIR)/build/boing
+	@sh tests-net/socket-run.sh $(CURDIR)/build/boing
 	@python3 tools/test_os4guest.py
 	@python3 tools/kit/test_kit_guards.py
 	@sh tests/break/run.sh $(CURDIR)/build/boing

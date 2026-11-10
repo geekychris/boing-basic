@@ -19,6 +19,8 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
 
 /* --- OpenSSL, by dlopen ------------------------------------------------------------------- */
 
@@ -109,7 +111,15 @@ struct bb_net {
     int fd;
     SSL_CTX *ctx;
     SSL *ssl;
+    int nonblock;               /* made by the socket functions below */
+    int udp;
 };
+
+#ifdef MSG_NOSIGNAL
+#define SEND_FLAGS MSG_NOSIGNAL
+#else
+#define SEND_FLAGS 0
+#endif
 
 static void set_timeouts(int fd, int ms)
 {
@@ -237,7 +247,14 @@ int bb_net_write(bb_net *n, const void *p, int len, int timeout_ms, char *err, i
     const char *c = p;
     set_timeouts(n->fd, timeout_ms);
     while (len > 0) {
-        int w = n->ssl ? ossl.SSL_write(n->ssl, c, len) : (int)send(n->fd, c, len, 0);
+        int w = n->ssl ? ossl.SSL_write(n->ssl, c, len) : (int)send(n->fd, c, len, SEND_FLAGS);
+        if (w < 0 && !n->ssl && errno == EINTR) continue;
+        if (w < 0 && !n->ssl && n->nonblock && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            struct pollfd pf = { n->fd, POLLOUT, 0 };
+            if (poll(&pf, 1, timeout_ms) > 0) continue;
+            snprintf(err, errlen, "sending timed out");
+            return BB_E_NET_TIMEOUT;
+        }
         if (w <= 0) {
             if (!n->ssl && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                 snprintf(err, errlen, "sending timed out");
@@ -272,6 +289,15 @@ int bb_net_read(bb_net *n, void *p, int len, int timeout_ms, char *err, int errl
             snprintf(err, errlen, "TLS read failed: %s", es);
             return -BB_E_NET_PROTOCOL;
         }
+        if (n->nonblock) {
+            struct pollfd pf = { n->fd, POLLIN, 0 };
+            int pr = poll(&pf, 1, timeout_ms);
+            if (pr < 0 && errno == EINTR) continue;
+            if (pr == 0) {
+                snprintf(err, errlen, "no data within %d ms", timeout_ms);
+                return -BB_E_NET_TIMEOUT;
+            }
+        }
         r = (int)recv(n->fd, p, len, 0);
         if (r >= 0) return r;
         if (errno == EINTR) continue;
@@ -297,3 +323,236 @@ void bb_net_close(bb_net *n)
 }
 
 void bb_net_task_done(void) {}
+/* --- sockets for the Socket class --------------------------------------------------------- */
+
+static bb_net *wrap(int fd, int udp)
+{
+    bb_net *n = calloc(1, sizeof *n);
+    int one = 1;
+    n->fd = fd;
+    n->nonblock = 1;
+    n->udp = udp;
+    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
+#ifdef SO_NOSIGPIPE
+    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof one);
+#endif
+    if (!udp) setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof one);
+    (void)one;
+    return n;
+}
+
+static int resolve4(const char *host, struct in_addr *a, char *err, int errlen)
+{
+    struct addrinfo hints, *res = NULL;
+    if (!host || !*host) {
+        a->s_addr = htonl(INADDR_ANY);
+        return 0;
+    }
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    if (getaddrinfo(host, NULL, &hints, &res) || !res) {
+        snprintf(err, errlen, "can't resolve the host name %s", host);
+        return BB_E_NET_RESOLVE;
+    }
+    *a = ((struct sockaddr_in *)res->ai_addr)->sin_addr;
+    freeaddrinfo(res);
+    return 0;
+}
+
+int bb_net_connect_start(const char *host, int port, bb_net **out, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    int rc, fd;
+    *out = NULL;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons((unsigned short)port);
+    if ((rc = resolve4(host, &sa.sin_addr, err, errlen))) return rc;
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
+        snprintf(err, errlen, "can't create a socket");
+        return BB_E_NET_CONNECT;
+    }
+    *out = wrap(fd, 0);
+    if (connect(fd, (struct sockaddr *)&sa, sizeof sa) < 0 && errno != EINPROGRESS) {
+        snprintf(err, errlen, "can't connect to %s:%d", host, port);
+        bb_net_close(*out);
+        *out = NULL;
+        return BB_E_NET_CONNECT;
+    }
+    return 0;
+}
+
+int bb_net_connect_finish(bb_net *n, char *err, int errlen)
+{
+    int soerr = 0;
+    socklen_t sl = sizeof soerr;
+    getsockopt(n->fd, SOL_SOCKET, SO_ERROR, &soerr, &sl);
+    if (soerr) {
+        snprintf(err, errlen, "can't connect: %s", strerror(soerr));
+        return BB_E_NET_CONNECT;
+    }
+    return 0;
+}
+
+int bb_net_listen(const char *addr, int port, int backlog, bb_net **out, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    int rc, fd, one = 1;
+    *out = NULL;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons((unsigned short)port);
+    if ((rc = resolve4(addr, &sa.sin_addr, err, errlen))) return rc;
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
+        snprintf(err, errlen, "can't create a socket");
+        return BB_E_NET_CONNECT;
+    }
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+    if (bind(fd, (struct sockaddr *)&sa, sizeof sa) < 0 || listen(fd, backlog > 0 ? backlog : 8) < 0) {
+        snprintf(err, errlen, "can't listen on port %d: %s", port, strerror(errno));
+        close(fd);
+        return BB_E_NET_CONNECT;
+    }
+    *out = wrap(fd, 0);
+    return 0;
+}
+
+int bb_net_accept(bb_net *l, bb_net **out, char *err, int errlen)
+{
+    int fd = accept(l->fd, NULL, NULL);
+    *out = NULL;
+    if (fd < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR || errno == ECONNABORTED) return 0;
+        snprintf(err, errlen, "accept failed: %s", strerror(errno));
+        return BB_E_NET_CONNECT;
+    }
+    *out = wrap(fd, 0);
+    return 0;
+}
+
+int bb_net_udp(const char *addr, int port, bb_net **out, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    int rc, fd, one = 1;
+    *out = NULL;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons((unsigned short)port);
+    if ((rc = resolve4(addr, &sa.sin_addr, err, errlen))) return rc;
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        snprintf(err, errlen, "can't create a socket");
+        return BB_E_NET_CONNECT;
+    }
+    setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one);
+    if (port) setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+    if (bind(fd, (struct sockaddr *)&sa, sizeof sa) < 0) {
+        snprintf(err, errlen, "can't bind port %d: %s", port, strerror(errno));
+        close(fd);
+        return BB_E_NET_CONNECT;
+    }
+    *out = wrap(fd, 1);
+    return 0;
+}
+
+int bb_net_sendto(bb_net *n, const char *host, int port, const void *p, int len, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    int rc;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons((unsigned short)port);
+    if ((rc = resolve4(host, &sa.sin_addr, err, errlen))) return rc;
+    if (!host || !*host) sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (sendto(n->fd, p, (size_t)len, SEND_FLAGS, (struct sockaddr *)&sa, sizeof sa) < 0) {
+        snprintf(err, errlen, "sending to %s:%d failed: %s", host, port, strerror(errno));
+        return BB_E_NET_CONNECT;
+    }
+    return 0;
+}
+
+int bb_net_recvfrom(bb_net *n, void *p, int len, char *host, int hostlen, int *port, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    socklen_t sl = sizeof sa;
+    int r = (int)recvfrom(n->fd, p, (size_t)len, 0, (struct sockaddr *)&sa, &sl);
+    if (r < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) return -1;
+        snprintf(err, errlen, "receiving failed: %s", strerror(errno));
+        return -BB_E_NET_PROTOCOL;
+    }
+    if (host) snprintf(host, hostlen, "%s", inet_ntoa(sa.sin_addr));
+    if (port) *port = ntohs(sa.sin_port);
+    return r;
+}
+
+int bb_net_pending(bb_net *n)
+{
+    int avail = 0;
+    char c;
+    struct pollfd pf = { n->fd, POLLIN, 0 };
+    if (n->ssl) {
+        /* not used by the Socket class (no TLS sockets yet) */
+        return 0;
+    }
+    if (poll(&pf, 1, 0) <= 0) return 0;
+    if (ioctl(n->fd, FIONREAD, &avail) < 0) return -1;
+    if (avail > 0) return avail;
+    if (n->udp) {
+        /* an empty datagram, or an ICMP error: read it so it doesn't wake us forever */
+        return recv(n->fd, &c, 1, MSG_PEEK) >= 0 ? 0 : 0;
+    }
+    /* readable with nothing in it: end of stream or an error */
+    return recv(n->fd, &c, 1, MSG_PEEK) > 0 ? 1 : -1;
+}
+
+int bb_net_send_some(bb_net *n, const void *p, int len, char *err, int errlen)
+{
+    int w = (int)send(n->fd, p, (size_t)len, SEND_FLAGS);
+    if (w >= 0) return w;
+    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) return 0;
+    snprintf(err, errlen, "the connection closed while sending");
+    return -BB_E_NET_PROTOCOL;
+}
+
+void bb_net_addr(bb_net *n, int peer, char *host, int hostlen, int *port)
+{
+    struct sockaddr_in sa;
+    socklen_t sl = sizeof sa;
+    memset(&sa, 0, sizeof sa);
+    if ((peer ? getpeername(n->fd, (struct sockaddr *)&sa, &sl) : getsockname(n->fd, (struct sockaddr *)&sa, &sl)) < 0 ||
+        sa.sin_family != AF_INET) {
+        if (host) snprintf(host, hostlen, "%s", "");
+        if (port) *port = 0;
+        return;
+    }
+    if (host) snprintf(host, hostlen, "%s", inet_ntoa(sa.sin_addr));
+    if (port) *port = ntohs(sa.sin_port);
+}
+
+int bb_net_wait(bb_net **ns, const int *want, int *got, int count, int timeout_ms, uint32_t *sigs)
+{
+    struct pollfd fixed[16], *pf = count <= 16 ? fixed : malloc(sizeof *pf * (size_t)count);
+    int i, r, nready = 0;
+    if (sigs) *sigs = 0;
+    for (i = 0; i < count; i++) {
+        pf[i].fd = ns[i]->fd;
+        pf[i].events = (short)(((want[i] & BB_NET_RD) ? POLLIN : 0) | ((want[i] & BB_NET_WR) ? POLLOUT : 0));
+        pf[i].revents = 0;
+    }
+    do r = poll(pf, (nfds_t)count, timeout_ms);
+    while (r < 0 && errno == EINTR);
+    for (i = 0; i < count; i++) {
+        int g = 0;
+        if (r > 0) {
+            if (pf[i].revents & (POLLIN | POLLHUP | POLLERR)) g |= want[i] & BB_NET_RD ? BB_NET_RD : 0;
+            if (pf[i].revents & (POLLOUT | POLLHUP | POLLERR)) g |= want[i] & BB_NET_WR ? BB_NET_WR : 0;
+        }
+        got[i] = g;
+        if (g) nready++;
+    }
+    if (pf != fixed) free(pf);
+    return r < 0 ? -1 : nready;
+}

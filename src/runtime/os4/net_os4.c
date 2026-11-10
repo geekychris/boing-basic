@@ -10,6 +10,7 @@
  * default against AmiSSL's store (AmiSSL:Certs), with the host name checked too. */
 #include "../net.h"
 #include "../boing.h"
+#include "../platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -180,6 +181,8 @@ struct bb_net {
     int fd;
     SSL_CTX *ctx;
     SSL *ssl;
+    int nonblock;               /* made by the socket functions below */
+    int udp;
 };
 
 static void set_timeouts(int fd, int ms)
@@ -210,6 +213,7 @@ static int tcp_connect(const char *host, int port, int timeout_ms, int *out, cha
 {
     struct sockaddr_in sa;
     memset(&sa, 0, sizeof sa);
+    sa.sin_len = sizeof sa;             /* Roadshow wants it (bind fails with EADDRNOTAVAIL) */
     sa.sin_family = AF_INET;
     sa.sin_port = htons(port);
     sa.sin_addr.s_addr = ISock->inet_addr((STRPTR)host);
@@ -333,6 +337,16 @@ int bb_net_write(bb_net *n, const void *p, int len, int timeout_ms, char *err, i
     set_timeouts(n->fd, timeout_ms);
     while (len > 0) {
         int w = n->ssl ? ISSL->SSL_write(n->ssl, c, len) : (int)ISock->send(n->fd, (APTR)c, len, 0);
+        if (w < 0 && !n->ssl && n->nonblock && ISock->Errno() == EWOULDBLOCK) {
+            int r = wait_fd(n->fd, 1, timeout_ms);
+            if (r > 0) continue;
+            if (r < 0) {
+                snprintf(err, errlen, "interrupted (Ctrl-C)");
+                return 18;
+            }
+            snprintf(err, errlen, "sending timed out");
+            return BB_E_NET_TIMEOUT;
+        }
         if (w <= 0) {
             if (!n->ssl && ISock->Errno() == EWOULDBLOCK) {
                 snprintf(err, errlen, "sending timed out");
@@ -390,4 +404,275 @@ void bb_net_close(bb_net *n)
     if (n->ctx) ISSL->SSL_CTX_free(n->ctx);
     if (n->fd >= 0) ISock->CloseSocket(n->fd);
     free(n);
+}
+
+/* --- sockets for the Socket class --------------------------------------------------------- */
+
+static bb_net *wrap(int fd, int udp)
+{
+    bb_net *n = calloc(1, sizeof *n);
+    LONG one = 1;
+    n->fd = fd;
+    n->nonblock = 1;
+    n->udp = udp;
+    ISock->IoctlSocket(fd, FIONBIO, (APTR)&one);
+    if (!udp) ISock->setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof one);
+    return n;
+}
+
+static int resolve4(const char *host, struct in_addr *a, char *err, int errlen)
+{
+    if (!host || !*host) {
+        a->s_addr = htonl(INADDR_ANY);
+        return 0;
+    }
+    a->s_addr = ISock->inet_addr((STRPTR)host);
+    if (a->s_addr == INADDR_NONE) {
+        struct hostent *he = ISock->gethostbyname((STRPTR)host);
+        if (!he || !he->h_addr_list || !he->h_addr_list[0]) {
+            snprintf(err, errlen, "can't resolve the host name %s", host);
+            return BB_E_NET_RESOLVE;
+        }
+        memcpy(a, he->h_addr_list[0], sizeof *a);
+    }
+    return 0;
+}
+
+static void ntoa(struct in_addr a, char *host, int hostlen)
+{
+    uint32_t x = ntohl(a.s_addr);
+    snprintf(host, hostlen, "%lu.%lu.%lu.%lu", (unsigned long)(x >> 24), (unsigned long)((x >> 16) & 255),
+             (unsigned long)((x >> 8) & 255), (unsigned long)(x & 255));
+}
+
+int bb_net_connect_start(const char *host, int port, bb_net **out, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    int rc, fd;
+    *out = NULL;
+    if (!sock_open(err, errlen)) return BB_E_NET_CONNECT;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_len = sizeof sa;             /* Roadshow wants it (bind fails with EADDRNOTAVAIL) */
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(port);
+    if ((rc = resolve4(host, &sa.sin_addr, err, errlen))) return rc;
+    fd = ISock->socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
+        snprintf(err, errlen, "can't create a socket");
+        return BB_E_NET_CONNECT;
+    }
+    *out = wrap(fd, 0);
+    if (ISock->connect(fd, (struct sockaddr *)&sa, sizeof sa) < 0 && ISock->Errno() != EINPROGRESS) {
+        snprintf(err, errlen, "can't connect to %s:%d", host, port);
+        bb_net_close(*out);
+        *out = NULL;
+        return BB_E_NET_CONNECT;
+    }
+    return 0;
+}
+
+int bb_net_connect_finish(bb_net *n, char *err, int errlen)
+{
+    LONG soerr = 0;
+    socklen_t sl = sizeof soerr;
+    ISock->getsockopt(n->fd, SOL_SOCKET, SO_ERROR, &soerr, &sl);
+    if (soerr) {
+        snprintf(err, errlen, soerr == ECONNREFUSED ? "can't connect: the connection was refused"
+                                                    : "can't connect (error %ld)", (long)soerr);
+        return BB_E_NET_CONNECT;
+    }
+    return 0;
+}
+
+int bb_net_listen(const char *addr, int port, int backlog, bb_net **out, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    int rc, fd;
+    LONG one = 1;
+    *out = NULL;
+    if (!sock_open(err, errlen)) return BB_E_NET_CONNECT;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_len = sizeof sa;             /* Roadshow wants it (bind fails with EADDRNOTAVAIL) */
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(port);
+    if ((rc = resolve4(addr, &sa.sin_addr, err, errlen))) return rc;
+    fd = ISock->socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
+        snprintf(err, errlen, "can't create a socket");
+        return BB_E_NET_CONNECT;
+    }
+    ISock->setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+    if (ISock->bind(fd, (struct sockaddr *)&sa, sizeof sa) < 0 || ISock->listen(fd, backlog > 0 ? backlog : 8) < 0) {
+        snprintf(err, errlen, "can't listen on port %d (error %ld)", port, (long)ISock->Errno());
+        ISock->CloseSocket(fd);
+        return BB_E_NET_CONNECT;
+    }
+    *out = wrap(fd, 0);
+    return 0;
+}
+
+int bb_net_accept(bb_net *l, bb_net **out, char *err, int errlen)
+{
+    int fd = ISock->accept(l->fd, NULL, NULL);
+    *out = NULL;
+    if (fd < 0) {
+        LONG e = ISock->Errno();
+        if (e == EWOULDBLOCK || e == EINTR || e == ECONNABORTED) return 0;
+        snprintf(err, errlen, "accept failed (error %ld)", (long)e);
+        return BB_E_NET_CONNECT;
+    }
+    *out = wrap(fd, 0);
+    return 0;
+}
+
+int bb_net_udp(const char *addr, int port, bb_net **out, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    int rc, fd;
+    LONG one = 1;
+    *out = NULL;
+    if (!sock_open(err, errlen)) return BB_E_NET_CONNECT;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_len = sizeof sa;             /* Roadshow wants it (bind fails with EADDRNOTAVAIL) */
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(port);
+    if ((rc = resolve4(addr, &sa.sin_addr, err, errlen))) return rc;
+    fd = ISock->socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        snprintf(err, errlen, "can't create a socket");
+        return BB_E_NET_CONNECT;
+    }
+    ISock->setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof one);
+    if (port) ISock->setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+    if (ISock->bind(fd, (struct sockaddr *)&sa, sizeof sa) < 0) {
+        snprintf(err, errlen, "can't bind port %d (error %ld)", port, (long)ISock->Errno());
+        ISock->CloseSocket(fd);
+        return BB_E_NET_CONNECT;
+    }
+    *out = wrap(fd, 1);
+    return 0;
+}
+
+int bb_net_sendto(bb_net *n, const char *host, int port, const void *p, int len, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    int rc;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_len = sizeof sa;             /* Roadshow wants it (bind fails with EADDRNOTAVAIL) */
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(port);
+    if ((rc = resolve4(host, &sa.sin_addr, err, errlen))) return rc;
+    if (!host || !*host) sa.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (ISock->sendto(n->fd, (APTR)p, len, 0, (struct sockaddr *)&sa, sizeof sa) < 0) {
+        snprintf(err, errlen, "sending to %s:%d failed (error %ld)", host, port, (long)ISock->Errno());
+        return BB_E_NET_CONNECT;
+    }
+    return 0;
+}
+
+int bb_net_recvfrom(bb_net *n, void *p, int len, char *host, int hostlen, int *port, char *err, int errlen)
+{
+    struct sockaddr_in sa;
+    socklen_t sl = sizeof sa;
+    int r = (int)ISock->recvfrom(n->fd, p, len, 0, (struct sockaddr *)&sa, &sl);
+    if (r < 0) {
+        LONG e = ISock->Errno();
+        if (e == EWOULDBLOCK || e == EINTR) return -1;
+        snprintf(err, errlen, "receiving failed (error %ld)", (long)e);
+        return -BB_E_NET_PROTOCOL;
+    }
+    if (host) ntoa(sa.sin_addr, host, hostlen);
+    if (port) *port = ntohs(sa.sin_port);
+    return r;
+}
+
+int bb_net_pending(bb_net *n)
+{
+    LONG avail = 0;
+    char c;
+    fd_set set;
+    struct timeval tv0 = { 0, 0 };
+    if (n->ssl) return 0;
+    FD_ZERO(&set);
+    FD_SET(n->fd, &set);
+    if (ISock->WaitSelect(n->fd + 1, &set, NULL, NULL, &tv0, NULL) <= 0) return 0;   /* (no signals: keeps a Ctrl-C) */
+    if (ISock->IoctlSocket(n->fd, FIONREAD, (APTR)&avail) < 0) return -1;
+    if (avail > 0) return (int)avail;
+    if (n->udp) return 0;
+    return ISock->recv(n->fd, &c, 1, MSG_PEEK) > 0 ? 1 : -1;
+}
+
+int bb_net_send_some(bb_net *n, const void *p, int len, char *err, int errlen)
+{
+    int w = (int)ISock->send(n->fd, (APTR)p, len, 0);
+    if (w >= 0) return w;
+    if (ISock->Errno() == EWOULDBLOCK) return 0;
+    snprintf(err, errlen, "the connection closed while sending");
+    return -BB_E_NET_PROTOCOL;
+}
+
+void bb_net_addr(bb_net *n, int peer, char *host, int hostlen, int *port)
+{
+    struct sockaddr_in sa;
+    socklen_t sl = sizeof sa;
+    memset(&sa, 0, sizeof sa);
+    if ((peer ? ISock->getpeername(n->fd, (struct sockaddr *)&sa, &sl)
+              : ISock->getsockname(n->fd, (struct sockaddr *)&sa, &sl)) < 0) {
+        if (host && hostlen) host[0] = 0;
+        if (port) *port = 0;
+        return;
+    }
+    if (host) ntoa(sa.sin_addr, host, hostlen);
+    if (port) *port = ntohs(sa.sin_port);
+}
+
+int bb_net_wait(bb_net **ns, const int *want, int *got, int count, int timeout_ms, uint32_t *sigs)
+{
+    fd_set rd, wr;
+    struct timeval tv, *tp = NULL;
+    ULONG mask = sigs ? *sigs : 0;
+    int i, maxfd = -1, r, nready = 0;
+    FD_ZERO(&rd);
+    FD_ZERO(&wr);
+    for (i = 0; i < count; i++) {
+        if (want[i] & BB_NET_RD) FD_SET(ns[i]->fd, &rd);
+        if (want[i] & BB_NET_WR) FD_SET(ns[i]->fd, &wr);
+        if (want[i] && ns[i]->fd > maxfd) maxfd = ns[i]->fd;
+    }
+    if (timeout_ms >= 0) {
+        tv.tv_sec = timeout_ms / 1000;
+        tv.tv_usec = (timeout_ms % 1000) * 1000;
+        tp = &tv;
+    }
+    if (!ISock) {
+        /* no socket was ever opened (count is 0): a plain wait for the signals */
+        ULONG got_sigs;
+        if (timeout_ms < 0) got_sigs = mask ? IExec->Wait(mask) : 0;
+        else {
+            if (timeout_ms > 0) bb_plat_sleep_ms(timeout_ms);
+            got_sigs = IExec->SetSignal(0, mask) & mask;
+        }
+        if (sigs) *sigs = got_sigs;
+        return 0;
+    }
+    {
+        ULONG orig = mask;
+        r = ISock->WaitSelect(maxfd + 1, &rd, &wr, NULL, tp, orig ? &mask : NULL);
+        if (sigs) {
+            ULONG g = r < 0 ? 0 : mask & orig;
+            /* a zero timeout is a look: signals that were already set count too */
+            if (orig && (timeout_ms == 0 || r < 0)) g |= IExec->SetSignal(0, orig) & orig;
+            *sigs = g;
+        }
+    }
+    for (i = 0; i < count; i++) {
+        int g = 0;
+        if (r > 0) {
+            if ((want[i] & BB_NET_RD) && FD_ISSET(ns[i]->fd, &rd)) g |= BB_NET_RD;
+            if ((want[i] & BB_NET_WR) && FD_ISSET(ns[i]->fd, &wr)) g |= BB_NET_WR;
+        }
+        got[i] = g;
+        if (g) nready++;
+    }
+    return r < 0 ? -1 : nready;
 }

@@ -69,6 +69,12 @@ int bb_forms_run(void);
 void bb_forms_end(void);
 /* Unload every form without events and free everything (program end). */
 void bb_forms_cleanup(void);
+/* Sockets (socket.c) set this when the first Socket is made: the event loop calls it instead of
+ * waiting for sigmask itself (Wait / SetSignal on AmigaOS; the headless loop's sleep on the host).
+ * It waits at most timeout_ms (-1: until a signal, 0: just look) for the signals and the watched
+ * sockets, fires the sockets' events and returns the signals that arrived. Defined in
+ * forms_rt.c, NULL until then. */
+extern uint32_t (*bb_forms_wait_hook)(uint32_t sigmask, int timeout_ms);
 /* DoEvents: handle what's pending without waiting. */
 void bb_forms_doevents(void);
 

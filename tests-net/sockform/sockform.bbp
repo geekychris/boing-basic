@@ -1,0 +1,4 @@
+# Socket events in a form program: they arrive through the form event loop (tests-net/socket-run.sh)
+Name=SockForm
+Startup=Form chat
+Form=chat.afg
