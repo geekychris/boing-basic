@@ -137,6 +137,9 @@ BI(MONTHNAME, "MonthName", T_STRING, 1, 2, "lb", ",0", "bb_monthname", 0, RS(bb_
 BI(WEEKDAYNAME, "WeekdayName", T_STRING, 1, 3, "lb", ",0", "bb_weekdayname", 0, RS(bb_weekdayname(L(0), B(1))))
 
 BI(CREATEUUID, "CreateUUID", T_STRING, 0, 0, "", "", "bb_create_uuid", BIF_NOARGS_OK, RS(bb_create_uuid()))
+BI(COMPRESS, "Compress", T_STRING, 1, 3, "sll", ",1,-1", "bb_compress", 0, RS(bb_compress(S(0), L(1), L(2))))
+BI(DECOMPRESS, "Decompress", T_STRING, 1, 2, "sl", ",3", "bb_decompress", 0, RS(bb_decompress(S(0), L(1))))
+BI(CRC32, "CRC32", T_LONG, 1, 1, "s", "", "bb_crc32", 0, RL(bb_crc32(S(0))))
 BI(COMMAND, "Command", T_STRING, 0, 0, "", "", "bb_command", BIF_NOARGS_OK | BIF_STRSUFFIX, RS(bb_command()))
 BI(ENVIRON, "Environ", T_STRING, 1, 1, "v", "", "bb_environ", BIF_STRSUFFIX, RS(bb_environ(V(0))))
 BI(SHELL, "Shell", T_LONG, 1, 2, "s", "", "bb_shell", 0, RL(bb_shell(S(0))))

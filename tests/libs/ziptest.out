@@ -1,0 +1,29 @@
+gzip: 7892 TrueTrueTrueTrueTrue
+zlib:TrueTrueTrue
+deflate:True
+level 0 bigger:True
+empty: 0  binary:True
+crc:CBF43926  0  414FA339
+entries: 5 
+ hello.txt 15 FalseTrue  2026 
+ docs/ 0 TrueTrue  2026 
+ docs/sub/ 0 TrueTrue  2026 
+ docs/sub/big.txt 26000 FalseTrue  2026 
+ docs/data.bin 5000 FalseTrue  2026 
+read:True 26000  4 -1 
+extracted: 5 
+ 26000  5000 True
+ 15 
+written: 9 
+readme.txt(21) empty.txt(0) data.bin(5000) texts/hello.txt(15) tree/(0) tree/sub/(0) tree/sub/big.txt(26000) tree/data.bin(5000) stored.txt(1000) 
+True 1000 True
+True 0 True
+missing: 53 
+not zip: 31501  not a ZIP file, or a damaged one: no end of central directory
+no entry: 53 
+index: 9 
+read-only: 5 
+unsafe: 5 
+corrupt: 31501 
+format: 5 
+damaged: 31501 

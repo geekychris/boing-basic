@@ -1306,6 +1306,7 @@ static void add_vb_constants(Program *p)
         {"sockError", T_LONG, 9, 0},
         {"logDebug", T_LONG, 10, 0}, {"logInfo", T_LONG, 20, 0}, {"logWarning", T_LONG, 30, 0},
         {"logError", T_LONG, 40, 0}, {"logFatal", T_LONG, 50, 0}, {"logOff", T_LONG, 100, 0},
+        {"zipZlib", T_LONG, 0, 0}, {"zipGzip", T_LONG, 1, 0}, {"zipDeflate", T_LONG, 2, 0}, {"zipAuto", T_LONG, 3, 0},
         {"vbEmpty", T_LONG, 0, 0}, {"vbNull", T_LONG, 1, 0}, {"vbInteger", T_LONG, 2, 0}, {"vbLong", T_LONG, 3, 0},
         {"vbSingle", T_LONG, 4, 0}, {"vbDouble", T_LONG, 5, 0}, {"vbCurrency", T_LONG, 6, 0}, {"vbDate", T_LONG, 7, 0},
         {"vbString", T_LONG, 8, 0}, {"vbObject", T_LONG, 9, 0}, {"vbError", T_LONG, 10, 0}, {"vbBoolean", T_LONG, 11, 0},

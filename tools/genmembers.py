@@ -15,7 +15,8 @@ SRC = {"Canvas": ["src/runtime/canvas.c", "src/runtime/canvas_paint_impl.h"],
        "IniFile": ["src/runtime/ini.c"],
        "Logger": ["src/runtime/logger.c"],
        "XmlDocument": ["src/runtime/xml.c"],
-       "XmlElement": ["src/runtime/xml.c:elem_tab"]}
+       "XmlElement": ["src/runtime/xml.c:elem_tab"],
+       "Zip": ["src/runtime/zip.c"]}
 OUT = os.path.join(ROOT, "src/compiler/rtmembers.h")
 
 def members(path):
