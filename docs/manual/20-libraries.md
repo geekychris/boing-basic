@@ -2316,6 +2316,7 @@ a|b;c|d
 | 380 | a bad `Delimiter` or `Quote`: more than one character, or both the same |
 | 5 | `Field` with a column name that doesn't exist (`Err.Description` names it) |
 | 9 | a negative field index |
+| 383 | assigning to a read-only property: `Fields`, `Headers`, `FieldCount`, `RecordNumber`, `LineNumber` or `AtEnd` |
 
 *Listing 20.58* (`examples/book/ch20-libraries/listing-20-58.bas`)
 
