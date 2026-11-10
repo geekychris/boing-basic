@@ -1306,6 +1306,40 @@ static Node *parse_statement(P *p)
             end_stmt(p);
             return n;
         }
+        if ((name_eq(t->text, "Lock") || name_eq(t->text, "Unlock")) && !t->suffix && tkn(p, 1)->kind != TK_EQ &&
+            tkn(p, 1)->kind != TK_DOT && tkn(p, 1)->kind != TK_LP && tkn(p, 1)->kind != TK_NL &&
+            tkn(p, 1)->kind != TK_COLON && tkn(p, 1)->kind != TK_EOF) {
+            /* Lock [#]f [, rec [To rec]]: a call of Lock/Unlock (a Declare'd Lock still wins in sema) */
+            Node *call = mk(p, E_APPLY, t), *target = mk(p, E_NAME, t);
+            target->name = xstrdup(t->text);
+            adv(p);
+            call->a = target;
+            call->flags |= NF_VOIDCALL;
+            nl_push(&call->list, file_number(p));
+            if (accept(p, TK_COMMA)) {
+                nl_push(&call->list, expr(p));
+                if (accept_kw(p, KW_TO)) nl_push(&call->list, expr(p));
+            }
+            n = mk(p, S_EXPR, t);
+            n->a = call;
+            end_stmt(p);
+            return n;
+        }
+        if (name_eq(t->text, "Width") && tkn(p, 1)->kind == TK_HASH) {
+            /* Width #f, n */
+            Node *call = mk(p, E_APPLY, t), *target = mk(p, E_NAME, t);
+            target->name = xstrdup("__Width");
+            adv(p);
+            call->a = target;
+            call->flags |= NF_VOIDCALL;
+            nl_push(&call->list, file_number(p));
+            expect(p, TK_COMMA, "','");
+            nl_push(&call->list, expr(p));
+            n = mk(p, S_EXPR, t);
+            n->a = call;
+            end_stmt(p);
+            return n;
+        }
         if (name_eq(t->text, "Seek") && tkn(p, 1)->kind == TK_HASH) {
             adv(p);
             n = mk(p, S_SEEK, t);

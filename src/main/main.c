@@ -36,6 +36,10 @@ static void usage(void)
     exit(5);
 }
 
+static const char *g_argv0 = "boing";
+static char *exe_dir(const char *argv0);
+static char *home_dir(void) { static char *h; if (!h) h = exe_dir(g_argv0); return h; }
+
 static Program *load(const char *path)
 {
     Program *p = prog_new();
@@ -380,6 +384,8 @@ static int cmd_vm(const char *argv0, int argc, char **argv)
 int main(int argc, char **argv)
 {
     const char *cmd;
+    g_argv0 = argv[0];
+    bbc_home = home_dir;
 #ifdef __amigaos4__
     bb_wb_start(&argc, &argv);
 #endif

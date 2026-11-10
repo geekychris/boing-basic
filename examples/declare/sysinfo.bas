@@ -1,8 +1,8 @@
 ' sysinfo.bas - calling AmigaOS 4 libraries with Declare and the generated bindings.
 '   boing run sysinfo.bas
-' The Declares below are written out; with the bindings they come from
-'   #Include "exec.bi"  /  #Include "dos.bi"  /  #Include "intuition.bi"
-' which tools/genbind writes from the SDK (each Declare names its interface slot, Alias "#n").
+' The Declares below are written out to show the forms. A program can instead take the whole
+' API from the generated bindings (tools/genbind, from the SDK; each Declare names its
+' interface slot, Alias "#n"):  #Include "exec.bi"  (or Uses=exec,dos,intuition in a .bbp).
 Option Explicit
 
 ' exec.library, interface "main" (the default)

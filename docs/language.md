@@ -198,10 +198,12 @@ digits, Singles with 7.
 `CInt`/`CLng`/`CByte` and `Round` use banker's rounding.
 
 Inspection: `IsNumeric IsDate IsEmpty IsNull IsObject IsArray IsMissing TypeName VarType
-LBound UBound Array IIf Choose`.
+LBound UBound Array IIf Choose Switch`. `Filter(array, match [, include [, compare]])` gives
+the elements that contain (or, with include False, don't contain) match.
 
 Date/time: `Now Date Time Timer DateSerial TimeSerial DateValue TimeValue DateAdd DateDiff
-DatePart Year Month Day Hour Minute Second Weekday MonthName WeekdayName`. Dates print and
+DatePart Year Month Day Hour Minute Second Weekday MonthName WeekdayName`; `Date$` and `Time$`
+are strings (`mm-dd-yyyy`, `hh:mm:ss`). Dates print and
 convert in US style (`1/2/2003 4:05:06 PM`) and parse `m/d/y`, `y-m-d`, times with AM/PM.
 
 `Format`: named formats (`General Number, Currency, Fixed, Standard, Percent, Scientific,
@@ -210,8 +212,9 @@ numeric patterns (`0 # . , % E+ E-`, literals, `"text"`, `\c`, sections `pos;neg
 date patterns (`d dd ddd dddd ddddd dddddd w ww m mm mmm mmmm q y yy yyyy h hh n nn s ss
 ttttt AM/PM am/pm A/P`), string patterns (`@ & < > !`).
 
-Environment: `Command Environ Shell DoEvents MsgBox InputBox RGB Sleep` (`Sleep` takes
-milliseconds; it is not a VB built-in).
+Environment: `Command Environ Shell DoEvents MsgBox InputBox RGB QBColor Sleep` (`Sleep` takes
+milliseconds; it is not a VB built-in). Settings: `GetSetting SaveSetting DeleteSetting
+GetAllSettings` (a 2-D array of key and value, sorted by key; Empty when there are none).
 
 Constants: `vbCrLf vbNewLine vbCr vbLf vbTab vbNullString vbNullChar`, `vbOK… vbNo`,
 `vbOKOnly … vbYesNo`, `vbCritical … vbInformation`, `vbBinaryCompare vbTextCompare`,
@@ -229,7 +232,12 @@ colours, key codes. `vbNewLine` is a single LF (AmigaOS and Unix convention).
 - `Open path For Input|Output|Append|Binary|Random [Access …] [Lock …] As #n [Len = r]`,
   `Close [#n, …]`, `Get`/`Put #n, [rec], var` (scalars, strings, UDTs and arrays; little-endian
   like VB files), `Seek #n, pos` / `Seek(n)`, `EOF LOF Loc FreeFile FileLen Dir Kill Name MkDir
-  RmDir ChDir CurDir FileCopy`.
+  RmDir ChDir CurDir FileCopy FileDateTime GetAttr SetAttr Reset`, `Width #n, cols` (output
+  lines wrap at that column; 0 = no limit), `Lock`/`Unlock #n [, rec [To rec]]` (accepted and
+  checked: one program has a file open at a time on these systems, so they lock nothing).
+  `GetAttr` gives `vbReadOnly`, `vbDirectory`, `vbArchive` (AmigaOS: the A protection bit is
+  clear, the file changed since its backup) and, on hosts, `vbHidden` for dot files; `SetAttr`
+  sets read-only (AmigaOS: the W and D protection bits) and, on AmigaOS, the archive bit.
 - `App.Path` is the program's directory: under `boing run prog.bbp|prog.bas|prog.bbc` the
   directory of that file (an absolute path, e.g. `DH1:Games/Tank`), in a native build the
   executable's. Load files that sit beside the program with `App.Path & "/name"`. On AmigaOS a

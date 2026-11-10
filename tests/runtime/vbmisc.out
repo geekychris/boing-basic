@@ -1,0 +1,23 @@
+one
+two
+three
+null
+ 0 Banana
+ 1 cherry+PEAR
+ 1 apple+grape
+-1 
+0 800000 80 FFFF FFFFFF
+ 10 --True
+ 8 ::
+[abcde][fghij][xy]
+attr 0 
+ro 1 
+rw 0 
+dir 16 
+mtimeTrue
+missing 53 
+lock closed 52 
+free 1 
+Height=480
+Width=640
+after deleteTrue

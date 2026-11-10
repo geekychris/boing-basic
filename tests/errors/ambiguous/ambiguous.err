@@ -1,0 +1,3 @@
+modC.bas:2:5: error: ambiguous name 'Hello': it is a Public procedure in modules modA and modB (write modA.Hello)
+modC.bas:4:9: error: ambiguous name 'Hello': it is a Public procedure in modules modA and modB (write modA.Hello)
+modB.bas:4:1: warning: module-level statements in 'modB' never run (only the startup module's do): move them into a Sub

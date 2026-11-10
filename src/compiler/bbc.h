@@ -137,6 +137,8 @@ enum {
     E_VAR, E_CONST, E_FIELD, E_INDEX, E_CALL, E_BUILTIN, E_LATE, E_MCALL, E_MFIELD,
     E_CONV, E_WITHVAR, E_ERRPROP, E_CASEIS, E_CASERANGE, E_ARRAYLIT, E_DEFPROP,
     E_EXTCALL,              /* a linked extension's function (name; list = Variant arguments) */
+    E_WBARG,    /* a typed variable passed ByRef to a Variant parameter: a = the variable, b = a hidden
+                   Variant local (passed), c = the variable as a Variant; copied back after the call */
 
     /* statements */
     S_EXPR = 100, S_LET, S_SET, S_DIM, S_IF, S_ELSEIF, S_SELECT, S_CASE, S_FOR, S_FOREACH,
@@ -248,6 +250,7 @@ struct Sym {
     int label_id;
     Proc *user;             /* globals: the one procedure using it, if only one */
     int shared;             /* globals: used by several procedures (or from outside) */
+    Module *ambig;          /* a Public procedure: another module with a Public one of this name */
 };
 
 typedef struct ScopeEnt { Sym *sym; struct ScopeEnt *next; } ScopeEnt;
@@ -363,6 +366,7 @@ struct Module {
     Proc **procs; int nprocs;
     char **form_controls; int ncontrols;   /* .afg ids */
     char *form_name;
+    Sym *form_var;          /* a form named like its module (window name=X in X.bas): the form object */
     char *afg_path;
     int index;
 };
@@ -382,6 +386,7 @@ struct Program {
     Udt **udts; int nudts;
     ClassInfo **classes; int nclasses;
     char **files; int nfiles;           /* source file paths */
+    char **includes; int nincludes;     /* #Include / Uses= files already added (resolved paths) */
     char **srcs;
     int nerrors, nwarnings;
     int max_errors;
@@ -410,6 +415,7 @@ ExtMember *ext_member_find(ExtClass *c, const char *name);
 ExtFunc *ext_func_find(Program *p, const char *name);
 
 Program *prog_new(void);
+extern char *(*bbc_home)(void);   /* the installation directory, for #Include/Uses= bindings (main.c) */
 char *read_file(const char *path, long *len);   /* malloc'ed, NUL terminated; NULL if unreadable */
 Module *prog_add_source(Program *p, const char *path, const char *src, int is_class);
 int prog_load_file(Program *p, const char *path);      /* .bas/.cls/.bbp */

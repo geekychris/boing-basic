@@ -55,11 +55,79 @@ static int add_file(Program *p, const char *path, char *src)
     return p->nfiles++;
 }
 
+/* the boing installation's directory (main.c sets it: the executable's, or BOING_HOME) */
+char *(*bbc_home)(void);
+
+static char *dir_of(const char *path)
+{
+    const char *s = strrchr(path, '/'), *c = strrchr(path, ':');
+    if (c && (!s || c > s)) s = c;
+    return s ? xstrndup(path, (size_t)(s - path) + 1) : xstrdup("");
+}
+
+static int readable(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f) return 0;
+    fclose(f);
+    return 1;
+}
+
+static char *join_dir(const char *dir, const char *rel);
+
+/* an #Include or Uses= file: beside the including file, then $BOING_BINDINGS, then the
+   installation's bindings/ (and, on hosts, the repo's: build/boing -> bindings/) */
+static char *find_include(Program *p, const char *from_dir, const char *name)
+{
+    const char *env = getenv("BOING_BINDINGS");
+    char *home = bbc_home ? bbc_home() : NULL, *c;
+    (void)p;
+    if (strchr(name, ':') || name[0] == '/') return readable(name) ? xstrdup(name) : NULL;
+    c = join_dir(from_dir, name);
+    if (readable(c)) return c;
+    if (env && *env) {
+        size_t n = strlen(env);
+        c = xsprintf("%s%s%s", env, env[n - 1] == '/' || env[n - 1] == ':' ? "" : "/", name);
+        if (readable(c)) return c;
+    }
+    if (home && *home) {
+        size_t n = strlen(home);
+        const char *sep = home[n - 1] == '/' || home[n - 1] == ':' ? "" : "/";
+        c = xsprintf("%s%sbindings/%s", home, sep, name);
+        if (readable(c)) return c;
+#ifndef __amigaos4__
+        c = xsprintf("%s%s../bindings/%s", home, sep, name);
+        if (readable(c)) return c;
+#endif
+    }
+    return NULL;
+}
+
+/* add an included file to the program as its own module, once per program */
+static void include_file(Program *p, Module *from, int line, int col, const char *dir, const char *name)
+{
+    char *path = find_include(p, dir, name), *src;
+    long n;
+    int i;
+    if (!path) {
+        diag(p, from ? from->file : 0, line, col, "cannot find include file '%s' (looked beside the program, in $BOING_BINDINGS and in the bindings directory)", name);
+        return;
+    }
+    for (i = 0; i < p->nincludes; i++)
+        if (!strcmp(p->includes[i], path)) return;
+    p->includes = (char **)xrealloc(p->includes, sizeof(char *) * (size_t)(p->nincludes + 1));
+    p->includes[p->nincludes++] = path;
+    src = read_file(path, &n);
+    if (!src) { diag(p, from ? from->file : 0, line, col, "cannot read include file '%s'", path); return; }
+    prog_add_source(p, path, src, 0);
+}
+
 Module *prog_add_source(Program *p, const char *path, const char *src, int is_class)
 {
     Module *m = (Module *)xcalloc(1, sizeof(Module));
     Token *toks;
-    int ntoks;
+    int ntoks, i, o, ninc = 0;
+    struct { char *name; int line, col; } *inc = NULL;
     m->path = xstrdup(path);
     m->name = base_name(path);
     m->is_class = is_class;
@@ -67,7 +135,26 @@ Module *prog_add_source(Program *p, const char *path, const char *src, int is_cl
     p->mods = (Module **)xrealloc(p->mods, sizeof(Module *) * (size_t)(p->nmods + 1));
     p->mods[p->nmods++] = m;
     lex_file(p, m->file, src, &toks, &ntoks);
+    /* #Include "file" lines: taken out here, the files added as modules after this one */
+    for (i = o = 0; i < ntoks; i++) {
+        Token *t = &toks[i];
+        if (t->kind == TK_HASH && t->line_start && i + 2 < ntoks && toks[i + 1].kind == TK_ID &&
+            name_eq(toks[i + 1].text, "Include") && toks[i + 2].kind == TK_STR && toks[i + 2].line == t->line) {
+            inc = xrealloc(inc, sizeof *inc * (size_t)(ninc + 1));
+            inc[ninc].name = toks[i + 2].text; inc[ninc].line = t->line; inc[ninc].col = t->col;
+            ninc++;
+            i += 2;
+            continue;
+        }
+        toks[o++] = *t;
+    }
+    ntoks = o;
     parse_module(p, m, toks, ntoks);
+    if (ninc) {
+        char *dir = dir_of(path);
+        if (is_class) diag(p, m->file, inc[0].line, inc[0].col, "#Include is not allowed in a class module: put it in a standard module");
+        else for (i = 0; i < ninc; i++) include_file(p, m, inc[i].line, inc[i].col, dir, inc[i].name);
+    }
     return m;
 }
 
@@ -149,7 +236,8 @@ static int load_project(Program *p, const char *path)
     char *src = read_file(path, &n), *line, *save = NULL, dir[1024];
     const char *slash = strrchr(path, '/');
     int lineno = 0;
-    char *startup = NULL;
+    char *startup = NULL, **uses = NULL;
+    int nuses = 0, *uses_line = NULL, ui;
     if (!src) {
         fprintf(p->diag_out ? p->diag_out : stderr, "%s: error: cannot read project file\n", path);
         p->nerrors++;
@@ -218,11 +306,22 @@ static int load_project(Program *p, const char *path)
         } else if (name_eq(key, "CSource")) {
             p->csources = (char **)xrealloc(p->csources, sizeof(char *) * (size_t)(p->ncsources + 1));
             p->csources[p->ncsources++] = join_dir(dir, val);
-        }
-        else if (name_eq(key, "Icon") || name_eq(key, "Uses")) {
+        } else if (name_eq(key, "Uses")) {
+            /* Uses=exec,dos: the bindings exec.bi and dos.bi, as #Include does */
+            char *list = xstrdup(val), *nm, *sv = NULL;
+            for (nm = strtok_r(list, ", ", &sv); nm; nm = strtok_r(NULL, ", ", &sv)) {
+                char *file = strchr(nm, '.') ? xstrdup(nm) : xsprintf("%s.bi", nm);
+                uses = (char **)xrealloc(uses, sizeof(char *) * (size_t)(nuses + 1));
+                uses_line = (int *)xrealloc(uses_line, sizeof(int) * (size_t)(nuses + 1));
+                uses_line[nuses] = lineno;
+                uses[nuses++] = file;
+            }
+        } else if (name_eq(key, "Icon")) {
             /* used by the platform build */
         } else diag_warn(p, 0, lineno, 1, "unknown project key '%s'", key);
     }
+    /* Uses= bindings after the project's own modules (the first module stays the default startup) */
+    for (ui = 0; ui < nuses; ui++) include_file(p, NULL, uses_line[ui], 1, dir, uses[ui]);
     if (startup) {
         int i;
         if (strncasecmp(startup, "Sub ", 4) == 0) {

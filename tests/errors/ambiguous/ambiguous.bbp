@@ -1,0 +1,7 @@
+# a Public Sub in two modules: unqualified use from a third is ambiguous; module-level
+# statements outside the startup module never run (warning)
+Name=ambiguous
+Startup=Sub Main
+Module=modA.bas
+Module=modB.bas
+Module=modC.bas

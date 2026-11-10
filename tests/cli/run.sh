@@ -20,6 +20,13 @@ for mode in vm nat; do
     else "$B" build "$d/timer/timer.bbp" -o "$tmp/timer" >/dev/null 2>&1 && got=$(cd "$d/timer" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=5 "$tmp/timer" 2>&1); fi
     [ "$got" = "ticks ok" ] || { echo "FAIL cli timer ($mode): $got"; fail=1; }
 done
+# a form named like its module is reachable from other modules (headless forms, VM and native)
+want_fn=$(printf 'opts hello opts load\no\nx\nsettings load\ns\ndone')
+for mode in vm nat; do
+    if [ $mode = vm ]; then got=$(cd "$d/formname" && BOING_HEADLESS=1 "$B" run formname.bbp 2>&1)
+    else "$B" build "$d/formname/formname.bbp" -o "$tmp/formname" >/dev/null 2>&1 && got=$(cd "$d/formname" && BOING_HEADLESS=1 "$tmp/formname" 2>&1); fi
+    [ "$got" = "$want_fn" ] || { echo "FAIL cli formname ($mode): $got"; fail=1; }
+done
 # the JIT's decision is logged once with -v (on, off with the reason, or forced), never without
 n=$(cd "$d/apppath" && "$B" run --jit -v apppath.bas 2>&1 >/dev/null | grep -c '^jit: ')
 [ "$n" = 1 ] || { echo "FAIL cli jit -v: $n decision lines"; fail=1; }

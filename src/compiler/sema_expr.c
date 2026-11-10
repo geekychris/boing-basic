@@ -753,6 +753,16 @@ static Node *byref_arg(Ctx *c, Node *arg, Param *pa, Proc *pr)
         a->flags |= NF_BYREF;
         return a;
     }
+    if (is_lvalue(a) && pa->ty->kind == T_VARIANT && pr->kind != PK_DECLARE && !(a->ty->kind == T_STRING && a->ty->fixlen) &&
+        (type_is_numeric(a->ty) || a->ty->kind == T_STRING || a->ty->kind == T_BOOLEAN || a->ty->kind == T_DATE)) {
+        /* VB passes the variable itself: here a hidden Variant, copied back after the call */
+        Node *w = node_new(E_WBARG, arg->file, arg->line, arg->col);
+        w->a = a;
+        w->b = mk_var(arg, new_temp(c, &ty_variant, arg));
+        w->c = coerce(c, a, &ty_variant);
+        w->ty = &ty_variant;
+        return w;
+    }
     if (is_lvalue(a) && pa->ty->kind != T_VARIANT && a->kind == E_VAR && pr->kind != PK_DECLARE &&
         a->ty->kind != T_UDT && !(a->ty->kind == T_OBJECT && pa->ty->kind == T_OBJECT)) {
         ERR(c, arg, "ByRef argument type mismatch: %s variable passed for %s parameter '%s'",
@@ -1034,10 +1044,23 @@ static Node *ext_call(Ctx *c, Node *e, ExtFunc *xf, NodeList *args, int mode)
 static Node *err_prop(Ctx *c, Node *at, const char *member, NodeList *args, int mode);
 
 /* resolve a bare name, possibly applied to args (args NULL = no parentheses) */
+/* a Public procedure defined in two modules, used unqualified from a third */
+static void check_ambiguous(Ctx *c, Node *e, Sym *s)
+{
+    Scope *sc;
+    if (!s || s->kind != SK_PROC || !s->ambig || !s->mod) return;
+    for (sc = c->scope; sc; sc = sc->parent)
+        if (sc == s->mod->scope) return;     /* its own module, or qualified (Module.Name) */
+    ERR(c, e, "ambiguous name '%s': it is a Public procedure in modules %s and %s (write %s.%s)",
+            e->name, s->mod->name, s->ambig->name, s->mod->name, e->name);
+}
+
 static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
 {
     Sym *s = scope_find(c->scope, e->name);
     int bi;
+    check_ambiguous(c, e, s);
+    if (s && s->kind == SK_MODULE && s->mod && s->mod->form_var) s = s->mod->form_var;    /* the form */
     if (s && s->is_retvar && args && s->proc) {
         /* F(...) inside F: a recursive call */
         {
@@ -1165,6 +1188,8 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
         if (handled) return r;
     }
     bi = builtin_find(e->name);
+    if (e->suffix == '$' && (name_eq(e->name, "Date") || name_eq(e->name, "Time")))
+        bi = builtin_find(name_eq(e->name, "Date") ? "__Date$" : "__Time$");     /* "mm-dd-yyyy", "hh:mm:ss" */
     if (bi >= 0) {
         Node *n = make_builtin(c, e, bi, args, mode, e->suffix);
         Node *str, *idx;
@@ -1449,6 +1474,8 @@ static Node *resolve_dot(Ctx *c, Node *e, NodeList *args, int mode)
             Module *m = s->mod;
             Sym *ms = scope_find_local(m->scope, e->name);
             Node tmp;
+            if ((!ms || (!ms->is_public && m != c->mod)) && m->form_var)
+                return resolve_member(c, e, mk_var(base, m->form_var), e->name, args, mode);   /* Form.Caption */
             if (!ms || (!ms->is_public && m != c->mod)) {
                 ERR(c, e, "module '%s' has no public member '%s'", m->name, e->name);
                 e->ty = &ty_variant;
@@ -1793,6 +1820,7 @@ Node *check_expr(Ctx *c, Node *e, int mode)
         /* a module procedure's native entry point (callback.c) */
         Sym *s = scope_find(c->scope, e->name);
         e->ty = &ty_long;
+        check_ambiguous(c, e, s);
         if (!s || s->kind != SK_PROC || !s->proc || s->proc->cls || s->proc->kind == PK_DECLARE || s->proc->kind == PK_EVENT) {
             ERR(c, e, "AddressOf needs the name of a Sub or Function in a module");
             return e;

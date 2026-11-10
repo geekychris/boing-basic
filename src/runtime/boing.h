@@ -825,6 +825,17 @@ bb_long bb_vartype(const bb_value *v);
 bb_value bb_array_fn(int argc, const bb_value *argv);   /* Array(...) */
 bb_value bb_iif(const bb_value *c, const bb_value *a, const bb_value *b);
 bb_value bb_choose(bb_long n, int argc, const bb_value *argv);
+bb_value bb_switch(int argc, const bb_value *argv);
+bb_long bb_qbcolor(bb_long n);
+bb_str *bb_date_str(void);
+bb_str *bb_time_str(void);
+bb_array *bb_filter(const bb_array *a, bb_str *match, bb_bool include, int text);
+bb_int bb_getattr(bb_str *path);
+void bb_setattr(bb_str *path, bb_long attr);
+bb_date bb_filedatetime(bb_str *path);
+bb_value bb_getallsettings(bb_str *app, bb_str *section);
+void bb_lock(bb_long fn, bb_long from, bb_long to);
+void bb_width(bb_long fn, bb_long w);
 
 /* Dates */
 bb_date bb_now(void);

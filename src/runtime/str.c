@@ -401,3 +401,31 @@ bb_bool bb_like(bb_str *s, bb_str *pattern, int text)
     const unsigned char *pp = (const unsigned char *)bb_str_ptr(pattern);
     return like_match(sp, sp + bb_str_len(s), pp, pp + bb_str_len(pattern), text) ? BB_TRUE : BB_FALSE;
 }
+
+/* Filter(source, match [, include [, compare]]): the elements of a 1-D String or Variant array
+   that contain match (include True) or don't; a String array, 0 To -1 when none */
+bb_array *bb_filter(const bb_array *a, bb_str *match, bb_bool include, int text)
+{
+    int32_t i, n = 0, lb = 0, ub;
+    bb_str **keep;
+    bb_array *r;
+    if (!a) bb_raise(13, NULL);
+    if (a->ndims != 1) bb_raise(5, NULL);
+    keep = (bb_str **)malloc(sizeof(bb_str *) * (size_t)(a->count + 1));
+    for (i = 0; i < a->count; i++) {
+        const char *p = (const char *)a->data + (size_t)i * a->esize;
+        bb_str *s;
+        int found;
+        if (a->etype == BB_STRING) s = bb_str_retain(*(bb_str *const *)p);
+        else if (a->etype == BB_VARIANT) s = bb_v_to_str((const bb_value *)p);
+        else { int32_t k; for (k = 0; k < n; k++) bb_str_release(keep[k]); free(keep); bb_raise(13, NULL); }
+        found = bb_instr(1, s, match, text) > 0;
+        if ((found != 0) == (include != 0)) keep[n++] = s;
+        else bb_str_release(s);
+    }
+    ub = n - 1;
+    r = bb_arr_new(BB_STRING, NULL, 1, &lb, &ub);
+    for (i = 0; i < n; i++) ((bb_str **)r->data)[i] = keep[i];
+    free(keep);
+    return r;
+}

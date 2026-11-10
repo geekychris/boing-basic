@@ -1,0 +1,5 @@
+# typed variables passed ByRef to Variant parameters are passed by reference (copied back)
+Name=byrefvariant
+Startup=Sub Main
+Module=main.bas
+Class=Acc.cls

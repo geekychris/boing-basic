@@ -1,0 +1,5 @@
+# a form (prefs.afg, window name=Settings) named like a Public Sub of another module: an error
+Name=formclash
+Startup=Sub Main
+Module=main.bas
+Form=prefs.afg
