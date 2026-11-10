@@ -84,7 +84,8 @@ $(OUT)/boing: $(BOING_OBJS) $(OUT)/libboing.a
 $(OUT)/obj/stdext/glue.c: FORCE
 	@mkdir -p $(dir $@)
 	@sh tools/stdext.sh glue $(STD_EXTS) | cmp -s - $@ || sh tools/stdext.sh glue $(STD_EXTS) > $@
-$(OUT)/obj/stdext/glue.o: $(OUT)/obj/stdext/glue.c
+# always: make's 1 s mtimes can miss a glue.c rewritten in the same second as the old glue.o
+$(OUT)/obj/stdext/glue.o: $(OUT)/obj/stdext/glue.c FORCE
 	$(CC) $(CFLAGS) -c $< -o $@
 define stdext_rule
 $(OUT)/obj/stdext/$(notdir $(1)).o: $(1) $(OUT)/flags.stamp

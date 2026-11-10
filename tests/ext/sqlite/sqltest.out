@@ -1,0 +1,34 @@
+available:True version 3:True
+open:True sqltest.db
+insert: 1  1  1 
+rows: 5 
+fields: 6  name pic
+ 1  Ann  5200  Long  3.75  Double [2026-11-10 00:00:00] null
+ 2  Bob  4100  Long  2.5  Double [Null] null
+ 3  Cy  900  Long Null Null [Null]  3 
+ 4  Dee  3000000000  Double Null Null [Null] null
+ 5  O'Brien; DROP TABLE player  1  Long Null Null [Null] null
+EOF:True 0 
+Dee= 3000000000  Ann= 5200  
+value:Bob none:True
+sum: 10201  expr: 42 BOING
+all: 2  1 Ann 3 True
+date:2026
+params: 2 
+in transaction:True
+bots: 200 False
+deleted: 200 
+after rollback: 200 
+bot2 bot3 bot199
+updated: 111 
+unique: 31601  UNIQUE constraint failed: player.name code 2067 
+syntax: 31601  near "SELEKT": syntax error
+count: 450 
+column: 5 
+past end: 31601 
+array: 450 
+closed: 31601 False
+read-only: 31601 
+still there: 205 
+bad path: 31601 
+memory: 3  6 
