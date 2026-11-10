@@ -30,4 +30,5 @@ Next
 For Each t In doc.Root.SelectNodes("channel/item/title")
     Print "title: "; t.Text
 Next
+Print doc.SelectNodes("rss/channel/item").Count; "items; the second has id "; chan.Children(2).Attribute("id")
 Print doc.Find("guid") Is Nothing; " "; chan.Child("item").ChildText("guid", "(no guid)")

@@ -8,5 +8,6 @@ re.Pattern = "(-)"                      ' a group: the dashes are pieces too
 Print Join(re.Split("1-2-3"), "|")
 
 Print re.Escape("1+1=2? (yes) $5.00")
+Print re.Escape("Work:old-files/x")         ' / needs no escape
 re.Pattern = re.Escape("1+1=2?")
 Print re.Test("is 1+1=2?"); re.Test("11=2")

@@ -33,6 +33,11 @@ names in Boing BASIC aren't case-sensitive, so a variable named like a class hid
 a variable `stringbuilder` or `csv`. (A module named like a class, such as a program
 `dictionary.bas`, is fine: after `As` and `New` the name still means the class.)
 
+The libraries that read and write files (`Csv`, `IniFile`, `Logger`, `XmlDocument`, `Zip` and
+`SQLite`) take file names as `Open` does, so `App.Path & "/name"` finds a file beside the
+program even when the program is at the top of a volume (see
+[Files beside the program](10-files.md#files-beside-the-program-apppath)).
+
 ## Dictionary
 
 A `Dictionary` keeps values under keys: a price under a product name, a count under a word, a
@@ -1664,7 +1669,7 @@ compiler checks the member names.
 | `Replace(text, replacement)` | text with the first match (with `Global`, every match) replaced by replacement, which can contain `$1` and the other forms below |
 | `Split(text)` | an array (from 0) of the pieces of text between the matches; the text of any groups in the pattern is included as pieces of its own |
 | `FirstMatch(text)` | the text of the first match, `""` if there is none |
-| `Escape(text)` | text with a `\` put before every special character (`` \ ^ $ . \| ? * + ( ) [ ] { } / - ``), so that it matches literally |
+| `Escape(text)` | text with a `\` put before every special character (`` \ ^ $ . \| ? * + ( ) [ ] { } - ``), so that it matches literally |
 
 The pattern is translated into the engine's own form once, and kept until `Pattern`,
 `IgnoreCase` or `MultiLine` changes. Using one `RegExp` for every line of a big file is
@@ -1885,6 +1890,7 @@ re.Pattern = "(-)"                      ' a group: the dashes are pieces too
 Print Join(re.Split("1-2-3"), "|")
 
 Print re.Escape("1+1=2? (yes) $5.00")
+Print re.Escape("Work:old-files/x")         ' / needs no escape
 re.Pattern = re.Escape("1+1=2?")
 Print re.Test("is 1+1=2?"); re.Test("11=2")
 ```
@@ -1893,6 +1899,7 @@ Print re.Test("is 1+1=2?"); re.Test("11=2")
  4  pieces: apples|pears|plums|cherries
 1|-|2|-|3
 1\+1=2\? \(yes\) \$5\.00
+Work:old\-files/x
 TrueFalse
 ```
 
@@ -2096,9 +2103,9 @@ it returns False. After each `ReadRecord`, the current record's fields are there
 | `LoadText text` | the same, from a String |
 | `ReadRecord()` | moves to the next record; returns False at the end. Empty lines are skipped. |
 | `Field(index)`, `Field(name)` | a field of the current record: by its position, counting from **0**, or by its column name (needs `HasHeader`; the case of the name doesn't matter). `Field` is the default member, so `table("name")` works too. A field the record doesn't have is `""`. |
-| `Fields` | the current record as an array of Strings, from 0 |
+| `Fields` | the current record as an array of Strings, from 0 (a property: read it, don't assign to it) |
 | `FieldCount` | how many fields the current record has |
-| `Headers` | the column names (the first record) as an array, with `HasHeader` |
+| `Headers` | the column names (the first record) as an array, with `HasHeader` (a property, like `Fields`) |
 | `ColumnIndex(name)` | the position of a column (from 0), -1 if there is none |
 | `ReadAll()` | all the remaining records as a two-dimensional array `a(record, field)`, both from 0. Records with fewer fields are padded with `""`. |
 | `RecordNumber` | the current record's number: 1 for the first record after the header |
@@ -2806,7 +2813,7 @@ from.
 | `{level}` | DEBUG, INFO, WARNING, ERROR or FATAL |
 | `{source}` | the `Source` property |
 | `{message}` | the message |
-| `{line}` | the program line that logged the message. This works in compiled (native) programs; in the interpreter it shows 0. |
+| `{line}` | the number of the program line that logged the message |
 
 Anything else in the pattern is copied as it is. For example `"{time}.{ms} [{source}] {message}"`
 gives lines like `14:03:21.482 [net] connected`.
@@ -2976,6 +2983,7 @@ Next
 | `CreateElement(name)` | a new element that isn't in the tree yet: put it there with `AppendChild` or `InsertBefore` |
 | `Find(name)` | the first element with this name anywhere in the document, or `Nothing` |
 | `FindAll(name)` | every element with this name anywhere in the document, in document order. `"*"` gives every element. |
+| `SelectNodes(path)` | the elements reached by a path of names separated by `/` that starts at the root element: `doc.SelectNodes("rss/channel/item")`. `*` in the path matches any name. |
 | `Indent` | True (the default): `Xml`, `Save` and an element's `Xml` write one element per line, indented by two spaces. False: everything on one line. |
 
 ### XmlElement
@@ -2988,7 +2996,7 @@ Next
 | `HasAttribute(name)` | True if the element has the attribute |
 | `RemoveAttribute(name)` | removes an attribute; True if it was there |
 | `AttributeNames` | the attribute names, as an array of Strings in the order they appear |
-| `Children` | the child elements (those directly inside this one), as a list |
+| `Children` / `Children(i)` | the child elements (those directly inside this one), as a list; with a position, the one child at that position, counted from 0 (error 9 if there is none) |
 | `ChildCount` | the number of child elements |
 | `Child(name)` | the first child element with this name, or `Nothing` |
 | `ChildText(name [, default])` | the text of that child, or the default (`""` if none) when there is no such child |
@@ -3007,9 +3015,8 @@ Next
 
 `Children`, `FindAll` and `SelectNodes` return a list of elements. A list has `Count` and
 `Item(i)`, counted from 0; `Item` is the default member, so `doc.FindAll("title")(0)` is the
-first title. Go through a list with `For Each`. `Children` takes no argument, so write
-`e.Children.Item(i)` (or `e.Children()(i)`), not `e.Children(i)`, which is error 438. A list is a snapshot: adding or removing elements
-later doesn't change it.
+first title, and `e.Children(i)` is the same as `e.Children.Item(i)`. Go through a list with
+`For Each`. A list is a snapshot: adding or removing elements later doesn't change it.
 
 Names are case-sensitive in XML: `Find("Title")` doesn't find `<title>`.
 
@@ -3057,6 +3064,7 @@ Next
 For Each t In doc.Root.SelectNodes("channel/item/title")
     Print "title: "; t.Text
 Next
+Print doc.SelectNodes("rss/channel/item").Count; "items; the second has id "; chan.Children(2).Attribute("id")
 Print doc.Find("guid") Is Nothing; " "; chan.Child("item").ChildText("guid", "(no guid)")
 ```
 
@@ -3069,14 +3077,17 @@ Feed: Amiga news, 3 elements in the channel
     https://example.com/news/102
 title: Boing BASIC & AmiForge released
 title: Meeting on Saturday
+ 2 items; the second has id 102
 True (no guid)
 ```
 
 `&amp;` in the document became `&` in the text: the reader turns XML's escapes into the
 characters they stand for, and the writer turns them back.
 
-`SelectNodes("channel/item/title")` starts *below* the root, so the path doesn't name `rss`
-itself. `FindAll("title")` would also have found the channel's own title.
+An element's `SelectNodes("channel/item/title")` starts *below* that element, so here the path
+doesn't name `rss` itself; the document's `SelectNodes` starts at the root, so the same titles are
+`doc.SelectNodes("rss/channel/item/title")`. `FindAll("title")` would also have found the
+channel's own title.
 
 ### Example: building and changing a document
 
@@ -3572,9 +3583,11 @@ open:False
  1 album: Computer World
 ```
 
-SQLite takes the file name exactly as you give it. A name without a drawer, as here, is in the
-current drawer; a program that keeps its database beside itself puts `App.Path` in front of the
-name (the address book below shows how).
+A name without a drawer, as here, is in the current drawer. A program that keeps its database
+beside itself puts `App.Path` in front of the name: `db.Open App.Path & "/records.db"`. That
+works even for a program at the top of a volume, where `App.Path` is `DH1:`: as with the other
+file functions (see [Files beside the program](10-files.md#files-beside-the-program-apppath)), `DH1:/records.db` is taken as
+`DH1:records.db`.
 
 ### The SQLite object (the database)
 
@@ -3597,7 +3610,7 @@ name (the address book below shows how).
 | `Path` | the file name given to `Open` |
 | `ErrorCode` | SQLite's own number for the last error, for example 2067 for a value that must be unique and isn't |
 | `Timeout` | how long, in milliseconds, to wait for a database that another program is writing to; default 5000 |
-| `Version` | the version of SQLite, such as `3.34.0` (the one in AmigaOS programs) |
+| `Version` | the version of SQLite: `3.34.0` in AmigaOS programs; on macOS and Linux, the version of the system's SQLite |
 | `Available` | True when SQLite can be used: always, in a program that has the extension |
 
 ### Parameters: always use `?`
@@ -3956,15 +3969,9 @@ Opening the database and creating the table the first time:
 
 <!-- project: examples/book/ch20-libraries/addressbook/addressbook.bbp -->
 ```basic
-Private Function DataFile(ByVal name As String) As String
-    Dim p As String
-    p = App.Path
-    If p = "" Or Right(p, 1) = ":" Or Right(p, 1) = "/" Then DataFile = p & name Else DataFile = p & "/" & name
-End Function
-
 Private Sub Form_Load()
     Set db = CreateObject("SQLite")
-    db.Open DataFile("AddressBook.db")
+    db.Open App.Path & "/AddressBook.db"     ' the database beside the program
     db.Execute "CREATE TABLE IF NOT EXISTS contact (" & _
                "id INTEGER PRIMARY KEY, name TEXT NOT NULL, phone TEXT, email TEXT, notes TEXT)"
     If db.QueryValue("SELECT COUNT(*) FROM contact") = 0 Then AddSamples
@@ -3972,9 +3979,9 @@ Private Sub Form_Load()
 End Sub
 ```
 
-`DataFile` puts the program's drawer, `App.Path`, in front of the file name, with a `/` only
-when the drawer isn't a volume such as `DH1:`, so the database is found wherever the program
-is started from. `CREATE TABLE IF NOT EXISTS` makes the table the first time and does nothing
+The database is kept in the program's drawer, `App.Path`, so it is found wherever the program
+is started from (and `DH1:/AddressBook.db` is taken as `DH1:AddressBook.db` when the program is
+at the top of a volume). `CREATE TABLE IF NOT EXISTS` makes the table the first time and does nothing
 after that.
 
 Filling the list from the table, and showing the selected contact:
@@ -4028,6 +4035,87 @@ Private Sub saveButton_Click()
 End Sub
 ```
 
+### Example: importing a CSV file
+
+`examples/book/ch20-libraries/csvimport` reads a CSV file into an SQLite table: the `Csv`
+reader and SQLite together. The first line of the file names the columns, and the program makes
+a table with those columns (if it isn't there yet) and puts every record into it, with a fuel
+gauge and a Cancel button. Its project file asks for SQLite, and its form is:
+
+```text
+# importer.afg
+window name=importer title="CSV to SQLite" width=480 height=200
+vlayout id=root
+  getfile id=src label="CSV file" pattern="#?.csv" title="CSV file to import"
+  getfile id=dst label="Database" pattern="#?.db" title="SQLite database" save=1
+  string id=tbl label="Table" text="data" maxchars=64
+  fuelgauge id=progress min=0 max=100
+  hlayout weight=0
+    button id=importbtn text="_Import"
+    button id=cancelbtn text="_Cancel" disabled=1
+  label id=status text="Choose a CSV file and a database"
+  timer id=tick interval=10 enabled=0
+```
+
+Start it with no arguments and choose the files in the window, or give it the two file names
+to import straight away and quit (it prints what it did):
+
+```sh
+csvimport sample.csv data.db
+```
+
+The drawer has a `sample.csv` of 1000 records, with quoted fields, doubled quotes and line
+breaks inside fields. The Import button does the preparation: it opens the CSV file and reads
+its column names with `Headers`, opens the database, creates the table, prepares the `INSERT`
+with one `?` per column, and starts a transaction. Column names from the file are made safe as
+SQL names by `Ident` (letters, digits and `_` only), because names, unlike values, can't be `?`
+parameters:
+
+*Listing 20.87* (`examples/book/ch20-libraries/csvimport/csvimport.bbp`)
+
+<!-- project: examples/book/ch20-libraries/csvimport/csvimport.bbp -->
+```basic
+Private Sub StartImport()
+    Dim cols, i As Long, sql As String, marks As String
+    On Error GoTo Failed
+    Set table = CreateObject("Csv")
+    table.HasHeader = True
+    table.Open src.FileName
+    cols = table.Headers
+    If UBound(cols) < 0 Then Err.Raise 5, , "the CSV file has no header line"
+    Set db = CreateObject("SQLite")
+    db.Open dst.FileName
+    sql = "CREATE TABLE IF NOT EXISTS " & Ident(tbl.Text) & " ("
+    For i = 0 To UBound(cols)
+        sql = sql & IIf(i > 0, ", ", "") & Ident(cols(i)) & " TEXT"
+        marks = marks & IIf(i > 0, ", ", "") & "?"
+    Next
+    db.Execute sql & ")"
+    Set ins = db.Prepare("INSERT INTO " & Ident(tbl.Text) & " VALUES (" & marks & ")")
+    total = CountLines(src.FileName) - 1
+    progress.Min = 0
+    progress.Max = IIf(total > 0, total, 1)
+    progress.Value = 0
+    db.BeginTransaction
+    cancelled = False
+    t0 = Timer
+    importbtn.Enabled = False
+    cancelbtn.Enabled = True
+    status.Caption = "Importing " & total & " records ..."
+    tick.Enabled = True
+    Exit Sub
+Failed:
+    Finish "Can't import: " & Err.Description
+End Sub
+```
+
+The records themselves are read and inserted by the timer, at most 200 at a time, so that the
+window keeps working and Cancel can stop the import between two slices; the `tick_Timer`
+handler is shown in [Timer slices](19-networking.md#the-same-pattern-for-other-jobs) in
+chapter 19. All the records go in one transaction: a thousand inserts are saved to the disk
+once, at `Commit`, and a Cancel or an error rolls them all back, so the table never holds half
+a file.
+
 ### Errors
 
 | Error | When |
@@ -4039,7 +4127,7 @@ End Sub
 | 13 | a value that can't be stored, such as an object |
 | 380 | a negative `Timeout` |
 
-*Listing 20.87* (`examples/book/ch20-libraries/sqlerrors/sqlerrors.bbp`)
+*Listing 20.88* (`examples/book/ch20-libraries/sqlerrors/sqlerrors.bbp`)
 
 <!-- project: examples/book/ch20-libraries/sqlerrors/sqlerrors.bbp -->
 ```basic

@@ -1,0 +1,1174 @@
+id,name,city,score,comment
+1,Cy,Graz,791,"says ""hi"""
+2,Bob,Leeds,9548,
+3,Dee,Bonn,1408,
+4,Gunnar,Bonn,3943,"two
+lines"
+5,Gunnar,Bonn,9264,
+6,Dee,Bonn,9455,
+7,Gunnar,Bonn,3622,"a, b"
+8,Cy,Leeds,6867,
+9,Bob,Leeds,9179,fine
+10,Bob,Oslo,6101,fine
+11,Bob,Bonn,3374,
+12,Gunnar,Leeds,7628,"two
+lines"
+13,Hilde,Leeds,4911,"a, b"
+14,Cy,Oslo,1341,fine
+15,Eve,Graz,5627,"a, b"
+16,Eve,Bonn,1934,"two
+lines"
+17,Gunnar,Oslo,5604,"a, b"
+18,Hilde,Graz,642,fine
+19,Fritz,Leeds,5737,
+20,Hilde,Graz,1126,"a, b"
+21,Eve,Graz,1064,
+22,Eve,Graz,4662,
+23,Fritz,Bonn,7564,"two
+lines"
+24,Cy,Bonn,8088,"says ""hi"""
+25,Dee,Leeds,2119,
+26,Gunnar,Graz,8134,fine
+27,Cy,Graz,6580,
+28,Eve,Oslo,7053,"a, b"
+29,Eve,Graz,5878,"a, b"
+30,Dee,Oslo,1359,"two
+lines"
+31,Cy,Oslo,3822,fine
+32,Hilde,Oslo,4304,
+33,Ann,Oslo,6864,"says ""hi"""
+34,Fritz,Leeds,2056,"a, b"
+35,Ann,Graz,9163,"a, b"
+36,Gunnar,Graz,6457,"two
+lines"
+37,Hilde,Graz,1019,
+38,Bob,Oslo,7219,fine
+39,Bob,Leeds,9842,fine
+40,Bob,Bonn,9286,
+41,Bob,Leeds,417,fine
+42,Dee,Graz,2433,
+43,Fritz,Leeds,7768,"says ""hi"""
+44,Bob,Graz,7634,
+45,Hilde,Leeds,1407,"two
+lines"
+46,Bob,Leeds,4337,fine
+47,Cy,Bonn,3362,"two
+lines"
+48,Fritz,Oslo,8899,"a, b"
+49,Eve,Bonn,4278,
+50,Fritz,Oslo,5827,"a, b"
+51,Fritz,Oslo,3197,fine
+52,Gunnar,Oslo,3275,fine
+53,Hilde,Leeds,474,"a, b"
+54,Eve,Graz,4246,
+55,Fritz,Graz,5726,fine
+56,Bob,Oslo,1673,"says ""hi"""
+57,Hilde,Oslo,5533,fine
+58,Hilde,Bonn,7855,fine
+59,Bob,Bonn,6365,"says ""hi"""
+60,Hilde,Oslo,7109,fine
+61,Bob,Graz,7588,"says ""hi"""
+62,Bob,Oslo,2785,"two
+lines"
+63,Ann,Oslo,9679,fine
+64,Cy,Graz,5741,"two
+lines"
+65,Cy,Bonn,233,fine
+66,Cy,Graz,3191,
+67,Ann,Leeds,3486,fine
+68,Dee,Leeds,4249,"says ""hi"""
+69,Gunnar,Oslo,997,"a, b"
+70,Hilde,Graz,8219,"says ""hi"""
+71,Cy,Bonn,7211,fine
+72,Ann,Oslo,2823,fine
+73,Hilde,Bonn,9117,fine
+74,Fritz,Graz,1738,
+75,Ann,Oslo,3134,"a, b"
+76,Ann,Bonn,8318,"says ""hi"""
+77,Ann,Bonn,7262,"two
+lines"
+78,Dee,Leeds,7411,"says ""hi"""
+79,Hilde,Oslo,8572,"a, b"
+80,Dee,Graz,2246,"says ""hi"""
+81,Bob,Graz,7243,"two
+lines"
+82,Bob,Oslo,7017,"says ""hi"""
+83,Dee,Leeds,2004,
+84,Fritz,Oslo,4146,fine
+85,Hilde,Oslo,1542,fine
+86,Hilde,Oslo,3665,"two
+lines"
+87,Gunnar,Graz,5556,fine
+88,Dee,Leeds,5218,"two
+lines"
+89,Fritz,Bonn,5537,
+90,Hilde,Graz,296,"a, b"
+91,Fritz,Leeds,8392,"two
+lines"
+92,Bob,Oslo,1716,
+93,Eve,Leeds,648,
+94,Eve,Oslo,6918,fine
+95,Gunnar,Oslo,8791,"says ""hi"""
+96,Hilde,Leeds,1465,"a, b"
+97,Ann,Oslo,6968,"says ""hi"""
+98,Eve,Bonn,1451,
+99,Bob,Oslo,1091,"says ""hi"""
+100,Bob,Graz,189,"says ""hi"""
+101,Gunnar,Leeds,2117,"says ""hi"""
+102,Dee,Bonn,2645,
+103,Ann,Oslo,3305,"says ""hi"""
+104,Eve,Oslo,4750,"says ""hi"""
+105,Cy,Leeds,5685,"two
+lines"
+106,Eve,Bonn,251,
+107,Dee,Graz,4025,
+108,Bob,Graz,8110,"two
+lines"
+109,Gunnar,Leeds,3525,"a, b"
+110,Fritz,Oslo,2289,fine
+111,Fritz,Bonn,2126,"two
+lines"
+112,Bob,Leeds,7057,
+113,Ann,Bonn,6240,fine
+114,Eve,Oslo,4801,"a, b"
+115,Hilde,Oslo,2581,
+116,Hilde,Bonn,4312,"says ""hi"""
+117,Fritz,Leeds,4005,"says ""hi"""
+118,Eve,Oslo,5842,
+119,Ann,Leeds,6252,fine
+120,Hilde,Leeds,8237,
+121,Dee,Bonn,1488,fine
+122,Bob,Oslo,6545,"says ""hi"""
+123,Ann,Graz,368,"a, b"
+124,Eve,Oslo,1384,"says ""hi"""
+125,Cy,Graz,5343,"a, b"
+126,Cy,Leeds,2371,"two
+lines"
+127,Gunnar,Oslo,8581,
+128,Ann,Oslo,1394,"a, b"
+129,Ann,Oslo,5909,
+130,Gunnar,Graz,9150,
+131,Ann,Oslo,8016,
+132,Ann,Graz,1148,"says ""hi"""
+133,Bob,Bonn,7763,"a, b"
+134,Bob,Leeds,3846,"says ""hi"""
+135,Dee,Graz,8092,fine
+136,Bob,Graz,4707,"two
+lines"
+137,Dee,Bonn,9825,
+138,Fritz,Leeds,4987,fine
+139,Cy,Bonn,7903,"a, b"
+140,Hilde,Leeds,1630,
+141,Hilde,Leeds,8462,fine
+142,Hilde,Graz,7640,"says ""hi"""
+143,Dee,Leeds,1406,
+144,Ann,Leeds,7519,"two
+lines"
+145,Hilde,Leeds,6338,
+146,Dee,Bonn,9526,fine
+147,Cy,Leeds,5890,
+148,Eve,Bonn,5983,fine
+149,Hilde,Graz,6456,fine
+150,Cy,Bonn,8055,
+151,Gunnar,Leeds,2305,"two
+lines"
+152,Fritz,Graz,5178,"two
+lines"
+153,Fritz,Bonn,5317,
+154,Gunnar,Bonn,3207,"says ""hi"""
+155,Eve,Leeds,6098,
+156,Gunnar,Graz,9653,
+157,Fritz,Graz,4508,
+158,Eve,Bonn,845,
+159,Cy,Oslo,4353,"says ""hi"""
+160,Fritz,Oslo,6116,"two
+lines"
+161,Ann,Graz,9079,"two
+lines"
+162,Dee,Bonn,810,"a, b"
+163,Hilde,Oslo,4689,"two
+lines"
+164,Ann,Oslo,2797,"two
+lines"
+165,Gunnar,Leeds,4616,"two
+lines"
+166,Eve,Leeds,6655,"says ""hi"""
+167,Eve,Graz,9131,fine
+168,Bob,Oslo,2648,"two
+lines"
+169,Dee,Graz,9017,
+170,Hilde,Leeds,7372,fine
+171,Cy,Oslo,3999,"two
+lines"
+172,Cy,Leeds,9107,
+173,Fritz,Oslo,6034,
+174,Dee,Bonn,6763,"says ""hi"""
+175,Gunnar,Oslo,6174,"two
+lines"
+176,Fritz,Bonn,8161,"says ""hi"""
+177,Fritz,Oslo,8247,"says ""hi"""
+178,Dee,Bonn,4440,"a, b"
+179,Gunnar,Graz,7304,fine
+180,Eve,Bonn,2084,"two
+lines"
+181,Gunnar,Graz,9620,
+182,Ann,Bonn,6414,"two
+lines"
+183,Hilde,Graz,4070,"a, b"
+184,Dee,Oslo,2491,
+185,Bob,Graz,1392,"a, b"
+186,Ann,Bonn,2058,"a, b"
+187,Ann,Leeds,2096,fine
+188,Gunnar,Bonn,1629,"says ""hi"""
+189,Eve,Oslo,6358,
+190,Dee,Bonn,171,"says ""hi"""
+191,Eve,Graz,4564,"a, b"
+192,Dee,Graz,8622,"says ""hi"""
+193,Dee,Bonn,6747,fine
+194,Ann,Bonn,3180,"says ""hi"""
+195,Gunnar,Bonn,4214,"two
+lines"
+196,Gunnar,Leeds,3715,fine
+197,Ann,Leeds,6890,"two
+lines"
+198,Gunnar,Oslo,110,"says ""hi"""
+199,Bob,Oslo,8121,"says ""hi"""
+200,Eve,Oslo,3781,fine
+201,Dee,Leeds,4832,"two
+lines"
+202,Hilde,Oslo,3658,
+203,Gunnar,Bonn,9745,"two
+lines"
+204,Gunnar,Bonn,3488,fine
+205,Cy,Graz,849,
+206,Cy,Graz,7366,
+207,Bob,Bonn,2713,"says ""hi"""
+208,Dee,Oslo,8598,"says ""hi"""
+209,Ann,Leeds,6203,"two
+lines"
+210,Fritz,Graz,2773,"says ""hi"""
+211,Ann,Bonn,4584,
+212,Fritz,Graz,2026,
+213,Dee,Graz,5843,"a, b"
+214,Gunnar,Bonn,807,"says ""hi"""
+215,Dee,Leeds,8872,"two
+lines"
+216,Dee,Leeds,5967,"two
+lines"
+217,Ann,Graz,4063,"two
+lines"
+218,Ann,Graz,571,"two
+lines"
+219,Bob,Bonn,4210,"two
+lines"
+220,Bob,Leeds,5946,fine
+221,Fritz,Bonn,4295,"says ""hi"""
+222,Eve,Leeds,61,"says ""hi"""
+223,Bob,Bonn,3831,"a, b"
+224,Hilde,Graz,6332,
+225,Gunnar,Graz,2174,"says ""hi"""
+226,Cy,Bonn,4969,"two
+lines"
+227,Dee,Leeds,5235,fine
+228,Fritz,Bonn,8386,"two
+lines"
+229,Gunnar,Oslo,4051,fine
+230,Bob,Bonn,7892,"two
+lines"
+231,Fritz,Oslo,6988,"a, b"
+232,Bob,Leeds,1377,
+233,Bob,Graz,8167,fine
+234,Cy,Oslo,2177,"two
+lines"
+235,Hilde,Oslo,8823,"two
+lines"
+236,Eve,Leeds,4577,
+237,Eve,Leeds,4162,"a, b"
+238,Dee,Graz,4053,"says ""hi"""
+239,Dee,Oslo,2512,fine
+240,Dee,Leeds,1061,"says ""hi"""
+241,Eve,Oslo,8312,"two
+lines"
+242,Dee,Bonn,7600,"a, b"
+243,Bob,Bonn,7778,
+244,Hilde,Leeds,661,fine
+245,Dee,Bonn,825,"says ""hi"""
+246,Dee,Bonn,6098,fine
+247,Cy,Graz,9880,"a, b"
+248,Ann,Bonn,9767,"says ""hi"""
+249,Fritz,Oslo,613,"a, b"
+250,Fritz,Oslo,723,"says ""hi"""
+251,Eve,Bonn,9820,fine
+252,Ann,Leeds,6700,fine
+253,Cy,Leeds,1276,"says ""hi"""
+254,Ann,Graz,8979,fine
+255,Bob,Graz,1661,"two
+lines"
+256,Cy,Bonn,2681,"two
+lines"
+257,Eve,Graz,4641,"two
+lines"
+258,Gunnar,Bonn,5117,"says ""hi"""
+259,Fritz,Graz,6823,"a, b"
+260,Fritz,Oslo,6401,
+261,Dee,Bonn,7113,"two
+lines"
+262,Gunnar,Bonn,1482,fine
+263,Fritz,Graz,2663,"two
+lines"
+264,Ann,Bonn,9036,fine
+265,Gunnar,Bonn,9385,fine
+266,Fritz,Oslo,2390,"a, b"
+267,Eve,Oslo,8538,"says ""hi"""
+268,Bob,Bonn,6287,fine
+269,Dee,Leeds,2075,"two
+lines"
+270,Hilde,Leeds,874,
+271,Gunnar,Bonn,2625,"a, b"
+272,Gunnar,Oslo,7748,fine
+273,Dee,Bonn,6549,fine
+274,Cy,Graz,5885,"a, b"
+275,Cy,Oslo,3155,
+276,Ann,Leeds,1928,
+277,Hilde,Leeds,6882,"two
+lines"
+278,Dee,Graz,6376,"says ""hi"""
+279,Hilde,Graz,2928,"says ""hi"""
+280,Ann,Graz,7623,
+281,Hilde,Graz,2942,fine
+282,Gunnar,Bonn,1099,"two
+lines"
+283,Fritz,Graz,5985,fine
+284,Hilde,Bonn,666,
+285,Bob,Leeds,8380,fine
+286,Ann,Graz,2231,
+287,Bob,Bonn,3173,
+288,Hilde,Leeds,2705,fine
+289,Bob,Leeds,4132,fine
+290,Fritz,Leeds,7477,fine
+291,Eve,Graz,3413,fine
+292,Eve,Oslo,5227,"a, b"
+293,Ann,Oslo,2983,"says ""hi"""
+294,Cy,Leeds,5371,"two
+lines"
+295,Cy,Leeds,1885,"two
+lines"
+296,Ann,Leeds,7422,"a, b"
+297,Bob,Leeds,8776,"a, b"
+298,Fritz,Leeds,6156,"two
+lines"
+299,Cy,Leeds,5420,"says ""hi"""
+300,Hilde,Oslo,2895,
+301,Ann,Leeds,8455,"a, b"
+302,Eve,Leeds,29,"says ""hi"""
+303,Dee,Oslo,4767,
+304,Gunnar,Graz,8399,"a, b"
+305,Ann,Oslo,8001,"says ""hi"""
+306,Ann,Bonn,891,fine
+307,Fritz,Leeds,1742,
+308,Fritz,Oslo,6770,"a, b"
+309,Eve,Oslo,3345,"a, b"
+310,Hilde,Oslo,2207,"says ""hi"""
+311,Dee,Oslo,7386,
+312,Bob,Oslo,4419,
+313,Eve,Bonn,919,"two
+lines"
+314,Fritz,Graz,9861,"a, b"
+315,Hilde,Oslo,2704,"a, b"
+316,Ann,Bonn,8708,
+317,Gunnar,Oslo,3893,
+318,Ann,Bonn,202,fine
+319,Dee,Oslo,6769,"a, b"
+320,Gunnar,Oslo,8332,fine
+321,Bob,Leeds,794,"says ""hi"""
+322,Ann,Graz,7154,"two
+lines"
+323,Bob,Graz,2873,"two
+lines"
+324,Bob,Leeds,3805,fine
+325,Bob,Leeds,4313,
+326,Eve,Graz,8572,
+327,Eve,Oslo,1399,"says ""hi"""
+328,Ann,Oslo,4265,"a, b"
+329,Dee,Oslo,5355,fine
+330,Gunnar,Leeds,9850,fine
+331,Gunnar,Graz,7735,fine
+332,Ann,Bonn,7163,"a, b"
+333,Eve,Oslo,6415,fine
+334,Bob,Oslo,2369,"a, b"
+335,Ann,Bonn,1747,
+336,Cy,Leeds,2323,"a, b"
+337,Ann,Bonn,2267,
+338,Bob,Bonn,1077,
+339,Fritz,Oslo,8747,"a, b"
+340,Gunnar,Bonn,4039,
+341,Dee,Bonn,554,fine
+342,Bob,Leeds,7817,
+343,Cy,Bonn,3358,
+344,Fritz,Leeds,6942,"says ""hi"""
+345,Ann,Leeds,4205,"says ""hi"""
+346,Ann,Leeds,5256,"says ""hi"""
+347,Hilde,Leeds,507,"a, b"
+348,Ann,Graz,8497,"two
+lines"
+349,Fritz,Graz,788,
+350,Dee,Bonn,9413,"a, b"
+351,Cy,Graz,21,"says ""hi"""
+352,Dee,Leeds,884,"a, b"
+353,Fritz,Graz,1567,
+354,Cy,Graz,9708,"two
+lines"
+355,Eve,Oslo,4648,"says ""hi"""
+356,Dee,Graz,2716,fine
+357,Bob,Graz,9195,
+358,Fritz,Leeds,1558,
+359,Gunnar,Bonn,6916,"two
+lines"
+360,Fritz,Oslo,4966,
+361,Gunnar,Oslo,6214,"says ""hi"""
+362,Hilde,Oslo,8708,fine
+363,Ann,Leeds,9528,"a, b"
+364,Cy,Graz,9072,"says ""hi"""
+365,Cy,Graz,7189,"says ""hi"""
+366,Dee,Oslo,5473,"says ""hi"""
+367,Dee,Oslo,4382,"two
+lines"
+368,Cy,Oslo,4056,"says ""hi"""
+369,Fritz,Oslo,3870,"says ""hi"""
+370,Dee,Leeds,1667,"says ""hi"""
+371,Bob,Oslo,6295,fine
+372,Cy,Leeds,4872,fine
+373,Eve,Oslo,1790,"two
+lines"
+374,Eve,Oslo,6362,
+375,Ann,Bonn,6537,"two
+lines"
+376,Dee,Leeds,7590,"two
+lines"
+377,Cy,Leeds,9891,
+378,Ann,Oslo,7045,"two
+lines"
+379,Gunnar,Oslo,9564,"a, b"
+380,Cy,Bonn,7436,fine
+381,Fritz,Leeds,1603,"two
+lines"
+382,Dee,Graz,2563,"two
+lines"
+383,Gunnar,Graz,7457,"says ""hi"""
+384,Gunnar,Oslo,5374,
+385,Gunnar,Graz,1742,
+386,Eve,Oslo,2635,
+387,Fritz,Bonn,9413,fine
+388,Dee,Graz,8391,"two
+lines"
+389,Fritz,Leeds,6723,
+390,Dee,Oslo,6430,"two
+lines"
+391,Bob,Leeds,927,"a, b"
+392,Eve,Graz,6548,"says ""hi"""
+393,Ann,Bonn,6858,
+394,Fritz,Leeds,1790,"two
+lines"
+395,Eve,Graz,8635,fine
+396,Gunnar,Graz,3473,fine
+397,Cy,Bonn,3164,fine
+398,Dee,Oslo,5785,"two
+lines"
+399,Hilde,Leeds,8982,"two
+lines"
+400,Hilde,Leeds,3775,fine
+401,Gunnar,Leeds,6981,"says ""hi"""
+402,Hilde,Bonn,4607,fine
+403,Dee,Leeds,5248,"says ""hi"""
+404,Hilde,Graz,1399,"two
+lines"
+405,Cy,Leeds,6309,"says ""hi"""
+406,Bob,Leeds,2300,
+407,Fritz,Bonn,188,"a, b"
+408,Bob,Leeds,4096,fine
+409,Bob,Oslo,3827,"a, b"
+410,Hilde,Leeds,2501,fine
+411,Gunnar,Oslo,9986,fine
+412,Bob,Leeds,3233,"a, b"
+413,Dee,Bonn,7185,"two
+lines"
+414,Bob,Leeds,6865,
+415,Cy,Graz,8078,fine
+416,Ann,Graz,7652,"a, b"
+417,Hilde,Oslo,8162,fine
+418,Ann,Oslo,5254,fine
+419,Hilde,Leeds,7631,"two
+lines"
+420,Gunnar,Graz,1235,"says ""hi"""
+421,Fritz,Bonn,336,fine
+422,Ann,Leeds,1539,"a, b"
+423,Hilde,Graz,2367,"a, b"
+424,Dee,Graz,2079,
+425,Bob,Leeds,5592,"says ""hi"""
+426,Dee,Leeds,7130,"two
+lines"
+427,Gunnar,Leeds,9077,"says ""hi"""
+428,Eve,Leeds,5819,
+429,Gunnar,Leeds,8253,"two
+lines"
+430,Fritz,Oslo,8064,"says ""hi"""
+431,Fritz,Oslo,5195,
+432,Cy,Bonn,656,"says ""hi"""
+433,Gunnar,Bonn,6528,"two
+lines"
+434,Bob,Bonn,760,"says ""hi"""
+435,Hilde,Bonn,8205,fine
+436,Gunnar,Oslo,9769,"a, b"
+437,Dee,Bonn,7501,
+438,Bob,Oslo,605,fine
+439,Bob,Bonn,6043,"two
+lines"
+440,Eve,Leeds,4948,fine
+441,Gunnar,Bonn,5217,fine
+442,Gunnar,Bonn,8155,
+443,Ann,Bonn,6898,"a, b"
+444,Gunnar,Graz,1101,"a, b"
+445,Gunnar,Oslo,7789,
+446,Bob,Bonn,7736,"two
+lines"
+447,Cy,Bonn,6995,fine
+448,Ann,Bonn,1444,
+449,Bob,Oslo,7738,fine
+450,Eve,Oslo,7385,
+451,Ann,Leeds,2372,fine
+452,Eve,Graz,7546,
+453,Ann,Bonn,186,"says ""hi"""
+454,Ann,Bonn,6372,
+455,Eve,Oslo,7968,"says ""hi"""
+456,Ann,Leeds,6022,"a, b"
+457,Hilde,Graz,2727,"a, b"
+458,Bob,Leeds,2687,fine
+459,Hilde,Graz,7417,"two
+lines"
+460,Fritz,Leeds,4585,"says ""hi"""
+461,Fritz,Bonn,2475,
+462,Eve,Graz,4032,"a, b"
+463,Gunnar,Graz,9859,"two
+lines"
+464,Hilde,Leeds,27,fine
+465,Eve,Leeds,6922,"says ""hi"""
+466,Ann,Leeds,2304,fine
+467,Cy,Leeds,8975,"a, b"
+468,Fritz,Bonn,8847,"two
+lines"
+469,Hilde,Graz,3283,"a, b"
+470,Eve,Bonn,6479,fine
+471,Dee,Leeds,9607,"two
+lines"
+472,Gunnar,Graz,8856,
+473,Fritz,Bonn,3815,
+474,Eve,Leeds,7808,"two
+lines"
+475,Dee,Oslo,3484,"a, b"
+476,Bob,Oslo,4748,fine
+477,Fritz,Graz,8474,"says ""hi"""
+478,Dee,Bonn,8081,fine
+479,Bob,Leeds,7592,"says ""hi"""
+480,Cy,Leeds,9784,
+481,Fritz,Leeds,8510,
+482,Ann,Bonn,550,"a, b"
+483,Hilde,Oslo,4286,fine
+484,Gunnar,Bonn,7321,"says ""hi"""
+485,Cy,Leeds,620,"a, b"
+486,Dee,Oslo,6196,"says ""hi"""
+487,Ann,Bonn,570,
+488,Fritz,Graz,7976,"a, b"
+489,Gunnar,Bonn,1473,
+490,Fritz,Oslo,1471,"says ""hi"""
+491,Gunnar,Oslo,7345,"a, b"
+492,Fritz,Oslo,3632,fine
+493,Ann,Leeds,5767,fine
+494,Ann,Bonn,4225,
+495,Hilde,Bonn,1655,"a, b"
+496,Fritz,Bonn,3259,fine
+497,Hilde,Bonn,7712,"says ""hi"""
+498,Fritz,Leeds,6390,"says ""hi"""
+499,Fritz,Graz,6220,
+500,Hilde,Oslo,2345,fine
+501,Hilde,Oslo,590,
+502,Dee,Bonn,6112,fine
+503,Hilde,Bonn,6309,fine
+504,Bob,Graz,5566,
+505,Dee,Graz,1894,"says ""hi"""
+506,Cy,Leeds,3631,"says ""hi"""
+507,Cy,Graz,9066,
+508,Hilde,Oslo,4364,fine
+509,Gunnar,Oslo,2550,"two
+lines"
+510,Eve,Leeds,5480,
+511,Eve,Graz,1789,fine
+512,Hilde,Graz,1870,"says ""hi"""
+513,Ann,Oslo,9174,fine
+514,Eve,Bonn,4223,"two
+lines"
+515,Fritz,Graz,4284,fine
+516,Dee,Bonn,6392,fine
+517,Gunnar,Oslo,941,"says ""hi"""
+518,Cy,Bonn,7243,"says ""hi"""
+519,Fritz,Oslo,7258,"a, b"
+520,Eve,Oslo,5899,
+521,Ann,Graz,3576,"two
+lines"
+522,Cy,Oslo,2951,"says ""hi"""
+523,Dee,Oslo,3222,"a, b"
+524,Bob,Bonn,9970,"a, b"
+525,Eve,Oslo,3375,"two
+lines"
+526,Dee,Leeds,3314,fine
+527,Bob,Graz,907,
+528,Fritz,Leeds,4616,"a, b"
+529,Bob,Bonn,6709,"two
+lines"
+530,Cy,Leeds,4068,"two
+lines"
+531,Fritz,Bonn,2678,fine
+532,Ann,Leeds,8516,"says ""hi"""
+533,Bob,Bonn,5844,"two
+lines"
+534,Fritz,Graz,9442,fine
+535,Eve,Bonn,8106,
+536,Ann,Oslo,338,"two
+lines"
+537,Bob,Oslo,2988,fine
+538,Bob,Leeds,4103,fine
+539,Ann,Bonn,1580,"a, b"
+540,Eve,Bonn,9820,fine
+541,Hilde,Oslo,7277,"a, b"
+542,Fritz,Bonn,2932,
+543,Eve,Bonn,7616,
+544,Eve,Bonn,1999,"two
+lines"
+545,Gunnar,Oslo,8873,
+546,Dee,Oslo,2412,"a, b"
+547,Hilde,Graz,2692,"a, b"
+548,Gunnar,Graz,9781,
+549,Ann,Graz,851,"a, b"
+550,Fritz,Graz,3938,"says ""hi"""
+551,Gunnar,Leeds,6563,"says ""hi"""
+552,Ann,Leeds,8476,"a, b"
+553,Fritz,Oslo,6916,fine
+554,Fritz,Bonn,8696,
+555,Bob,Leeds,7094,fine
+556,Ann,Oslo,2284,fine
+557,Gunnar,Graz,766,"two
+lines"
+558,Ann,Leeds,4479,
+559,Ann,Bonn,4105,"a, b"
+560,Ann,Graz,3877,
+561,Eve,Bonn,5003,
+562,Cy,Bonn,988,"says ""hi"""
+563,Eve,Bonn,7641,"a, b"
+564,Cy,Graz,2030,"a, b"
+565,Cy,Leeds,6660,"a, b"
+566,Eve,Leeds,3987,"a, b"
+567,Eve,Graz,9993,
+568,Dee,Graz,3296,"a, b"
+569,Fritz,Graz,8978,"a, b"
+570,Hilde,Graz,5087,"says ""hi"""
+571,Dee,Leeds,3630,
+572,Gunnar,Graz,194,fine
+573,Cy,Oslo,5307,"says ""hi"""
+574,Fritz,Graz,4422,"a, b"
+575,Dee,Leeds,932,"says ""hi"""
+576,Cy,Bonn,9927,
+577,Hilde,Bonn,8470,"says ""hi"""
+578,Hilde,Leeds,1789,"two
+lines"
+579,Dee,Oslo,6828,"a, b"
+580,Fritz,Oslo,3317,"says ""hi"""
+581,Eve,Bonn,7786,"a, b"
+582,Cy,Graz,1693,"says ""hi"""
+583,Gunnar,Bonn,8157,
+584,Cy,Graz,4576,"two
+lines"
+585,Bob,Graz,7410,"a, b"
+586,Eve,Leeds,4799,"two
+lines"
+587,Gunnar,Graz,5275,"says ""hi"""
+588,Hilde,Graz,7275,
+589,Cy,Leeds,2375,"says ""hi"""
+590,Gunnar,Oslo,1440,"two
+lines"
+591,Fritz,Oslo,5338,"says ""hi"""
+592,Gunnar,Bonn,419,fine
+593,Eve,Graz,4912,
+594,Eve,Graz,8477,"a, b"
+595,Gunnar,Graz,7606,"a, b"
+596,Ann,Leeds,7423,"says ""hi"""
+597,Bob,Oslo,1621,
+598,Fritz,Graz,9196,"two
+lines"
+599,Cy,Oslo,6901,"a, b"
+600,Gunnar,Graz,9624,"two
+lines"
+601,Bob,Oslo,5942,"says ""hi"""
+602,Fritz,Bonn,5089,"says ""hi"""
+603,Cy,Bonn,4831,"a, b"
+604,Gunnar,Oslo,8586,"says ""hi"""
+605,Dee,Oslo,6754,"says ""hi"""
+606,Ann,Bonn,5786,fine
+607,Ann,Graz,175,"a, b"
+608,Eve,Bonn,4988,
+609,Bob,Bonn,483,"two
+lines"
+610,Cy,Graz,9064,fine
+611,Eve,Oslo,9412,"a, b"
+612,Gunnar,Bonn,2381,fine
+613,Bob,Bonn,1640,fine
+614,Cy,Graz,7659,
+615,Gunnar,Bonn,204,"a, b"
+616,Fritz,Oslo,3903,"a, b"
+617,Eve,Oslo,538,"says ""hi"""
+618,Bob,Bonn,5716,"says ""hi"""
+619,Hilde,Graz,320,fine
+620,Dee,Graz,9546,
+621,Hilde,Bonn,3904,
+622,Dee,Bonn,2611,fine
+623,Cy,Leeds,100,"a, b"
+624,Eve,Graz,9872,"two
+lines"
+625,Hilde,Bonn,3980,"says ""hi"""
+626,Dee,Graz,5065,"two
+lines"
+627,Hilde,Bonn,3987,"two
+lines"
+628,Cy,Oslo,5871,
+629,Cy,Bonn,4762,"two
+lines"
+630,Fritz,Bonn,5488,"two
+lines"
+631,Gunnar,Leeds,6605,"a, b"
+632,Bob,Graz,5754,
+633,Dee,Graz,3132,"a, b"
+634,Eve,Leeds,3885,"two
+lines"
+635,Ann,Leeds,414,"two
+lines"
+636,Cy,Oslo,2127,"says ""hi"""
+637,Dee,Leeds,8927,
+638,Hilde,Graz,3935,fine
+639,Fritz,Leeds,3546,fine
+640,Gunnar,Oslo,4870,"two
+lines"
+641,Dee,Oslo,7416,"two
+lines"
+642,Eve,Graz,9626,fine
+643,Dee,Graz,9964,"says ""hi"""
+644,Dee,Oslo,2011,"a, b"
+645,Bob,Leeds,6304,"a, b"
+646,Cy,Leeds,245,
+647,Bob,Oslo,3793,"two
+lines"
+648,Dee,Bonn,1115,"says ""hi"""
+649,Fritz,Leeds,3159,"a, b"
+650,Eve,Bonn,3709,
+651,Cy,Graz,4626,"says ""hi"""
+652,Gunnar,Graz,2165,"says ""hi"""
+653,Cy,Bonn,6006,"says ""hi"""
+654,Gunnar,Bonn,7578,"says ""hi"""
+655,Gunnar,Leeds,1600,fine
+656,Eve,Bonn,4438,fine
+657,Dee,Bonn,6629,"a, b"
+658,Cy,Graz,3245,
+659,Cy,Graz,642,"says ""hi"""
+660,Eve,Oslo,9249,"a, b"
+661,Hilde,Leeds,7125,fine
+662,Fritz,Bonn,1832,"a, b"
+663,Ann,Bonn,4005,"says ""hi"""
+664,Ann,Leeds,3442,
+665,Bob,Graz,6449,"says ""hi"""
+666,Dee,Leeds,8639,"a, b"
+667,Fritz,Graz,7250,
+668,Hilde,Bonn,3374,"says ""hi"""
+669,Cy,Graz,3101,"two
+lines"
+670,Eve,Oslo,8952,
+671,Dee,Leeds,4090,fine
+672,Cy,Leeds,5689,
+673,Bob,Oslo,5088,"two
+lines"
+674,Cy,Graz,7909,fine
+675,Dee,Bonn,8444,fine
+676,Cy,Leeds,4904,"two
+lines"
+677,Cy,Oslo,5465,fine
+678,Gunnar,Oslo,2536,
+679,Hilde,Graz,3380,"a, b"
+680,Eve,Bonn,5906,
+681,Dee,Bonn,988,"two
+lines"
+682,Eve,Oslo,1811,"says ""hi"""
+683,Hilde,Bonn,2643,"says ""hi"""
+684,Hilde,Graz,9325,"says ""hi"""
+685,Eve,Oslo,9134,"says ""hi"""
+686,Ann,Bonn,7676,
+687,Bob,Leeds,9234,"two
+lines"
+688,Bob,Graz,7114,"says ""hi"""
+689,Dee,Leeds,136,"two
+lines"
+690,Bob,Leeds,4119,"says ""hi"""
+691,Bob,Oslo,453,fine
+692,Gunnar,Oslo,4854,
+693,Cy,Oslo,1674,"says ""hi"""
+694,Fritz,Graz,3023,"says ""hi"""
+695,Fritz,Oslo,6037,"says ""hi"""
+696,Fritz,Leeds,3921,fine
+697,Ann,Bonn,9287,
+698,Ann,Oslo,8099,"two
+lines"
+699,Hilde,Oslo,4908,"two
+lines"
+700,Bob,Oslo,3727,"a, b"
+701,Cy,Graz,6576,fine
+702,Ann,Graz,7854,
+703,Dee,Leeds,45,fine
+704,Gunnar,Oslo,4640,
+705,Ann,Graz,5548,
+706,Hilde,Bonn,2888,
+707,Gunnar,Leeds,68,fine
+708,Fritz,Oslo,7681,"two
+lines"
+709,Fritz,Graz,7018,
+710,Cy,Graz,9979,"a, b"
+711,Bob,Bonn,5431,"a, b"
+712,Eve,Graz,6039,"a, b"
+713,Cy,Leeds,5626,"two
+lines"
+714,Ann,Oslo,3645,"a, b"
+715,Bob,Oslo,9487,"two
+lines"
+716,Gunnar,Leeds,8683,"says ""hi"""
+717,Hilde,Graz,4277,fine
+718,Dee,Oslo,3323,
+719,Bob,Oslo,4153,"a, b"
+720,Dee,Leeds,8016,
+721,Hilde,Oslo,8867,fine
+722,Bob,Bonn,6685,"a, b"
+723,Hilde,Oslo,8243,
+724,Bob,Bonn,7536,"a, b"
+725,Cy,Oslo,9224,"two
+lines"
+726,Bob,Oslo,6117,"two
+lines"
+727,Ann,Graz,3881,"a, b"
+728,Fritz,Bonn,248,
+729,Dee,Graz,4914,"a, b"
+730,Cy,Graz,1436,
+731,Dee,Bonn,5810,"a, b"
+732,Fritz,Leeds,190,fine
+733,Bob,Oslo,6111,"says ""hi"""
+734,Fritz,Graz,712,"a, b"
+735,Fritz,Bonn,5828,"a, b"
+736,Fritz,Bonn,559,"a, b"
+737,Eve,Leeds,3164,fine
+738,Ann,Graz,1860,"two
+lines"
+739,Hilde,Bonn,1208,
+740,Cy,Oslo,9080,"says ""hi"""
+741,Gunnar,Oslo,9638,"says ""hi"""
+742,Eve,Graz,226,"says ""hi"""
+743,Fritz,Oslo,7981,
+744,Hilde,Bonn,580,"a, b"
+745,Cy,Graz,7794,
+746,Hilde,Graz,3755,fine
+747,Bob,Leeds,5394,"a, b"
+748,Dee,Leeds,2145,"a, b"
+749,Ann,Oslo,2780,"a, b"
+750,Hilde,Leeds,9454,"says ""hi"""
+751,Gunnar,Leeds,5150,"two
+lines"
+752,Fritz,Graz,5468,
+753,Ann,Oslo,7526,fine
+754,Ann,Oslo,2353,"a, b"
+755,Gunnar,Leeds,1040,"says ""hi"""
+756,Eve,Leeds,9321,"a, b"
+757,Cy,Bonn,9185,"a, b"
+758,Dee,Graz,9367,
+759,Fritz,Leeds,3900,
+760,Bob,Leeds,5595,fine
+761,Dee,Leeds,9023,"says ""hi"""
+762,Fritz,Bonn,5524,"two
+lines"
+763,Hilde,Leeds,3988,"says ""hi"""
+764,Fritz,Oslo,2221,fine
+765,Ann,Graz,6635,fine
+766,Gunnar,Leeds,2767,"two
+lines"
+767,Bob,Oslo,4939,"a, b"
+768,Eve,Leeds,1204,"says ""hi"""
+769,Bob,Oslo,4984,fine
+770,Fritz,Graz,5848,"a, b"
+771,Bob,Graz,5230,"two
+lines"
+772,Eve,Leeds,8953,fine
+773,Cy,Leeds,3881,
+774,Dee,Bonn,6546,
+775,Dee,Leeds,8223,"two
+lines"
+776,Dee,Oslo,930,
+777,Ann,Bonn,1203,fine
+778,Fritz,Oslo,82,"a, b"
+779,Eve,Bonn,5290,fine
+780,Dee,Leeds,5353,
+781,Hilde,Graz,9990,
+782,Cy,Bonn,6787,"says ""hi"""
+783,Bob,Leeds,8099,
+784,Gunnar,Leeds,7591,"a, b"
+785,Ann,Leeds,9242,
+786,Ann,Graz,5393,"says ""hi"""
+787,Bob,Bonn,2559,fine
+788,Cy,Bonn,5862,fine
+789,Gunnar,Leeds,8825,"says ""hi"""
+790,Cy,Leeds,3768,"a, b"
+791,Eve,Graz,518,"a, b"
+792,Hilde,Leeds,5920,"says ""hi"""
+793,Eve,Oslo,4143,"a, b"
+794,Hilde,Bonn,5939,
+795,Dee,Graz,1473,fine
+796,Cy,Bonn,985,
+797,Dee,Oslo,4245,"a, b"
+798,Fritz,Oslo,2907,"a, b"
+799,Ann,Leeds,3974,fine
+800,Hilde,Oslo,5639,"two
+lines"
+801,Hilde,Oslo,5305,"two
+lines"
+802,Bob,Bonn,1072,
+803,Fritz,Bonn,3737,"two
+lines"
+804,Gunnar,Graz,6153,"a, b"
+805,Ann,Leeds,340,fine
+806,Gunnar,Oslo,3790,"says ""hi"""
+807,Dee,Leeds,6973,"says ""hi"""
+808,Eve,Graz,3548,"says ""hi"""
+809,Cy,Graz,4379,"a, b"
+810,Eve,Leeds,1448,fine
+811,Ann,Graz,4091,"says ""hi"""
+812,Fritz,Graz,3474,fine
+813,Ann,Oslo,5904,"a, b"
+814,Hilde,Oslo,7123,
+815,Eve,Bonn,1827,fine
+816,Ann,Oslo,4959,fine
+817,Fritz,Bonn,2764,fine
+818,Gunnar,Bonn,6786,"two
+lines"
+819,Gunnar,Leeds,539,"says ""hi"""
+820,Dee,Oslo,251,"a, b"
+821,Cy,Oslo,9418,
+822,Bob,Bonn,791,"two
+lines"
+823,Bob,Bonn,1973,"says ""hi"""
+824,Cy,Graz,42,"two
+lines"
+825,Dee,Oslo,8937,fine
+826,Bob,Leeds,8130,"a, b"
+827,Fritz,Oslo,3669,
+828,Eve,Oslo,249,
+829,Eve,Bonn,707,"says ""hi"""
+830,Ann,Graz,9119,fine
+831,Eve,Bonn,5336,"says ""hi"""
+832,Hilde,Leeds,8991,
+833,Gunnar,Leeds,6541,"says ""hi"""
+834,Fritz,Graz,6274,"two
+lines"
+835,Gunnar,Graz,6716,fine
+836,Ann,Oslo,9958,fine
+837,Eve,Graz,3944,"a, b"
+838,Bob,Bonn,551,fine
+839,Gunnar,Leeds,7248,
+840,Fritz,Graz,9465,"a, b"
+841,Hilde,Graz,8357,
+842,Gunnar,Oslo,6206,"says ""hi"""
+843,Bob,Graz,8622,"says ""hi"""
+844,Fritz,Bonn,8897,"says ""hi"""
+845,Eve,Leeds,7754,fine
+846,Hilde,Oslo,2327,"says ""hi"""
+847,Fritz,Oslo,8642,
+848,Fritz,Oslo,2823,fine
+849,Hilde,Oslo,708,fine
+850,Gunnar,Leeds,7013,"says ""hi"""
+851,Gunnar,Oslo,4120,
+852,Bob,Leeds,5843,"two
+lines"
+853,Eve,Graz,1441,"a, b"
+854,Gunnar,Leeds,7310,"says ""hi"""
+855,Hilde,Graz,2859,
+856,Cy,Bonn,2138,"a, b"
+857,Hilde,Oslo,6074,"says ""hi"""
+858,Fritz,Graz,4142,"a, b"
+859,Dee,Bonn,9347,
+860,Ann,Oslo,5022,"says ""hi"""
+861,Eve,Leeds,4188,"a, b"
+862,Eve,Graz,1496,fine
+863,Hilde,Bonn,3304,"a, b"
+864,Gunnar,Leeds,6088,fine
+865,Hilde,Graz,6015,
+866,Eve,Graz,7060,
+867,Eve,Leeds,3909,"a, b"
+868,Cy,Oslo,9506,"two
+lines"
+869,Bob,Oslo,5397,"says ""hi"""
+870,Bob,Graz,6216,
+871,Gunnar,Graz,419,"two
+lines"
+872,Hilde,Graz,7145,
+873,Hilde,Oslo,1066,"two
+lines"
+874,Gunnar,Graz,2216,"two
+lines"
+875,Ann,Oslo,3280,"a, b"
+876,Ann,Leeds,9074,"two
+lines"
+877,Gunnar,Graz,1935,"says ""hi"""
+878,Dee,Bonn,9355,
+879,Bob,Graz,1445,
+880,Hilde,Bonn,3274,fine
+881,Hilde,Bonn,9017,"says ""hi"""
+882,Cy,Graz,820,"two
+lines"
+883,Fritz,Leeds,3117,fine
+884,Ann,Oslo,8829,"a, b"
+885,Eve,Bonn,5128,"says ""hi"""
+886,Eve,Leeds,9104,"two
+lines"
+887,Gunnar,Bonn,5027,"two
+lines"
+888,Dee,Graz,7145,"says ""hi"""
+889,Eve,Leeds,3309,"a, b"
+890,Ann,Oslo,8795,fine
+891,Hilde,Graz,9564,"says ""hi"""
+892,Fritz,Leeds,3281,fine
+893,Ann,Leeds,139,"two
+lines"
+894,Bob,Graz,9255,"a, b"
+895,Ann,Leeds,3599,"says ""hi"""
+896,Eve,Oslo,3430,"two
+lines"
+897,Hilde,Graz,7288,"a, b"
+898,Dee,Bonn,2951,fine
+899,Bob,Bonn,2244,"two
+lines"
+900,Hilde,Oslo,232,
+901,Cy,Graz,3617,"a, b"
+902,Dee,Oslo,2388,"says ""hi"""
+903,Bob,Graz,1560,fine
+904,Bob,Bonn,6794,fine
+905,Eve,Graz,6956,fine
+906,Ann,Oslo,684,fine
+907,Hilde,Leeds,3812,fine
+908,Fritz,Oslo,5071,"a, b"
+909,Fritz,Oslo,2488,"says ""hi"""
+910,Gunnar,Bonn,5367,fine
+911,Cy,Leeds,3659,"two
+lines"
+912,Bob,Oslo,7609,"a, b"
+913,Cy,Graz,5458,fine
+914,Bob,Bonn,5764,"two
+lines"
+915,Dee,Bonn,4763,
+916,Fritz,Bonn,8135,"two
+lines"
+917,Dee,Graz,4587,
+918,Bob,Oslo,2288,"says ""hi"""
+919,Eve,Oslo,9482,"two
+lines"
+920,Ann,Bonn,21,"says ""hi"""
+921,Dee,Oslo,4915,"says ""hi"""
+922,Cy,Leeds,5738,
+923,Hilde,Oslo,5399,"two
+lines"
+924,Cy,Bonn,4886,"says ""hi"""
+925,Hilde,Bonn,9036,
+926,Cy,Graz,7559,
+927,Ann,Bonn,8410,
+928,Bob,Graz,2162,"a, b"
+929,Fritz,Bonn,6139,"two
+lines"
+930,Fritz,Oslo,1475,fine
+931,Ann,Graz,4970,"says ""hi"""
+932,Eve,Bonn,1745,fine
+933,Bob,Oslo,8128,fine
+934,Bob,Leeds,7664,"says ""hi"""
+935,Cy,Bonn,8303,fine
+936,Fritz,Oslo,4644,"says ""hi"""
+937,Dee,Oslo,3930,"two
+lines"
+938,Dee,Bonn,247,"a, b"
+939,Ann,Graz,9345,
+940,Dee,Bonn,2806,fine
+941,Eve,Bonn,6946,fine
+942,Bob,Leeds,9335,"two
+lines"
+943,Bob,Oslo,3832,
+944,Ann,Oslo,1196,fine
+945,Fritz,Bonn,675,"a, b"
+946,Cy,Leeds,5604,fine
+947,Hilde,Oslo,176,
+948,Gunnar,Graz,528,"says ""hi"""
+949,Dee,Oslo,8378,
+950,Cy,Leeds,2299,fine
+951,Dee,Oslo,5424,fine
+952,Ann,Graz,618,
+953,Fritz,Bonn,9887,"two
+lines"
+954,Dee,Bonn,5990,
+955,Bob,Leeds,9548,"two
+lines"
+956,Hilde,Graz,2210,fine
+957,Eve,Bonn,7637,"says ""hi"""
+958,Cy,Graz,6321,"a, b"
+959,Eve,Bonn,1114,"a, b"
+960,Dee,Oslo,3244,"says ""hi"""
+961,Hilde,Oslo,8071,"a, b"
+962,Ann,Graz,6468,"a, b"
+963,Gunnar,Graz,1427,"says ""hi"""
+964,Fritz,Graz,4993,fine
+965,Eve,Graz,9893,
+966,Bob,Graz,6859,
+967,Eve,Graz,2389,"two
+lines"
+968,Dee,Bonn,5795,"says ""hi"""
+969,Hilde,Bonn,4786,"two
+lines"
+970,Bob,Leeds,3068,"says ""hi"""
+971,Gunnar,Oslo,1977,"two
+lines"
+972,Ann,Graz,3016,fine
+973,Eve,Leeds,2472,"two
+lines"
+974,Cy,Oslo,5759,"says ""hi"""
+975,Gunnar,Leeds,8186,"a, b"
+976,Dee,Oslo,6405,"says ""hi"""
+977,Ann,Bonn,2872,"a, b"
+978,Dee,Graz,9261,
+979,Fritz,Bonn,9055,"says ""hi"""
+980,Gunnar,Oslo,4150,"a, b"
+981,Bob,Leeds,7276,"two
+lines"
+982,Eve,Leeds,5002,"says ""hi"""
+983,Ann,Graz,8082,"two
+lines"
+984,Ann,Bonn,1950,"says ""hi"""
+985,Gunnar,Graz,5097,"a, b"
+986,Cy,Graz,575,"a, b"
+987,Hilde,Oslo,115,"says ""hi"""
+988,Cy,Oslo,9626,"says ""hi"""
+989,Ann,Graz,2843,"a, b"
+990,Eve,Oslo,4770,"a, b"
+991,Ann,Graz,8981,"a, b"
+992,Bob,Graz,8077,"two
+lines"
+993,Eve,Leeds,2652,"says ""hi"""
+994,Hilde,Bonn,8722,"a, b"
+995,Cy,Oslo,8454,"says ""hi"""
+996,Cy,Leeds,8528,
+997,Eve,Bonn,9621,fine
+998,Gunnar,Leeds,3066,"says ""hi"""
+999,Eve,Graz,3233,"says ""hi"""
+1000,Fritz,Graz,6604,"a, b"

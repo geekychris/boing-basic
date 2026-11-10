@@ -9,14 +9,14 @@ Sub server_ConnectionRequest()
     conns.Add server.Accept()
 End Sub
 
-Sub server_ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)
-    Do While InStr(Client.Peek(), vbLf) > 0
-        Client.SendLine UCase(Client.ReceiveLine())
+Sub server_ClientDataArrival(ByVal conn As Socket, ByVal Bytes As Long)
+    Do While InStr(conn.Peek(), vbLf) > 0
+        conn.SendLine UCase(conn.ReceiveLine())
     Loop
 End Sub
 
-Sub server_ClientClose(ByVal Client As Socket)
-    Client.Close
+Sub server_ClientClose(ByVal conn As Socket)
+    conn.Close
 End Sub
 
 Sub link_Connect()

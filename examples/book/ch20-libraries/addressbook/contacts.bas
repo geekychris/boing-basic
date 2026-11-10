@@ -4,16 +4,9 @@ Option Explicit
 Private db As SQLite
 Private currentId As Long               ' the contact being edited; 0 for a new one
 
-' the database file in the program's drawer ("DH1:" & "x", but "Work:Tools" & "/x")
-Private Function DataFile(ByVal name As String) As String
-    Dim p As String
-    p = App.Path
-    If p = "" Or Right(p, 1) = ":" Or Right(p, 1) = "/" Then DataFile = p & name Else DataFile = p & "/" & name
-End Function
-
 Private Sub Form_Load()
     Set db = CreateObject("SQLite")
-    db.Open DataFile("AddressBook.db")
+    db.Open App.Path & "/AddressBook.db"     ' the database beside the program
     db.Execute "CREATE TABLE IF NOT EXISTS contact (" & _
                "id INTEGER PRIMARY KEY, name TEXT NOT NULL, phone TEXT, email TEXT, notes TEXT)"
     If db.QueryValue("SELECT COUNT(*) FROM contact") = 0 Then AddSamples

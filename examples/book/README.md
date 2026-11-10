@@ -423,6 +423,7 @@ native, and checks the others compile.
 | 19.25 | [ch19-networking/chat/chat.bbp](ch19-networking/chat/chat.bbp) | A chat room in a form |
 | 19.26 | [ch19-networking/listing-19-26.bas](ch19-networking/listing-19-26.bas) | Errors |
 | 19.27 | [ch19-networking/slices/slices.bbp](ch19-networking/slices/slices.bbp) | Example: statistics of a big text file |
+| 19.28 | [ch20-libraries/csvimport/csvimport.bbp](ch20-libraries/csvimport/csvimport.bbp) | The same pattern for other jobs |
 
 ## Modern libraries
 
@@ -516,7 +517,8 @@ native, and checks the others compile.
 | 20.84 | [ch20-libraries/addressbook/addressbook.bbp](ch20-libraries/addressbook/addressbook.bbp) | Example: an address book |
 | 20.85 | [ch20-libraries/addressbook/addressbook.bbp](ch20-libraries/addressbook/addressbook.bbp) | Example: an address book |
 | 20.86 | [ch20-libraries/addressbook/addressbook.bbp](ch20-libraries/addressbook/addressbook.bbp) | Example: an address book |
-| 20.87 | [ch20-libraries/sqlerrors/sqlerrors.bbp](ch20-libraries/sqlerrors/sqlerrors.bbp) | Errors |
+| 20.87 | [ch20-libraries/csvimport/csvimport.bbp](ch20-libraries/csvimport/csvimport.bbp) | Example: importing a CSV file |
+| 20.88 | [ch20-libraries/sqlerrors/sqlerrors.bbp](ch20-libraries/sqlerrors/sqlerrors.bbp) | Errors |
 
 ## Extending Boing BASIC
 
