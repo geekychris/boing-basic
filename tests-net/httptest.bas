@@ -1,5 +1,5 @@
 ' httptest.bas - the Http class against tools/http_testserver.py.
-'   boing run httptest.bas HTTP_BASE HTTPS_BASE CA_FILE [quick]
+'   boing run httptest.bas HTTP_BASE HTTPS_BASE CA_FILE [DOWNLOAD_DIR]
 ' e.g. http://127.0.0.1:8001 https://localhost:8002 build/net-certs/ca.pem
 ' Prints TAP lines (nothing machine-specific) and PASS/FAIL; the expected output is httptest.out.
 Option Explicit
@@ -25,10 +25,12 @@ End Function
 
 Sub Main()
     Dim args() As String, base As String, sbase As String, ca As String
-    Dim h As Http, s As String, k As Long, i As Long, ok As Boolean, f As Integer, b As Byte
+    Dim h As Http, s As String, k As Long, i As Long, ok As Boolean, f As Integer, b As Byte, dl As String
 
     args = Split(Command(), " ")
     base = args(0): sbase = args(1): ca = args(2)
+    dl = "http_test_download.bin"
+    If UBound(args) >= 3 Then dl = args(3) & dl
 
     Set h = CreateObject("Http")
     Check TypeName(h) = "Http", "CreateObject(""Http"")"
@@ -93,14 +95,14 @@ Sub Main()
         If Asc(Mid(s, i, 1)) <> ((i - 1) Mod 251) Then ok = False
     Next
     Check ok, "300000 bytes into a String, binary safe"
-    k = h.GetToFile(base & "/big?n=123457", "http_test_download.bin")
-    Check k = 123457 And FileLen("http_test_download.bin") = 123457, "GetToFile"
+    k = h.GetToFile(base & "/big?n=123457", dl)
+    Check k = 123457 And FileLen(dl) = 123457, "GetToFile"
     f = FreeFile
-    Open "http_test_download.bin" For Binary As #f
+    Open dl For Binary As #f
     Get #f, 1001, b
     Close #f
     Check b = 1000 Mod 251, "the file holds the right bytes"
-    Kill "http_test_download.bin"
+    Kill dl
 
     h.Timeout = 1000
     Check ErrOf(h, "GET", base & "/slow") = 31104, "Timeout: error 31104"
