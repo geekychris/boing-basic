@@ -6,7 +6,6 @@
 #include <cctype>
 #include <map>
 #include <string>
-#include <strings.h>
 #include <utility>
 #include <vector>
 
@@ -48,33 +47,27 @@ struct wc_obj { bb_obj hdr; Words *w; };
 
 enum { M_ADD, M_COUNT, M_TOP, P_DISTINCT, P_TOTAL };
 
-int32_t wc_find(const bb_class *, const char *name)
+const bb_member wc_members[] = {
+    {"Add", M_ADD, BB_INV_METHOD}, {"Count", M_COUNT, BB_INV_METHOD}, {"Top", M_TOP, BB_INV_METHOD},
+    {"Distinct", P_DISTINCT, BB_INV_GET}, {"Total", P_TOTAL, BB_INV_GET}};
+
+std::string arg_string(const bb_value *argv, int i)   // a String argument as a std::string
 {
-    static const struct { const char *n; int32_t id; } m[] = {
-        {"Add", M_ADD}, {"Count", M_COUNT}, {"Top", M_TOP}, {"Distinct", P_DISTINCT}, {"Total", P_TOTAL}};
-    for (const auto &e : m)
-        if (!strcasecmp(e.n, name)) return e.id;
-    return BB_NOMEMBER;
+    int32_t len;
+    const char *p = bb_arg_str(argv, i, &len);
+    return std::string(p, len);
 }
 
-std::string arg_string(const bb_value *v)       // any BASIC value as a std::string
-{
-    bb_str *s = bb_v_to_str(v);
-    std::string r(bb_str_ptr(s), s ? s->len : 0);
-    bb_str_release(s);
-    return r;
-}
-
-void wc_invoke(bb_obj *self, int32_t id, int, int argc, bb_value *argv, bb_value *ret)
+void wc_invoke(bb_obj *self, int32_t id, int, int, bb_value *argv, bb_value *ret)
 {
     Words *w = reinterpret_cast<wc_obj *>(self)->w;
     try {
         switch (id) {
-        case M_ADD: if (argc != 1) bb_raise(450, nullptr); w->add(arg_string(&argv[0])); return;
-        case M_COUNT: *ret = bb_v_long(w->count(arg_string(&argv[0]))); return;
-        case M_TOP: *ret = bb_v_str(bb_str_from_c(w->top(bb_v_to_long(&argv[0])).c_str())); return;
-        case P_DISTINCT: *ret = bb_v_long(w->distinct()); return;
-        case P_TOTAL: *ret = bb_v_long(w->total()); return;
+        case M_ADD: w->add(arg_string(argv, 0)); return;
+        case M_COUNT: *ret = bb_ret_long(w->count(arg_string(argv, 0))); return;
+        case M_TOP: *ret = bb_ret_str(w->top(bb_arg_long(argv, 0)).c_str()); return;
+        case P_DISTINCT: *ret = bb_ret_long(w->distinct()); return;
+        case P_TOTAL: *ret = bb_ret_long(w->total()); return;
         }
     } catch (const std::bad_alloc &) {
         bb_raise(7, nullptr);                   // out of memory: never let a C++ exception reach BASIC
@@ -84,8 +77,7 @@ void wc_invoke(bb_obj *self, int32_t id, int, int argc, bb_value *argv, bb_value
 
 void wc_terminate(bb_obj *self) { delete reinterpret_cast<wc_obj *>(self)->w; }
 
-const bb_class wc_class = {"WordCount", sizeof(wc_obj), wc_find, wc_invoke, wc_terminate,
-                           nullptr, nullptr, 0, nullptr, 0, nullptr, nullptr};
+BB_CLASS(wc_class, "WordCount", wc_obj, wc_members, wc_invoke, wc_terminate);
 
 bb_obj *new_wc()
 {
@@ -97,8 +89,8 @@ bb_obj *new_wc()
 bb_value word_total(int, bb_value *argv)
 {
     Words w;
-    w.add(bb_str_ptr(argv[0].u.s));             // a String argument arrives as a bb_str
-    return bb_v_long(w.total());
+    w.add(arg_string(argv, 0));
+    return bb_ret_long(w.total());
 }
 
 } // namespace

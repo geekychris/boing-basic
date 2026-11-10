@@ -4,8 +4,8 @@ function Lerp(ByVal a As Double, ByVal b As Double, ByVal t As Double) As Double
 class Stats
   method Add(ByVal x As Double)
   method Clear()
-  property-ro Count As Long
-  property-ro Mean As Double
-  property-ro Min As Double
-  property-ro Max As Double
+  property Count As Long ReadOnly
+  property Mean As Double ReadOnly
+  property Min As Double ReadOnly
+  property Max As Double ReadOnly
   property Name As String

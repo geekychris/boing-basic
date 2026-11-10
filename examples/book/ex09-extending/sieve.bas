@@ -21,7 +21,7 @@ End Function
 Function CountPrimesBits(ByVal n As Long) As Long
     ' one call per number: correct, but slower than plain BASIC (a call costs more than an array read)
     Dim composite As BitSet, i As Long, count As Long
-    Set composite = CreateObject("BitSet")
+    Set composite = New BitSet
     composite.Resize n + 1
     For i = 2 To n
         If Not composite.TestBit(i) Then
@@ -35,7 +35,7 @@ End Function
 Function CountPrimesBits2(ByVal n As Long) As Long
     ' one call per prime: NextClear does the searching in C
     Dim composite As BitSet, i As Long, count As Long
-    Set composite = CreateObject("BitSet")
+    Set composite = New BitSet
     composite.Resize n + 1
     i = composite.NextClear(2)
     Do While i <> -1

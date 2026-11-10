@@ -130,29 +130,29 @@ object.
 First describe it in `bits.bbx`:
 
 ```text
-# bits.bbx - a BitSet class written in C
+# bits.bbx - step 3: a BitSet class written in C
 class BitSet
   method Resize(ByVal size As Long)
   method SetBit(ByVal i As Long)
   method TestBit(ByVal i As Long) As Boolean
   method SetEvery(ByVal start As Long, ByVal stepBy As Long)
   method NextClear(ByVal from As Long) As Long
-  property-ro Size As Long
-  property-ro Count As Long
+  property Size As Long ReadOnly
+  property Count As Long ReadOnly
 ```
 
 Then write `bits.c`. The object is a `bb_obj` header followed by the class's own data, the size
-and a pointer to the bits:
+and a pointer to the bits, and a table lists the members with a number for each:
 
 ```c
+/* bits.c - step 3: a Boing BASIC extension, a BitSet class (one bit per number) */
 #include "boing_ext.h"
 #include <stdlib.h>
-#include <strings.h>
 
 typedef struct bitset { bb_obj hdr; long size; unsigned char *bits; } bitset;
 
 enum { M_RESIZE, M_SETBIT, M_TESTBIT, M_SETEVERY, M_NEXTCLEAR, P_SIZE, P_COUNT };
-static const bb_member members[] = {
+static const bb_member bitset_members[] = {
     {"Resize", M_RESIZE, BB_INV_METHOD}, {"SetBit", M_SETBIT, BB_INV_METHOD},
     {"TestBit", M_TESTBIT, BB_INV_METHOD}, {"SetEvery", M_SETEVERY, BB_INV_METHOD},
     {"NextClear", M_NEXTCLEAR, BB_INV_METHOD},
@@ -160,14 +160,15 @@ static const bb_member members[] = {
 };
 ```
 
-`b_find` looks a name up in that table, and `b_invoke` does the work for each member. A bad
-index raises error 9, as an array would:
+`b_invoke` does the work for every member, switching on that number. A bad index raises
+error 9, as an array would:
 
 ```c
+/* an index the program gave us: error 9 (subscript out of range) if it is outside the set */
 static long index_of(bitset *b, const bb_value *v)
 {
-    long i = bb_v_to_long(v);
-    if (i < 0 || i >= b->size) bb_raise(9, NULL);      /* subscript out of range */
+    long i = bb_arg_long(v, 0);
+    if (i < 0 || i >= b->size) bb_raise(9, NULL);
     return i;
 }
 
@@ -175,47 +176,46 @@ static void b_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
 {
     bitset *b = (bitset *)self;
     long i, n, step;
+    (void)kind; (void)argc;
     switch (id) {
     case M_RESIZE:
-        n = bb_v_to_long(&argv[0]);
-        if (n < 0) bb_raise(5, NULL);
+        n = bb_arg_long(argv, 0);
+        if (n < 0) bb_raise(5, NULL);                     /* invalid procedure call */
         free(b->bits);
         b->bits = calloc((size_t)(n + 7) / 8 + 1, 1);
         if (!b->bits) { b->size = 0; bb_raise(7, NULL); }  /* out of memory */
         b->size = n;
         return;
     case M_SETBIT: i = index_of(b, &argv[0]); b->bits[i >> 3] |= (unsigned char)(1 << (i & 7)); return;
-    case M_TESTBIT: i = index_of(b, &argv[0]); *ret = bb_v_bool(b->bits[i >> 3] & (1 << (i & 7))); return;
-    case M_SETEVERY:                                    /* start, start+step, ... */
-        step = bb_v_to_long(&argv[1]);
+    case M_TESTBIT: i = index_of(b, &argv[0]); *ret = bb_ret_bool(b->bits[i >> 3] & (1 << (i & 7))); return;
+    case M_SETEVERY:                                         /* start, start+step, ... */
+        step = bb_arg_long(argv, 1);
         if (step < 1) bb_raise(5, NULL);
-        for (i = bb_v_to_long(&argv[0]); i >= 0 && i < b->size; i += step)
+        for (i = bb_arg_long(argv, 0); i >= 0 && i < b->size; i += step)
             b->bits[i >> 3] |= (unsigned char)(1 << (i & 7));
         return;
-    case M_NEXTCLEAR:                                   /* the first clear bit >= from, or -1 */
-        for (i = bb_v_to_long(&argv[0]); i >= 0 && i < b->size; i++)
-            if (!(b->bits[i >> 3] & (1 << (i & 7)))) { *ret = bb_v_long(i); return; }
-        *ret = bb_v_long(-1);
+    case M_NEXTCLEAR:                                        /* the first clear bit >= from, or -1 */
+        for (i = bb_arg_long(argv, 0); i >= 0 && i < b->size; i++)
+            if (!(b->bits[i >> 3] & (1 << (i & 7)))) { *ret = bb_ret_long(i); return; }
+        *ret = bb_ret_long(-1);
         return;
-    case P_SIZE: *ret = bb_v_long(b->size); return;
+    case P_SIZE: *ret = bb_ret_long(b->size); return;
     case P_COUNT:
         for (n = 0, i = 0; i < b->size; i++) n += (b->bits[i >> 3] >> (i & 7)) & 1;
-        *ret = bb_v_long(n);
+        *ret = bb_ret_long(n);
         return;
     }
     bb_raise(438, NULL);
 }
 ```
 
-Finally the clean-up, the class, a create function and the registration:
+Finally the clean-up when the program lets go of a BitSet, the class itself (`BB_CLASS`), a
+function that makes a new one, and the registration:
 
 ```c
 static void b_terminate(bb_obj *self) { free(((bitset *)self)->bits); }
 
-static const bb_class bitset_class = {
-    "BitSet", sizeof(bitset), b_find, b_invoke, b_terminate, NULL,
-    members, sizeof members / sizeof members[0], NULL, 0, NULL, NULL
-};
+BB_CLASS(bitset_class, "BitSet", bitset, bitset_members, b_invoke, b_terminate);
 
 static bb_obj *new_bitset(void) { return bb_obj_new(&bitset_class); }
 
@@ -233,7 +233,7 @@ The sieve with a BitSet:
 Function CountPrimesBits(ByVal n As Long) As Long
     ' one call per number: correct, but slower than plain BASIC (a call costs more than an array read)
     Dim composite As BitSet, i As Long, count As Long
-    Set composite = CreateObject("BitSet")
+    Set composite = New BitSet
     composite.Resize n + 1
     For i = 2 To n
         If Not composite.TestBit(i) Then
@@ -257,7 +257,7 @@ crossed out, in C, so the program makes one call per prime (78498) instead of on
 Function CountPrimesBits2(ByVal n As Long) As Long
     ' one call per prime: NextClear does the searching in C
     Dim composite As BitSet, i As Long, count As Long
-    Set composite = CreateObject("BitSet")
+    Set composite = New BitSet
     composite.Resize n + 1
     i = composite.NextClear(2)
     Do While i <> -1

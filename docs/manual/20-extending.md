@@ -155,7 +155,7 @@ program uses them like Canvas or Audio:
 Sub Main()
     Dim s As Stats, v As Variant
     Print Clamp(15, 0, 10); Clamp(-2.5, 0, 10); Lerp(0, 100, 0.25)
-    Set s = CreateObject("Stats")
+    Set s = New Stats
     s.Name = "Rainfall"
     For Each v In Array(12, 7.5, 3, 20.25, 9)
         s.Add v
@@ -198,10 +198,10 @@ function Lerp(ByVal a As Double, ByVal b As Double, ByVal t As Double) As Double
 class Stats
   method Add(ByVal x As Double)
   method Clear()
-  property-ro Count As Long
-  property-ro Mean As Double
-  property-ro Min As Double
-  property-ro Max As Double
+  property Count As Long ReadOnly
+  property Mean As Double ReadOnly
+  property Min As Double ReadOnly
+  property Max As Double ReadOnly
   property Name As String
 ```
 
@@ -212,7 +212,7 @@ class Stats
 | `class Name` | a class; the indented lines after it are its members |
 | `method Name(params) [As Type]` | a method, with a result if it has `As Type` |
 | `property Name As Type` | a property the program can read and set |
-| `property-ro Name As Type` | a read-only property |
+| `property Name As Type ReadOnly` | a property the program can only read |
 | `# ...` | a comment |
 
 Parameters are written as in a `Declare`, always `ByVal`. With the descriptor the compiler
@@ -232,8 +232,8 @@ provides. The block runs once, before the program starts:
 
 static bb_value clamp(int argc, bb_value *argv)
 {
-    double x = argv[0].u.d, lo = argv[1].u.d, hi = argv[2].u.d;
-    return bb_v_double(x < lo ? lo : x > hi ? hi : x);
+    double x = bb_arg_double(argv, 0), lo = bb_arg_double(argv, 1), hi = bb_arg_double(argv, 2);
+    return bb_ret_double(x < lo ? lo : x > hi ? hi : x);
 }
 
 BB_EXTENSION(mathx)                 /* the name: the same as the files' */
@@ -245,87 +245,88 @@ BB_EXTENSION(mathx)                 /* the name: the same as the files' */
 ```
 
 **Functions** have the form `bb_value fn(int argc, bb_value *argv)`. The arguments arrive
-already converted to the types in the `.bbx`, so a `Double` parameter is in `argv[i].u.d`, a
-`Long` in `.u.l`, a `String` in `.u.s` (a `bb_str`; `bb_str_ptr(argv[i].u.s)` is its text). The
-function returns a new value made with one of these:
+already converted to the types in the `.bbx`; read them with the `bb_arg_` helpers and return
+the result with a `bb_ret_` one:
 
-| Make a value | Read a value (any type, converted) |
+| Read argument `i` | Return a result |
 |---|---|
-| `bb_v_long(n)`, `bb_v_int(n)`, `bb_v_byte(n)` | `bb_v_to_long(&v)`, `bb_v_to_int(&v)` |
-| `bb_v_double(x)`, `bb_v_single(x)` | `bb_v_to_double(&v)`, `bb_v_to_single(&v)` |
-| `bb_v_bool(b)` | `bb_v_to_bool(&v)` |
-| `bb_v_str(bb_str_from_c("text"))` | `bb_v_to_str(&v)` (a new string: release it with `bb_str_release`) |
-| `bb_v_empty()` | |
+| `bb_arg_long(argv, i)` | `bb_ret_long(n)` |
+| `bb_arg_double(argv, i)` | `bb_ret_double(x)` |
+| `bb_arg_bool(argv, i)` (0 or 1) | `bb_ret_bool(b)` |
+| `bb_arg_str(argv, i, &len)`: a `const char *` valid during the call, and its length | `bb_ret_str("text")`, or `bb_ret_strn(p, len)` for text with zero bytes in it |
+| `bb_arg_obj(argv, i)`: an object, or NULL for `Nothing` | `bb_ret_obj(obj)` |
+| | `bb_ret_empty()` |
 
 Errors are raised with `bb_raise(number, "message")`: the program sees them like any other
 run-time error, catchable with `On Error` (above, `Stats.Mean` raises error 11 when there are no
 numbers). `bb_raise` doesn't return.
 
-**Classes** are a `bb_class` structure. An object is a `bb_obj` header followed by your own
-fields:
+**Classes.** An object is a `bb_obj` header followed by your own fields. The class lists its
+members in a table (name, a number of your choosing, and what kind of use it allows), and one
+`invoke` function does the work for all of them, switching on the number. `kind` says what the
+program is doing: `BB_INV_METHOD` (a call), `BB_INV_GET` (reading a property) or `BB_INV_LET`
+(setting one, with the new value as the last argument); set `*ret` for anything that returns a
+value. An optional `terminate` function frees what the object owns when the program lets go of
+it. `BB_CLASS` puts these together into a class:
 
 ```c
 typedef struct stats {
     bb_obj hdr;                 /* must come first */
     long count;
     double sum, min, max;
-    bb_str *name;               /* a reference we own */
+    bb_str *name;               /* a string we keep: released in stats_terminate */
 } stats;
 
 enum { M_ADD, M_CLEAR, P_COUNT, P_MEAN, P_MIN, P_MAX, P_NAME };
-```
 
-and the class provides three functions: `find` turns a member name into a number, `invoke` does
-the work, and `terminate` frees what the object owns when the program lets go of it:
+static const bb_member stats_members[] = {
+    {"Add", M_ADD, BB_INV_METHOD}, {"Clear", M_CLEAR, BB_INV_METHOD},
+    {"Count", P_COUNT, BB_INV_GET}, {"Mean", P_MEAN, BB_INV_GET},
+    {"Min", P_MIN, BB_INV_GET}, {"Max", P_MAX, BB_INV_GET},
+    {"Name", P_NAME, BB_INV_GET | BB_INV_LET},
+};
 
-```c
-static int32_t s_find(const bb_class *cls, const char *name)
-{
-    size_t i;
-    for (i = 0; i < sizeof members / sizeof members[0]; i++)
-        if (!strcasecmp(members[i].name, name)) return members[i].id;
-    return BB_NOMEMBER;
-}
-
-static void s_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
+/* a method call or a property read/write; a property's new value is the last argument */
+static void stats_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
 {
     stats *s = (stats *)self;
     switch (id) {
     case M_ADD: {
-        double x = bb_v_to_double(&argv[0]);
+        double x = bb_arg_double(argv, 0);
         if (s->count == 0 || x < s->min) s->min = x;
         if (s->count == 0 || x > s->max) s->max = x;
         s->sum += x;
         s->count++;
         return;
     }
+    case M_CLEAR: s->count = 0; s->sum = s->min = s->max = 0; return;
+    case P_COUNT: *ret = bb_ret_long(s->count); return;
     case P_MEAN:
-        if (s->count == 0) bb_raise(11, "Stats.Mean: no numbers added yet");
-        *ret = bb_v_double(s->sum / s->count);
+        if (s->count == 0) bb_raise(11, "Stats.Mean: no numbers added yet");   /* division by zero */
+        *ret = bb_ret_double(s->sum / s->count);
         return;
+    case P_MIN: *ret = bb_ret_double(s->min); return;
+    case P_MAX: *ret = bb_ret_double(s->max); return;
     case P_NAME:
-        if (kind & BB_INV_LET) {                      /* s.Name = value */
-            bb_str *old = s->name;
-            s->name = bb_v_to_str(&argv[argc - 1]);   /* the new value is the last argument */
-            bb_str_release(old);
-        } else {                                      /* reading s.Name */
-            *ret = bb_v_str(bb_str_from_c(bb_str_ptr(s->name)));
+        if (kind & BB_INV_LET) {                          /* s.Name = value */
+            int32_t len;
+            const char *p = bb_arg_str(argv, argc - 1, &len);
+            bb_str_release(s->name);
+            s->name = bb_str_new(p, len);                 /* keep our own copy */
+        } else {                                          /* reading s.Name */
+            *ret = bb_ret_strn(bb_str_ptr(s->name), bb_str_len(s->name));
         }
         return;
-    /* ... the other members ... */
     }
-    bb_raise(438, NULL);       /* object doesn't support this property or method */
+    bb_raise(438, NULL);                                  /* object doesn't support this */
 }
 
-static void s_terminate(bb_obj *self)
+static void stats_terminate(bb_obj *self)
 {
     bb_str_release(((stats *)self)->name);
 }
 
-static const bb_class stats_class = {
-    "Stats", sizeof(stats), s_find, s_invoke, s_terminate, NULL,
-    members, sizeof members / sizeof members[0], NULL, 0, NULL, NULL
-};
+BB_CLASS(stats_class, "Stats", stats, stats_members, stats_invoke, stats_terminate);
 
 static bb_obj *new_stats(void)
 {
@@ -333,13 +334,11 @@ static bb_obj *new_stats(void)
 }
 ```
 
-`kind` says what the program is doing: `BB_INV_METHOD` (a call), `BB_INV_GET` (reading a
-property) or `BB_INV_LET` (setting one). Set `*ret` for anything that returns a value.
-`bb_obj_new` makes a zeroed object; `bb_register_class` makes `CreateObject("Stats")` (or
-`CreateObject("Boing.Stats")`), `Dim s As Stats` and `TypeName(s)` work. (`New Stats` is not
-accepted for extension classes: create them with `CreateObject`.) The runtime counts the references
-to an object and calls `terminate` when the last one goes, then frees its memory. The whole
-file is `examples/book/ch20-extending/mathx/mathx.c` in the book examples.
+`bb_obj_new` makes a zeroed object with one reference. `bb_register_class` makes
+`Set s = New Stats`, `CreateObject("Stats")` (or `"Boing.Stats"`), `Dim s As Stats` and
+`TypeName(s)` work. The runtime counts the references to an object and calls `terminate` when
+the last one goes, then frees its memory. The whole file is
+`examples/book/ch20-extending/mathx/mathx.c` in the book examples.
 
 ### An extension in C++
 
@@ -349,7 +348,42 @@ Boing BASIC. `BB_EXTENSION` has C linkage from C++ as well. Here a `WordCount` c
 `std::map` and `std::string`:
 
 ```cpp
-struct wc_obj { bb_obj hdr; Words *w; };          // Words is an ordinary C++ class
+// Words is an ordinary C++ class (std::map of words to counts); see the full file
+struct wc_obj { bb_obj hdr; Words *w; };
+
+enum { M_ADD, M_COUNT, M_TOP, P_DISTINCT, P_TOTAL };
+
+const bb_member wc_members[] = {
+    {"Add", M_ADD, BB_INV_METHOD}, {"Count", M_COUNT, BB_INV_METHOD}, {"Top", M_TOP, BB_INV_METHOD},
+    {"Distinct", P_DISTINCT, BB_INV_GET}, {"Total", P_TOTAL, BB_INV_GET}};
+
+std::string arg_string(const bb_value *argv, int i)   // a String argument as a std::string
+{
+    int32_t len;
+    const char *p = bb_arg_str(argv, i, &len);
+    return std::string(p, len);
+}
+
+void wc_invoke(bb_obj *self, int32_t id, int, int, bb_value *argv, bb_value *ret)
+{
+    Words *w = reinterpret_cast<wc_obj *>(self)->w;
+    try {
+        switch (id) {
+        case M_ADD: w->add(arg_string(argv, 0)); return;
+        case M_COUNT: *ret = bb_ret_long(w->count(arg_string(argv, 0))); return;
+        case M_TOP: *ret = bb_ret_str(w->top(bb_arg_long(argv, 0)).c_str()); return;
+        case P_DISTINCT: *ret = bb_ret_long(w->distinct()); return;
+        case P_TOTAL: *ret = bb_ret_long(w->total()); return;
+        }
+    } catch (const std::bad_alloc &) {
+        bb_raise(7, nullptr);                   // out of memory: never let a C++ exception reach BASIC
+    }
+    bb_raise(438, nullptr);
+}
+
+void wc_terminate(bb_obj *self) { delete reinterpret_cast<wc_obj *>(self)->w; }
+
+BB_CLASS(wc_class, "WordCount", wc_obj, wc_members, wc_invoke, wc_terminate);
 
 bb_obj *new_wc()
 {
@@ -358,31 +392,11 @@ bb_obj *new_wc()
     return o;
 }
 
-void wc_terminate(bb_obj *self) { delete reinterpret_cast<wc_obj *>(self)->w; }
-
-std::string arg_string(const bb_value *v)          // any BASIC value as a std::string
+bb_value word_total(int, bb_value *argv)
 {
-    bb_str *s = bb_v_to_str(v);
-    std::string r(bb_str_ptr(s), s ? s->len : 0);
-    bb_str_release(s);
-    return r;
-}
-
-void wc_invoke(bb_obj *self, int32_t id, int, int argc, bb_value *argv, bb_value *ret)
-{
-    Words *w = reinterpret_cast<wc_obj *>(self)->w;
-    try {
-        switch (id) {
-        case M_ADD: w->add(arg_string(&argv[0])); return;
-        case M_COUNT: *ret = bb_v_long(w->count(arg_string(&argv[0]))); return;
-        case M_TOP: *ret = bb_v_str(bb_str_from_c(w->top(bb_v_to_long(&argv[0])).c_str())); return;
-        case P_DISTINCT: *ret = bb_v_long(w->distinct()); return;
-        case P_TOTAL: *ret = bb_v_long(w->total()); return;
-        }
-    } catch (const std::bad_alloc &) {
-        bb_raise(7, nullptr);                       // out of memory
-    }
-    bb_raise(438, nullptr);
+    Words w;
+    w.add(arg_string(argv, 0));
+    return bb_ret_long(w.total());
 }
 
 BB_EXTENSION(textutil)
@@ -395,13 +409,14 @@ BB_EXTENSION(textutil)
 with the descriptor
 
 ```text
+# textutil.bbx - what textutil.cpp registers
 function WordTotal(ByVal text As String) As Long
 class WordCount
   method Add(ByVal text As String)
   method Count(ByVal word As String) As Long
   method Top(ByVal n As Long) As String
-  property-ro Distinct As Long
-  property-ro Total As Long
+  property Distinct As Long ReadOnly
+  property Total As Long ReadOnly
 ```
 
 and a program:
@@ -446,9 +461,9 @@ C++ extensions.
   `boing vm` do). Don't use `-mcpu=440`-only instructions; the builds use `-mcpu=powerpc`.
 - **Speed.** A call into an extension costs about as much as a call to a built-in function, so
   put whole loops in C, not single additions.
-- **Not supported yet:** `New` for extension classes (use `CreateObject`), events raised by an
-  extension object (for `WithEvents`), `ByRef` parameters, and loading an extension while the
-  interpreter runs (it is always linked in).
+- **Not supported yet:** events raised by an extension object (for `WithEvents`), `ByRef`
+  parameters (a `ByRef` parameter of a `Lib "C"` function is a compile error), and loading an
+  extension while the interpreter runs (it is always linked in).
 
 ## Which way to choose
 
