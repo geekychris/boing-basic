@@ -24,7 +24,7 @@ static void usage(void)
             "  boing compile prog.bas -o prog.bbc               write a bytecode file\n"
             "  boing emit-c prog.bas [-o prog.c]                write the generated C\n"
             "  boing symbols file.bas|file.cls                  list declarations for an IDE\n"
-            "  boing disasm prog.bas                            show the bytecode\n  boing members [Engine3D|Canvas|Audio|Http]       members of the runtime classes (completion)\n  boing vm [--project P.bbp] [--ext DIR/NAME] [--csource F.c] -o OUT   an interpreter with extensions\n");
+            "  boing disasm prog.bas                            show the bytecode\n  boing members [Engine3D|Canvas|Audio|Http]       members of the runtime classes (completion)\n  boing vm [--project P.bbp] [--ext DIR/NAME] [--csource F.c] [--target os4] -o OUT   an interpreter with extensions\n");
     exit(5);
 }
 
@@ -230,7 +230,7 @@ static const char *glue_ctype(Type *t)
    linked extensions and CSource= C functions (their Declare ... Lib "C" from the project) */
 static int cmd_vm(const char *argv0, int argc, char **argv)
 {
-    const char *out = NULL, *proj = NULL;
+    const char *out = NULL, *proj = NULL, *target = NULL;
     char **exts = NULL, **csrc = NULL, *dir, *inc, *lib, *gpath, *cmd;
     int nexts = 0, ncsrc = 0, i, k, cxx = 0;
     Program *p = NULL;
@@ -242,6 +242,7 @@ static int cmd_vm(const char *argv0, int argc, char **argv)
         else if (!strcmp(argv[i], "--project") && i + 1 < argc) proj = argv[++i];
         else if (!strcmp(argv[i], "--ext") && i + 1 < argc) { exts = (char **)xrealloc(exts, sizeof(char *) * (size_t)(nexts + 1)); exts[nexts++] = argv[++i]; }
         else if (!strcmp(argv[i], "--csource") && i + 1 < argc) { csrc = (char **)xrealloc(csrc, sizeof(char *) * (size_t)(ncsrc + 1)); csrc[ncsrc++] = argv[++i]; }
+        else if (!strcmp(argv[i], "--target") && i + 1 < argc) target = argv[++i];
         else { fprintf(stderr, "boing vm: unknown option %s\n", argv[i]); return 5; }
     }
     if (!out) { fprintf(stderr, "usage: boing vm [--project P.bbp] [--ext DIR/NAME]... [--csource F.c]... -o OUT\n"); return 5; }
@@ -312,8 +313,21 @@ static int cmd_vm(const char *argv0, int argc, char **argv)
         if (!f) { fprintf(stderr, "boing vm: cannot write %s\n", gpath); return 1; }
         fwrite(g.p, 1, g.n, f);
         fclose(f);
-        /* compile and link: main.o, the compiler and the VM come from libboingvm.a */
         dir = exe_dir(argv0);
+        if (target && !strcmp(target, "os4")) {
+            /* cross build: tools/boing-vm-os4.sh compiles the glue and sources in Docker */
+            Buf c2 = {0, 0, 0};
+            char *script = xsprintf("%s/../tools/boing-vm-os4.sh", dir);
+            int rc;
+            if (!file_exists(script)) { fprintf(stderr, "boing vm: %s not found\n", script); return 10; }
+            buf_printf(&c2, "sh \"%s\" \"%s\" \"%s\"", script, out, gpath);
+            for (k = 0; k < ns; k++) buf_printf(&c2, " \"%s\"", src[k]);
+            rc = system(c2.p);
+            remove(gpath);
+            return rc == 0 ? 0 : 1;
+        }
+        if (target && strcmp(target, "host")) { fprintf(stderr, "boing vm: unknown target %s (host, os4)\n", target); return 5; }
+        /* compile and link: main.o, the compiler and the VM come from libboingvm.a */
         {
             size_t dl = strlen(dir);
             const char *sep = dl && (dir[dl - 1] == ':' || dir[dl - 1] == '/') ? "" : "/";
