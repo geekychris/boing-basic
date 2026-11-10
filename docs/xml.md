@@ -23,6 +23,7 @@ Next
 | `CreateRoot(name)` | a new, empty document with this root element; returns it |
 | `CreateElement(name)` | a new element that isn't in the tree yet (put it there with `AppendChild`) |
 | `Find(name)` / `FindAll(name)` | the first / every element with this name anywhere in the document (`"*"`: every element) |
+| `SelectNodes(path)` | the elements along a path that starts at the root: `doc.SelectNodes("rss/channel/item")` |
 | `Indent` | True (default): `Xml`, `Save` and `element.Xml` write one element per line, indented by two spaces; False: everything on one line |
 
 ## XmlElement
@@ -34,7 +35,7 @@ Next
 | `Attribute(name [, default])` | an attribute's value; default (or "") if it isn't there. `e.Attribute("id") = 7` sets it. |
 | `HasAttribute(name)`, `RemoveAttribute(name)` | |
 | `AttributeNames` | the attribute names as an array |
-| `Children` | the child elements, as a list (`Count`, `Item(i)` from 0, `For Each`) |
+| `Children` / `Children(i)` | the child elements as a list (`Count`, `Item(i)` from 0, `For Each`), or the one at position i (from 0) |
 | `ChildCount` | how many child elements |
 | `Child(name)` | the first child element with this name, or `Nothing` |
 | `ChildText(name [, default])` | that child's text; default (or "") if there is no such child |

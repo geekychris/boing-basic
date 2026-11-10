@@ -18,6 +18,7 @@
 #include "boing.h"
 
 #include <stdio.h>
+#include "fpath.h"           /* "DH1:/name" -> "DH1:name" on AmigaOS */
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -696,11 +697,12 @@ static void select_path(xnode *n, const char *path, nvec *out)
 
 /* ---- XmlDocument ---- */
 
-enum { D_LOAD = 1, D_LOADXML, D_SAVE, D_ROOT, D_XML, D_INDENT, D_CREATEELEMENT, D_CREATEROOT, D_FINDALL, D_FIND };
+enum { D_LOAD = 1, D_LOADXML, D_SAVE, D_ROOT, D_XML, D_INDENT, D_CREATEELEMENT, D_CREATEROOT, D_FINDALL, D_FIND,
+       D_SELECT };
 static const struct { const char *name; int id; } members[] = {
     {"Load", D_LOAD}, {"LoadXml", D_LOADXML}, {"Save", D_SAVE}, {"Root", D_ROOT}, {"Xml", D_XML},
     {"Indent", D_INDENT}, {"CreateElement", D_CREATEELEMENT}, {"CreateRoot", D_CREATEROOT},
-    {"FindAll", D_FINDALL}, {"Find", D_FIND},
+    {"FindAll", D_FINDALL}, {"Find", D_FIND}, {"SelectNodes", D_SELECT},
 };
 
 static void load_text(xdoc *d, const char *s, long n)
@@ -828,6 +830,23 @@ static void d_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         n->name = a;
         if (id == D_CREATEROOT) d->root = n;
         *ret = bb_v_obj(wrap(d, n));
+        return;
+    }
+    case D_SELECT: {            /* SelectNodes("rss/channel/item"): the path starts at the root element */
+        nvec v = {NULL, 0, 0};
+        a = arg_c(argc, argv, 0);
+        if (d->root) {
+            xnode top;
+            xnode *kids[1];
+            memset(&top, 0, sizeof top);
+            kids[0] = d->root;
+            top.kids = kids;
+            top.nkids = 1;
+            select_path(&top, a, &v);
+        }
+        free(a);
+        *ret = bb_v_obj(new_list(d, v.v, v.n));
+        free(v.v);
         return;
     }
     case D_FINDALL:
@@ -998,7 +1017,16 @@ static void e_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         nvec v = {NULL, 0, 0};
         int i;
         for (i = 0; i < n->nkids; i++) if (n->kids[i]->type == N_ELEM) nv_add(&v, n->kids[i]);
-        *ret = bb_v_obj(new_list(d, v.v, v.n));
+        if (argc > 0) {             /* Children(i): one of them, from 0 */
+            bb_value t;
+            int32_t k = (int32_t)bb_v_to_long(bb_v_deref(&argv[0], &t));
+            if (k < 0 || k >= v.n) {
+                free(v.v);
+                bb_raise(9, NULL);
+            }
+            *ret = bb_v_obj(wrap(d, v.v[k]));
+        } else
+            *ret = bb_v_obj(new_list(d, v.v, v.n));
         free(v.v);
         return;
     }

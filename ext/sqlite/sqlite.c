@@ -396,6 +396,14 @@ static void d_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         memcpy(d->path, bb_str_ptr(s), (size_t)bb_str_len(s));
         d->path[bb_str_len(s)] = 0;
         bb_str_release(s);
+#ifdef __amigaos4__
+        {
+            /* "DH1:/name" -> "DH1:name" as the other file functions do (App.Path & "/" & name for a
+               program at a volume root on AmigaOS); ":memory:" has no "/" after its colon */
+            char *c = strchr(d->path, ':');
+            if (c && c[1] == '/' && c != d->path) memmove(c + 1, c + 2, strlen(c + 2) + 1);
+        }
+#endif
         rc = a->open_v2(d->path, &d->db, ro ? BB_SQ_OPEN_READONLY : BB_SQ_OPEN_READWRITE | BB_SQ_OPEN_CREATE, NULL);
         if (rc != BB_SQ_OK) {
             char m[600];

@@ -37,6 +37,10 @@ lg.Pattern = "{date} {time}.{ms} {level} {message}"
 lg.Info "stamped"
 s = lg.LastMessage
 Print Len(s); Mid(s, 5, 1); Mid(s, 8, 1); Mid(s, 14, 1); Mid(s, 20, 1); " "; Mid(s, 25)
+' {line}: the BASIC line, also in the interpreter
+lg.Pattern = "{line}"
+lg.Info "x"
+Print "line:"; lg.LastMessage
 ' rotation
 lg.Pattern = "{message}"
 lg.MaxSize = 200

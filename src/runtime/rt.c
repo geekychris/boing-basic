@@ -11,6 +11,8 @@ bb_errstate bb_err;
 bb_errframe *bb_errtop;
 bb_cleanup *bb_cleanups;
 int32_t bb_line;
+void (*bb_line_hook)(void);           /* the VM: bring bb_line up to date */
+int32_t bb_current_line(void) { if (bb_line_hook) bb_line_hook(); return bb_line; }
 const char *bb_file = "";
 
 static const bb_program_ops *g_prog;

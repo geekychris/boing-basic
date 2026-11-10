@@ -802,6 +802,17 @@ static bb_value load_raw(VM *vm, void *p, int vt, int aux)
     return bb_elem_load(vt, p);
 }
 
+/* bb_current_line(): the line of the innermost frame (its pc as last stored) */
+static void vm_line_sync(void)
+{
+    VM *vm = g_vm;
+    Frame *f;
+    if (!vm || !vm->nframes) return;
+    f = &vm->frames[vm->nframes - 1];
+    bb_file = vm->img->files[f->proc->file];
+    bb_line = f->proc->nlines ? f->proc->lines[line_index(f->proc, (int32_t)(f->pc - vm->img->code))].line : 0;
+}
+
 /* Ctrl-C polling at loop back-edges and calls */
 static void vm_poll(VM *vm)
 {
@@ -1906,6 +1917,7 @@ static void vm_exec(VM *vm, int entry)
                         break;
                     }
                 }
+                fr->pc = pc;            /* bb_current_line() (Logger's {line}) */
                 r = bb_v_invoke_site(recv, &img->sites[pc[1]], bb_str_ptr(name), pc[2], argc, args);
                 for (i = 0; i < argc; i++) release_slot(&args[i]);
                 release_slot(recv);
@@ -2263,6 +2275,7 @@ static const bb_program_ops vm_ops = {ops_find_proc, ops_call_proc, ops_find_glo
 
 static void prepare(VM *vm)
 {
+    bb_line_hook = vm_line_sync;
     VMImage *img = vm->img;
     int32_t i, j;
     for (i = 0; i < img->nudts; i++) layout_udt(vm, i);

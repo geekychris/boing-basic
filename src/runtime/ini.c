@@ -13,6 +13,7 @@
 #include "boing.h"
 
 #include <stdio.h>
+#include "fpath.h"           /* "DH1:/name" -> "DH1:name" on AmigaOS */
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>

@@ -15,19 +15,20 @@
 #include "boing.h"
 
 #include <stdio.h>
+#include "fpath.h"           /* "DH1:/name" -> "DH1:name" on AmigaOS */
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 
 enum {
-    M_OPEN = 1, M_LOADTEXT, M_READRECORD, M_FIELD, M_FIELDS, M_HEADERS, M_READALL, M_CREATE, M_WRITERECORD,
+    M_OPEN = 1, M_LOADTEXT, M_READRECORD, M_FIELD, P_FIELDS, P_HEADERS, M_READALL, M_CREATE, M_WRITERECORD,
     M_FORMATRECORD, M_PARSELINE, M_CLOSE, M_COLUMN, P_TEXT,
     P_DELIMITER, P_QUOTE, P_HASHEADER, P_FIELDCOUNT, P_RECORDNUMBER, P_LINENUMBER, P_ATEND, P_QUOTEALL,
     P_LINEENDING, P_TRIMFIELDS,
 };
 static const struct { const char *name; int id; } members[] = {
     {"Open", M_OPEN}, {"LoadText", M_LOADTEXT}, {"ReadRecord", M_READRECORD}, {"Field", M_FIELD},
-    {"Fields", M_FIELDS}, {"Headers", M_HEADERS}, {"ReadAll", M_READALL}, {"Create", M_CREATE},
+    {"Fields", P_FIELDS}, {"Headers", P_HEADERS}, {"ReadAll", M_READALL}, {"Create", M_CREATE},
     {"WriteRecord", M_WRITERECORD}, {"FormatRecord", M_FORMATRECORD}, {"ParseLine", M_PARSELINE},
     {"Close", M_CLOSE}, {"ColumnIndex", M_COLUMN}, {"Text", P_TEXT},
     {"Delimiter", P_DELIMITER}, {"Quote", P_QUOTE}, {"HasHeader", P_HASHEADER}, {"FieldCount", P_FIELDCOUNT},
@@ -396,10 +397,10 @@ static void c_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         *ret = bb_v_long(column_of(c, s));
         bb_str_release(s);
         return;
-    case M_FIELDS:
+    case P_FIELDS:
         *ret = bb_v_arr(str_array(c->fields, c->nfields));
         return;
-    case M_HEADERS:
+    case P_HEADERS:
         read_header(c);
         *ret = bb_v_arr(str_array(c->headers, c->nheaders));
         return;

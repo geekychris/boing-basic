@@ -30,6 +30,9 @@ Print doc.Find("nothing") Is Nothing; doc.Find("empty").ChildCount; "["; doc.Fin
 Print Join(doc.FindAll("item")(1).AttributeNames, ",")
 Print doc.Find("empty").Parent.Attribute("id"); " "; doc.Find("item").Parent.Name; root.Parent Is Nothing
 
+' Children(i) and SelectNodes on the document
+Print root.Child("channel").Children(1).Attribute("id"); " "; doc.SelectNodes("rss/channel/item").Count; doc.SelectNodes("channel").Count
+
 ' editing
 Set e = doc.Find("channel").AddElement("item")
 e.Attribute("id") = 4

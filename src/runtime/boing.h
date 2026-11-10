@@ -147,6 +147,9 @@ extern bb_errframe *bb_errtop;  /* innermost handler frame, NULL = none */
 /* Current source location (updated per statement by generated C). The VM
  * sets these from its line table when an error is raised. */
 extern int32_t bb_line;
+/* the current BASIC line (bb_line is updated lazily in the VM; native code sets it per statement) */
+int32_t bb_current_line(void);
+extern void (*bb_line_hook)(void);
 extern const char *bb_file;
 
 /* Raise run-time error `num`. desc NULL = the standard VB message.

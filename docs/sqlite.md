@@ -50,9 +50,9 @@ values can't break the statement (or be used to change it), and dates and number
 | `InTransaction`, `IsOpen` | |
 | `ErrorCode` | SQLite's (extended) code for the last error, e.g. 2067 for a UNIQUE violation |
 | `Timeout` | milliseconds to wait for a database that another program has locked; default 5000 |
-| `Version` | SQLite's version ("3.34.0") |
+| `Version` | SQLite's version (3.34.0 on AmigaOS; the system's on the host) |
 | `Available` | True if SQLite can be used in this program |
-| `Path` | the file name |
+| `Path` | the file name. On AmigaOS `App.Path & "/x.db"` works for a program at a volume root too (`DH1:/x.db` is taken as `DH1:x.db`, as by the other file functions). |
 
 The values after the SQL fill its `?` parameters in order; they may also be given as one array
 (`db.Execute sql, Array(a, b, c)`). The number of values must match the number of `?`s.

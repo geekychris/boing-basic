@@ -51,6 +51,7 @@ Close #1
 | `Extract entry, path` | writes one entry to a file (creating its folders) |
 | `ExtractAll(folder)` | writes every entry below folder, with their folders; returns how many. Entries with absolute names or `..` are skipped, so an archive can't write outside the folder. |
 | `Close` | |
+| `Path` | the archive's file name (read-only) |
 
 Every entry's size and CRC-32 are checked when it is read (error 31501 "... is damaged").
 

@@ -7,6 +7,7 @@ count: 6  last: [WARNING] Test: six (35 is a warning)
 [FATAL] Test: five
 [WARNING] Test: six (35 is a warning)
  36 --:. INFO stamped
+line:42
 rotated:TrueTrueTrue
 WARNING: to the console because there is no file
 ERROR: to both

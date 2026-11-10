@@ -49,18 +49,18 @@ Private Sub server_ConnectionRequest()
     status.Caption = "Hosting - " & clients.Count & " people joined"
 End Sub
 
-Private Sub server_ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)
-    Do While InStr(Client.Peek(), vbLf) > 0
-        Relay Client, Client.ReceiveLine()
+Private Sub server_ClientDataArrival(ByVal conn As Socket, ByVal Bytes As Long)
+    Do While InStr(conn.Peek(), vbLf) > 0
+        Relay conn, conn.ReceiveLine()
     Loop
 End Sub
 
-Private Sub server_ClientClose(ByVal Client As Socket)
+Private Sub server_ClientClose(ByVal conn As Socket)
     Dim i As Long
     For i = clients.Count To 1 Step -1
-        If clients(i) Is Client Then clients.Remove i
+        If clients(i) Is conn Then clients.Remove i
     Next
-    Client.Close
+    conn.Close
     Relay Nothing, "* someone left"
     status.Caption = "Hosting - " & clients.Count & " people joined"
 End Sub
