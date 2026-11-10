@@ -24,8 +24,9 @@ The solution is in `examples/book/ex07-3d-scene/`: `Scene3D.bbp`, the module `Wo
 3D world) and the form `scene.afg` + `scene.bas`. For a bigger example, with a fractal
 landscape, a flying ship and a star field, see `examples/engine3d_demo`.
 
-<!-- screenshot: examples/book/ex07-3d-scene/shots/scene.png: the 3D Scene window on AmigaOS 4: a green and cream chequered floor, a red cube on the left, a gold pyramid on the right, a blue six-sided tower with a red roof behind them and a red cube floating above it, a blue sky, and the white text CURSOR KEYS: MOVE at the top and the polygon count at the bottom -->
-![The 3D scene](../../../examples/book/ex07-3d-scene/shots/scene.png)
+![The 3D scene on AmigaOS 4](../../../examples/book/ex07-3d-scene/shots/scene.png)
+
+*The 3D scene on AmigaOS 4*
 
 ## How Engine3D works, in short
 
@@ -283,9 +284,6 @@ End Sub
 `And 65535` keeps the angle in the range 0 to 65535 (a full turn later it is back at the
 start). Holding Left turns 600 units a frame: a full turn in about 2 seconds at 50 frames a
 second.
-
-<!-- screenshot: examples/book/ex07-3d-scene/shots/turned.png: the 3D Scene after turning right and walking forward: the gold pyramid close up in the middle, the blue tower with its red roof and the red cube to the left, the chequered floor running off at an angle -->
-![After turning and walking](../../../examples/book/ex07-3d-scene/shots/turned.png)
 
 ## Running it
 

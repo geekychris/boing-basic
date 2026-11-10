@@ -22,8 +22,9 @@ Find window.
 The solution is in `examples/book/ex05-notes-app/`: `Notes.bbp`, the main window `main.afg` +
 `main.bas`, and the Find window `findwin.afg` + `findwin.bas`.
 
-<!-- screenshot: examples/book/ex05-notes-app/shots/notes.png: the Notes window with some text, the toolbar (New, Open, Save, Find), the Project menu pulled down showing New, Open..., Save, Save as..., About..., Quit with their Amiga-key shortcuts, and the status bar "Ln 3, Col 12" -->
-![Notes with its Project menu open](../../../examples/book/ex05-notes-app/shots/notes.png)
+![The Notes window when it opens: the toolbar, the text and the status bar](../../../examples/book/ex05-notes-app/shots/notes.png)
+
+*The Notes window when it opens: the toolbar, the text and the status bar*
 
 ## Step 1: The window and its menus
 
@@ -89,8 +90,9 @@ becomes `mnuSaveAs`), **Shortcut**, and the **Checkable**, **Checked**, **Enable
 **Visible** boxes. The arrows change an entry's level and order. After OK the menus are rows
 of the Layout tree: double-click one to write its `Click` Sub.
 
-<!-- screenshot: examples/book/ex05-notes-app/shots/menu-editor.png: AmiForge's Menu Editor with the Notes menus: Project, its items indented, the separator, the Settings menu with "Fixed-width font" selected and Checkable ticked -->
-![The Menu Editor](../../../examples/book/ex05-notes-app/shots/menu-editor.png)
+![AmiForge's Menu Editor](../images/af-basic-menu-editor.png)
+
+*AmiForge's Menu Editor*
 
 The simplest menu Subs just call the text editor:
 
@@ -232,9 +234,6 @@ End Sub
 
 `UnloadMode` is 0 when the user clicked the close gadget and 1 when the code called `Unload`.
 
-<!-- screenshot: examples/book/ex05-notes-app/shots/save-changes.png: the "Save the changes?" requester in front of the Notes window, with the question icon and the buttons Yes, No and Cancel -->
-![The Save the changes requester](../../../examples/book/ex05-notes-app/shots/save-changes.png)
-
 ## Step 5: A second window: Find
 
 The Find window is a form of its own, `findwin.afg`, listed in the project with a second
@@ -336,9 +335,6 @@ A hidden form is still loaded, and a program ends only when its **last loaded fo
 unloaded. So when the main window closes, its `Form_Unload` unloads the Find window too
 (`Unload finder`, which does nothing if it was never loaded); otherwise the program would go
 on running with no window open.
-
-<!-- screenshot: examples/book/ex05-notes-app/shots/find.png: the Find tool window beside the Notes window, "Amiga" typed in the Find field, the word selected in the text, and "Found Amiga" in the status bar -->
-![The Find window](../../../examples/book/ex05-notes-app/shots/find.png)
 
 ## Step 6: Remembering settings
 

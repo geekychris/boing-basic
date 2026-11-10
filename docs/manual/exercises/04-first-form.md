@@ -65,8 +65,9 @@ window's close gadget.
    Type the code below.
 6. Press **Ctrl-F5** (Run). AmiForge saves the files, checks the program and runs it.
 
-<!-- screenshot: examples/book/ex04-first-form/shots/designer.png: AmiForge's GUI designer with the Hello form: the Layout tree (window, vlayout, label message, button hello), the property list with ID name "hello", and the preview -->
-![The Hello form in AmiForge's GUI designer](../../../examples/book/ex04-first-form/shots/designer.png)
+![A Boing BASIC form in AmiForge's designer, with its Events list and the preview](../images/af-basic-designer.png)
+
+*A Boing BASIC form in AmiForge's designer, with its Events list and the preview*
 
 ### By hand
 
@@ -106,8 +107,9 @@ Form=main.afg
 
 Run it from a Shell in that drawer with `boing run Hello.bbp`.
 
-<!-- screenshot: examples/book/ex04-first-form/shots/hello.png: the Hello window on Workbench after the button was clicked twice: the label says "Hello, Amiga! (2)" above the "Say hello" button -->
-![The Hello window](../../../examples/book/ex04-first-form/shots/hello.png)
+![The Hello window when it opens](../../../examples/book/ex04-first-form/shots/hello.png)
+
+*The Hello window when it opens*
 
 ### What the .afg lines mean
 
@@ -168,9 +170,6 @@ In the designer: add a horizontal group (frame) and give it the title `Temperatu
 **TextBox**es in it, then a **CheckBox**, a **Label**, another horizontal group with three
 **CommandButton**s and a **Space**. Set each control's **ID name**, text and label in the
 property list. The Layout tree shows the same nesting as the indented `.afg` lines.
-
-<!-- screenshot: examples/book/ex04-first-form/shots/converter-designer.png: the converter form in AmiForge's GUI designer: the Layout tree showing the nesting of conv.afg, the preview of the window, and the Events list of the celsius field with Change -->
-![The converter in the designer](../../../examples/book/ex04-first-form/shots/converter-designer.png)
 
 ## Step 3: Form_Load
 
@@ -275,8 +274,9 @@ End Function
 `Describe` sets `feel.Caption` with a `Select Case c` and `Case Is < 0`, `Case Is < 12` ...,
 as in [Exercise 1](01-console.md).
 
-<!-- screenshot: examples/book/ex04-first-form/shots/converter.png: the Temperature Converter window running: Celsius 37, Fahrenheit 98.6, the label "Hot!", Whole degrees unchecked, the buttons Freezing, Boiling and Quit -->
-![The converter running](../../../examples/book/ex04-first-form/shots/converter.png)
+![The converter when it opens, at 20 degrees Celsius](../../../examples/book/ex04-first-form/shots/converter.png)
+
+*The converter when it opens, at 20 degrees Celsius*
 
 ## The controls and events used here
 

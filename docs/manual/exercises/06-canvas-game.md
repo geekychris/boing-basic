@@ -20,8 +20,9 @@ lives, a pause key, a title screen and a game-over screen.
 The solution is in `examples/book/ex06-canvas-game/` (`Squash.bbp`, `squash.afg`,
 `squash.bas`), with the first step in `examples/book/ex06-canvas-game/step1/`.
 
-<!-- screenshot: examples/book/ex06-canvas-game/shots/squash.png: Boing Squash running on AmigaOS 4: the dark blue court with grey-blue walls, the yellow bat near the bottom, the white ball, SCORE and LIVES at the top left and BEST at the top right -->
-![Boing Squash](../../../examples/book/ex06-canvas-game/shots/squash.png)
+![Boing Squash playing itself (started with --auto)](../../../examples/book/ex06-canvas-game/shots/squash.png)
+
+*Boing Squash playing itself (started with --auto)*
 
 ## Step 1: Drawing on a canvas
 
@@ -277,9 +278,6 @@ End Sub
 
 The best score is read with `GetSetting` in `Form_Load` and saved with `SaveSetting` in
 `Form_Unload`, as in [Exercise 5](05-notes-app.md).
-
-<!-- screenshot: examples/book/ex06-canvas-game/shots/gameover.png: Boing Squash showing GAME OVER - PRESS SPACE in yellow in the middle of the court, with the final score and the best score at the top -->
-![Game over](../../../examples/book/ex06-canvas-game/shots/gameover.png)
 
 ## Step 7: Frame timing
 

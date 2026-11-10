@@ -23,8 +23,9 @@ The solution is in `examples/book/ex08-sound/`: `SoundBoard.bbp` with `board.afg
 `board.bas`, the console player `PlayMod.bas` (step 2), and the module `glimmer.mod`
 ("Glimmer Drift", the music of the Glimmerfield game in `examples/glimmerfield`).
 
-<!-- screenshot: examples/book/ex08-sound/shots/soundboard.png: the Sound Board window on AmigaOS 4 while the music plays: the Music frame with "Song: glimmer drift (4 channels)", the progress gauge part filled, Play greyed out, Pause and Stop enabled, the Volume slider; the Sound effects frame with the Laser, Coin, Boom and Jump buttons and the two sliders; the status line "Position 3 of 10, row 17" -->
-![The Sound Board](../../../examples/book/ex08-sound/shots/soundboard.png)
+![The Sound Board when it opens](../../../examples/book/ex08-sound/shots/soundboard.png)
+
+*The Sound Board when it opens*
 
 ## How sound works in Boing BASIC
 

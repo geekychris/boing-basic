@@ -1,0 +1,7 @@
+# screenshots for the manual's exercise 4 (tools/gallery_shot.py examples/book/ex04-first-form)
+[[shot]]
+file = "shots/hello.png"
+run = { project = "step1/Hello.bbp", secs = 6 }
+[[shot]]
+file = "shots/converter.png"
+run = { project = "Converter.bbp", secs = 6 }
