@@ -16,6 +16,7 @@ Private Sub Form_Load()
     view.PSet 0, 0, RGB(255, 255, 255): view.PSet w - 1, h - 1, RGB(0, 0, 255)
     view.DrawText 60, 60, "BLIT 123", RGB(255, 255, 255)
     view.Flip
+    If Command$ <> "" Then view.SavePNG Command$     ' the expected picture (tests-os4/blit/run.sh, on the host)
     Print "picture hash"; view.Hash
 End Sub
 
