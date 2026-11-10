@@ -1218,6 +1218,7 @@ static void foreach_stmt(EC *e, Node *s)
     int id = e->nlabel++, k;
     char *fe = xsprintf("fe%d", id), *fv = xsprintf("fv%d", id), *src;
     Buf saved_rel;
+    size_t stemp_n = e->stemp.n;
     buf_printf(&e->decl, "    bb_foreach %s; bb_value %s = {0, 0, 0, {0}};\n", fe, fv);
     if (s->b->ty->kind == T_ARRAY) {
         char *a = val(e, s->b);
@@ -1234,6 +1235,9 @@ static void foreach_stmt(EC *e, Node *s)
     } else src = val(e, s->b);
     flush_pre(e);
     out(e, "bb_foreach_begin(&%s, %s);", fe, src);
+    /* an error caught inside the loop (Resume Next) must not free the collection's temporaries:
+       they stay in the procedure's cleanup (unwinding) and are released when the loop ends */
+    e->stemp.n = stemp_n;
     /* the collection's temporaries live until the loop ends */
     saved_rel = e->rel;
     memset(&e->rel, 0, sizeof e->rel);
