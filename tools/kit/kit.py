@@ -130,6 +130,8 @@ def md2txt(src):
         if fence:
             out.append("    " + line)
             continue
+        if line.lstrip().startswith("<!--"):     # the manual's test directives
+            continue
         if re.match(r"^\s*!\[", line):            # pictures
             continue
         m = re.match(r"^(#{1,6})\s+(.*)", line)
@@ -152,6 +154,74 @@ def md2txt(src):
         line = line.replace("`", "")
         out.append(line)
     return latin1("\n".join(out).rstrip() + "\n")
+
+
+def manual_files(bb):
+    """The user manual's chapters in reading order: (path, node name)."""
+    d = os.path.join(bb, "docs", "manual")
+    if not os.path.isdir(d):
+        return []
+    names = sorted(f for f in os.listdir(d) if f.endswith(".md") and f != "README.md")
+    chapters = [f for f in names if f[0].isdigit()] + [f for f in names if not f[0].isdigit()]
+    ex = os.path.join(d, "exercises")
+    exs = sorted(f for f in os.listdir(ex) if f.endswith(".md") and f != "README.md") if os.path.isdir(ex) else []
+    out = [(os.path.join(d, "README.md"), "MAIN")]
+    out += [(os.path.join(d, f), f[:-3]) for f in chapters]
+    if os.path.exists(os.path.join(ex, "README.md")):
+        out.append((os.path.join(ex, "README.md"), "exercises"))
+    out += [(os.path.join(ex, f), "exercises-" + f[:-3]) for f in exs]
+    return out
+
+
+def _guide_esc(s):
+    return s.replace("\\", "\\\\").replace("@", "\\@")
+
+
+def md2guide(files, title):
+    """One AmigaGuide database of markdown files: a node per file, links between them."""
+    nodes = {os.path.normpath(p): n for p, n in files}
+    L = ["@database BoingBASIC-Manual.guide", "@author Boing BASIC", "@wordwrap", ""]
+    for path, node in files:
+        here = os.path.dirname(path)
+        text = open(path, encoding="utf-8").read().splitlines()
+        first = next((re.sub(r"^#+\s*", "", l) for l in text if l.startswith("#")), node)
+        L.append('@node %s "%s"' % (node, _guide_esc(re.sub(r"[`*]", "", first)).replace('"', "'")))
+        fence = False
+        for line in text:
+            if line.lstrip().startswith("```"):
+                fence = not fence
+                continue
+            if line.lstrip().startswith("<!--"):
+                continue
+            if fence:
+                L.append("    " + _guide_esc(line))
+                continue
+            if re.match(r"^\s*!\[", line):
+                continue
+            m = re.match(r"^(#{1,6})\s+(.*)", line)
+            if m:
+                t = _guide_esc(re.sub(r"[`*]", "", m.group(2)))
+                L.append("")
+                L.append("@{b}%s@{ub}" % (t.upper() if len(m.group(1)) == 1 else t))
+                continue
+            if re.match(r"^\|[-| :]+\|$", line.strip()):
+                continue
+            if line.strip().startswith("|"):
+                line = "  " + "  ".join(c.strip() for c in line.strip().strip("|").split("|"))
+            line = _guide_esc(line)
+
+            def link(mm):
+                label, target = mm.group(1), mm.group(2).split("#")[0]
+                tgt = os.path.normpath(os.path.join(here, target)) if target else os.path.normpath(path)
+                n = nodes.get(tgt)
+                return '@{"%s" link %s}' % (label.replace('"', "'"), n) if n else label
+            line = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", link, line)
+            line = re.sub(r"\*\*(.+?)\*\*", r"@{b}\1@{ub}", line)
+            line = line.replace("`", "")
+            L.append(line)
+        L.append("@endnode")
+        L.append("")
+    return latin1("\n".join(L) + "\n")
 
 
 # --- icons ----------------------------------------------------------------------------------
@@ -448,10 +518,27 @@ def assemble(o):
         if os.path.exists(src):
             open(os.path.join(docs, name), "wb").write(md2txt(src))
             shutil.copy(os.path.join(icons, "doc.info"), os.path.join(docs, name + ".info"))
+    # the user manual: Docs/Manual/ as text (one file per chapter), the AmigaGuide, and the
+    # exercises' solutions in Examples/Manual/
+    mf = manual_files(bb)
+    if mf:
+        mdir = os.path.join(docs, "Manual")
+        os.makedirs(mdir)
+        drawer("Docs/Manual")
+        for src, node in mf:
+            name = ("00-contents" if node == "MAIN" else node) + ".txt"
+            open(os.path.join(mdir, name), "wb").write(md2txt(src))
+            shutil.copy(os.path.join(icons, "doc.info"), os.path.join(mdir, name + ".info"))
+        open(os.path.join(docs, "BoingBASIC-Manual.guide"), "wb").write(md2guide(mf, "Boing BASIC user manual"))
+        shutil.copy(os.path.join(icons, "doc.info"), os.path.join(docs, "BoingBASIC-Manual.guide.info"))
     # the examples
     exs = examples(bb)
     os.makedirs(os.path.join(top, "Examples"))
     drawer("Examples")
+    if os.path.isdir(os.path.join(bb, "examples", "manual")):     # the manual's exercise solutions
+        shutil.copytree(os.path.join(bb, "examples", "manual"), os.path.join(top, "Examples", "Manual"),
+                        ignore=shutil.ignore_patterns("*.md", ".*", "shots", "expected.out", "input.txt"))
+        drawer("Examples/Manual")
     for e in exs:
         dest = os.path.join(top, "Examples", e["dir"])
         e["staged"] = stage_example(e, bb, dest, mi, icons, o["native"])

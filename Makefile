@@ -57,11 +57,15 @@ test: all
 	@sh examples/ace_pilot2_bb/tools/test.sh
 	@sh examples/scairy_fun_bb/tools/test.sh
 	@for t in examples/*/tests/host-test.sh; do sh $$t || exit 1; done
+	@python3 tools/manual-check.py
+
+manual-test: all
+	python3 tools/manual-check.py --verbose
 
 clean:
 	rm -rf $(B)
 
-.PHONY: all test clean FORCE
+.PHONY: all test clean FORCE manual-test
 
 bench: all
 	python3 tools/bench.py $(BENCH_ARGS)
