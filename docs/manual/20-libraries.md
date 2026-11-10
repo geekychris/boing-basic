@@ -3920,6 +3920,10 @@ SQLite file next to the program. Each row of the list keeps its contact's id in 
 the program always knows which row of the table belongs to which row of the list. Its project
 file names the form and asks for SQLite:
 
+![The address book on AmigaOS 4](images/addressbook.png)
+
+*The address book on AmigaOS 4, with two contacts.*
+
 ```ini
 # Boing BASIC project: an address book kept in an SQLite database (manual chapter 20)
 Name=AddressBook

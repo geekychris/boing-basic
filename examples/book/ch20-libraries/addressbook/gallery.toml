@@ -1,0 +1,3 @@
+[[shot]]
+file = "../../../../docs/manual/images/addressbook.png"
+run = { project = "addressbook.bbp", secs = 8 }
