@@ -376,6 +376,28 @@ give the size of the window's screen.
 
 Status: **done** (tests/os4/ui_desktop_test.c 12/12, ui_menu_test 25/25 on m1b).
 
+## Notifications, Commodities, ReadArgs, starting from Workbench
+
+| | |
+|---|---|
+| `App.Notify title, text [, imagefile]` | a Ringhio notification (application.library; the program registers as an application under `App.Title` the first time). `App.NotifyResult` is the library's last answer (0 = queued) |
+| `App.HotKey name, "ctrl alt p"` | a Commodities hotkey (any commodities description); `Sub HotKey_Pressed(Name As String)` is called when it is pressed anywhere. The program then has an Exchange entry named `App.Title` |
+| `App_Quit()`, `App_Hide()`, `App_Show()` | subs called for Exchange's Kill/Hide/Show and application.library's quit/hide/show messages; without an `App_Quit` sub, Quit ends the program |
+| `App.ReadArgs(template)` | parses the program's arguments with an AmigaDOS template (`"FILE/A,SIZE/N,QUIET/S,FILES/M"`): True if they fit. Started from Workbench, the icon's tooltypes are used instead (KEY=value) |
+| `App.ArgValue(key)` | a value after `ReadArgs`: text, a number as text, "1" for a set switch, `/M` values joined with `vbLf`, "" if absent |
+
+These ports are served by the forms' event loop and by `DoEvents` in programs without forms.
+`bindings/application.bi` now has the `APPNOTIFY_`, `REGAPP_`... tags too (genbind reads enums)
+for programs that call application.library themselves.
+
+**boing from Workbench**: give a `.bas`/`.bbp`/`.bbc` project icon the default tool `boing` (e.g.
+`BOING:boing`); a double-click runs the project like `boing run`, with a console window that
+opens when the program prints and waits to be closed. `App.SaveIcon path, "BOING:boing"` writes
+such an icon.
+
+Status: **done** (tests-os4/desk on m1c: ReadArgs, a notification, a hotkey arriving through
+Commodities, the broker gone after exit; a project icon started `boing`).
+
 ## 7. ARexx, preferences, locale, help
 
 ### ARexx port

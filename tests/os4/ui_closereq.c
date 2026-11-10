@@ -8,6 +8,14 @@ int main(int argc, char **argv)
 {
     if (!inject_open()) return 20;
     for (int i = 1; i < argc; i++)
+        if (argv[i][0] == '+') {
+            /* +TITLE: a click on that window's close gadget (a console window left with WAIT) */
+            struct Window *w = find_window(argv[i] + 1);
+            if (!w || !make_active(argv[i] + 1)) { printf("%s: not found or not active\n", argv[i] + 1); continue; }
+            click_at(w->LeftEdge + 10, w->TopEdge + 8);
+            printf("%s: close gadget clicked\n", argv[i] + 1);
+            IDOS->Delay(25);
+        } else
         for (int k = 0; k < 3; k++) {
             if (!find_window(argv[i])) break;
             if (!make_active(argv[i])) { printf("%s: can't make it active\n", argv[i]); break; }
