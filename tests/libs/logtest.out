@@ -1,0 +1,14 @@
+defaults:True{date} {time} {level} {message} []True
+count: 6  last: [WARNING] Test: six (35 is a warning)
+[INFO] Test: one
+[WARNING] Test: two
+[DEBUG] Test: three
+[ERROR] Test: four
+[FATAL] Test: five
+[WARNING] Test: six (35 is a warning)
+ 36 --:. INFO stamped
+rotated:TrueTrueTrue
+WARNING: to the console because there is no file
+ERROR: to both
+file has: 15 
+bad level: 380 

@@ -7,11 +7,16 @@ import os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = {"Canvas": ["src/runtime/canvas.c", "src/runtime/canvas_paint_impl.h"],
        "Engine3D": ["src/runtime/engine3d.c"], "Audio": ["src/runtime/audio.c"],
+<<<<<<< HEAD
        "Http": ["src/runtime/http_obj.c"], "Dictionary": ["src/runtime/dict.c"],
        "StringBuilder": ["src/runtime/sbuilder.c"], "Socket": ["src/runtime/socket.c"],
        "RegExp": ["src/runtime/regexp.c"],
        "Csv": ["src/runtime/csv.c"],
        "Process": ["src/runtime/process.c"]}
+=======
+       "IniFile": ["src/runtime/ini.c"],
+       "Logger": ["src/runtime/logger.c"]}
+>>>>>>> 8a78145 (IniFile, Logger: ini.c Boing.IniFile (sections/keys, defaults, edits that keep comments, layout and CR LF, Sections/Keys/Delete*), logger.c Boing.Logger (levels with logDebug..logOff constants, patterns, append to a file flushed per line, rotation by MaxSize, console); tests/libs (VM, JIT, native), docs/ini.md, docs/logging.md)
 OUT = os.path.join(ROOT, "src/compiler/rtmembers.h")
 
 def members(path):
