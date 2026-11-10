@@ -14,7 +14,7 @@ SRC = {"Canvas": ["src/runtime/canvas.c", "src/runtime/canvas_paint_impl.h"],
        "Csv": ["src/runtime/csv.c"],
        "Process": ["src/runtime/process.c"]}
 =======
-       "Http": ["src/runtime/http_obj.c"], "IniFile": ["src/runtime/ini.c"],
+       "IniFile": ["src/runtime/ini.c"],
        "Logger": ["src/runtime/logger.c"]}
 >>>>>>> 8a78145 (IniFile, Logger: ini.c Boing.IniFile (sections/keys, defaults, edits that keep comments, layout and CR LF, Sections/Keys/Delete*), logger.c Boing.Logger (levels with logDebug..logOff constants, patterns, append to a file flushed per line, rotation by MaxSize, console); tests/libs (VM, JIT, native), docs/ini.md, docs/logging.md)
 OUT = os.path.join(ROOT, "src/compiler/rtmembers.h")
