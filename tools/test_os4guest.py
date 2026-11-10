@@ -3,7 +3,7 @@
 of its own (BB_SESSION_TIMEOUT counts from that session's lock, not from the process's
 first one), the watchdog stops when its session ends, and monitor commands refuse the
 user's m1 guest. No guest needed: the devbench URL points nowhere."""
-import os, sys, time
+import json, os, re, sys, tempfile, time
 os.environ["OS4_MCP"] = "http://127.0.0.1:9/mcp"       # status fetches fail quietly
 os.environ["BB_SESSION_TIMEOUT"] = "1.0"
 os.environ["BB_WATCHDOG_POLL"] = "0.05"
@@ -222,4 +222,22 @@ root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 hits = [l for l in _sp.run(["git", "-C", root, "grep", "-n", "-i", "-E", "makedir.*[ \"']QUIET[\"' )]", "--", "*.py"],
                            capture_output=True, text=True).stdout.splitlines() if "has no QUIET" not in l and "test_os4guest" not in l]
 check(not hits, "no makedir ... QUIET in the guest tools (%s)" % hits[:3])
+# remote guests' ssh logins come from a local config or BB_SSH_<GUEST>, never from the repo
+hosts = os.path.join(tempfile.mkdtemp(), "hosts.json")
+with open(hosts, "w") as f:
+    json.dump({"m1b": "someone@box.local"}, f)
+def ssh_of(guest, **env):
+    e = dict(os.environ, BB_GUEST=guest, BB_GUEST_HOSTS=hosts, **env)
+    e.pop("OS4_SSH", None)
+    if "BB_SSH_" + guest.upper() not in env:
+        e.pop("BB_SSH_" + guest.upper(), None)
+    r = _sp.run([sys.executable, "-c", "import sys; sys.path.insert(0, %r); import os4guest as g; print(g.SSH)"
+                 % os.path.join(root, "tools")], capture_output=True, text=True, env=e)
+    return (r.stdout.strip() or r.stderr.strip().splitlines()[-1]) if r.returncode == 0 else "EXIT: " + r.stderr.strip()
+check(ssh_of("m1b") == "someone@box.local", "ssh login of a remote guest from the hosts file")
+check(ssh_of("m1b", BB_SSH_M1B="other@x.local") == "other@x.local", "BB_SSH_<GUEST> overrides the hosts file")
+check(ssh_of("m1c").startswith("EXIT:") and "BB_SSH_M1C" in ssh_of("m1c"), "a remote guest without a login exits with a hint")
+check(ssh_of("local") == "None", "the local guest needs no ssh login")
+src = open(os.path.join(root, "tools", "os4guest.py")).read()
+check(not re.search(r'"ssh":\s*"[^"]*@', src), "no ssh logins in os4guest.py")
 sys.exit(0 if ok else 1)
