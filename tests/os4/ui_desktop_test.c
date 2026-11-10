@@ -128,6 +128,11 @@ static void script(void)
         printf("# screen %dx%d, window %d wide\n", geti(s, "ScreenWidth"), geti(s, "ScreenHeight"), geti(s, "Width"));
         check(geti(s, "ScreenWidth") == 640 && geti(s, "ScreenHeight") == 480, "the screen has the asked size (640 x 480)");
         check(geti(s, "Width") == 640, "the full-screen window covers the screen");
+        /* no title bar (a borderless window with WA_Title still gets one: the picture lost ~30
+           rows) and no offset: inner height = the screen's, at its top */
+        printf("# window top %d, inner height %d, caption \"%s\"\n", geti(s, "Top"), geti(s, "Height"), gets_(s, "Caption"));
+        check(geti(s, "Top") == 0 && geti(s, "Height") == 480, "the full-screen window has no title bar (inner height 480 at the top)");
+        check(!strcmp(gets_(s, "Caption"), "Boing full screen"), "its Caption reads back though no title bar shows it");
         IDOS->Delay(25);
         bb_form_unload(full);
         break;
