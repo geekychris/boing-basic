@@ -1,0 +1,11 @@
+Hello Ann, run 3 
+Colour: blue
+[User] Name = Ann
+[Stats] Runs = 3
+---
+; settings for the counter
+[User]
+Name = Ann
+
+[Stats]
+Runs=3

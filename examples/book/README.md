@@ -494,6 +494,11 @@ native, and checks the others compile.
 | 20.63 | [ch20-libraries/listing-20-63.bas](ch20-libraries/listing-20-63.bas) | Running a command |
 | 20.64 | [ch20-libraries/listing-20-64.bas](ch20-libraries/listing-20-64.bas) | Running a command |
 | 20.65 | [ch20-libraries/listing-20-65.bas](ch20-libraries/listing-20-65.bas) | Environment variables |
+| 20.66 | [ch20-libraries/listing-20-66.bas](ch20-libraries/listing-20-66.bas) | Example: a run counter |
+| 20.67 | [ch20-libraries/listing-20-67.bas](ch20-libraries/listing-20-67.bas) | Errors and limits |
+| 20.68 | [ch20-libraries/listing-20-68.bas](ch20-libraries/listing-20-68.bas) | Example: levels and a log file |
+| 20.69 | [ch20-libraries/listing-20-69.bas](ch20-libraries/listing-20-69.bas) | Example: a log that doesn't grow for ever |
+| 20.70 | [ch20-libraries/listing-20-70.bas](ch20-libraries/listing-20-70.bas) | Debug messages in a finished program |
 
 ## Extending Boing BASIC
 

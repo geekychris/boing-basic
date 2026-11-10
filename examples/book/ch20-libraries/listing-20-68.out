@@ -1,0 +1,6 @@
+ 5 messages, the last: ERROR [loader] can't open the picture
+INFO [main] program started
+DEBUG [main] now debug messages are written
+WARNING [loader] no settings file, using the defaults
+ERROR [loader] between Error and Fatal
+ERROR [loader] can't open the picture
