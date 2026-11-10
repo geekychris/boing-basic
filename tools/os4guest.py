@@ -286,9 +286,9 @@ def end_session(m):
 
 # ready tasks other than these, at priority >= 0, at the start of a session are suspect
 # (infra-m1b's tasklist; an idle guest shows about 3-7 READY)
-TASKS_OK = ("dos_signal_server", "dos_appdir_server", "idle.task", "AmiDock", "claude_busy", "amiga-bridge",
+TASKS_OK = ("dos_signal_server", "dos_appdir_server", "idle.task", "AmiDock", "amiga-bridge",
             "Background CLI", "tasklist", "input.device", "Workbench", "RinghioServer")
-CMDS_OK = ("amiga-bridge", "claude_busy", "tasklist")     # a CLI running one of these is fine
+CMDS_OK = ("amiga-bridge", "tasklist")     # a CLI running one of these is fine
 
 
 def suspect_tasks(listing):
@@ -306,6 +306,17 @@ def suspect_tasks(listing):
         if not ok_:
             out.append((name, cmd, pri))
     return out
+
+
+def lower_banner(m):
+    """The "CLAUDE IS TESTING" banner (claude_busy) stays READY at priority 0 on OS4, and the
+    bridge runs every command in Background CLIs at -10: with the banner up, bbfetch, boing and
+    the tests got leftover CPU only (4 MB in 52 s instead of 1 s on m1c). Lower it below them."""
+    for n, c in status_procs(m).items():
+        if "claude_busy" in c.lower():
+            m.tool("amiga_dos_command", command="ChangeTaskPri -20 PROCESS %d" % n)
+            return n
+    return None
 
 
 def task_snapshot(m):
@@ -337,6 +348,10 @@ def testing(message):
                 if not bridge_alive():
                     sys.stderr.write("os4guest: the guest's bridge isn't answering (no heartbeat): not starting\n")
                     os._exit(3)
+                try:
+                    lower_banner(MCP(URL, timeout=60))
+                except Exception as e:
+                    sys.stderr.write("os4guest: lowering the banner's priority failed: %s\n" % e)
                 try:
                     task_snapshot(MCP(URL, timeout=60))
                 except Exception as e:
