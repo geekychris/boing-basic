@@ -1,0 +1,48 @@
+[abc][a-c]--[ab]
+[bca][xyz][]a]][-a-][123]
+[hi_9][	 ][ab][1.25][cat]
+[cat][a.b][AB][	][\]
+[ac]-[abc][aaa][aaaaa][aa]
+[<a><b>][<a>][aaab][y][abab]
+[a{,2}][{x}][aa]
+[dog][abcd][cc][abab]
+[there][two][aaab][ababc]
+[555-1234][yz]
+FalseTrueTrue
+ABCa Oo TrueTrue
+ 0  3 True
+matches: 2 Matches
+ann@boing.com 5  13  user=ann host=boing n= 3  Match
+bob@amiga.org 20  13  user=bob host=amiga n= 3  Match
+bob@amiga.org ann@boing.com  9 
+ann,boing,com,
+ 1 
+Trueb-1 
+boing:ann amiga:bob
+[$][ann@boing][][][$3][$0]
+a#b2c3
+a#b#c#
+-a-b-c-
+> line
+[trim me]
+ 3 a|b|c|d
+1|-|2|-|3
+a|b|c
+1\+1=2\? \(yes\) \[a\] \$5\.00
+TrueFalse
+ 3 
+ 100000 ee
+False
+( ->  5017  bad regular expression: missing )
+a) ->  5017  bad regular expression: unmatched )
+[a ->  5017  bad regular expression: missing ] in a character class
+*a ->  5017  bad regular expression: nothing to repeat before *, + or ?
+a{3,2} ->  5017  bad regular expression: {n,m} with m < n
+\ ->  5017  bad regular expression: \ at the end of the pattern
+(?<x>a) ->  5017  bad regular expression: unknown group type (?...
+\2(a) ->  5017  bad regular expression: a backreference to a group that doesn't exist
+x** ->  5017  bad regular expression: a repetition can't be repeated directly (put it in a group)
+backtracking: 5019 
+catastrophic: 5019  the regular expression takes too long on this text (too much backtracking)
+index: 9  1 
+read-only: 383 
