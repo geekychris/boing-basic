@@ -1073,6 +1073,7 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
     int bi;
     check_ambiguous(c, e, s);
     if (s && s->kind == SK_MODULE && s->mod && s->mod->form_var) s = s->mod->form_var;    /* the form */
+    if (s && s->kind == SK_MODULE && name_eq(e->name, "Err")) return err_prop(c, e, "Number", args, mode);   /* err.bas: still Err */
     if (s && s->is_retvar && args && s->proc) {
         /* F(...) inside F: a recursive call */
         {
