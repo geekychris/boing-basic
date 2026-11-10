@@ -1,0 +1,5 @@
+# a module named err: Err still means the Err object, in it and elsewhere
+Name=errmodule
+Startup=Sub Main
+Module=main.bas
+Module=err.bas
