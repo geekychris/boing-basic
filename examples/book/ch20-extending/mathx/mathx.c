@@ -28,6 +28,7 @@ typedef struct stats {
 } stats;
 
 enum { M_ADD, M_CLEAR, P_COUNT, P_MEAN, P_MIN, P_MAX, P_NAME };
+enum { EV_NEWMAX };             /* events: numbered in the order of mathx.bbx's event lines */
 
 static const bb_member stats_members[] = {
     {"Add", M_ADD, BB_INV_METHOD}, {"Clear", M_CLEAR, BB_INV_METHOD},
@@ -44,9 +45,15 @@ static void stats_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value 
     case M_ADD: {
         double x = bb_arg_double(argv, 0);
         if (s->count == 0 || x < s->min) s->min = x;
-        if (s->count == 0 || x > s->max) s->max = x;
+        int newmax = s->count == 0 || x > s->max;
+        if (newmax) s->max = x;
         s->sum += x;
         s->count++;
+        if (newmax) {                                     /* tell the program: NewMax(x) */
+            bb_value a[1];
+            a[0] = bb_ret_double(x);
+            bb_event_raise(self, EV_NEWMAX, "NewMax", 1, a);
+        }
         return;
     }
     case M_CLEAR: s->count = 0; s->sum = s->min = s->max = 0; return;

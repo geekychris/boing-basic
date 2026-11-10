@@ -152,10 +152,17 @@ program uses them like Canvas or Audio:
 <!-- project: examples/book/ch20-extending/mathx/demo.bbp -->
 ```basic
 ' demo.bas - uses the mathx extension (Extension=mathx in demo.bbp)
+Dim WithEvents rain As Stats
+
+Sub rain_NewMax(ByVal x As Double)
+    Print "  new maximum:"; x
+End Sub
+
 Sub Main()
     Dim s As Stats, v As Variant
     Print Clamp(15, 0, 10); Clamp(-2.5, 0, 10); Lerp(0, 100, 0.25)
-    Set s = New Stats
+    Set rain = New Stats
+    Set s = rain
     s.Name = "Rainfall"
     For Each v In Array(12, 7.5, 3, 20.25, 9)
         s.Add v
@@ -170,6 +177,8 @@ End Sub
 
 ```text
  10  0  25
+  new maximum: 12
+  new maximum: 20.25
 Rainfall: 5 values, mean 10.35 from 3 to 20.25
 Error 11 Stats.Mean: no numbers added yet
 ```
@@ -203,6 +212,7 @@ class Stats
   property Min As Double ReadOnly
   property Max As Double ReadOnly
   property Name As String
+  event NewMax(ByVal x As Double)
 ```
 
 | Line | Meaning |
@@ -213,6 +223,7 @@ class Stats
 | `method Name(params) [As Type]` | a method, with a result if it has `As Type` |
 | `property Name As Type` | a property the program can read and set |
 | `property Name As Type ReadOnly` | a property the program can only read |
+| `event Name(params)` | an event the object raises, handled with `Dim WithEvents` |
 | `# ...` | a comment |
 
 Parameters are written as in a `Declare`, always `ByVal`. With the descriptor the compiler
@@ -278,6 +289,7 @@ typedef struct stats {
 } stats;
 
 enum { M_ADD, M_CLEAR, P_COUNT, P_MEAN, P_MIN, P_MAX, P_NAME };
+enum { EV_NEWMAX };             /* events: numbered in the order of mathx.bbx's event lines */
 
 static const bb_member stats_members[] = {
     {"Add", M_ADD, BB_INV_METHOD}, {"Clear", M_CLEAR, BB_INV_METHOD},
@@ -294,9 +306,15 @@ static void stats_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value 
     case M_ADD: {
         double x = bb_arg_double(argv, 0);
         if (s->count == 0 || x < s->min) s->min = x;
-        if (s->count == 0 || x > s->max) s->max = x;
+        int newmax = s->count == 0 || x > s->max;
+        if (newmax) s->max = x;
         s->sum += x;
         s->count++;
+        if (newmax) {                                     /* tell the program: NewMax(x) */
+            bb_value a[1];
+            a[0] = bb_ret_double(x);
+            bb_event_raise(self, EV_NEWMAX, "NewMax", 1, a);
+        }
         return;
     }
     case M_CLEAR: s->count = 0; s->sum = s->min = s->max = 0; return;
@@ -340,6 +358,45 @@ static bb_obj *new_stats(void)
 error 429 when a program tries to make one. The runtime counts the references to an object and calls `terminate` when
 the last one goes, then frees its memory. The whole file is
 `examples/book/ch20-extending/mathx/mathx.c` in the book examples.
+
+### Events
+
+An extension object can raise events that the program handles, like the events of a class
+module ([Classes and objects](11-classes.md)). List them in the `.bbx` with `event` lines; the
+compiler then accepts `Dim WithEvents` variables of the class and checks the handlers'
+parameters. In C, raise one with `bb_event_raise(self, number, "Name", argc, argv)`, where the
+number is the event's position among the class's `event` lines, counting from 0. `Stats` raises
+`NewMax` whenever a number bigger than every earlier one is added:
+
+```c
+enum { EV_NEWMAX };             /* events: numbered in the order of mathx.bbx's event lines */
+
+    case M_ADD: {
+        double x = bb_arg_double(argv, 0);
+        int newmax = s->count == 0 || x > s->max;
+        ...
+        if (newmax) {                                     /* tell the program: NewMax(x) */
+            bb_value a[1];
+            a[0] = bb_ret_double(x);
+            bb_event_raise(self, EV_NEWMAX, "NewMax", 1, a);
+        }
+        return;
+```
+
+and the program handles it with a procedure named after the variable and the event:
+
+<!-- fragment -->
+```basic
+Dim WithEvents rain As Stats
+
+Sub rain_NewMax(ByVal x As Double)
+    Print "  new maximum:"; x
+End Sub
+```
+
+The handler runs straight away, inside the call to `Add`. The arguments you pass belong to
+you: release any strings you made for them after `bb_event_raise` returns (with
+`bb_v_release`).
 
 ### An extension in C++
 
@@ -493,7 +550,7 @@ this way. Native programs always get an extension from their own `Extension=` li
   `boing vm` do). Don't use `-mcpu=440`-only instructions; the builds use `-mcpu=powerpc`.
 - **Speed.** A call into an extension costs about as much as a call to a built-in function, so
   put whole loops in C, not single additions.
-- **Not supported yet:** events raised by an extension object (for `WithEvents`), `ByRef`
+- **Not supported yet:** `ByRef`
   parameters (a `ByRef` parameter of a `Lib "C"` function is a compile error), and loading an
   extension while the interpreter runs (it is always linked in).
 
