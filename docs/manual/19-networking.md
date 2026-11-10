@@ -104,6 +104,22 @@ Keep `VerifyCertificate` on: turned off, a program cannot tell the real server f
 impostor. Turn it off only to talk to a test server of your own, and better still give that
 server's certificate with `CACertFile`.
 
+### Compressed answers
+
+When compression is available (z.library on AmigaOS 4, zlib on macOS and Linux), requests ask
+the server for compressed answers and unpack them, so `ResponseText` is always the real body.
+Text compresses well, so pages and JSON arrive much faster over a slow line. Without z.library
+nothing is asked for and everything works as before.
+
+| Property | What it does |
+|---|---|
+| `AutoDecompress` | ask for compressed answers and unpack them (default True) |
+
+`BytesReceived` counts the bytes as they came over the network, so for a compressed answer it is
+smaller than `Len(ResponseText)`. `GetToFile` writes the bytes as they come and never asks for
+compression. A program that sets its own `Accept-Encoding` header gets the body exactly as the
+server sent it. A compressed answer that can't be unpacked raises error 31109.
+
 ## The answer
 
 | Property or method | What it is |
@@ -116,7 +132,7 @@ server's certificate with `CACertFile`.
 | `ContentType` | the `Content-Type` header, e.g. `text/html; charset=utf-8` |
 | `Url` | the address the answer came from, after any redirects |
 | `Redirects` | how many redirects were followed |
-| `BytesReceived` | the length of the body |
+| `BytesReceived` | the bytes of the body as they came over the network (less than `Len(ResponseText)` for a compressed answer) |
 
 An error page (404, 500 ...) is still an answer: check `Status` before using the body.
 
@@ -1552,7 +1568,7 @@ use Timer slices for anything the user may want to cancel.
 
 ## Limits
 
-Not supported yet: compressed (gzip) answers, proxies, and IPv6 on AmigaOS.
+Not supported yet: proxies, and IPv6 on AmigaOS.
 
 ## Summary
 

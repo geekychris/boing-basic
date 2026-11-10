@@ -221,9 +221,8 @@ Print Hex(colours("RED")), colours.Exists("green"), colours.Keys()(0)
 FF            True          Red
 ```
 
-`CompareMode = 1` treats only the letters A to Z as equal in either case. Accented letters
-(`Ä` and `ä`) stay two different keys; convert such keys with `LCase` yourself if you need them
-to match.
+`CompareMode = 1` treats upper and lower case as equal for every letter of the Amiga's
+character set, accented ones included: `"Ä"` and `"ä"` are the same key.
 
 ### Objects and nested Dictionaries
 
@@ -407,7 +406,7 @@ A UTF-8 byte order mark at the start of the text is skipped.
 
 | value | written as |
 |---|---|
-| a `Dictionary` | an object; number and Boolean keys are written as strings (`"1"`, `"True"`) |
+| a `Dictionary` | an object; number and Boolean keys are written as strings of their numbers (`"1"`; `True` as `"-1"`, because `d(True)` and `d(-1)` are the same entry) |
 | a one-dimensional array, a `Collection` | an array |
 | numbers | numbers, with as many digits as it takes to read them back exactly; `NaN` and infinity as `null` |
 | a String | a string: `"`, `\` and control characters are escaped, other bytes are written as they are |
@@ -1314,10 +1313,9 @@ Print Err.Number; Err.Description
 - `LocalToUtc` and `UtcToLocal` use the offset **now**. A date in summer converted in winter is
   an hour off in countries with summer time: for times far from today, keep them in UTC and
   convert only the ones near now, or let the service send the offset (`+02:00`) with the time.
-- `ParseIso8601` checks that the day is 1 to 31 but not that the month has that many days:
-  `2026-02-31` is read as 3 March.
-- Hours may go up to 24 and seconds up to 60 (`24:00` is midnight at the end of the day, `:60`
-  is a leap second); both roll over into the next minute or day.
+- `ParseIso8601` rejects dates that don't exist (`2026-02-31`, 29 February outside leap years)
+  and times past `24:00:00` with error 31401. `24:00:00` itself is midnight at the end of that
+  day (`2026-01-01T24:00:00Z` is `2026-01-02T00:00:00`).
 - Text without a zone is returned as written: you have to know whether the service meant UTC
   or local time. Most APIs send UTC with a `Z`.
 
@@ -1404,8 +1402,8 @@ Print "StringBuilder: "; Format(Timer - t, "0.000"); " s"
 | `Clear` | method | empties it; the buffer is kept for the next text |
 | `ToString` | property | the text as a String. It is the default member: `Print sb` and `page.Text = sb` work too |
 | `Length` | property | the number of characters. Setting it cuts the text short, or pads it with spaces |
-| `Capacity` | property | the size of the buffer. Setting it reserves at least that much room in advance, when you know roughly how long the text will be |
-| `Char(pos)` | property | the character at `pos` (1 is the first); `sb.Char(pos) = "x"` changes it |
+| `Capacity` | property | the size of the buffer. Setting it reserves at least that much room in advance (rounded up), when you know roughly how long the text will be |
+| `Char(pos)` | property | the character at `pos` (1 is the first); `sb.Char(pos) = "x"` changes it (the value must be exactly one character, else error 5) |
 
 Positions count from 1, as in `Mid`. Like a String, a StringBuilder holds bytes, so binary data
 (`Chr(0)` included) is fine.
