@@ -89,8 +89,8 @@ counting the function pointers in its `interfaces/*.h` C header.
 
 | Error | When |
 |---|---|
-| 48 | the library (or device) can't be opened, it is older than `Version`, or the interface does not exist. The message text is "Error in loading DLL" |
-| 453 | the function isn't there: a slot below 4 or past the end of the interface, or a name that is not in the built-in table (a misspelt function name, a library not in the SDK, or a misspelt library name when the function is given by name). The message is "Specified DLL function not found" |
+| 48 | the library (or device) can't be opened: its name is misspelt, it isn't installed, it is older than `Version`, or the interface does not exist. The message is "Library could not be opened" |
+| 453 | the library opened, but the function isn't there: a slot below 4 or past the end of the interface, or a name that is not in the built-in table (a misspelt function name, or a library that is not in the SDK). The message is "Library function not found" |
 | 450 | more than 12 arguments |
 
 They happen at the first call, so you can catch them with `On Error` like any run-time error
@@ -203,14 +203,31 @@ depends on how the parameter is declared:
 | `ByVal s As String` | a pointer to the text, ending in a zero byte (a C string) |
 | `ByVal s As String` with `vbNullString` | NULL (0) |
 | `ByRef x As Long` (or `x As Long`: ByRef is the default) with a Long variable | a pointer to the variable, so the function can store a result in it |
-| `ByVal x As Single` or `Double` | the value converted to a whole number: floating point can't be passed |
+| `ByVal x As Single` or `Double` | the value rounded to a whole number, halves to even as `CLng` does (97.6 -> 98, 98.5 -> 98): floating point can't be passed |
 | an object | the object's address (not useful to the system) |
 
 **Write `ByVal` for everything** unless you mean to pass a pointer to a variable. The
-generated bindings do. For a `ByRef` parameter the variable itself is passed only when it has
-exactly the parameter's type; given anything else (a constant, an expression, a variable of
-another type) the call quietly passes the value instead. If you want a pointer, it is
-clearer to declare the parameter `ByVal ... As Long` and pass `VarPtr(variable)`.
+generated bindings do. A numeric `ByRef` parameter needs a variable of exactly the parameter's
+type, because the function is given the variable's address. Anything else (a constant, an
+expression, a variable of another type) is a compile error:
+
+<!-- error: ByRef parameter 'result' of Declare GetValue needs a Long variable -->
+```basic
+Declare Function GetValue Lib "example.library" (ByRef result As Long) As Long
+
+Dim n As Long, small As Integer
+n = GetValue(n)          ' fine: a Long variable
+n = GetValue(5)          ' error: a constant has no address
+n = GetValue(small)      ' error: an Integer, not a Long
+```
+
+```text
+getvalue.bas:5:14: error: ByRef parameter 'result' of Declare GetValue needs a Long variable (or declare it ByVal)
+getvalue.bas:6:14: error: ByRef parameter 'result' of Declare GetValue needs a Long variable (or declare it ByVal)
+```
+
+If the function only reads the value, declare the parameter `ByVal`. If you want a pointer, it
+is often clearer to declare the parameter `ByVal ... As Long` and pass `VarPtr(variable)`.
 
 ### Strings and buffers
 
@@ -252,9 +269,25 @@ End Sub
 
 A Function's result is the 32-bit value the library returns, converted to the declared type.
 Declare results `As Long` (pointers and most results), or `As Integer` / `As Boolean` when the
-C function returns a 16-bit value or a flag. A function that returns a string returns a
-pointer to it: declare it `As Long` and read the text with `PeekS`. (`As String` compiles but
-gives you the pointer as a number written in text.)
+C function returns a 16-bit value or a flag. For a function that returns a pointer to text (a
+C string), declare the result `As String`: Boing BASIC copies the text into a String for you,
+and a NULL result gives `""`. dos.library's `FilePart` returns the file name part of a path:
+
+*Listing 17.5* (`examples/book/ch17-amigaos/listing-17-05.bas`)
+
+```basic
+Declare Function FilePart Lib "dos.library" (ByVal path As String) As String
+
+Print FilePart("Work:Games/Tank/tank.bbp")
+```
+
+```text
+tank.bbp
+```
+
+(On AmigaOS 4; elsewhere the call is error 48.) The copy is made at once, so it stays valid
+whatever the library later does with its own memory. When you need the pointer itself, declare
+the result `As Long` and read the text with `PeekS` when you want it.
 
 A Sub ignores whatever the function returns.
 
@@ -264,7 +297,7 @@ Many dos.library functions report failure through `IoErr()`. Read it immediately
 call that failed: anything that writes to the console (a `Print`) changes it, and so does the
 first call of a declared function, which opens its library.
 
-*Listing 17.5* (`examples/book/ch17-amigaos/listing-17-05.bas`)
+*Listing 17.6* (`examples/book/ch17-amigaos/listing-17-06.bas`)
 
 ```basic
 Option Explicit
@@ -351,7 +384,7 @@ to 2-byte boundaries). Some that are often needed:
 
 Give offsets names with `Const` so the code says what it reads:
 
-*Listing 17.6* (`examples/book/ch17-amigaos/listing-17-06.bas`)
+*Listing 17.7* (`examples/book/ch17-amigaos/listing-17-07.bas`)
 
 ```basic
 Option Explicit
@@ -380,7 +413,7 @@ one to a library; build the structure in memory as above.
 For binary data, such as a file read with dos.library, use a block from `AllocMem` and
 `StrPtr` for text you send:
 
-*Listing 17.7* (`examples/book/ch17-amigaos/listing-17-07.bas`)
+*Listing 17.8* (`examples/book/ch17-amigaos/listing-17-08.bas`)
 
 ```basic
 Option Explicit
@@ -423,16 +456,17 @@ ending with `TAG_DONE`. `TagList(tag1, value1, tag2, value2, ...)` builds one in
 returns its address; `FreeTagList` frees it.
 
 - Numbers are stored as they are.
-- A String value is stored as the address of its characters, so the string must still exist
-  when the function reads the tag list. A literal or a variable is safe; an expression such as
-  `"Score " & n` is a temporary that is gone by then, so put it in a variable first.
+- A String value is copied into the tag list's own memory, and the tag holds the address of
+  that copy. So any string will do, an expression such as `"Score " & n` included: the copy
+  stays valid until `FreeTagList`. (A function that writes into a string tag writes into the
+  copy, not into your variable.)
 - An object value is stored as its address.
 - An odd number of arguments is error 450.
 
 This excerpt from `examples/declare_gfx` opens a window with `OpenWindowTagList` and reads
 its RastPort and borders from `struct Window`:
 
-*Listing 17.8* (`examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp`)
+*Listing 17.9* (`examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp`)
 
 <!-- project: examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp -->
 ```basic
@@ -453,7 +487,7 @@ its RastPort and borders from `struct Window`:
 
 and this is how it checks the window's message port for a click on the close gadget:
 
-*Listing 17.9* (`examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp`)
+*Listing 17.10* (`examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp`)
 
 <!-- project: examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp -->
 ```basic
@@ -490,7 +524,7 @@ Function in a module, as a Long, to store in a `struct Hook` or pass to a librar
 
 On AmigaOS 4 a hook's function is called with the hook, the object and the message:
 
-*Listing 17.10* (`examples/book/ch17-amigaos/listing-17-10.bas`)
+*Listing 17.11* (`examples/book/ch17-amigaos/listing-17-11.bas`)
 
 ```basic
 ' A utility.library hook whose function is written in BASIC
@@ -530,7 +564,7 @@ of [Extending Boing BASIC](20-extending.md).
 | Symptom | Likely cause |
 |---|---|
 | error 48 at the first call | the library name is misspelt, the library isn't installed, `Version` is too high, or the program is not running on AmigaOS 4 |
-| error 453 | the function or library name is misspelt, or the library is not in the SDK (give `Alias "#n"`) |
+| error 453 | the function name (or `Alias`) is misspelt, or the library is not in the SDK (give `Alias "#n"`) |
 | a crash in the library | a wrong slot number, a missing `ByVal`, a too-short buffer, or a structure offset that is wrong |
 | text comes back empty | the buffer was an expression, not a String variable, or it was never made long enough with `Space(n)` |
 | a large unsigned constant is negative | a four-digit hex constant is an Integer: write `&HBEEF&` |

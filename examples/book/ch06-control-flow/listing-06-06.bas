@@ -1,12 +1,14 @@
-Dim row As Integer, col As Integer
-For row = 1 To 3
-    For col = 1 To 4
-        Print row * col;
-    Next col
-    Print
-Next row
-For row = 1 To 2
-    For col = 1 To 2
-        Print row * 10 + col;
-Next col, row
+Dim i As Integer, x As Double
+For i = 1 To 5
+    Print i;
+Next i
 Print
+For i = 10 To 1 Step -3
+    Print i;
+Next
+Print
+For x = 0 To 1 Step 0.25
+    Print x;
+Next
+Print
+Print "after the loop i is"; i

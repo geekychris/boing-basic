@@ -27,6 +27,10 @@ End If
 Declaring the variable `As Http` lets the compiler check the names you use (`web.Gte` is an
 error when you compile, not when the program runs), and lets AmiForge complete them.
 
+Don't name your program or one of its modules `http.bas`: the module `http` would take the
+class's name, and `boing check` stops with "the module 'http' hides the built-in class Http:
+rename the module". Call it `webfetch.bas` or similar.
+
 ### What AmigaOS needs
 
 `Http` uses the computer's TCP/IP stack (Roadshow, `bsdsocket.library`) and, for `https://`

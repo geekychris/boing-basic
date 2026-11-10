@@ -1,13 +1,12 @@
-Sub Squares()
-    Dim v As Integer
-    v = 4
-    GoSub ShowSquare
-    v = 5
-    GoSub ShowSquare
-    Exit Sub
-ShowSquare:
-    Print v; "squared is"; v * v
-    Return
-End Sub
-
-Squares
+Dim i As Integer
+For i = 1 To 5
+    If i = 3 Then GoTo skip
+    Print i;
+skip:
+Next
+Print
+i = 0
+again:
+i = i + 1
+If i < 3 Then GoTo again
+Print "i ="; i

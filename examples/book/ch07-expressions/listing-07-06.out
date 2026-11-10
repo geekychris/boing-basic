@@ -1,3 +1,2 @@
-n is 5 | x0.5 | 12
-55 |  10  | 55
-Error 13 Type mismatch
+ 32768 Long
+ 2147483648 Double

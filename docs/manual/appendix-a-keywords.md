@@ -24,7 +24,7 @@ functions are listed in [appendix B](appendix-b-functions.md).
 | `Do` | `Do ... Loop` | [6](06-control-flow.md#do--loop) |
 | `Each` | `For Each ... In` | [6](06-control-flow.md#for-each--next), [11](11-classes.md) |
 | `Else` | the last branch of `If`; `Case Else` | [6](06-control-flow.md#if) |
-| `ElseIf` | a further condition in a block `If` | [6](06-control-flow.md#block-if) |
+| `ElseIf` | a further condition in a block `If` (one word: `Else If` is an `Else` holding a new `If`, with its own `End If`) | [6](06-control-flow.md#block-if) |
 | `Empty` | the value of an unassigned Variant | [7](07-expressions.md#empty-null-and-nothing) |
 | `End` | ends the program; with a word after it, ends a block (`End If`, `End Select`, `End Sub`, `End Function`, `End Property`, `End Type`, `End Enum`, `End With`) | [6](06-control-flow.md#end-and-stop) |
 | `Enum` | `Enum ... End Enum`: an enumeration | [4](04-data.md#enumerations) |
@@ -58,7 +58,7 @@ functions are listed in [appendix B](appendix-b-functions.md).
 | `Not` | logical and bitwise NOT | [7](07-expressions.md#logical-and-bitwise-operators) |
 | `Nothing` | the object reference to no object | [7](07-expressions.md#empty-null-and-nothing), [11](11-classes.md) |
 | `Null` | the Variant value meaning "no valid value" | [7](07-expressions.md#empty-null-and-nothing) |
-| `On` | `On Error ...`; `On n GoTo/GoSub` | [8](08-errors.md), [6](06-control-flow.md#on--goto-and-on--gosub) |
+| `On` | `On Error GoTo label`, `On Error GoTo 0`, `On Error GoTo -1`, `On Error Resume Next`; `On n GoTo/GoSub` | [8](08-errors.md), [6](06-control-flow.md#on--goto-and-on--gosub) |
 | `Open` | `Open path For mode As #n` | [10](10-files.md) |
 | `Option` | `Option Explicit`, `Option Base`, `Option Compare`, `Option Private Module` | [4](04-data.md#option-statements) |
 | `Optional` | an optional parameter | [5](05-procedures.md#optional-parameters) |

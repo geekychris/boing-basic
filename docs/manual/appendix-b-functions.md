@@ -75,7 +75,7 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `DateValue(x)` | the date part of a Date or date string | [09](09-builtins.md#building-and-taking-apart-dates) |
 | `Day(d)` | the day of the month, 1-31 | [09](09-builtins.md#building-and-taking-apart-dates) |
 | `DeleteSetting app [, section [, key]]` | statement: deletes saved settings | [10](10-files.md#settings-savesetting-and-getsetting) |
-| `Dir$([pattern [, attributes]])` | the first (with a pattern) or next file name that matches; `""` when no more | [10](10-files.md#listing-a-directory-with-dir) |
+| `Dir$([pattern [, attributes]])` | the first (with a pattern: `*`, `?`, `#?`, `#c`) or next file name that matches; `""` when no more; never `.` or `..` | [10](10-files.md#listing-a-directory-with-dir) |
 | `DoEvents` | lets the program handle window and timer events; returns 0 | [09](09-builtins.md#the-system-and-the-program), [12](12-forms.md) |
 | `Environ$(name)` | the value of an environment variable | [10](10-files.md#environ) |
 | `EOF(n)` | True at the end of file `n` | [10](10-files.md#writing-and-reading-text) |
@@ -111,7 +111,7 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `IsNumeric(x)` | True if `x` is or converts to a number | [09](09-builtins.md#inspecting-values) |
 | `IsObject(x)` | True if `x` holds an object reference | [09](09-builtins.md#inspecting-values) |
 | `Join(array [, delimiter])` | the elements joined into one string | [09](09-builtins.md#splitting-and-joining) |
-| `Kill pattern` | statement: deletes files | [10](10-files.md#files-and-directories) |
+| `Kill pattern` | statement: deletes a file, or the files that match a pattern (`*`, `?`, `#?`) | [10](10-files.md#files-and-directories) |
 | `LBound(array [, dimension])` | the lowest index of an array | [04](04-data.md), [09](09-builtins.md#inspecting-values) |
 | `LCase$(s)` | `s` in small letters | [09](09-builtins.md#changing-case-trimming-building) |
 | `Left$(s, n)` | the first `n` characters | [09](09-builtins.md#length-and-pieces) |

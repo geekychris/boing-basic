@@ -1,15 +1,12 @@
-Const ERR_EMPTY_NAME = vbObjectError + 1
-
-Sub SetName(ByVal s As String)
-    If Len(s) = 0 Then Err.Raise ERR_EMPTY_NAME, "SetName", "the name must not be empty"
-    Print "name set to "; s
-End Sub
-
 Sub Main()
+    Dim tries As Integer
     On Error GoTo h
-    SetName "Ada"
-    SetName ""
+again:
+    tries = tries + 1
+    Err.Raise 5
     Exit Sub
 h:
-    Print "error"; Err.Number - vbObjectError; "from "; Err.Source; ": "; Err.Description
+    Print "try"; tries; Err.Number
+    On Error GoTo -1
+    If tries < 3 Then GoTo again
 End Sub

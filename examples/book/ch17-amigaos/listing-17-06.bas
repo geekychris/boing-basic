@@ -1,16 +1,20 @@
 Option Explicit
 
-Declare Sub Amiga2Date Lib "utility.library" Alias "#28" (ByVal date_amiga As Long, ByVal cd As Long)
+Declare Function Dos_Lock Lib "dos.library" Alias "#13" (ByVal name_ As String, ByVal type_ As Long) As Long
+Declare Sub Dos_UnLock Lib "dos.library" Alias "#14" (ByVal lock_ As Long)
+Declare Function IoErr Lib "dos.library" Alias "#21" () As Long
 
-' struct ClockData (utility/date.h)
-Const CD_SEC = 0, CD_MIN = 2, CD_HOUR = 4, CD_MDAY = 6, CD_MONTH = 8, CD_YEAR = 10
-Const CD_SIZE = 14
+Const SHARED_LOCK = -2
+Const ERROR_OBJECT_NOT_FOUND = 205
 
 Sub Main()
-    Dim cd As Long
-    cd = AllocMem(CD_SIZE, True)
-    Amiga2Date 86400& * 366 + 3600& * 13 + 60 * 5 + 9, cd     ' seconds since 1.1.1978
-    Print PeekW(cd + CD_MDAY); "."; PeekW(cd + CD_MONTH); "."; PeekW(cd + CD_YEAR); _
-          PeekW(cd + CD_HOUR); ":"; PeekW(cd + CD_MIN); ":"; PeekW(cd + CD_SEC)
-    FreeMem cd
+    Dim lk As Long, e As Long
+    e = IoErr()                                   ' opens dos.library
+    lk = Dos_Lock("RAM:no such file", SHARED_LOCK): e = IoErr()
+    If lk = 0 Then
+        If e = ERROR_OBJECT_NOT_FOUND Then Print "Not found" Else Print "Error"; e
+    Else
+        Dos_UnLock lk
+        Print "It exists"
+    End If
 End Sub
