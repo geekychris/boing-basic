@@ -364,10 +364,14 @@ Version=1.4.2
 | `fullscreen=1` | a borderless backdrop window covering its screen (games); on `screen=own` the screen's title bar is hidden |
 | `borderless=1`, `backdrop=1` | |
 | `screentitle="..."` | the screen's title while this window is active (`WA_ScreenTitle`); `Me.ScreenTitle` at run time |
-| `font="DejaVu Sans" fontsize=13` | the window's font (every control uses it); also on single controls |
+| `font="DejaVu Sans" fontsize=13` | the window's font (every control uses it); also on single controls. `fontsize=` alone keeps the screen's font at that size. Bold/italic window fonts aren't supported |
 
-`App.OpenScreen modeid [, width, height, depth [, title]]` opens the program's screen from code,
-typically with `dlg.ScreenModeID`, `dlg.ScreenWidth`... after `dlg.ShowScreenMode`.
+`App.OpenScreen modeid [, width, height, depth [, title [, showTitle]]]` opens the program's screen
+from code, typically with `dlg.ScreenModeID`, `dlg.ScreenWidth`... after `dlg.ShowScreenMode`
+(`showTitle = False`: no title bar). Error 5 if the program's screen is already open
+(`App.CloseScreen` first). Picture buttons, toolbar images and grid rows are made for the screen
+the form opens on. Choosing the public screen at run time (e.g. from a `PUBSCREEN` tooltype) is
+not possible yet: `pubscreen=` is read when the form loads.
 `Me.FontName` / `Me.FontSize` change the window's font at run time (after `dlg.ShowFont`:
 `Me.FontName = dlg.FontName: Me.FontSize = dlg.FontSize`). `Me.ScreenWidth` / `ScreenHeight`
 give the size of the window's screen.
@@ -377,7 +381,10 @@ give the size of the window's screen.
 - The letter after `_` in a control's text or `label=` is its shortcut (no qualifier, or with
   Shift): a button is clicked, a check box toggled, a string/integer/editor gets the input, a
   chooser/radio/tabs/list moves to its next item (Shift: the previous one). Amiga and Ctrl
-  combinations stay with the menus and the program.
+  combinations stay with the menus and the program. For string/integer/editor fields only
+  `label=` counts (their text is what the user types). A `label` with a `_` letter gives the
+  input to the next control after it (VB's Label mnemonic: `label text="_Port"` before a field).
+  A key a shortcut takes gets no `KeyDown`, `KeyPress` or `KeyUp`.
 - `button ... default=1` is clicked by Return, `button ... cancel=1` by Esc (when no text gadget
   has the input).
 - The right mouse button always shows the menu bar (the OS4 convention). A control's
@@ -385,7 +392,7 @@ give the size of the window's screen.
   window (or `Me.ContextMenuKey = 0`) opens it with a plain right click as before. Canvases with
   `rmb=1` (paint programs) get the right button themselves.
 
-Status: **done** (tests/os4/ui_desktop_test.c 12/12, ui_menu_test 25/25 on m1b).
+Status: **done** (tests/os4/ui_desktop_test.c 18/18 on m1c, ui_menu_test 25/25 on m1b).
 
 ## Notifications, Commodities, ReadArgs, starting from Workbench
 
@@ -393,9 +400,10 @@ Status: **done** (tests/os4/ui_desktop_test.c 12/12, ui_menu_test 25/25 on m1b).
 |---|---|
 | `App.Notify title, text [, imagefile]` | a Ringhio notification (application.library; the program registers as an application under `App.Title` the first time). `App.NotifyResult` is the library's last answer (0 = queued) |
 | `App.HotKey name, "ctrl alt p"` | a Commodities hotkey (any commodities description); `Sub HotKey_Pressed(Name As String)` is called when it is pressed anywhere. The program then has an Exchange entry named `App.Title` |
-| `App_Quit()`, `App_Hide()`, `App_Show()` | subs called for Exchange's Kill/Hide/Show and application.library's quit/hide/show messages; without an `App_Quit` sub, Quit ends the program |
-| `App.ReadArgs(template)` | parses the program's arguments with an AmigaDOS template (`"FILE/A,SIZE/N,QUIET/S,FILES/M"`): True if they fit. Started from Workbench, the icon's tooltypes are used instead (KEY=value) |
-| `App.ArgValue(key)` | a value after `ReadArgs`: text, a number as text, "1" for a set switch, `/M` values joined with `vbLf`, "" if absent |
+| `App_Quit()`, `App_Hide()`, `App_Show()` | subs called for Exchange's Remove/Hide/Show and application.library's quit/hide/show messages. Without an `App_Quit` sub, every form gets `Form_QueryUnload` with UnloadMode `vbAppTaskManager` (3) — it can cancel — then `Form_Unload`; a program without forms ends |
+| `App.ReadArgs(template)` | parses the program's arguments with an AmigaDOS template (`"FILE/A,SIZE/N,QUIET/S,MODE/K,FAST/T,FILES/M,NUMS/N/M"`, up to 32 items, more: error 5): True (a Boolean) if they fit. Started from Workbench, the icon's tooltypes are used instead (KEY=value): False if an `/A` key has no tooltype or an `/N` one isn't a number. `/T` takes ON/OFF (YES/NO) |
+| `App.ArgValue(key)` | a value after `ReadArgs`: text, a number as text, "1" for a set switch, "1"/"0" for a toggle, `/M` values (also `/N/M` numbers) joined with `vbLf`, "" if absent |
+| `App.Register` | registers the program with application.library now (Notify does it the first time); True if it worked |
 
 These ports are served by the forms' event loop and by `DoEvents` in programs without forms.
 `bindings/application.bi` now has the `APPNOTIFY_`, `REGAPP_`... tags too (genbind reads enums)
@@ -404,10 +412,16 @@ for programs that call application.library themselves.
 **boing from Workbench**: give a `.bas`/`.bbp`/`.bbc` project icon the default tool `boing` (e.g.
 `BOING:boing`); a double-click runs the project like `boing run`, with a console window that
 opens when the program prints and waits to be closed. `App.SaveIcon path, "BOING:boing"` writes
-such an icon.
+such an icon. The program then sees the project as itself: `App.ToolType` and `ReadArgs` read
+the project's icon (`Jotter.bas.info`), `App.FromWorkbench` is True, and further icons selected
+with it (shift-click) are `App.Arg(0)`, `App.Arg(1)`... `App.Notify`'s image file may be a
+path like the program's others (`PROGDIR:`, `DH1:/x`).
 
 Status: **done** (tests-os4/desk on m1c: ReadArgs, a notification, a hotkey arriving through
-Commodities, the broker gone after exit; a project icon started `boing`).
+Commodities, the broker gone after exit; tests-os4/readargs: /S /T /N /N/M, /A, 33 items;
+tests-os4/wbproj: a project icon with tooltypes started through Workbench with a second icon).
+Not tested on a guest: Exchange's buttons, App_Hide/App_Show, two programs asking for the same
+hotkey.
 
 ## 7. ARexx, preferences, locale, help
 

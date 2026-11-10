@@ -25,6 +25,7 @@ typedef struct ofont {
     int refs;
 } ofont;
 static ofont *fonts;
+static const char *screen_font(bb_form *f, char *buf, size_t n);
 
 /* a font in memory (diskfont), shared by every control and window that asks for it */
 struct TextAttr *bbf_font(const char *name, int size)
@@ -78,8 +79,9 @@ void bbf_control_font(bb_ctl *c, tags *t)
     if (!n || (!afg_has(n, "font") && !afg_has(n, "fontsize"))) return;
     const char *name = afg_has(n, "font") ? afg_get(n, "font") : afg_get(c->form->afg, "font");
     int size = afg_has(n, "fontsize") ? afg_get_int(n, "fontsize") : afg_get_int(c->form->afg, "fontsize");
-    if (!*name) name = "DejaVu Sans";
-    if (size <= 0) size = 13;
+    char sf[128];
+    if (!*name) name = c->form->tattr ? (const char *)c->form->tattr->ta_Name : screen_font(c->form, sf, sizeof sf);
+    if (size <= 0) size = c->form->tattr ? c->form->tattr->ta_YSize : 13;
     struct TextAttr *ta = bbf_font(name, size);
     if (ta) tg(t, GA_TextAttr, (uint32)ta);
 }
@@ -88,11 +90,11 @@ void bbf_control_font(bb_ctl *c, tags *t)
 
 struct Screen *bbf_own_screen(void) { return own_screen; }
 
-/* App.OpenScreen modeid [, width, height, depth [, title]]: the program's own public screen; forms
-   loaded afterwards open on it. 0 or a VB error. */
+/* App.OpenScreen modeid [, width, height, depth [, title [, showTitle]]]: the program's own public
+   screen; forms loaded afterwards open on it. 0 or a VB error (5: one is already open). */
 int bbf_open_screen(uint32 modeid, int w, int h, int depth, const char *title, int showtitle)
 {
-    if (own_screen) return 0;
+    if (own_screen) return 5;
     bb_str *t = bb_app_title();
     snprintf(own_name, sizeof own_name, "%.40s.%lu", bb_str_ptr(t)[0] ? bb_str_ptr(t) : "Boing", (unsigned long)(uint32)IExec->FindTask(NULL) & 0xFFFF);
     for (char *p = own_name; *p; p++)
@@ -149,11 +151,12 @@ void bbf_screen_tags(bb_form *f, tags *t, int *placed)
     if (afg_has(a, "screentitle")) tg(t, WA_ScreenTitle, (uint32)afg_get(a, "screentitle"));
     if (afg_get_bool(a, "fullscreen")) {
         struct Screen *s = scr ? scr : IIntuition->LockPubScreen(NULL);
-        int top = s == own_screen && !afg_has(a, "screentitle") ? 0 : 0;
+        /* the whole screen; on the program's own screen its title bar is hidden (games) */
+        if (s && s == own_screen) IIntuition->ShowTitle(own_screen, FALSE);
         tg(t, WA_Left, 0);
-        tg(t, WA_Top, top);
+        tg(t, WA_Top, 0);
         tg(t, WA_Width, s ? s->Width : 640);
-        tg(t, WA_Height, s ? s->Height - top : 480);
+        tg(t, WA_Height, s ? s->Height : 480);
         tg(t, WA_Borderless, TRUE);
         tg(t, WA_Backdrop, TRUE);
         if (!scr && s) IIntuition->UnlockPubScreen(NULL, s);
@@ -163,12 +166,38 @@ void bbf_screen_tags(bb_form *f, tags *t, int *placed)
         if (afg_get_bool(a, "backdrop")) tg(t, WA_Backdrop, TRUE);
     }
     if (afg_has(a, "font") || afg_has(a, "fontsize")) {
-        struct TextAttr *ta = bbf_font(afg_has(a, "font") ? afg_get(a, "font") : "DejaVu Sans",
+        char sf[128];
+        struct TextAttr *ta = bbf_font(afg_has(a, "font") ? afg_get(a, "font") : screen_font(f, sf, sizeof sf),
                                        afg_has(a, "fontsize") ? afg_get_int(a, "fontsize") : 13);
         if (ta) tg(t, WINDOW_TextAttr, (uint32)ta);
         f->tattr = ta;
     }
     (void)unlock;
+}
+
+/* the name of a screen's font ("DejaVu Sans.font"), for a fontsize= without font= */
+static const char *screen_font(bb_form *f, char *buf, size_t n)
+{
+    struct Screen *s = bbf_lock_form_screen(f);
+    snprintf(buf, n, "%s", s && s->Font && s->Font->ta_Name ? (const char *)s->Font->ta_Name : "DejaVu Sans.font");
+    bbf_unlock_form_screen(f, s);
+    return buf;
+}
+
+/* the screen a form's window opens (or will open) on, locked: for pictures and font sizes made
+   before the window exists. bbf_unlock_form_screen gives it back. */
+struct Screen *bbf_lock_form_screen(bb_form *f)
+{
+    if (f && f->win) return f->win->WScreen;
+    if (f && own_screen && strcasecmp(afg_get(f->afg, "screen"), "workbench")) return own_screen;
+    struct Screen *s = f && afg_has(f->afg, "pubscreen") ? IIntuition->LockPubScreen(afg_get(f->afg, "pubscreen")) : NULL;
+    return s ? s : IIntuition->LockPubScreen(NULL);
+}
+
+void bbf_unlock_form_screen(bb_form *f, struct Screen *s)
+{
+    if (!s || (f && f->win && s == f->win->WScreen) || s == own_screen) return;
+    IIntuition->UnlockPubScreen(NULL, s);
 }
 
 /* after WM_OPEN: the public screen's lock isn't needed any more (the window holds it) */
@@ -231,7 +260,13 @@ int bbf_screen_set(bb_form *f, const char *prop, const bb_fval *v)
     if (IS("FontName") || IS("FontSize")) {
         char name[128];
         int size = f->tattr ? f->tattr->ta_YSize : 13;
-        snprintf(name, sizeof name, "%s", f->tattr ? (char *)f->tattr->ta_Name : "DejaVu Sans.font");
+        if (f->tattr) snprintf(name, sizeof name, "%s", (char *)f->tattr->ta_Name);
+        else {
+            screen_font(f, name, sizeof name);       /* no font= yet: the screen's font */
+            struct Screen *s = bbf_lock_form_screen(f);
+            if (s && s->Font) size = s->Font->ta_YSize;
+            bbf_unlock_form_screen(f, s);
+        }
         if (IS("FontName")) snprintf(name, sizeof name, "%s", vstr(v, buf));
         else size = vint(v);
         struct TextAttr *ta = bbf_font(name, size);

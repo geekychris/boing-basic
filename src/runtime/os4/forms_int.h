@@ -145,6 +145,7 @@ struct bb_form {
     char *scrtitle;          /* Me.ScreenTitle set at run time */
     int ctxkey;              /* context menus: 1 = only with Shift/Ctrl + RMB (default), 0 = any RMB */
     volatile uint16 qualstate; /* the qualifiers of the last key / mouse message of the window */
+    unsigned char keyswallow[16];   /* raw keys whose down a shortcut / Help took: no KeyUp for them */
 };
 
 
@@ -198,7 +199,9 @@ int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v);
 int bbf_ext_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
 void bbf_ext_gadget_up(bb_form *f, bb_ctl *c, uint16 code);
 void bbf_ext_free(bb_ctl *c);         /* after the window object (and its gadgets) is gone */
-Object *bbf_load_image(const char *file, const char *selfile);
+Object *bbf_load_image(bb_form *f, const char *file, const char *selfile);
+struct Screen *bbf_lock_form_screen(bb_form *f);
+void bbf_unlock_form_screen(bb_form *f, struct Screen *s);
 void bbf_tools_follow_menu(bb_form *f, const char *menu, int enabled);
 void bbf_ext_cleanup(void);
 struct Library *bbf_class_lib(int c);
@@ -295,5 +298,7 @@ int bbf_menu_get(bb_ctl *c, const char *prop, bb_fval *out);
 int bbf_menu_set(bb_ctl *c, const char *prop, const bb_fval *v);
 int bbf_form_menu_call(bb_form *f, const char *method, int argc, const bb_fval *argv, bb_fval *ret);
 char *bbf_strip_underscore(const char *s);
+
+int bb_forms_quit(int mode);
 
 #endif

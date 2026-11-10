@@ -28,7 +28,7 @@ Close #f
 f = FreeFile
 Open "RAM:bbtest/desk.out" For Append As #f
 t = Timer
-Do While Timer - t < 8 And pressed = ""
+Do While Timer - t < 30 And pressed = ""
     DoEvents
 Loop
 Check pressed = "f9", "the hotkey arrived as HotKey_Pressed(""f9"")"

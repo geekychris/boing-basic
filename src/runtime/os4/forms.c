@@ -316,7 +316,7 @@ Object *bbf_build(bb_form *f, afg_node *n)
     }
     case AFG_BUTTON:
         bbf_gadget_tags(c, &t);
-        if (afg_has(n, "image") && (c->img = bbf_load_image(afg_get(n, "image"), afg_get(n, "selimage")))) {
+        if (afg_has(n, "image") && (c->img = bbf_load_image(c->form, afg_get(n, "image"), afg_get(n, "selimage")))) {
             /* a picture button; with a text, the picture and the text side by side (label.image) */
             if (*afg_get(n, "text")) {
                 tags lt = { 0 };
@@ -414,7 +414,10 @@ Object *bbf_build(bb_form *f, afg_node *n)
     case AFG_LABEL:
         /* a read-only, borderless button rather than label.image, so Caption can change */
         tg(&t, GA_ID, c->gid);
-        tg(&t, GA_ReadOnly, TRUE);
+        /* with a `_` letter it must not be read-only: window.class then sends its GADGETUP for the
+           key, and the control after it gets the focus (gadget_up) */
+        tg(&t, GA_ReadOnly, !c->hotkey);
+        if (c->hotkey) tg(&t, GA_RelVerify, TRUE);
         tg(&t, GA_Text, (uint32)afg_get(n, "text"));
         tg(&t, BUTTON_BevelStyle, BVS_NONE);
         tg(&t, BUTTON_Transparent, TRUE);
@@ -488,11 +491,16 @@ static void collect(afg_node *n, void *ud)
         c->interval = afg_get_int(n, "interval");
         c->enabled = afg_get_bool(n, "enabled");
     }
-    /* keyboard shortcut: the letter after `_` in its text, or in its label= */
+    /* keyboard shortcut: the letter after `_` in its text, else in its label= (fields: only the
+       label, their text is what the user types). Only kinds key_shortcut can act on claim a
+       letter; a label's letter goes to the control after it (VB's Label mnemonic). */
     {
-        const char *src = afg_has(n, "text") ? afg_get(n, "text") : afg_get(n, "label");
-        const char *u = strchr(src, '_');
-        if (n->kind == AFG_MENU || n->kind == AFG_TOOL) u = NULL;     /* those have their own keys */
+        int field = n->kind == AFG_STRING || n->kind == AFG_INTEGER || n->kind == AFG_TEXTEDITOR;
+        int takes = field || n->kind == AFG_BUTTON || n->kind == AFG_CHECKBOX || n->kind == AFG_CHOOSER ||
+                    n->kind == AFG_RADIO || n->kind == AFG_TABS || n->kind == AFG_LISTBROWSER || n->kind == AFG_LABEL;
+        const char *u = NULL;
+        if (takes && !field && afg_has(n, "text")) u = strchr(afg_get(n, "text"), '_');
+        if (takes && !u) u = strchr(afg_get(n, "label"), '_');
         if (u && u[1]) c->hotkey = (char)tolower((unsigned char)u[1]);
     }
     f->ctls = realloc(f->ctls, (f->nctls + 1) * sizeof *f->ctls);
@@ -1146,6 +1154,20 @@ static int unload(bb_form *f, int mode)
 }
 
 int bb_form_unload(bb_form *f) { return unload(f, 1); }
+
+/* the program is asked to quit (Exchange's Remove, application.library's Quit): every form gets
+   QueryUnload / Unload with UnloadMode `mode` (3 = vbAppTaskManager) as VB does; 1 if one
+   cancelled, -1 if no form was loaded */
+int bb_forms_quit(int mode)
+{
+    int any = 0;
+    for (bb_form *f = forms; f; f = f->next)
+        if (f->loaded) {
+            any = 1;
+            if (unload(f, mode)) return 1;
+        }
+    return any ? 0 : -1;
+}
 
 static void reap(void)
 {
@@ -1807,6 +1829,25 @@ int bbf_map_key(int raw, uint32 qual)
     return IKM->MapRawKey(&ie, ch, sizeof ch, NULL) == 1 ? (unsigned char)ch[0] : 0;
 }
 
+/* a label's `_` letter goes to the next control that takes keys (VB's Label mnemonic) */
+static bb_ctl *label_target(bb_ctl *label)
+{
+    bb_form *f = label->form;
+    int at = 0;
+    while (at < f->nctls && f->ctls[at] != label) at++;
+    for (int i = at + 1; i < f->nctls; i++) {
+        bb_ctl *c = f->ctls[i];
+        int k = c->kind;
+        if (c->obj && c->visible && !(((struct Gadget *)c->obj)->Flags & GFLG_DISABLED) &&
+            (k == AFG_STRING || k == AFG_INTEGER || k == AFG_TEXTEDITOR || k == AFG_BUTTON || k == AFG_CHECKBOX ||
+             k == AFG_CHOOSER || k == AFG_RADIO || k == AFG_LISTBROWSER))
+            return c;
+    }
+    return NULL;
+}
+
+static void shortcut_act(bb_ctl *hit, uint32 q);
+
 /* a shortcut letter, Return (a default=1 button) or Esc (a cancel=1 button): 1 if a control took it */
 static int key_shortcut(bb_form *f, int raw, uint32 q)
 {
@@ -1818,13 +1859,32 @@ static int key_shortcut(bb_form *f, int raw, uint32 q)
     bb_ctl *hit = NULL;
     for (int i = 0; i < f->nctls && !hit; i++) {
         bb_ctl *c = f->ctls[i];
-        if (!c->obj || !c->visible || (((struct Gadget *)c->obj)->Flags & GFLG_DISABLED)) continue;
+        if (!c->visible) continue;
+        if (c->kind == AFG_LABEL) {             /* not a gadget */
+            if (ch > 32 && c->hotkey == tolower(ch)) hit = c;
+            continue;
+        }
+        if (!c->obj || (((struct Gadget *)c->obj)->Flags & GFLG_DISABLED)) continue;
         if ((ch == 13 && c->kind == AFG_BUTTON && afg_get_bool(c->node, "default")) ||
             (ch == 27 && c->kind == AFG_BUTTON && afg_get_bool(c->node, "cancel")) ||
             (ch > 32 && c->hotkey == tolower(ch)))
             hit = c;
     }
+    if (hit && hit->kind == AFG_LABEL) hit = label_target(hit);
     if (!hit) return 0;
+    switch (hit->kind) {
+    case AFG_BUTTON: case AFG_CHECKBOX: case AFG_STRING: case AFG_INTEGER: case AFG_TEXTEDITOR:
+    case AFG_CHOOSER: case AFG_RADIO: case AFG_TABS: case AFG_LISTBROWSER:
+        shortcut_act(hit, q);
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+/* what a shortcut does to a control */
+static void shortcut_act(bb_ctl *hit, uint32 q)
+{
     switch (hit->kind) {
     case AFG_BUTTON:
         fire0(hit, "Click");
@@ -1851,9 +1911,8 @@ static int key_shortcut(bb_form *f, int raw, uint32 q)
         break;
     }
     default:
-        return 0;
+        break;
     }
-    return 1;
 }
 
 static void raw_key(bb_form *f, int code)
@@ -1890,8 +1949,17 @@ static void raw_key(bb_form *f, int code)
         fire(f, "Form", up ? "KeyUp" : "KeyDown", 2, a);
         return;
     }
-    if (raw == 0x5F && !up && bbf_app_help_key(f)) return;     /* Help with App.HelpFile set */
-    if (!up && key_shortcut(f, raw, q)) return;                 /* `_` letters, default/cancel buttons */
+#define SWALLOW(r) (f->keyswallow[(r) >> 3] & (1 << ((r) & 7)))
+    if (up && SWALLOW(raw)) {          /* its KeyDown was taken by a shortcut or Help: no KeyUp either */
+        f->keyswallow[raw >> 3] &= ~(1 << (raw & 7));
+        return;
+    }
+    if (!up && ((raw == 0x5F && bbf_app_help_key(f)) ||       /* Help with App.HelpFile set */
+                key_shortcut(f, raw, q))) {                     /* `_` letters, default/cancel buttons */
+        f->keyswallow[raw >> 3] |= 1 << (raw & 7);
+        return;
+    }
+#undef SWALLOW
     if (!up)
         for (int i = 0; i < f->nctls; i++)       /* a grid with the focus takes the keys */
             if (f->ctls[i]->kind == AFG_GRID && bbf_grid_focused(f->ctls[i]) && bbf_grid_key(f->ctls[i], raw, q)) return;
@@ -1919,6 +1987,11 @@ static void raw_key(bb_form *f, int code)
 static void gadget_up(bb_form *f, bb_ctl *c, uint16 code)
 {
     switch (c->kind) {
+    case AFG_LABEL: {     /* window.class "clicked" the label for its `_` key: the next control has it */
+        bb_ctl *t = c->hotkey ? label_target(c) : NULL;
+        if (t) shortcut_act(t, 0);
+        break;
+    }
     case AFG_BUTTON:
     case AFG_CHECKBOX:
     case AFG_RADIO:

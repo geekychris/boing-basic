@@ -262,7 +262,7 @@ static void obj_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *a
     if (err) bb_raise(err, NULL);
     if (!(kind & (BB_INV_LET | BB_INV_SET))) {
         /* the App members that are Booleans in VB come back as Booleans (False, not 0) */
-        static const char *const bools[] = { "FromWorkbench", "HasPicture", "HasText", NULL };
+        static const char *const bools[] = { "FromWorkbench", "HasPicture", "HasText", "ReadArgs", "Register", NULL };
         int i2;
         for (i2 = 0; bools[i2]; i2++)
             if (!strcasecmp(name, bools[i2]) && out.type == BB_FV_INT) {
