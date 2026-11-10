@@ -1,0 +1,5 @@
+window name=chat title="socket events" width=200 height=80
+vlayout id=root
+  string id=status
+  timer id=watchdog interval=4000 enabled=1
+  timer id=tick interval=100 enabled=1

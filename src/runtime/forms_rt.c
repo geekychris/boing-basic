@@ -522,6 +522,8 @@ int bb_forms_register_file(const char *module, const char *form_name, const char
     return 0;
 }
 
+uint32_t (*bb_forms_wait_hook)(uint32_t sigmask, int timeout_ms);
+
 static bb_int forms_doevents(void) { bb_forms_doevents(); return 0; }
 
 /* Startup=Form x: load, show, run the event loop until the last form is unloaded */

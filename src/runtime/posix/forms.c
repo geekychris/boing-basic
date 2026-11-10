@@ -404,7 +404,9 @@ int bb_forms_run(void)
             }
         }
         if (!any) break;
-        {
+        if (bb_forms_wait_hook)
+            bb_forms_wait_hook(0, 5);       /* sockets: their events, or a 5 ms wait */
+        else {
             struct timespec ts = { 0, 5000000 };
             nanosleep(&ts, NULL);
         }

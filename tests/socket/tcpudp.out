@@ -1,0 +1,25 @@
+machine address:True
+listening:TrueTrue
+connected:True 7 TrueTrue
+accepted:TrueTrueTrue
+line one|line two|
+read:part
+big: 204806  ialx xEND
+binary: 7  0 True
+timeout: 31104 
+closed: 0 TrueTrue 8 
+refused: 31103 
+not open: 31109 
+bad port: 380 
+state after Connect:True
+client got HELLO|; connected; request; server got hello
+client got SECOND|; client got THIRD|; server got second; server got third
+client closed, state 8
+connections: 1 
+client got HELLO|; connected; request; server got hello
+server closed
+error 31103 True
+udp:UDPTrueTrue
+udp 4 ping from us; udp 5 pong! from us
+ReceiveFrom:direct True []
+Socket keep
