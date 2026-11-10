@@ -335,16 +335,20 @@ struct Node *bbf_list_node(bb_ctl *c, int i)
 {
     int nc = c->ncols > 1 ? c->ncols : 1;
     tags t = { 0 };
-    char buf[512];
+    /* each column's text in a buffer of its own: LBNCA_CopyText copies when the node is made,
+       after all the tags are set, so one shared buffer gave every column the last cell */
+    char (*bufs)[512] = nc > 1 ? malloc((size_t)nc * 512) : NULL;
+    if (nc > 1 && !bufs) return NULL;
     if (c->multi && c->msel && c->msel[i]) tg(&t, LBNA_Selected, TRUE);
     for (int k = 0; k < nc; k++) {
         tg(&t, LBNA_Column, k);
         tg(&t, LBNCA_CopyText, TRUE);
-        tg(&t, LBNCA_Text, (uint32)(nc > 1 ? cell(c->items[i], k, buf, sizeof buf) : c->items[i]));
+        tg(&t, LBNCA_Text, (uint32)(nc > 1 ? cell(c->items[i], k, bufs[k], sizeof bufs[k]) : c->items[i]));
     }
     tg(&t, TAG_DONE, 0);
     struct Node *n = bbf_ILB->AllocListBrowserNodeA(nc, t.t);
     free(t.t);
+    free(bufs);
     return n;
 }
 
