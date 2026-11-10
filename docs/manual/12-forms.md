@@ -114,9 +114,11 @@ lets one `.afg` file show the user's language ([chapter 13](13-menus-dialogs.md#
 
 In a control's `text` or `label` value, an underscore marks the next letter as the control's
 keyboard shortcut and is not shown itself: `text="_Quit"` shows *Quit* with the Q underlined,
-and pressing Q clicks the button ([Shortcut letters](#shortcut-letters-return-and-esc)). (In
-menus and toolbar buttons the underscore is simply left out; menus have their own shortcuts,
-see [chapter 13](13-menus-dialogs.md).)
+and pressing Q clicks the button ([Shortcut letters](#shortcut-letters-return-and-esc)). A
+text field, number field or text editor takes its letter from `label` only: its `text` is what
+the user types, so an underscore there is an ordinary character. (In menus and toolbar buttons
+the underscore is simply left out; menus have their own shortcuts, see
+[chapter 13](13-menus-dialogs.md).)
 
 ### The window line
 
@@ -134,12 +136,12 @@ see [chapter 13](13-menus-dialogs.md).)
 | `contextmenukey` | | `always` = context menus open with a plain right click (then the menu bar can't be reached over them) |
 | `mousemove` | 0 | 1 = `Form_MouseMove` for every move, not only while a button is held |
 | `helpnode` | | the AmigaGuide node the Help key opens over the window where no control has a node of its own; `main` if not given ([chapter 13](13-menus-dialogs.md#amigaguide-help)) |
-| `font`, `fontsize` | | the font of the window and all its controls, for example `font="DejaVu Sans" fontsize=15`; the screen's font if not given |
+| `font`, `fontsize` | | the font of the window and all its controls, for example `font="DejaVu Sans" fontsize=15`; the screen's font if not given. `fontsize` alone keeps the screen's font at that size |
 | `screentitle` | | the text of the screen's title bar while the window is active (`ScreenTitle`) |
 | `pubscreen` | | the name of a public screen to open on; the default public screen if there is none of that name |
 | `screen` | | `own` = the program's own screen (opened with the window if it isn't open yet); `workbench` = the default public screen even when the program has its own |
 | `screenmode`, `screenwidth`, `screenheight`, `screendepth` | | with `screen=own`: the new screen's mode (a `ScreenModeID`, as `0x50011000`), size and depth; the Workbench's for those not given |
-| `fullscreen` | 0 | 1 = no border, no gadgets, and the window covers its whole screen (on a screen it opens with `screen=own`, the screen has no title bar either) |
+| `fullscreen` | 0 | 1 = no border, no gadgets, and the window covers its whole screen (on the program's own screen, that screen's title bar is hidden too) |
 | `borderless` | 0 | 1 = no border, title bar or gadgets |
 | `backdrop` | 0 | 1 = a backdrop window, behind all the other windows of its screen |
 
@@ -252,8 +254,8 @@ End Sub
 | `helpnode` | the AmigaGuide node the Help key opens while the pointer is over the control (`HelpNode`; [chapter 13](13-menus-dialogs.md#amigaguide-help)) |
 | `contextmenu` | the id of a hidden menu that Shift or Ctrl + the right mouse button opens over the control ([chapter 13](13-menus-dialogs.md#context-menus)) |
 | `dropfiles` | 1 = icons dropped on this control go to its own `OLEDragDrop` event |
-| `font`, `fontsize` | a font for this control alone; with only `fontsize`, the window's `font`, or DejaVu Sans |
-| `label` | (in a layout) a label beside the control; a `_` in it marks the control's shortcut letter |
+| `font`, `fontsize` | a font for this control alone; with only `fontsize`, the window's font (or the screen's font) at that size |
+| `label` | (in a layout) a label beside the control; a `_` in it marks the control's shortcut letter, for the controls that have one ([Shortcut letters](#shortcut-letters-return-and-esc)) |
 
 The keys of each kind of control are in the [control reference](#the-controls) below.
 
@@ -370,7 +372,7 @@ Closing a window with its close gadget is the same as `Unload`, with `UnloadMode
 | `Activate` | `Form_Activate()` | the window opened or became the active window |
 | `Deactivate` | `Form_Deactivate()` | another window became the active one |
 | `Resize` | `Form_Resize()` | after the window opened, after every size change, and after iconifying and opening again |
-| `QueryUnload` | `Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)` | the form is about to be unloaded; `UnloadMode` is 0 for the close gadget, 1 for `Unload` in code. `Cancel = True` keeps it |
+| `QueryUnload` | `Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)` | the form is about to be unloaded; `UnloadMode` is 0 (`vbFormControlMenu`) for the close gadget, 1 (`vbFormCode`) for `Unload` in code, 3 (`vbAppTaskManager`) when the system asks the program to quit (Exchange's Remove, [chapter 18](18-desktop.md#quit-hide-and-show-from-the-system)). `Cancel = True` keeps it |
 | `Unload` | `Form_Unload(Cancel As Integer)` | the form is being unloaded (after `QueryUnload`); `Cancel = True` keeps it. Save settings here |
 | `KeyDown` | `Form_KeyDown(KeyCode As Integer, Shift As Integer)` | a key went down ([The keyboard](#the-keyboard)) |
 | `KeyUp` | `Form_KeyUp(KeyCode As Integer, Shift As Integer)` | a key was released |
@@ -715,6 +717,11 @@ A line of text the user can't change.
 
 Labels have no events. A label whose text will change needs room for the longest text: give
 it a long starting text, or a `minwidth`.
+
+A `_` in a label's text gives its letter to the control after it, as a caption for a field
+usually does: `label text="_Port"` followed by `integer id=port` shows **P**ort with the P
+underlined, and P puts the cursor into the number field ([Shortcut
+letters](#shortcut-letters-return-and-esc)).
 
 ### Space (`space`)
 
@@ -1107,14 +1114,17 @@ Other controls don't take the keyboard focus, and `SetFocus` does nothing for th
 The letter after a `_` in a control's `text` or `label` is its shortcut. While no text field
 has the cursor, pressing that letter, alone or with Shift, works the control:
 
-| Control | The shortcut letter |
-|---|---|
-| button | clicks it: `<id>_Click` runs |
-| check box | ticks or clears it; `Click` runs |
-| text field, number field, text editor | puts the cursor into it |
-| chooser, radio buttons, tabs, list | selects the next item (with Shift the previous one), going round at the end; `Click` runs |
+| Control | The letter comes from | The shortcut letter |
+|---|---|---|
+| button | `text` (else `label`) | clicks it: `<id>_Click` runs |
+| check box | `text` (else `label`) | ticks or clears it; `Click` runs |
+| text field, number field, text editor | `label` only | puts the cursor into it |
+| chooser, radio buttons, tabs, list | `text` (else `label`) | selects the next item (with Shift the previous one), going round at the end; `Click` runs |
+| label | `text` | works the next field, button, check box, chooser, radio buttons or list after it in the `.afg`, as that control's own letter would |
 
-A disabled or hidden control has no shortcut. With an Amiga key or Ctrl held, the letter is
+Only these controls have shortcuts: a `_` in the `label` of a slider, scroller, file chooser,
+tree view or grid marks no letter, and leaves that letter free for the others. A disabled or
+hidden control has no shortcut. With an Amiga key or Ctrl held, the letter is
 left to the menus (`key=`) and to your key events. `default=1` on a button makes Return click
 it, and `cancel=1` makes Esc click it: the usual OK and Cancel of a dialog.
 
@@ -1134,7 +1144,8 @@ included; Return there ends the entry and arrives in the field's `KeyPress`, so
 `If KeyAscii = 13 Then ok_Click` there lets Return in the field rename as well.
 
 A key used by a shortcut, and Return and Esc when a `default=1` or `cancel=1` button takes
-them, do not reach `Form_KeyDown` and `Form_KeyPress`. In a game window, keep the letters the
+them, do not reach `Form_KeyDown`, `Form_KeyPress` or `Form_KeyUp`: neither the press nor the
+release arrives. In a game window, keep the letters the
 game uses free of `_` shortcuts.
 
 ### Key events
@@ -1192,7 +1203,8 @@ program can tell left from right. A canvas can also be asked whether a key is do
 
 The Help key opens the program's help when `App.HelpFile` is set, at the `helpnode=` of the
 control under the pointer, else of the window, else at `main`
-([chapter 13](13-menus-dialogs.md#amigaguide-help)); otherwise it is an ordinary key.
+([chapter 13](13-menus-dialogs.md#amigaguide-help)), and then the window gets no key events
+for it; otherwise it is an ordinary key.
 
 ## Several forms
 
@@ -1379,7 +1391,8 @@ there.
 - `Show`, `Show vbModal`, `Hide`, `Load` and `Unload` manage forms; `Form_QueryUnload` and
   `Form_Unload` can keep a form open; the program ends with its last form.
 - The reference above lists every control's keys, properties, methods and events; key codes
-  are in [The keyboard](#the-keyboard). A `_` letter in a text or label is a working shortcut,
+  are in [The keyboard](#the-keyboard). A `_` letter in a text or label is a working shortcut
+  (for fields, in their `label`; a `label` control's letter works the control after it),
   and `default=1` / `cancel=1` buttons take Return and Esc.
 - `font`, `fontsize`, `screen`, `pubscreen`, `fullscreen` and `screentitle` on the `window`
   line choose the window's font and screen ([The AmigaOS 4 desktop](18-desktop.md)).

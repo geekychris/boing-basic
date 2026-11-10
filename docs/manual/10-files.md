@@ -505,7 +505,9 @@ argument returns the next one, and `""` means there are no more. The names come 
 directory part. In the pattern, `*` stands for any characters and `?` for one character; upper
 and lower case are treated as the same, as AmigaOS does. The AmigaOS forms work too: `#?` is
 the same as `*`, and `#` before any other character means "that character any number of times,
-or not at all", so `a#2.txt` matches `a.txt`, `a2.txt` and `a22.txt`. (The other AmigaOS pattern
+or not at all", so `a#2.txt` matches `a.txt`, `a2.txt` and `a22.txt`. A name whose only
+special character is `#` and that is the name of an existing file means that file, so
+`Kill "track#1.mod"` deletes `track#1.mod`; with `*` or `?` in it, it is always a pattern. (The other AmigaOS pattern
 features, such as `(a|b)`, `~` and `[a-z]`, are not understood.) `Kill` takes the same patterns.
 
 Directories are left out unless the attributes include `vbDirectory` (16); then both files and
@@ -703,11 +705,11 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 | `App.Title` | the program's title: the project's `Title=` line, else its `Name=`, else the program's name; you can change it (`App.Title = "Paint - " & doc`), and requester titles, `App.EnvPath` and remembered window positions use it |
 | `App.EnvPath` | `ENVARC:` followed by the title: a directory for files of your own that should survive a reboot (on a host, a directory under the settings directory, see below) |
 | `App.Major`, `App.Minor`, `App.Revision` | the numbers of the project's `Version=` line (`Version=1.4.2` gives 1, 4 and 2); 0 without one |
-| `App.FromWorkbench` | True if the program was started by double-clicking its Workbench icon (AmigaOS) |
+| `App.FromWorkbench` | True if the program was started by double-clicking its Workbench icon, or a project icon with the default tool `boing` (AmigaOS) |
 | `App.ToolType(name [, default])` | a tooltype from the program's icon: `NAME=value` gives `"value"`, a bare `NAME` gives `"1"`, a missing one `default` (or `""`). On a host, always the default |
 | `App.ToolTypeCount`, `App.ToolTypes(i)` | the number of tooltypes and each tooltype line (AmigaOS) |
 | `App.ArgCount`, `App.Arg(i)` | the files the program was given: icons selected with it on the Workbench, or the names on the command line (AmigaOS) |
-| `App.ReadArgs(template)`, `App.ArgValue(key)` | the arguments read with an AmigaDOS template such as `"FILE/A,SIZE/N,QUIET/S"` (`True` if they fit), and each value as text; from Workbench, the tooltypes (AmigaOS; see [below](#command)) |
+| `App.ReadArgs(template)`, `App.ArgValue(key)` | the arguments read with an AmigaDOS template such as `"FILE/A,SIZE/N,QUIET/S"` (`True` if they fit; up to 32 items), and each value as text; from Workbench, the tooltypes (AmigaOS; see [below](#command)) |
 | `App.Notify title, text [, imagefile]` | a Ringhio notification (AmigaOS; [chapter 18](18-desktop.md#notifications)) |
 | `App.HotKey name, keys` | a hotkey such as `"ctrl alt j"`, which calls `HotKey_Pressed(Name)`, and an entry in Exchange (AmigaOS; [chapter 18](18-desktop.md#commodities-a-hotkey-and-exchange)) |
 | `App.FormatNumber(x [, decimals])` | the number with the decimal point and thousands separator of the user's Locale settings, and `decimals` digits after the point (2 if not given); on a host `.` and `,` ([chapter 18](18-desktop.md#number-and-date-formats)) |
@@ -738,10 +740,10 @@ catalogs...): see [Menus and dialogs](13-menus-dialogs.md). Notifications, hotke
 Show, Hide and Remove (the Subs `App_Show`, `App_Hide` and `App_Quit`) and the other desktop
 features are in [The AmigaOS 4 desktop](18-desktop.md).
 
-Do not call one of your own modules `App` (for example by naming a program `app.bas`): the
-module's name then hides the `App` object in that program, and `App.Title` gives "module 'app'
-has no public member 'Title'". The same goes for the names of the built-in classes `Http`,
-`Canvas`, `Audio` and `Engine3D`: a program `http.bas` that uses `Dim h As Http` is stopped by
+A module of your own may be called `App` (for example a program `app.bas`): `App.Path`,
+`App.Title` and the other members still reach the `App` object, unless your module has a
+public member of the same name. The names of the built-in classes (`Http`, `Canvas`, `Audio`,
+`Engine3D`, `Collection`) are different: a program `http.bas` that uses `Http` is stopped by
 `boing check` with "the module 'http' hides the built-in class Http: rename the module".
 
 ## The command line and the environment

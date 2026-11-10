@@ -11,11 +11,15 @@ Private lastTime As Single, elapsed As Double
 
 Public Sub Main()
     If Not App.ReadArgs("TEXT/A,MINUTES/N,REPEAT/S") Then
-        Print "Usage: Reminder TEXT/A,MINUTES/N,REPEAT/S"
+        If App.FromWorkbench Then                       ' no Shell to print to
+            App.Request "Reminder's icon needs the tooltype TEXT=..." & vbLf & _
+                        "(and MINUTES=, if given, a whole number).", "_OK", "Reminder", vbExclamation
+        Else
+            Print "Usage: Reminder TEXT/A,MINUTES/N,REPEAT/S"
+        End If
         Exit Sub
     End If
     message = App.ArgValue("TEXT")
-    If message = "" Then message = "Time for a break"   ' from Workbench without a TEXT tooltype
     minutes = Val(App.ArgValue("MINUTES"))
     If minutes <= 0 Then minutes = 10
 

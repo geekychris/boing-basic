@@ -190,7 +190,7 @@ A program can also open its own screen in code, with a mode the user chose:
 
 | | What it does |
 |---|---|
-| `App.OpenScreen modeid [, width, height, depth [, title]]` | opens the program's own screen: `modeid` is a `ScreenModeID` (0 for the Workbench's mode); a width, height or depth of 0 (or left out) means the Workbench's. `title` is the screen's title (else `App.Title`). Error 5 if the screen can't be opened. While the screen is open, a second call does nothing |
+| `App.OpenScreen modeid [, width, height, depth [, title [, showTitle]]]` | opens the program's own screen: `modeid` is a `ScreenModeID` (0 for the Workbench's mode); a width, height or depth of 0 (or left out) means the Workbench's. `title` is the screen's title (else `App.Title`). `showTitle = False` opens it without a title bar (the default is `True`). Error 5 if the screen can't be opened, and error 5 if the program's screen is already open: call `App.CloseScreen` first to open it in another mode |
 | `App.CloseScreen` | closes the program's own screen if no window is open on it; returns `True` when it is closed |
 
 The mode usually comes from the screen mode requester (`ShowScreenMode`, see
@@ -201,8 +201,13 @@ loaded, and a window that is already open stays where it is. A program that star
 `Sub Main`, opens the screen, and then shows its form; the full-screen game
 [at the end of this chapter](#a-full-screen-game-on-its-own-screen) does this.
 
-A screen opened with `App.OpenScreen` has a title bar. A screen opened by the `screen=own` key
-of a `fullscreen=1` window has none, so the window really covers the whole screen.
+A screen opened with `App.OpenScreen` has a title bar unless its `showTitle` argument is
+`False`. A `fullscreen=1` window on the program's own screen hides that screen's title bar,
+however the screen was opened, so the window really covers the whole screen.
+
+Pictures on buttons, toolbar buttons and `image` controls are made for the colours of the
+screen the form opens on, and a grid's rows fit the window's font (or that screen's font), so
+they look right on the program's own screen as well as on the Workbench.
 
 Use your own screen for programs that need it: a game in a particular resolution, a program
 that needs more room or colours than the Workbench has. Ordinary programs belong on the
@@ -218,8 +223,8 @@ font), these keys set a font:
 | Key | On | What it does |
 |---|---|---|
 | `font="DejaVu Sans"` | the `window` line | the font of the window and of every control in it; the name is written without `.font` |
-| `fontsize=13` | the `window` line | its size in pixels (13 if only `font=` is given; with only `fontsize=`, the font is DejaVu Sans) |
-| `font=`, `fontsize=` | a control | a font for that control alone. With only `fontsize=`, the control takes the window's `font=`, or DejaVu Sans |
+| `fontsize=13` | the `window` line | its size in pixels (13 if only `font=` is given). With only `fontsize=`, the window keeps the screen's font at that size |
+| `font=`, `fontsize=` | a control | a font for that control alone. With only `fontsize=`, the control takes the window's font (or the screen's font) at that size |
 
 If the font isn't installed, the window or control quietly keeps the screen's font. The layout
 measures every control with its own font, so a window with a large font is simply a larger
@@ -227,8 +232,9 @@ window.
 
 At run time `Me.FontName` and `Me.FontSize` are the window's font (`""` and 0 when it has none
 of its own). Setting either one gives the window and its controls the new font and lays the
-window out again; controls with a `font=` of their own keep theirs. A font that can't be opened
-is error 380. This is how a program applies the font the user chose in the font requester:
+window out again; controls with a `font=` of their own keep theirs. Setting only
+`Me.FontSize` on a window without a `font=` keeps the screen's font at the new size. A font that
+can't be opened is error 380. This is how a program applies the font the user chose in the font requester:
 
 <!-- fragment -->
 ```basic
@@ -346,8 +352,8 @@ to list them all. Tooltype names are written in capitals by convention.
 AmigaOS commands describe their arguments with a **template**, such as
 `FILE/A,SIZE/N,QUIET/S` (type a system command followed by `?` in the Shell to see its own).
 `App.ReadArgs(template)` reads the program's arguments with such a template, the way the
-system's own commands do, and returns `True` if they fit it. `App.ArgValue(key)` then gives
-each value:
+system's own commands do, and returns `True` (a Boolean) if they fit it. `App.ArgValue(key)`
+then gives each value:
 
 | Template item | Means | `App.ArgValue` gives |
 |---|---|---|
@@ -356,29 +362,33 @@ each value:
 | `FROM/K` | it must be given with its keyword: `FROM Work:x` | the text |
 | `SIZE/N` | a whole number | the number as text (`Val` it) |
 | `QUIET/S` | a switch: just the word | `"1"` if it was given, else `""` |
+| `FAST/T` | a toggle: the keyword with `ON` or `OFF` (or `YES` or `NO`): `FAST=ON` | `"1"` or `"0"` (`"0"` also when it was not given) |
 | `FILES/M` | any number of values | all of them, joined by `vbLf` (`Split(v, vbLf)`) |
+| `NUMS/N/M` | any number of whole numbers | the numbers as text, joined by `vbLf` |
 | `TEXT/F` | the rest of the line, spaces and all | the text |
 | `F=FILE` | `F` is a short name for `FILE` | `App.ArgValue("FILE")` |
 
 Keywords are not case-sensitive: the user can type `quiet` or `size=5`. `ReadArgs` returns
 `False` when the arguments don't fit (a missing `/A` argument, a word that isn't a number for a
 `/N`, an unknown keyword); the program then prints its template as a usage line. `ArgValue`
-with a key that isn't in the template (or before `ReadArgs`) is error 5. Use up to 32 items,
-and don't use `/T` (toggle) or `/N/M` (several numbers): Boing BASIC reads their values
-wrongly. `App.ReadArgs` and `App.ArgValue` work only on AmigaOS: on other systems they are
-error 438.
+with a key that isn't in the template (or before `ReadArgs`) is error 5. A template has up to
+32 items: a longer one is error 5. `App.ReadArgs` and `App.ArgValue` work only on AmigaOS: on
+other systems they are error 438.
 
 **Started from Workbench**, a program has no command line, and `ReadArgs` reads the icon's
-tooltypes instead: the tooltype `MINUTES=5` is the value of the template's `MINUTES`, and a
-bare `REPEAT` gives `"1"`. Then `ReadArgs` always returns `True`: `/A` isn't checked and a `/N`
-value is the text as written, so the program must cope with missing values itself. In return,
-one template covers both ways of starting the program.
+tooltypes instead: the tooltype `MINUTES=5` is the value of the template's `MINUTES`, a bare
+`REPEAT` gives `"1"`, and a `/T` item's tooltype `FAST=ON` gives `"1"` (`OFF`, `NO` or `0` give
+`"0"`; without the tooltype, `""`). The template is checked here too: `ReadArgs` returns `False`
+when an `/A` item has no tooltype, or the tooltype of an `/N` item isn't a whole number. So one
+template covers both ways of starting the program; only the way of telling the user differs,
+as there is no Shell to print a usage line to.
 
 Here is the start of **Reminder**, a program without a window from
 `examples/book/ch18-desktop/reminder/`, which shows a notification after some minutes.
 In the Shell it is started as `Reminder "Tea is ready" 5` (or `Reminder TEXT="Tea is ready"
 MINUTES=5 REPEAT`); from Workbench, its icon's tooltypes are `TEXT=Tea is ready` and
-`MINUTES=5`:
+`MINUTES=5`. When they don't fit the template, it prints its usage in the Shell and opens a
+requester from Workbench:
 
 *Listing 18.3* (`examples/book/ch18-desktop/reminder/Reminder.bbp`)
 
@@ -386,11 +396,15 @@ MINUTES=5 REPEAT`); from Workbench, its icon's tooltypes are `TEXT=Tea is ready`
 ```basic
 Public Sub Main()
     If Not App.ReadArgs("TEXT/A,MINUTES/N,REPEAT/S") Then
-        Print "Usage: Reminder TEXT/A,MINUTES/N,REPEAT/S"
+        If App.FromWorkbench Then                       ' no Shell to print to
+            App.Request "Reminder's icon needs the tooltype TEXT=..." & vbLf & _
+                        "(and MINUTES=, if given, a whole number).", "_OK", "Reminder", vbExclamation
+        Else
+            Print "Usage: Reminder TEXT/A,MINUTES/N,REPEAT/S"
+        End If
         Exit Sub
     End If
     message = App.ArgValue("TEXT")
-    If message = "" Then message = "Time for a break"   ' from Workbench without a TEXT tooltype
     minutes = Val(App.ArgValue("MINUTES"))
     If minutes <= 0 Then minutes = 10
 ```
@@ -423,13 +437,14 @@ Things to know about a program started this way:
   program with windows that never uses `Print` doesn't get one. `Input` reads from the same
   window. At the end the window stays open until the user closes it, so the output can be read.
   A compile error appears there too.
-- **How it was started.** `App.FromWorkbench` is `True` and `Command` is `""`. `ReadArgs` reads
-  the tooltypes, and `App.ToolType` too, but the icon they come from is `Name.info` in the
-  program's drawer, where `Name` is `App.EXEName` (the file's name without `.bas` or `.bbp`),
-  not the project icon that was double-clicked: put the tooltypes into `Jotter.info` beside
-  `Jotter.bbp` (the icon a native build of Jotter would have).
-- **One program per icon.** Only the double-clicked project is run; `App.ArgCount` is 0, so
-  icons selected with it are not passed on.
+- **How it was started.** The program sees the project as itself: `App.FromWorkbench` is
+  `True` and `Command` is `""`. `App.ToolType` and `ReadArgs` read the tooltypes of the project
+  icon that started it: put them into `Jotter.bbp.info` (or `Jotter.bas.info`), the icon you
+  double-click.
+- **Other icons.** Icons selected together with the project (click the project's icon, then
+  Shift-click the others and double-click the last one with Shift held) are the program's
+  files: `App.ArgCount` counts them, and `App.Arg(0)`, `App.Arg(1)`... give their full paths.
+  The project itself is not one of them.
 - Only give program files `boing` as their default tool. A document saved by a program running
   in the interpreter needs a default tool that opens it: the program's native build
   (`App.SaveIcon fileName, "Work:Jotter/Jotter"`), or a script.
@@ -766,12 +781,17 @@ An AmigaOS program can be used without the mouse as far as possible:
   Shift; combinations with an Amiga key or Ctrl are left to the menus and the program. Use a
   different letter for each control of the window. What the key does depends on the control:
 
-  | Control | The shortcut key |
-  |---|---|
-  | button | clicks it (its `Click` event runs) |
-  | check box | ticks or clears it (`Click` runs) |
-  | text field, number field, text editor | puts the cursor into it |
-  | chooser, radio buttons, tabs, list | selects the next item, or with Shift the previous one, going round at the end (`Click` runs) |
+  | Control | Its letter comes from | The shortcut key |
+  |---|---|---|
+  | button | `text=` (or `label=`) | clicks it (its `Click` event runs) |
+  | check box | `text=` (or `label=`) | ticks or clears it (`Click` runs) |
+  | text field, number field, text editor | `label=` only | puts the cursor into it |
+  | chooser, radio buttons, tabs, list | `text=` (or `label=`) | selects the next item, or with Shift the previous one, going round at the end (`Click` runs) |
+  | label (`label text="_Port"`) | `text=` | works the next control after it in the `.afg` (a field, button, check box, chooser, radio buttons or list) as that control's own letter would: `label text="_Port"` followed by `integer id=port` puts the cursor into the number field |
+
+  A field's text is what the user types, so a `_` in it is just a character. Other controls
+  (sliders, scrollers, file choosers, tree views, grids...) have no shortcut, and a `_` in their `label=` doesn't
+  take a letter away from the others.
 
 - **Return and Esc.** `default=1` on a button makes Return click it, `cancel=1` on a button
   makes Esc click it. Give a dialog an OK (or Save) button with `default=1` and a Cancel
@@ -800,8 +820,9 @@ so M and E put the cursor into the message and minutes fields, F switches the ch
 chooses the next sound, S or Return saves, U uses, and C or Esc cancels.
 
 A key that a control takes as its shortcut (or Return and Esc for a `default=1` or `cancel=1`
-button) does not also arrive in `Form_KeyDown` and `Form_KeyPress`. Keys without a control
-arrive there as usual ([Forms and controls](12-forms.md#the-keyboard)).
+button, or Help when it opens the help) does not also arrive in `Form_KeyDown`,
+`Form_KeyPress` or `Form_KeyUp`: the window gets neither its press nor its release. Keys
+without a control arrive there as usual ([Forms and controls](12-forms.md#the-keyboard)).
 
 ## Window titles, the busy pointer and hints
 
@@ -907,7 +928,7 @@ failed. A requester would make the user click; a notification doesn't.
 
 | | What it does |
 |---|---|
-| `App.Notify title, text [, imagefile]` | shows a notification with a title and a text, and the picture `imagefile` (a picture file such as a PNG) if given. The program goes on at once. Error 5 if it can't be shown |
+| `App.Notify title, text [, imagefile]` | shows a notification with a title and a text, and the picture `imagefile` (a picture file such as a PNG) if given. The image's path is read like the program's other file paths, so `App.Path & "/bell.png"` works when the program is at the top of a volume ([Files beside the program](10-files.md#files-beside-the-program-apppath)). The program goes on at once. Error 5 if it can't be shown |
 | `App.NotifyResult` | the last answer of application.library to `Notify` (0 = queued), for finding out why one failed |
 | `App.Register` | registers the program with application.library without a notification; `True` if it worked (see [below](#quit-hide-and-show-from-the-system)) |
 
@@ -1031,11 +1052,25 @@ can do once the program is registered there (after its first `App.Notify`, or af
 `App.Register`). Like the other event Subs, they can be in any module and are called while the
 event loop runs or `DoEvents` is called.
 
-Write an `App_Quit` whenever your program has a hotkey or registers. Without one, a Quit ends
-a program with windows at once, closing its windows without `Form_QueryUnload`, so unsaved work
-is lost; a program without windows doesn't stop at all. In `App_Quit`, do what the program's
-own Quit does: `Unload` the main window (which asks about unsaved changes, and may be
-cancelled), or set the flag that ends the main loop.
+Without an `App_Quit` Sub, a Quit (or Exchange's Remove) closes the program's windows the way
+their close gadgets do: every loaded form gets `Form_QueryUnload`, with `UnloadMode` 3
+(`vbAppTaskManager`), and then `Form_Unload`. A form whose `Form_QueryUnload` sets
+`Cancel = True` stays open, and so does the program; when the last form is unloaded, the
+program ends as usual. A program without forms ends at once, as if it had reached `End`.
+
+`Form_QueryUnload` can tell a request from the system by its `UnloadMode`:
+
+| `UnloadMode` | Constant | The form is closed by |
+|---|---|---|
+| 0 | `vbFormControlMenu` | the window's close gadget |
+| 1 | `vbFormCode` | `Unload` in the program's code |
+| 3 | `vbAppTaskManager` | the system: Exchange's Remove, or a Quit through application.library |
+
+Still, write an `App_Quit` whenever your program has a hotkey or registers: it decides what
+quitting means. In `App_Quit`, do what the program's own Quit does: `Unload` the main window
+(which asks about unsaved changes, and may be cancelled), or set the flag that ends the main
+loop, as Reminder does. A program without forms that has work to finish needs one, because
+without it the program ends where it stands.
 
 ## Settings in ENV: and ENVARC:
 
@@ -1504,9 +1539,8 @@ Things to know about screens of your own:
 - The screen is like the Workbench (its mode, depth and font) in everything you don't give.
   It is a public screen named after the program, so other programs could open windows on it
   too; `App.CloseScreen` returns `False` while any window is still open there.
-- A screen opened with `App.OpenScreen` has a title bar, which stays in front of the top of a
-  full-screen window: leave the top of the picture free, or let the `.afg`'s `screen=own`
-  open the screen, which then has no title bar.
+- The `fullscreen=1` window hides the screen's title bar, whether `App.OpenScreen` or the
+  `.afg`'s `screen=own` opened the screen, so the whole screen is the game's.
 - A game that runs on its own screen should still offer a window on the Workbench for users who
   prefer it: a tooltype or a setting that chooses between two forms, one with `screen=own
   fullscreen=1` and one without.
@@ -1517,11 +1551,10 @@ Things to know about screens of your own:
 > see [Calling AmigaOS](17-amigaos.md)):
 >
 > - Choosing the public screen at run time (for example from a `PUBSCREEN` tooltype): `pubscreen=` is fixed in the `.afg`, and there is no property for it.
-> - Hiding the title bar of a screen opened with `App.OpenScreen`, and screens with their own palette or pens.
+> - Screens with their own palette or pens.
 > - Bold and italic window fonts: `Me.FontName` and `Me.FontSize` take only the name and size of a `ShowFont` result.
 > - application.library beyond notifications and the Quit, Hide and Show messages (for example its list of recently used documents), and notifications with buttons.
 > - Commodities other than hotkeys (filtering or changing the input of other programs).
-> - `/T` (toggle) and `/N/M` items in `App.ReadArgs` templates.
 > - Clipboard data other than text and pictures (`Clipboard.GetFormat` answers `False` for any other format).
 
 ## Summary
@@ -1536,7 +1569,8 @@ Things to know about screens of your own:
   options with an AmigaDOS template (`App.ReadArgs`, `App.ArgValue`; tooltypes from Workbench),
   and give saved documents icons with `App.SaveIcon`.
 - A project icon with the default tool `boing` starts an interpreted program from Workbench,
-  with a console window that opens when it prints.
+  with a console window that opens when it prints; its tooltypes are the program's, and icons
+  selected with it are `App.Arg(i)`.
 - Use the ASL requesters (and `ShowPalette` for a palette), ask before discarding work, and
   name requester buttons after what they do.
 - Files can be dropped onto a program, but AmigaOS has no way to drag data out of one: offer
@@ -1547,7 +1581,8 @@ Things to know about screens of your own:
   menu. `hint=` texts are help bubbles, and with `statusbar hints=1` a help line too.
 - `App.Notify` shows a Ringhio notification. `App.HotKey` gives a hotkey (`HotKey_Pressed`) and
   an Exchange entry; `App_Show`, `App_Hide` and `App_Quit` answer Exchange and application.library,
-  and every program with a hotkey needs an `App_Quit`.
+  and every program with a hotkey should have an `App_Quit` (without one, a Quit closes the
+  forms through `Form_QueryUnload` with `UnloadMode` `vbAppTaskManager`).
 - An ARexx port, settings in `ENV:`/`ENVARC:` (`SaveSetting` for Save, `UseSetting` for Use),
   catalogs, numbers and dates in the user's format (`App.FormatNumber`, `App.FormatDate`),
   AmigaGuide help with a node per control (`helpnode=`) and a `$VER:` string make a program a
