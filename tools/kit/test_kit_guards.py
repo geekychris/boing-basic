@@ -133,7 +133,7 @@ class SickGuest(FakeGuest):
 for reaper, wb, what in ((True, True, "a Grim Reaper"), (False, False, "a silent Workbench")):
     sick = SickGuest(reaper, wb)
     try:
-        ik.install(sick)
+        ik.install(sick, "prepare")
         refused = False
     except RuntimeError as e:
         refused = "not installing" in str(e)

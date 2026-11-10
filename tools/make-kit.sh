@@ -4,8 +4,12 @@
 # Builds the Boing BASIC kit for AmigaOS 4: BoingBASIC.lha, a BoingBASIC drawer with
 #
 #   AmiForge(.info)           the IDE, AmiForge's feat-basic branch (REV default origin/feat-basic)
-#   boing, lib/libboing.a     the compiler/interpreter and runtime, boing_basic REV (default origin/main)
-#   include/, bindings/       the runtime headers (native builds on the guest), OS library declarations
+#   boing, lib/libboing.a     the compiler/interpreter and runtime, boing_basic REV (default origin/main);
+#                             boing has the standard extensions of KIT_STD_EXTS (default: sqlite when ext/sqlite exists)
+#   lib/libboingvm.a          the compiler and VM, for `boing vm` on the Amiga (projects with Extension=)
+#   include/, bindings/       the runtime headers incl. boing_ext.h (native builds and boing vm), OS library declarations
+#   ext/                      the standard extensions' sources (PROGDIR:ext/), when the tree has ext/
+#   Docs/Manual, Examples/Book  the user manual (text + BoingBASIC-Manual.guide) and every listing and exercise of it
 #   Templates/, Rexx/, Docs/  AmiForge's project templates and macros; the guides as Latin-1 text
 #   Examples/<dir>/           every examples/ drawer (not examples/common): sources and assets,
 #                             a .afp project with an icon, README.txt, and for games and apps a
@@ -75,7 +79,14 @@ hostboing=$src/bb/build/boing
 [[ -x $hostboing ]] || hostboing=$src/bb/build/host/boing
 step "boing + libboing.a (OS4, clean, check-cpu)"
 rm -rf $src/bb/build/os4
-$src/bb/tools/build-os4.sh check-cpu >$log/os4.log 2>&1 || { tail -30 $log/os4.log; exit 1 }
+# the standard extensions linked into the kit's boing (docs/extensions.md): KIT_STD_EXTS, else
+# sqlite once ext/sqlite is in the tree
+if [[ -n ${KIT_STD_EXTS+x} ]]; then stdexts=$KIT_STD_EXTS
+elif [[ -d $src/bb/ext/sqlite ]]; then stdexts=sqlite
+else stdexts=; fi
+print "standard extensions in the kit's boing: ${stdexts:-none}"
+$src/bb/tools/build-os4.sh check-cpu ${stdexts:+STD_EXTS="$stdexts"} >$log/os4.log 2>&1 || { tail -30 $log/os4.log; exit 1 }
+[[ -f $src/bb/build/os4/libboingvm.a ]] || { print -u2 "make-kit: no build/os4/libboingvm.a (boing vm needs it)"; exit 1 }
 grep 'dlmzb=' $log/os4.log | grep -v 'dlmzb=0$' && { print -u2 "make-kit: dlmzb in the OS4 build"; exit 1 }
 print "$(grep -c 'dlmzb=0' $log/os4.log) OS4 binaries, no dlmzb"
 

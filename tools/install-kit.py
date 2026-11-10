@@ -7,8 +7,9 @@ AmigaOS 4 guest as DH1:BoingBASIC, put the AmiForge icon on the Workbench deskto
     tools/install-kit.py BB_GUEST=m1 --icon-only          only the desktop icon (then the checks)
     options: --kit PATH.lha   --shot OUT.png   --no-icon   --check-all (boing check of every example)
 
-Install (one guest session, FIFO ticket + emulator lock + banner, at most BB_SESSION_TIMEOUT s,
-300 by default):
+Install (three guest sessions, each a FIFO ticket + emulator lock + banner, at most
+BB_SESSION_TIMEOUT s, 300 by default: checks + leftovers + space, the push, then unpack + swap +
+icon from the archive in RAM:; each phase re-checks the guest):
   - refuses on a guest with a Grim Reaper or a Workbench that doesn't answer ARexx, and while
     AmiForge or a program from DH1:BoingBASIC runs; deletes leftovers of an interrupted install
     (DH1:BoingBASIC-previous, DH1:BBkit-new); checks DH1's free space
@@ -343,7 +344,11 @@ def backdrop_entry(m):
     return "backdrop" if ENTRY.lower() in backdrop(m).lower() else None
 
 
-def install(m):
+def install(m, phase):
+    """Each phase is a guest session of its own (on a slow guest a cleanup or the push alone can take
+    3 minutes): "prepare" the checks, leftovers of an interrupted install, the space check; "push"
+    the checks and the push to RAM:; "swap" the checks, then unpack, swap and the icon from the
+    archive the push left in RAM:."""
     lha_size = os.path.getsize(KIT)
     need = unpacked_size() + (8 << 20)      # the archive goes to RAM:; the old drawer goes after the swap
     # a guest with crashed tasks or a Workbench that doesn't answer ARexx has hung the swap
@@ -358,6 +363,12 @@ def install(m):
     hits = running_from_kit(m)
     if hits:
         raise RuntimeError("these run from the kit on the guest; quit them first: %s" % "; ".join(hits))
+    if phase == "swap":
+        if dos(m, 'list RAM:bbkit/BoingBASIC.lha LFORMAT "%l"').strip() != str(lha_size):
+            raise RuntimeError("RAM:bbkit/BoingBASIC.lha isn't there (or not this kit): the push session didn't finish")
+        return swap(m)
+    if phase == "push":
+        return push_kit(m, lha_size, need)
     # leftovers of an interrupted install (the old drawer kept as -previous, a half-unpacked
     # BBkit-new) are deleted first: they can hold most of the space the install needs
     saved = guest_entries(m, "DH1:BBkit-old")
@@ -368,14 +379,18 @@ def install(m):
                                         for e in saved], limit=120)
             log("restored the old install from DH1:BBkit-old (an interrupted swap) %s" % " ".join(out.split())[:120])
         if not guest_entries(m, "DH1:BBkit-old") or "AmiForge" in guest_entries(m, DEST):
-            script(m, "oldaside", ['If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf'], limit=120)
+            script(m, "oldaside", ['If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf'], limit=270)
     out = script(m, "leftovers", ['If EXISTS DH1:BoingBASIC-previous', '  Delete DH1:BoingBASIC-previous ALL QUIET FORCE',
                                   '  Echo "LEFTOVER BoingBASIC-previous"', 'EndIf',
                                   'If EXISTS DH1:BBkit-new', '  Delete DH1:BBkit-new ALL QUIET FORCE',
-                                  '  Echo "LEFTOVER BBkit-new"', 'EndIf'], limit=180)
+                                  '  Echo "LEFTOVER BBkit-new"', 'EndIf'], limit=270)   # a slow guest: 3 min
     if "LEFTOVER" in out:
         log("leftovers of an earlier install: %s%s" % (" ".join(out.split())[:160],
             " (still locked: Workbench lets go at its next start; the next install deletes it)" if "in use" in out else ""))
+    check_space(m, need)
+
+
+def check_space(m, need):
     info = dos(m, "info DH1:")
     free = free_bytes(info)
     log("DH1: free %s, the install needs about %d MB" % ("%.0f MB" % (free / 2**20) if free else "?", need >> 20))
@@ -383,6 +398,10 @@ def install(m):
         raise RuntimeError("can't read DH1's free space: %s" % info.strip()[:300])
     if free < need:
         raise RuntimeError("DH1 has %.0f MB free, the kit needs about %.0f MB" % (free / 2**20, need / 2**20))
+
+
+def push_kit(m, lha_size, need):
+    check_space(m, need)
     dos(m, "makedir RAM:bbkit")
     t0 = time.time()
     # bbfetch renames its .part file only after the length and CRC check, so an archive of the
@@ -392,6 +411,9 @@ def install(m):
     else:
         log(g.push(m, KIT, "RAM:bbkit/BoingBASIC.lha"))
         log("pushed in %.0f s" % (time.time() - t0))
+
+
+def swap(m):
     have = guest_entries(m, DEST)
     exists = bool(have) or "Directory" in dos(m, "list %s DIRS QUICK" % DEST)
     if "MyProjects" in have:
@@ -520,8 +542,12 @@ def main():
             log("desktop icon: %s" % (how or "FAILED"))
         args.append("--verify-only")
     if "--verify-only" not in args:
+        with g.testing("Installing Boing BASIC + AmiForge (checks)"):
+            install(m, "prepare")
+        with g.testing("Installing Boing BASIC + AmiForge (copying the kit)"):
+            install(m, "push")
         with g.testing("Installing Boing BASIC + AmiForge"):
-            install(m)
+            install(m, "swap")
     if "--verify-only" not in sys.argv[1:]:
         # a new process for the second guest session: os4guest's watchdog thread is timed from the
         # first lock and would end this session early
