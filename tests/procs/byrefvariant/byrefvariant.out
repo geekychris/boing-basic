@@ -1,0 +1,11 @@
+ 6  2.5  8  201  3.5 1/3/2026 1 hi!
+udt field 2 
+in expr 17  16 
+if 26 
+loop 66 
+<HI!>HI!
+method 66  0 
+t8 8 
+paren byval 8 
+variant 2 
+mismatch 13  8 

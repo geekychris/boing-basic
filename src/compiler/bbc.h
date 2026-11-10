@@ -137,6 +137,8 @@ enum {
     E_VAR, E_CONST, E_FIELD, E_INDEX, E_CALL, E_BUILTIN, E_LATE, E_MCALL, E_MFIELD,
     E_CONV, E_WITHVAR, E_ERRPROP, E_CASEIS, E_CASERANGE, E_ARRAYLIT, E_DEFPROP,
     E_EXTCALL,              /* a linked extension's function (name; list = Variant arguments) */
+    E_WBARG,    /* a typed variable passed ByRef to a Variant parameter: a = the variable, b = a hidden
+                   Variant local (passed), c = the variable as a Variant; copied back after the call */
 
     /* statements */
     S_EXPR = 100, S_LET, S_SET, S_DIM, S_IF, S_ELSEIF, S_SELECT, S_CASE, S_FOR, S_FOREACH,
@@ -248,6 +250,7 @@ struct Sym {
     int label_id;
     Proc *user;             /* globals: the one procedure using it, if only one */
     int shared;             /* globals: used by several procedures (or from outside) */
+    Module *ambig;          /* a Public procedure: another module with a Public one of this name */
 };
 
 typedef struct ScopeEnt { Sym *sym; struct ScopeEnt *next; } ScopeEnt;

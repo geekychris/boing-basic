@@ -1,0 +1,6 @@
+# the same Public Sub name in two modules: each module calls its own; others qualify
+Name=qualified
+Startup=Sub Main
+Module=modA.bas
+Module=modB.bas
+Module=modC.bas

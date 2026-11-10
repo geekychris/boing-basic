@@ -714,6 +714,10 @@ static char *call_args(EC *e, Proc *pr, Node *n, const char *self)
                 else pre(e, "((bb_value *)%s->data)[%d] = %s;", tn, k, own(e, x));
             }
             s = xsprintf("&%s", tn);
+        } else if (a->kind == E_WBARG) {
+            char *tv = lval(e, a->b);
+            pre(e, "bb_v_set((bb_value *)&%s, %s);", tv, own(e, a->c));
+            s = xsprintf("((bb_value *)&%s)", tv);
         } else if (pa->byref) {
             if ((a->flags & NF_BYREF) || (a->ty->kind == T_UDT && is_lvalue(a))) s = addr(e, a);
             else {
@@ -751,6 +755,39 @@ static const char *clib_ctype(Type *t)
     case T_STRING: return "const char *";
     default: return "int32_t";
     }
+}
+
+/* a call with E_WBARG arguments: made first, then the variables get their hidden Variants'
+   values back; returns 0 if there are none */
+static int writeback_call(EC *e, Node *n, Proc *pr, const char *callx, R *res)
+{
+    int i, any = 0;
+    char *tn = NULL;
+    for (i = 0; i < n->list.n; i++) if (n->list.v[i]->kind == E_WBARG) any = 1;
+    if (!any) return 0;
+    if (pr->ret) { tn = new_temp(e, pr->ret, 0); pre(e, "%s = %s;", tn, callx); }
+    else pre(e, "%s;", callx);
+    for (i = 0; i < n->list.n; i++) {
+        Node *a = n->list.v[i];
+        char *lv, *tv;
+        Type *t;
+        if (a->kind != E_WBARG) continue;
+        lv = lval(e, a->a); tv = lval(e, a->b); t = a->a->ty;
+        switch (t->kind) {
+        case T_STRING: pre(e, "bb_str_set((bb_str **)&%s, bb_v_to_str((bb_value *)&%s));", lv, tv); break;
+        case T_BOOLEAN: pre(e, "%s = bb_v_to_bool((bb_value *)&%s);", lv, tv); break;
+        case T_BYTE: pre(e, "%s = bb_v_to_byte((bb_value *)&%s);", lv, tv); break;
+        case T_INTEGER: pre(e, "%s = bb_v_to_int((bb_value *)&%s);", lv, tv); break;
+        case T_LONG: pre(e, "%s = bb_v_to_long((bb_value *)&%s);", lv, tv); break;
+        case T_SINGLE: pre(e, "%s = bb_v_to_single((bb_value *)&%s);", lv, tv); break;
+        case T_DOUBLE: pre(e, "%s = bb_v_to_double((bb_value *)&%s);", lv, tv); break;
+        case T_CURRENCY: pre(e, "%s = bb_v_to_cur((bb_value *)&%s);", lv, tv); break;
+        case T_DATE: pre(e, "%s = bb_v_to_date((bb_value *)&%s);", lv, tv); break;
+        default: diag(e->p, a->file, a->line, a->col, "internal: ByRef Variant copy-back of %s", type_name(t));
+        }
+    }
+    *res = tn ? mkr(tn, is_refty(pr->ret)) : mkr(xstrdup("0"), 0);
+    return 1;
 }
 
 static R call(EC *e, Node *n)
@@ -815,6 +852,8 @@ static R call(EC *e, Node *n)
     args = call_args(e, pr, n, pr->cls ? "self" : NULL);
     {
         char *callx = xsprintf("%s(%s)", proc_cname(pr), args);
+        R wr;
+        if (writeback_call(e, n, pr, callx, &wr)) return wr;
         if (!pr->ret || (n->flags & NF_VOIDCALL)) return mkr(callx, pr->ret && is_refty(pr->ret));
         if (is_refty(pr->ret)) return mkr(callx, 1);
         {
@@ -846,6 +885,10 @@ static R mcall(EC *e, Node *n)
         callx = xsprintf("((const struct V%d *)bb_vtbl(%s, &%s_class))->m%d(%s)", pr->cls->index, ot, cls_cname(pr->cls), pr->vslot, args);
     else
         callx = xsprintf("%s(%s)", proc_cname(pr), args);
+    {
+        R wr;
+        if (writeback_call(e, n, pr, callx, &wr)) return wr;
+    }
     if (!pr->ret || (n->flags & NF_VOIDCALL)) return mkr(callx, pr->ret && is_refty(pr->ret));
     if (is_refty(pr->ret)) return mkr(callx, 1);
     {

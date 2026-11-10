@@ -148,6 +148,7 @@ static int is_ref_slot(Sym *s) { return (s->storage == ST_PARAM || s->storage ==
 
 static void expr(E *e, Node *n);
 static void addr(E *e, Node *n);
+static void store_top(E *e, Node *t);
 static void stmt(E *e, Node *s);
 
 /* the class operand of AUTONEW/AUTONEWM: -1 Collection, n+1 user class n, -2-k a registered
@@ -416,9 +417,23 @@ static void args_for_params(E *e, Node *n, Proc *pr)
     int i;
     for (i = 0; i < n->list.n; i++) {
         Node *a = n->list.v[i];
-        if (a->flags & NF_BYREF) addr(e, a);
+        if (a->kind == E_WBARG) { expr(e, a->c); store_top(e, a->b); addr(e, a->b); }
+        else if (a->flags & NF_BYREF) addr(e, a);
         else if (i < pr->nparams && pr->params[i].byref && (a->ty->kind == T_UDT)) addr(e, a);
         else expr(e, a);
+    }
+}
+
+/* after a call: E_WBARG variables get their hidden Variant's value back (the result stays below) */
+static void writeback(E *e, Node *n)
+{
+    int i;
+    for (i = 0; i < n->list.n; i++) {
+        Node *a = n->list.v[i];
+        if (a->kind != E_WBARG) continue;
+        expr(e, a->b);
+        op1(e, I_CVT, vt_of(a->a->ty));
+        store_top(e, a->a);
     }
 }
 
@@ -451,6 +466,7 @@ static void call(E *e, Node *n)
     if (pr->cls) op1(e, I_LDLV, 0);       /* Me */
     args_for_params(e, n, pr);
     op1(e, I_CALL, pr->index);
+    writeback(e, n);
 }
 
 static void mcall(E *e, Node *n)
@@ -460,6 +476,7 @@ static void mcall(E *e, Node *n)
     args_for_params(e, n, pr);
     if (pr->vslot < 0 || !pr->cls->is_interface) op3(e, I_CALLM, pr->cls->index, -1 - pr->index, n->list.n);
     else op3(e, I_CALLM, pr->cls->index, pr->vslot, n->list.n);
+    writeback(e, n);
 }
 
 static void builtin(E *e, Node *n)

@@ -287,7 +287,8 @@ static void declare_proc(Ctx *c, Node *d)
         if (!m->is_class && pr->is_public) {
             Sym *gg = scope_find_local(c->prog->global, pr->name);
             if (gg && gg->kind == SK_PROC) {
-                /* same public name in two modules: callers must qualify */
+                /* same public name in two modules: callers elsewhere must qualify (sema_expr) */
+                if (!gg->ambig) gg->ambig = m;
             } else if (!gg) scope_add(c->prog->global, s);
         }
     }
@@ -1563,6 +1564,13 @@ int sema_program(Program *p)
                 }
             }
         }
+    }
+    /* module-level statements run only as the startup module's program */
+    for (i = 0; i < p->nmods; i++) {
+        Module *m = p->mods[i];
+        if (m->mainproc && m->mainproc != p->startup_proc)
+            diag_warn(p, m->file, m->mainproc->line, 1,
+                      "module-level statements in '%s' never run (only the startup module's do): move them into a Sub", m->name);
     }
     (void)find_module;
     return p->nerrors == 0;
