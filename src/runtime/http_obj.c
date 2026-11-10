@@ -12,6 +12,7 @@
 #include "boing.h"
 #include "http.h"
 #include "net.h"
+#include "platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,10 +21,10 @@
 
 enum {
     M_GET = 1, M_POST, M_PUT, M_DELETE, M_HEAD, M_SEND, M_GETTOFILE, M_SETHEADER, M_CLEARHEADERS,
-    M_RESPONSEHEADER, M_TLSAVAILABLE,
+    M_RESPONSEHEADER, M_TLSAVAILABLE, M_SENDASYNC, M_GETASYNC, M_CANCEL, M_WAIT,
     P_STATUS, P_STATUSTEXT, P_RESPONSETEXT, P_RESPONSEHEADERS, P_URL, P_CONTENTTYPE, P_TIMEOUT,
     P_FOLLOWREDIRECTS, P_MAXREDIRECTS, P_VERIFYCERTIFICATE, P_CACERTFILE, P_USERAGENT, P_BYTESRECEIVED,
-    P_REDIRECTS,
+    P_REDIRECTS, P_BUSY, P_ONDONE, P_ONPROGRESS, P_ERRORNUMBER, P_ERRORTEXT,
 };
 
 static const struct { const char *name; int id; } members[] = {
@@ -35,16 +36,41 @@ static const struct { const char *name; int id; } members[] = {
     {"Timeout", P_TIMEOUT}, {"FollowRedirects", P_FOLLOWREDIRECTS}, {"MaxRedirects", P_MAXREDIRECTS},
     {"VerifyCertificate", P_VERIFYCERTIFICATE}, {"CACertFile", P_CACERTFILE}, {"UserAgent", P_USERAGENT},
     {"BytesReceived", P_BYTESRECEIVED}, {"Redirects", P_REDIRECTS},
+    {"SendAsync", M_SENDASYNC}, {"GetAsync", M_GETASYNC}, {"Cancel", M_CANCEL}, {"Wait", M_WAIT},
+    {"Busy", P_BUSY}, {"OnDone", P_ONDONE}, {"OnProgress", P_ONPROGRESS}, {"ErrorNumber", P_ERRORNUMBER},
+    {"ErrorText", P_ERRORTEXT},
 };
 
-typedef struct {
+/* An asynchronous request: the worker (bb_plat_thread_start) owns everything in here until it
+ * sets done; the main task then takes the answer. */
+typedef struct job {
+    bb_http_req req;
+    char *method, *url, *body, *headers, *ua, *ca;
+    bb_http_resp resp;
+    int rc;
+    char err[512];
+    volatile int done, cancel;
+    volatile long got, total;
+    void *thread;
+} job;
+
+typedef struct http_obj {
     bb_obj hdr;
     char *headers;              /* request headers, "Name: value\r\n" lines */
     char *ca_file, *user_agent;
     int timeout_ms, follow, max_redirects, verify;
     bb_http_resp resp;
     int have_resp;
+    /* async */
+    job *job;
+    char *ondone, *onprogress;  /* names of Subs to call */
+    long reported;              /* bytes last reported to OnProgress */
+    int err_number;
+    char *err_text;
+    struct http_obj *next_busy; /* the list of objects with a request running */
 } http_obj;
+
+static http_obj *busy_list;
 
 static char *dupstr(const char *s) { return strdup(s ? s : ""); }
 
@@ -119,6 +145,7 @@ static void request(http_obj *h, const char *method, const char *url, const char
                     const char *ctype, FILE *out)
 {
     char err[512] = "";
+    if (h->job) bb_raise(5, "a request of this Http object is still running (SendAsync)");
     char *hdrs = dupstr(h->headers);
     if (ctype && *ctype) {
         /* the given content type replaces one set with SetHeader for this request */
@@ -147,6 +174,159 @@ static void request(http_obj *h, const char *method, const char *url, const char
     h->have_resp = 1;
     free(hdrs);
     if (rc) bb_raise(rc, err);
+}
+
+/* --- asynchronous requests ---------------------------------------------------------------- */
+
+static int job_progress(void *ud, long got, long total)
+{
+    job *j = ud;
+    j->got = got;
+    j->total = total;
+    bb_plat_wake();
+    return j->cancel;
+}
+
+static void job_run(void *arg)
+{
+    job *j = arg;
+    j->rc = bb_http_do(&j->req, &j->resp, j->err, sizeof j->err);
+    bb_net_task_done();                     /* this worker's bsdsocket / AmiSSL (OS4) */
+    j->done = 1;
+}
+
+static void job_free(job *j)
+{
+    free(j->method); free(j->url); free(j->body); free(j->headers); free(j->ua); free(j->ca);
+    bb_http_resp_free(&j->resp);
+    free(j);
+}
+
+static void call_named(const char *name, int argc, bb_value *argv)
+{
+    if (!name || !*name) return;
+    void *p = bb_find_proc(NULL, name);
+    if (!p) {
+        char m[200];
+        snprintf(m, sizeof m, "Http: there is no Sub %s to call", name);
+        bb_raise(35, m);                    /* Sub or Function not defined */
+    }
+    bb_value r = bb_v_empty();
+    int32_t e = bb_call_proc(p, argc, argv, &r);
+    bb_v_release(&r);
+    if (e) bb_raise(e, NULL);
+}
+
+/* the request of h finished: take the answer (the main task) */
+static void finish(http_obj *h)
+{
+    job *j = h->job;
+    bb_plat_thread_join(j->thread);
+    if (h->have_resp) bb_http_resp_free(&h->resp);
+    h->resp = j->resp;
+    memset(&j->resp, 0, sizeof j->resp);
+    h->have_resp = 1;
+    h->err_number = j->rc;
+    free(h->err_text);
+    h->err_text = dupstr(j->rc ? j->err : "");
+    h->job = NULL;
+    job_free(j);
+    for (http_obj **pp = &busy_list; *pp; pp = &(*pp)->next_busy)
+        if (*pp == h) {
+            *pp = h->next_busy;
+            break;
+        }
+}
+
+/* Check the running requests: report progress, finish the ones that are done and call their
+ * OnDone Subs. Called from DoEvents, the forms event loop, Busy and Wait. */
+void bb_http_async_poll(void)
+{
+    static int polling;
+    if (polling) return;                    /* an OnDone Sub that calls DoEvents */
+    polling = 1;
+    bb_errframe f;
+    bb_frame_push(&f);
+    if (BB_SETJMP(f.jb) == 0) {
+        for (http_obj *h = busy_list, *next; h; h = next) {
+            next = h->next_busy;
+            job *j = h->job;
+            if (!j) continue;
+            if (h->onprogress && *h->onprogress && j->got != h->reported) {
+                h->reported = j->got;
+                bb_value a[2] = { bb_v_long((bb_long)j->got), bb_v_long((bb_long)j->total) };
+                bb_obj_retain(&h->hdr);
+                call_named(h->onprogress, 2, a);
+                bb_obj_release(&h->hdr);
+            }
+            if (j->done) {
+                bb_obj_retain(&h->hdr);     /* the Sub may drop the last reference */
+                finish(h);
+                call_named(h->ondone, 0, NULL);
+                bb_obj_release(&h->hdr);    /* the busy list's reference */
+                bb_obj_release(&h->hdr);
+                next = busy_list;           /* the list may have changed */
+            }
+        }
+        bb_frame_pop(&f);
+    } else {
+        bb_frame_pop(&f);
+        polling = 0;
+        bb_rethrow();
+    }
+    polling = 0;
+}
+
+static void start_async(http_obj *h, const char *method, const char *url, const char *body, long blen,
+                        const char *ctype)
+{
+    if (h->job) bb_raise(5, "a request of this Http object is still running");
+    job *j = calloc(1, sizeof *j);
+    j->method = dupstr(method);
+    j->url = dupstr(url);
+    if (body) {
+        j->body = malloc(blen + 1);
+        memcpy(j->body, body, blen);
+        j->body[blen] = 0;
+    }
+    j->headers = dupstr(h->headers);
+    if (ctype && *ctype) {
+        http_obj tmp;
+        tmp.headers = j->headers;
+        remove_header(&tmp, "Content-Type");
+        j->headers = realloc(tmp.headers, strlen(tmp.headers) + strlen(ctype) + 20);
+        sprintf(j->headers + strlen(j->headers), "Content-Type: %s\r\n", ctype);
+    }
+    j->ua = dupstr(h->user_agent);
+    j->ca = h->ca_file && *h->ca_file ? dupstr(h->ca_file) : NULL;
+    j->req.method = j->method;
+    j->req.url = j->url;
+    j->req.body = j->body;
+    j->req.body_len = blen;
+    j->req.headers = j->headers;
+    j->req.user_agent = j->ua;
+    j->req.timeout_ms = h->timeout_ms;
+    j->req.follow_redirects = h->follow;
+    j->req.max_redirects = h->max_redirects;
+    j->req.verify = h->verify;
+    j->req.ca_file = j->ca;
+    j->req.progress = job_progress;
+    j->req.progress_ud = j;
+    j->total = -1;
+    h->err_number = 0;
+    h->reported = -1;
+    h->job = j;
+    bb_obj_retain(&h->hdr);                 /* kept alive while the request runs */
+    h->next_busy = busy_list;
+    busy_list = h;
+    j->thread = bb_plat_thread_start(job_run, j);
+    if (!j->thread) {
+        busy_list = h->next_busy;
+        h->job = NULL;
+        job_free(j);
+        bb_obj_release(&h->hdr);
+        bb_raise(7, "can't start a background task for the request");
+    }
 }
 
 static int32_t h_find(const bb_class *cls, const char *name)
@@ -246,6 +426,51 @@ static void h_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         free(v);
         return;
     }
+    case M_SENDASYNC:
+        a = arg_str(argc, argv, 0, NULL);
+        b = arg_str(argc, argv, 1, NULL);
+        c = present(argc, argv, 2) ? arg_str(argc, argv, 2, &blen) : NULL;
+        d = present(argc, argv, 3) ? arg_str(argc, argv, 3, NULL) : NULL;
+        start_async(h, a, b, c, blen, d);
+        free(a); free(b); free(c); free(d);
+        return;
+    case M_GETASYNC:
+        a = arg_str(argc, argv, 0, NULL);
+        start_async(h, "GET", a, NULL, 0, NULL);
+        free(a);
+        return;
+    case M_CANCEL:
+        if (h->job) h->job->cancel = 1;
+        return;
+    case M_WAIT: {                           /* Wait [timeoutMs]: True when done */
+        long limit = present(argc, argv, 0) ? arg_long(argc, argv, 0) : -1;
+        double t0 = bb_plat_seconds();
+        while (h->job) {
+            bb_http_async_poll();
+            if (!h->job) break;
+            if (limit >= 0 && (bb_plat_seconds() - t0) * 1000.0 >= limit) break;
+            bb_doevents();
+            bb_plat_sleep_ms(10);
+        }
+        *ret = bb_v_bool(h->job == NULL);
+        return;
+    }
+    case P_BUSY:
+        bb_http_async_poll();
+        *ret = bb_v_bool(h->job != NULL);
+        return;
+    case P_ONDONE:
+    case P_ONPROGRESS: {
+        char **slot = id == P_ONDONE ? &h->ondone : &h->onprogress;
+        if (set) {
+            free(*slot);
+            *slot = arg_str(argc, argv, argc - 1, NULL);
+        } else
+            *ret = bb_v_str(bb_str_from_c(*slot ? *slot : ""));
+        return;
+    }
+    case P_ERRORNUMBER: *ret = bb_v_long(h->err_number); return;
+    case P_ERRORTEXT: *ret = bb_v_str(bb_str_from_c(h->err_text ? h->err_text : "")); return;
     case M_TLSAVAILABLE:
         *ret = bb_v_bool(bb_net_tls_available(NULL, 0));
         return;
@@ -303,6 +528,9 @@ static void h_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
 static void h_terminate(bb_obj *self)
 {
     http_obj *h = (http_obj *)self;
+    free(h->ondone);
+    free(h->onprogress);
+    free(h->err_text);
     free(h->headers);
     free(h->ca_file);
     free(h->user_agent);

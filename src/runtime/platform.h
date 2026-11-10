@@ -31,6 +31,13 @@ int bb_plat_read_line(char **line, size_t *len);         /* malloc'ed, no newlin
 void bb_plat_localtime(bb_tm *tm);
 double bb_plat_seconds(void);                            /* monotonic-ish, seconds */
 int bb_plat_utc_offset(void);                            /* minutes local time is ahead of UTC */
+/* background work (async Http): run fn(arg) on another thread / process; join waits for it.
+   The worker may call bb_plat_wake() to wake the main task's event loop, which includes
+   bb_plat_wake_mask() in what it waits for (OS4: a signal; 0 on the host). */
+void *bb_plat_thread_start(void (*fn)(void *), void *arg);
+void bb_plat_thread_join(void *t);
+void bb_plat_wake(void);
+unsigned long bb_plat_wake_mask(void);
 void bb_plat_sleep_ms(long ms);
 /* Ctrl-C: nonzero if a break was requested since the last call (clears it) */
 int bb_plat_break(void);

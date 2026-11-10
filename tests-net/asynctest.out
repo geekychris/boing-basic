@@ -1,0 +1,17 @@
+ok 1 - GetAsync, Busy, DoEvents
+ok 2 - OnDone called once
+ok 3 - a quick request finishes while a slow one runs
+ok 4 - Wait without a limit
+ok 5 - they finish in their own order
+ok 6 - a 300000-byte download
+ok 7 - OnProgress reports the bytes
+ok 8 - Wait(500) on a 5 s request returns False
+ok 9 - Cancel ends it
+ok 10 - a cancelled request: ErrorNumber 18
+ok 11 - Get while SendAsync runs: error 5
+ok 12 - a second async request on the same object: error 5
+ok 13 - an unknown host: ErrorNumber 31102
+ok 14 - SendAsync POST
+ok 15 - HTTPS asynchronously
+ok 16 - two HTTPS requests at once
+PASS 16

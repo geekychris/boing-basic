@@ -252,3 +252,42 @@ char *bb_plat_inputbox(const char *prompt, const char *title, const char *def)
     if (n == 0 && def && *def) { free(line); return strdup(def); }
     return line;
 }
+
+/* --- background work (async Http) ------------------------------------------------------------ */
+#include <pthread.h>
+
+typedef struct {
+    pthread_t t;
+    void (*fn)(void *);
+    void *arg;
+} bb_pthread;
+
+static void *thread_main(void *p)
+{
+    bb_pthread *t = p;
+    t->fn(t->arg);
+    return NULL;
+}
+
+void *bb_plat_thread_start(void (*fn)(void *), void *arg)
+{
+    bb_pthread *t = calloc(1, sizeof *t);
+    t->fn = fn;
+    t->arg = arg;
+    if (pthread_create(&t->t, NULL, thread_main, t)) {
+        free(t);
+        return NULL;
+    }
+    return t;
+}
+
+void bb_plat_thread_join(void *p)
+{
+    bb_pthread *t = p;
+    if (!t) return;
+    pthread_join(t->t, NULL);
+    free(t);
+}
+
+void bb_plat_wake(void) {}
+unsigned long bb_plat_wake_mask(void) { return 0; }

@@ -9,6 +9,7 @@
  * different socket bases, and the handshake fails with EBADF). Certificates are verified by
  * default against AmiSSL's store (AmiSSL:Certs), with the host name checked too. */
 #include "../net.h"
+#include "../boing.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,35 +34,78 @@
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
 
-static struct Library *sock_base;
-static struct SocketIFace *ISock;
-static struct Library *master_base;
-static struct AmiSSLMasterIFace *IMaster;
-static struct Library *amissl_base, *amissl_ext_base;
-static struct AmiSSLIFace *ISSL;
-static int sock_tried, ssl_tried, ssl_ok;
-static char ssl_why[200];
-static int ssl_errno;
+/* The bases are per task: a bsdsocket base and its sockets belong to the task that opened it,
+ * and AmiSSL is opened per task too. Async Http requests run on worker processes, each with its
+ * own context (bb_net_task_done closes it when the worker ends). */
+typedef struct netctx {
+    struct Task *task;
+    struct Library *f_sock_base;
+    struct SocketIFace *f_isock;
+    struct Library *f_master_base;
+    struct AmiSSLMasterIFace *f_imaster;
+    struct Library *f_amissl_base, *f_amissl_ext_base;
+    struct AmiSSLIFace *f_issl;
+    int f_sock_tried, f_ssl_tried, f_ssl_ok;
+    char f_ssl_why[200];
+    int f_ssl_errno;
+} netctx;
+
+#define NCTX 16
+static netctx ctxs[NCTX];
+
+static netctx *net_ctx(void)
+{
+    struct Task *me = IExec->FindTask(NULL);
+    netctx *freec = NULL;
+    for (int i = 0; i < NCTX; i++) {
+        if (ctxs[i].task == me) return &ctxs[i];
+        if (!ctxs[i].task && !freec) freec = &ctxs[i];
+    }
+    IExec->Forbid();
+    if (freec && !freec->task) {
+        memset(freec, 0, sizeof *freec);
+        freec->task = me;
+    } else
+        freec = NULL;
+    IExec->Permit();
+    if (!freec) bb_raise(7, "too many tasks using the network");
+    return freec;
+}
+
+#define sock_base (net_ctx()->f_sock_base)
+#define ISock (net_ctx()->f_isock)
+#define master_base (net_ctx()->f_master_base)
+#define IMaster (net_ctx()->f_imaster)
+#define amissl_base (net_ctx()->f_amissl_base)
+#define amissl_ext_base (net_ctx()->f_amissl_ext_base)
+#define ISSL (net_ctx()->f_issl)
+#define sock_tried (net_ctx()->f_sock_tried)
+#define ssl_tried (net_ctx()->f_ssl_tried)
+#define ssl_ok (net_ctx()->f_ssl_ok)
+#define ssl_why (net_ctx()->f_ssl_why)
+#define ssl_errno (net_ctx()->f_ssl_errno)
 static int cleanup_registered;
 
-static void net_cleanup(void)
+/* close the calling task's bases (a worker calls this before it ends; the main task at exit) */
+void bb_net_task_done(void)
 {
-    if (ISSL && IMaster) IMaster->CloseAmiSSL();
-    ISSL = NULL;
-    if (IMaster) IExec->DropInterface((struct Interface *)IMaster);
-    if (master_base) IExec->CloseLibrary(master_base);
-    IMaster = NULL;
-    master_base = NULL;
-    if (ISock) IExec->DropInterface((struct Interface *)ISock);
-    if (sock_base) IExec->CloseLibrary(sock_base);
-    ISock = NULL;
-    sock_base = NULL;
+    struct Task *me = IExec->FindTask(NULL);
+    for (int i = 0; i < NCTX; i++)
+        if (ctxs[i].task == me) {
+            netctx *c = &ctxs[i];
+            if (c->f_issl && c->f_imaster) c->f_imaster->CloseAmiSSL();
+            if (c->f_imaster) IExec->DropInterface((struct Interface *)c->f_imaster);
+            if (c->f_master_base) IExec->CloseLibrary(c->f_master_base);
+            if (c->f_isock) IExec->DropInterface((struct Interface *)c->f_isock);
+            if (c->f_sock_base) IExec->CloseLibrary(c->f_sock_base);
+            memset(c, 0, sizeof *c);
+        }
 }
 
 static void register_cleanup(void)
 {
     if (!cleanup_registered) {
-        atexit(net_cleanup);
+        atexit(bb_net_task_done);
         cleanup_registered = 1;
     }
 }
