@@ -3,7 +3,7 @@
 Programs today juggle data that comes from the internet and goes back to it: lookups by name,
 JSON documents, text in UTF-8, checksums and signatures, dates in UTC. This chapter describes
 the libraries Boing BASIC has for them, and for everyday jobs such as pattern matching, CSV
-files and running other programs. They are part of the runtime, so they work the same in
+files, settings files, logging and running other programs. They are part of the runtime, so they work the same in
 the interpreter and in native programs, on AmigaOS 4 and on macOS and Linux:
 
 | Library | What it is for |
@@ -18,6 +18,8 @@ the interpreter and in native programs, on AmigaOS 4 and on macOS and Linux:
 | [CSV files](#csv-files-csv) | reading and writing comma-separated files |
 | [Unique identifiers](#unique-identifiers-createuuid) | random unique IDs |
 | [Running commands](#running-commands-process) | running Shell commands and capturing their output |
+| [Settings files](#inifile-settings-files) | reading and writing INI files, keeping their comments |
+| [Logging](#logger-logging) | log messages with levels, to the console or rotating files |
 
 Each library's classes are created with `New` or `CreateObject` like the runtime's other
 objects; its functions are called like built-in functions. One rule applies to all of them:
@@ -2533,6 +2535,400 @@ removed: []
 | 5 | `SetEnv` with a name that can't be used |
 | 383 | assigning to `Output`, `ErrorOutput`, `ExitCode` or `CommandLine` |
 
+## IniFile: settings files
+
+An INI file is the plain-text settings format with `[sections]` and `key=value` lines:
+
+```ini
+; Tincture settings
+[Window]
+Width=640
+Height=480
+
+[Recent]
+File1=Work:Pictures/sunset.iff
+```
+
+`IniFile` reads and writes such files. Use it for a program's preferences, a game's options or
+a tool's configuration. The user can open the file in any text editor and change it, and when
+your program saves its own changes, `IniFile` keeps the user's comments, blank lines, spacing
+and order exactly as they were.
+
+You make one with `CreateObject`:
+
+<!-- fragment -->
+```basic
+Dim prefs As IniFile
+Set prefs = CreateObject("IniFile")
+prefs.Load "PROGDIR:Tincture.ini"            ' a missing file is simply empty
+```
+
+### Reading values
+
+`Value(section, key [, default])` returns a value as a String. If the section or the key is not
+there, you get the default, or `""` if you gave none. `Value` is the default member, so
+`prefs("Window", "Width")` is the same as `prefs.Value("Window", "Width")`.
+
+| Member | What it does |
+|---|---|
+| `Load path [, mustExist]` | reads a file and remembers its name for `Save`. Returns True if the file was there. A missing file gives an empty `IniFile` and returns False; with `mustExist` = True it is error 53 instead. |
+| `LoadText text` | reads the settings from a String instead of a file |
+| `Value(section, key [, default])` | a value as a String, or the default (`""` if none) when it isn't there |
+| `Sections` | the section names, as an array of Strings. `""` comes first if there are keys before the first section. |
+| `Keys(section)` | the key names of a section, as an array. A section that isn't there gives an empty array (`UBound` is -1). |
+| `HasSection(section)` | True if the section is there |
+| `HasKey(section, key)` | True if the key is there |
+
+The rules of the format:
+
+- Names of sections and keys are not case-sensitive: `Value("video", "WIDTH")` finds `Width` in
+  `[Video]`.
+- Spaces around keys and values are ignored. To keep spaces at the ends of a value, put it in
+  double quotes: `Name="  x  "` gives `  x  `.
+- Lines that start with `;` or `#` are comments.
+- Keys before the first `[section]` line belong to the section `""`.
+- Every value is text. Read numbers with `CLng`, `CDbl` or `Val`:
+  `w = CLng(prefs.Value("Window", "Width", "640"))`.
+
+### Changing and saving
+
+| Member | What it does |
+|---|---|
+| `Value(section, key) = value` | sets a value. A new key goes after the last key of its section; a new section goes at the end of the file. A number is written the way `CStr` writes it. |
+| `DeleteKey(section, key)` | removes a key; returns True if it was there |
+| `DeleteSection(section)` | removes a section with all its keys and comments; returns True if it was there |
+| `Clear` | empties everything |
+| `Save [path]` | writes the file: to `path`, or to the file it was loaded from |
+| `Text` | the whole file as a String. Assigning to it is the same as `LoadText`. |
+| `Path` | the file name `Save` writes to (set by `Load`; you can also assign it) |
+| `Changed` | True if something was changed since the last `Load` or `Save` |
+
+`Save` writes every line your program did not change exactly as it was. A file with CR LF line
+ends (written on another computer) keeps them. Setting a value to the same text it already has
+is not a change.
+
+### Example: a run counter
+
+This program keeps a settings file in the current directory. It counts how often it has run,
+remembers a user name, and reads a value with a default. It then lists what the file contains,
+and deletes it at the end, so that it prints the same every time.
+
+*Listing 20.66* (`examples/book/ch20-libraries/listing-20-66.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim prefs As IniFile, s As Variant, k As Variant, runs As Long, i As Long
+
+Set prefs = CreateObject("IniFile")
+' start from a file with a comment in it, written by "the user"
+prefs.LoadText "; settings for the counter" & vbLf & "[User]" & vbLf & "Name = Ann" & vbLf
+prefs.Save "counter.ini"
+
+For i = 1 To 3                                 ' three "runs" of the program
+    Set prefs = CreateObject("IniFile")
+    If Not prefs.Load("counter.ini") Then Print "first run"
+    runs = CLng(prefs.Value("Stats", "Runs", "0")) + 1
+    prefs.Value("Stats", "Runs") = runs
+    prefs.Save
+Next
+
+Print "Hello "; prefs("User", "Name"); ", run"; runs
+Print "Colour: "; prefs.Value("User", "Colour", "blue")
+For Each s In prefs.Sections
+    For Each k In prefs.Keys(s)
+        Print "["; s; "] "; k; " = "; prefs.Value(s, k)
+    Next
+Next
+Print "---"
+Print prefs.Text;
+Kill "counter.ini"
+```
+
+```output
+Hello Ann, run 3 
+Colour: blue
+[User] Name = Ann
+[Stats] Runs = 3
+---
+; settings for the counter
+[User]
+Name = Ann
+
+[Stats]
+Runs=3
+```
+
+The comment and the spaces in `Name = Ann` are still there after three saves; the new section
+`[Stats]` was added at the end (with a blank line before it).
+
+A real program loads its settings once when it starts and saves them when it ends, or when the
+user closes a preferences window:
+
+<!-- fragment -->
+```basic
+Private Sub Form_Load()
+    Set prefs = CreateObject("IniFile")
+    prefs.Load "PROGDIR:Tincture.ini"
+    Me.Width = CLng(prefs("Window", "Width", "640"))
+    Me.Height = CLng(prefs("Window", "Height", "480"))
+End Sub
+
+Private Sub Form_Unload(Cancel As Integer)
+    prefs("Window", "Width") = Me.Width
+    prefs("Window", "Height") = Me.Height
+    If prefs.Changed Then prefs.Save
+End Sub
+```
+
+### IniFile or GetSetting?
+
+`GetSetting` and `SaveSetting` (chapter 10) keep each value in its own small file in the
+system's settings drawer (`ENVARC:`). They need no file name and no object, so they are the
+quickest way to remember a few values, but the user doesn't usually look there or edit them.
+
+Use an `IniFile` when the settings should be one readable file that the user can edit, copy or
+back up: next to the program (`PROGDIR:`), in `ENVARC:`, or on a USB stick. It is also the
+right choice for reading configuration files written by other programs.
+
+### Errors and limits
+
+| Error | When |
+|---|---|
+| 53 | `Load` with `mustExist` = True and the file isn't there |
+| 75 | `Save` can't create the file |
+| 61 | writing failed (for example, the disk is full) |
+| 5 | a bad key or section name, a value with a line break in it, or `Save` without a file name (nothing was loaded and no path given) |
+
+A key can't contain `=` or start with `[`, `;` or `#`; a section name can't contain `]`. A value
+is one line: it can't contain line breaks.
+
+*Listing 20.67* (`examples/book/ch20-libraries/listing-20-67.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim ini As IniFile
+Set ini = CreateObject("IniFile")
+On Error Resume Next
+ini.Value("Game", "lives=3") = 1
+Print "bad key:"; Err.Number: Err.Clear
+ini.Value("Game", "Title") = "two" & vbLf & "lines"
+Print "line break:"; Err.Number: Err.Clear
+ini.Load "no-such-file.ini", True
+Print "must exist:"; Err.Number: Err.Clear
+Set ini = CreateObject("IniFile")
+ini.Save
+Print "no name:"; Err.Number
+```
+
+```output
+bad key: 5 
+line break: 5 
+must exist: 53 
+no name: 5 
+```
+
+## Logger: logging
+
+A log is a file in which a program writes what it is doing: when it started, what it loaded,
+what went wrong. When a user reports a problem, the log tells you what happened. `Logger`
+writes such messages, each on its own line with the date, the time and a level, to a log file
+or to the console.
+
+Every message has a level, from Debug (details for you while you develop) to Fatal (the program
+can't go on). The logger writes only the messages at or above its `Level`, so you can leave the
+debug messages in the program and switch them on when you need them.
+
+<!-- fragment -->
+```basic
+Dim lg As Logger
+Set lg = CreateObject("Logger")
+lg.FileName = "PROGDIR:Downloader.log"
+lg.Info "started"
+lg.Debug "url = " & url              ' only written when Level is logDebug
+lg.Error "can't save " & path & ": " & Err.Description
+```
+
+`PROGDIR:Downloader.log` then holds lines like these (the debug message is not there, because
+the level is `logInfo` unless you change it):
+
+```text
+2026-11-10 14:03:21 INFO started
+2026-11-10 14:03:25 ERROR can't save RAM:x.lha: Disk full
+```
+
+### Writing messages
+
+| Method | Level | Constant |
+|---|---|---|
+| `Debug message` | 10 | `logDebug` |
+| `Info message` | 20 | `logInfo` |
+| `Warning message` | 30 | `logWarning` |
+| `Error message` | 40 | `logError` |
+| `Fatal message` | 50 | `logFatal` |
+| `Log level, message` | any level from 0 to 99 | |
+
+A message is written when its level is at least `Level`. Set `Level` to `logOff` (100) to write
+nothing at all. With `Log` you can use levels in between: the `{level}` field shows the nearest
+named level below it, so `Log 35, "..."` is shown as WARNING, and levels under 10 as DEBUG.
+
+`Fatal` only writes the message: it does not end the program. Call `End` yourself if you need to.
+
+### Settings
+
+| Property | Default | What it does |
+|---|---|---|
+| `Level` | `logInfo` | the lowest level that is written; `logOff` writes nothing |
+| `FileName` | `""` | the log file. Messages are added to the end of it; the file is opened at the first message. Empty: messages go to the console instead. |
+| `Console` | False | with a `FileName`, also write every message to the console |
+| `Pattern` | `{date} {time} {level} {message}` | the layout of a line (see below) |
+| `Source` | `""` | a name shown by `{source}`, such as the module or the part of the program that logs |
+| `MaxSize` | 0 | the largest size of the log file, in bytes. When a line would make the file larger, the file is renamed to *name*`.old` (replacing an older one) and a new file is started. 0 means no limit. |
+| `AutoFlush` | True | write each line to the disk at once, so that a crash or a reset doesn't lose the last messages. Set it to False for speed when you log a lot, and call `Flush`. |
+
+The console is the program's standard error output: the Shell window the program was started
+from.
+
+#### The pattern
+
+`Pattern` is the text of each line, with fields in braces that the logger fills in:
+
+| Field | Shows |
+|---|---|
+| `{date}` | the date, as 2026-11-10 |
+| `{time}` | the time, as 14:03:21 |
+| `{ms}` | the milliseconds (000-999) |
+| `{level}` | DEBUG, INFO, WARNING, ERROR or FATAL |
+| `{source}` | the `Source` property |
+| `{message}` | the message |
+| `{line}` | the program line that logged the message. This works in compiled (native) programs; in the interpreter it shows 0. |
+
+Anything else in the pattern is copied as it is. For example `"{time}.{ms} [{source}] {message}"`
+gives lines like `14:03:21.482 [net] connected`.
+
+### Other members
+
+| Member | What it does |
+|---|---|
+| `Count` | the number of messages written so far (messages below `Level` don't count) |
+| `LastMessage` | the last line written, without the line end |
+| `Flush` | write buffered lines to the disk (only needed with `AutoFlush` = False) |
+| `Close` | close the log file. The next message opens it again. Assigning `FileName` closes the old file too. |
+
+### Example: levels and a log file
+
+This program logs to a file in the current directory with a pattern without the date and time
+(so that the output is the same every time), changes the level, and then prints the file.
+
+*Listing 20.68* (`examples/book/ch20-libraries/listing-20-68.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim lg As Logger, s As String
+
+Set lg = CreateObject("Logger")
+lg.FileName = "example.log"
+lg.Pattern = "{level} [{source}] {message}"
+lg.Source = "main"
+
+lg.Info "program started"
+lg.Debug "not written: the level is logInfo"
+lg.Level = logDebug
+lg.Debug "now debug messages are written"
+lg.Source = "loader"
+lg.Warning "no settings file, using the defaults"
+lg.Log 45, "between Error and Fatal"
+lg.Level = logError
+lg.Info "not written: the level is logError"
+lg.Error "can't open the picture"
+Print lg.Count; "messages, the last: "; lg.LastMessage
+lg.Close
+
+Open "example.log" For Input As #1
+Do Until EOF(1)
+    Line Input #1, s
+    Print s
+Loop
+Close #1
+Kill "example.log"
+```
+
+```output
+ 5 messages, the last: ERROR [loader] can't open the picture
+INFO [main] program started
+DEBUG [main] now debug messages are written
+WARNING [loader] no settings file, using the defaults
+ERROR [loader] between Error and Fatal
+ERROR [loader] can't open the picture
+```
+
+### Example: a log that doesn't grow for ever
+
+A program that runs for a long time (a server, a downloader) can fill a disk with its log. With
+`MaxSize` the file is kept small: when it is full, it becomes *name*`.old` and a new file starts,
+so there are never more than two files of at most `MaxSize` bytes. (The file is rotated before
+a line that wouldn't fit, so lines are never split: at the end, `server.log.old` holds nine
+lines of 32 bytes, and `server.log` the last three.)
+
+*Listing 20.69* (`examples/book/ch20-libraries/listing-20-69.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim lg As Logger, i As Long
+
+Set lg = CreateObject("Logger")
+lg.FileName = "server.log"
+lg.Pattern = "{level} {message}"
+lg.MaxSize = 300
+For i = 1 To 30
+    lg.Info "request number " & i & " answered"
+Next
+lg.Close
+Print "server.log:"; FileLen("server.log"); "bytes"
+Print "server.log.old:"; FileLen("server.log.old"); "bytes"
+Kill "server.log"
+Kill "server.log.old"
+```
+
+```output
+server.log: 96 bytes
+server.log.old: 288 bytes
+```
+
+### Debug messages in a finished program
+
+A common way to use the levels: read the level from the program's settings (or its command
+line), so that a user can switch on debug messages when you ask them to, without a new version
+of the program.
+
+*Listing 20.70* (`examples/book/ch20-libraries/listing-20-70.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim lg As Logger
+Set lg = CreateObject("Logger")
+lg.Pattern = "{level}: {message}"
+If InStr(LCase(Command), "debug") > 0 Then lg.Level = logDebug
+lg.Debug "only with DEBUG on the command line"
+lg.Info "to the console, because there is no FileName"
+```
+
+```output
+INFO: to the console, because there is no FileName
+```
+
+### Errors
+
+| Error | When |
+|---|---|
+| 75 | the log file can't be opened (for example, the drawer isn't there) |
+| 61 | writing failed (the disk is full) |
+| 380 | a negative `Level` or `MaxSize`, or a `Log` level outside 0-99 |
+
 ## Summary
 
 - `Dictionary` maps keys to values; `JsonParse` turns JSON text into Dictionaries and arrays,
@@ -2545,6 +2941,7 @@ removed: []
 - `RegExp` matches, extracts and replaces text by patterns.
 - `Csv` reads and writes CSV files; `CreateUUID` makes unique IDs; `Process` runs Shell commands
   and captures their output.
+- `IniFile` reads and writes settings files; `Logger` writes leveled log messages.
 
 See also: [Networking](19-networking.md) for fetching the data, [Built-in functions](09-builtins.md)
 and [Files](10-files.md).
