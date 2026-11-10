@@ -1,0 +1,5 @@
+# Boing BASIC project: import a CSV file into an SQLite table, in Timer slices
+Name=CsvImport
+Startup=Form importer
+Form=importer.afg
+Extension=sqlite
