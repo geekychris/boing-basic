@@ -295,3 +295,5 @@ void bb_net_close(bb_net *n)
     if (n->fd >= 0) close(n->fd);
     free(n);
 }
+
+void bb_net_task_done(void) {}

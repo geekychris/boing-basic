@@ -38,6 +38,10 @@ int bb_net_write(bb_net *n, const void *p, int len, int timeout_ms, char *err, i
 int bb_net_read(bb_net *n, void *p, int len, int timeout_ms, char *err, int errlen);
 void bb_net_close(bb_net *n);
 
+/* Close the calling task's network resources (OS4: its bsdsocket/AmiSSL bases); a worker task
+ * calls this before it ends. A no-op on the host. */
+void bb_net_task_done(void);
+
 /* Is TLS available? 1, or 0 with the reason in why. */
 int bb_net_tls_available(char *why, int whylen);
 

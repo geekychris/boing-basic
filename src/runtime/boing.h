@@ -896,6 +896,7 @@ bb_str *bb_environ(const bb_value *v);
 bb_long bb_shell(bb_str *cmd);
 void bb_beep(void);
 void bb_sleep_ms(bb_long ms);
+void bb_http_async_poll(void);              /* async Http requests: progress, OnDone (http_obj.c) */
 bb_int bb_doevents(void);                    /* lets a GUI runtime process events */
 void bb_set_doevents(bb_int (*fn)(void));    /* installed by the forms runtime */
 bb_long bb_rgb(bb_long r, bb_long g, bb_long b);

@@ -14,12 +14,14 @@ set -- $(cat "$work/ports") ; hp=$1 sp=$2 ca=$3
 args="http://127.0.0.1:$hp https://localhost:$sp $ca"
 cd "$work" || exit 1
 rc=0
-"$BOING" run "$root/tests-net/httptest.bas" $args > vm.txt 2>&1
-if diff "$root/tests-net/httptest.out" vm.txt >/dev/null; then echo "PASS net/httptest (vm)"; else echo "FAIL net/httptest (vm)"; diff "$root/tests-net/httptest.out" vm.txt | head -20; rc=1; fi
-if "$BOING" build "$root/tests-net/httptest.bas" -o "$work/http_native" > build.txt 2>&1; then
-    "$work/http_native" $args > nat.txt 2>&1
-    if diff "$root/tests-net/httptest.out" nat.txt >/dev/null; then echo "PASS net/httptest (native)"; else echo "FAIL net/httptest (native)"; diff "$root/tests-net/httptest.out" nat.txt | head -20; rc=1; fi
-else
-    echo "FAIL net/httptest (native build)"; cat build.txt; rc=1
-fi
+for t in httptest asynctest; do
+    "$BOING" run "$root/tests-net/$t.bas" $args > vm.txt 2>&1
+    if diff "$root/tests-net/$t.out" vm.txt >/dev/null; then echo "PASS net/$t (vm)"; else echo "FAIL net/$t (vm)"; diff "$root/tests-net/$t.out" vm.txt | head -20; rc=1; fi
+    if "$BOING" build "$root/tests-net/$t.bas" -o "$work/${t}_native" > build.txt 2>&1; then
+        "$work/${t}_native" $args > nat.txt 2>&1
+        if diff "$root/tests-net/$t.out" nat.txt >/dev/null; then echo "PASS net/$t (native)"; else echo "FAIL net/$t (native)"; diff "$root/tests-net/$t.out" nat.txt | head -20; rc=1; fi
+    else
+        echo "FAIL net/$t (native build)"; cat build.txt; rc=1
+    fi
+done
 exit $rc

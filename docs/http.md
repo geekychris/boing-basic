@@ -111,6 +111,71 @@ Print n; " bytes"
 web.CACertFile = "PROGDIR:test-ca.pem"
 ```
 
+## Asynchronous requests
+
+`Get`, `Post` and the rest wait for the answer, so a form freezes during a long download.
+The asynchronous calls start the request on a background task and return at once:
+
+| | |
+|---|---|
+| `GetAsync url` | starts a GET |
+| `SendAsync method, url [, body [, contentType]]` | starts any request |
+| `Busy` | True while the request runs |
+| `Wait([ms])` | waits until it ends (handling events meanwhile), at most `ms` milliseconds if given; True if it has ended |
+| `Cancel` | stops it; it then ends with `ErrorNumber` 18 |
+| `OnDone` | the name of a `Sub` with no arguments, called when the request ends |
+| `OnProgress` | the name of a `Sub (got As Long, total As Long)`, called as data arrives; `total` is the `Content-Length`, or -1 if the server didn't send one |
+| `ErrorNumber`, `ErrorText` | how it ended: 0 and `""`, or the error (31101–31110, 18) |
+
+When it has ended, `Status`, `ResponseText`, `ResponseBody`, `GetResponseHeader` and
+`StatusText` hold the answer, as after a `Get`. Errors are **not** raised: check `ErrorNumber`.
+
+`OnDone` and `OnProgress` run in the program's own task, never in the background, so they can
+change forms and variables freely. They are called while the program handles events: in a
+form's event loop, in `DoEvents`, in `Wait` and in `Busy`. A program without forms polls:
+
+```basic
+Dim web As Http
+Set web = CreateObject("Http")
+web.OnProgress = "Progress"
+web.GetAsync "https://example.com/files/game.lha"
+Do While web.Busy
+    DoEvents
+Loop
+If web.ErrorNumber = 0 Then Print Len(web.ResponseBody); " bytes"
+
+Sub Progress(got As Long, total As Long)
+    If total > 0 Then StatusBar.Text = (got * 100 \ total) & "%"
+End Sub
+```
+
+In a form, start the request in a button's `Click`, and handle the answer in the `OnDone` Sub:
+
+```basic
+Private web As Http
+
+Private Sub FetchButton_Click()
+    Set web = CreateObject("Http")
+    web.OnDone = "Fetched"
+    web.GetAsync UrlField.Text
+    FetchButton.Enabled = False
+End Sub
+
+Sub Fetched()
+    FetchButton.Enabled = True
+    If web.ErrorNumber <> 0 Then MsgBox web.ErrorText: Exit Sub
+    Page.Text = Utf8Decode(web.ResponseText)
+End Sub
+```
+
+Several `Http` objects can run requests at the same time; each object runs one at a time
+(starting a second one, or calling `Get` while one runs, raises error 5). Settings
+(`Timeout`, headers, `CACertFile`, ...) are read when the request starts.
+
+On AmigaOS 4 each request runs in its own child process ("Boing BASIC worker", 128 KB stack)
+with its own `bsdsocket.library` and AmiSSL bases, as both libraries require; the program's
+task is woken with a signal as data arrives. On the host it is a thread.
+
 ## How it works, per platform
 
 **AmigaOS 4.** TCP goes through `bsdsocket.library` (Roadshow), TLS through AmiSSL
@@ -137,8 +202,11 @@ default certificate store is Homebrew's.
 - `tests-net/os4-run.sh`: the same 38 checks on the AmigaOS 4 guest (QEMU), VM and native,
   through AmiSSL, against the test server on the Mac (reached at the QEMU gateway
   192.168.101.2). 2026-11-10: 38/38 both.
+- `tests-net/asynctest.bas` (in both runners): 16 checks of the asynchronous calls: `Busy` with
+  `DoEvents`, `OnDone`, two requests at once finishing in their own order, `OnProgress` over a
+  300 KB body, `Wait` with a limit, `Cancel`, error 5 for overlapping requests, `ErrorNumber` for
+  an unknown host, a POST, HTTPS (one and two at once).
 
 ## Not yet
 
-Asynchronous requests with events (so a form stays responsive during a long download),
 `Content-Encoding: gzip`, cookies, proxies, keep-alive connections, IPv6 on AmigaOS.

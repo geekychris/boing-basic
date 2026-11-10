@@ -341,3 +341,65 @@ char *bb_plat_inputbox(const char *prompt, const char *title, const char *def)
 {
     return bb_ui_inputbox(prompt, title && *title ? title : NULL, def);
 }
+
+/* --- background work (async Http) ------------------------------------------------------------
+ * A worker is a child process (NP_Child) started with the job as its entry data. It signals the
+ * task that started it with a signal bit allocated once in that task (bb_plat_wake), which the
+ * forms event loop includes in its Wait. join waits until the worker has returned from fn. */
+typedef struct {
+    void (*fn)(void *);
+    void *arg;
+    volatile int finished;
+    struct Task *parent;
+} bb_worker;
+
+static int8 wake_bit = -1;
+static struct Task *wake_task;
+
+static int32 worker_entry(STRPTR args, int32 len, struct ExecBase *sys)
+{
+    (void)args; (void)len; (void)sys;
+    bb_worker *w = (bb_worker *)IDOS->GetEntryData();
+    w->fn(w->arg);
+    IExec->Forbid();                  /* the parent may free w as soon as finished is set */
+    w->finished = 1;
+    bb_plat_wake();
+    IExec->Permit();
+    return 0;
+}
+
+void *bb_plat_thread_start(void (*fn)(void *), void *arg)
+{
+    if (wake_bit < 0) {
+        wake_bit = IExec->AllocSignal(-1);
+        wake_task = IExec->FindTask(NULL);
+    }
+    bb_worker *w = calloc(1, sizeof *w);
+    if (!w) return NULL;
+    w->fn = fn;
+    w->arg = arg;
+    w->parent = IExec->FindTask(NULL);
+    struct Process *p = IDOS->CreateNewProcTags(NP_Entry, worker_entry, NP_EntryData, w, NP_Name, "Boing BASIC worker",
+                                                NP_StackSize, 131072, NP_Child, TRUE, NP_Output, ZERO, NP_Input, ZERO,
+                                                NP_CloseOutput, FALSE, NP_CloseInput, FALSE, TAG_DONE);
+    if (!p) {
+        free(w);
+        return NULL;
+    }
+    return w;
+}
+
+void bb_plat_thread_join(void *p)
+{
+    bb_worker *w = p;
+    if (!w) return;
+    while (!w->finished) bb_plat_sleep_ms(5);
+    free(w);
+}
+
+void bb_plat_wake(void)
+{
+    if (wake_task && wake_bit >= 0) IExec->Signal(wake_task, 1u << wake_bit);
+}
+
+unsigned long bb_plat_wake_mask(void) { return wake_bit >= 0 ? 1ul << wake_bit : 0; }

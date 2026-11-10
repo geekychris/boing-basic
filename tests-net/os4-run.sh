@@ -2,8 +2,8 @@
 # tests-net/os4-run.sh [vm|native|both] - the Http class tests on an OS4 guest (BB_GUEST, default
 # local): tools/http_testserver.py runs on this Mac (or, for a remote guest, on that guest's
 # host over ssh — not yet) and the guest reaches it through QEMU's gateway 192.168.101.2.
-# Runs tests-net/httptest.bas with build/os4/boing and/or built natively for OS4, compares
-# with httptest.out. Holds the guest's lock (tools/os4guest.py).
+# Runs tests-net/httptest.bas and asynctest.bas with build/os4/boing and/or built natively for
+# OS4, compares with the .out files. Holds the guest's lock (tools/os4guest.py).
 root=$(cd "$(dirname "$0")/.." && pwd)
 mode=${1:-both}
 cd "$root" || exit 20
@@ -23,29 +23,33 @@ try:
         if os.path.exists(pf): break
         time.sleep(0.1)
     hp, sp, ca = open(pf).read().split()
-    expected = open("tests-net/httptest.out").read()
+    tests = ["httptest", "asynctest"]
     m = g.MCP(g.URL)
     ok = True
     with g.testing("Boing BASIC Http tests"):
-        files = [("tests-net/httptest.bas", "RAM:bbnet/httptest.bas"), (ca, "RAM:bbnet/ca.pem")]
+        files = [(ca, "RAM:bbnet/ca.pem")]
         if mode in ("vm", "both"): files.append(("build/os4/boing", "RAM:bbnet/boing"))
-        if mode in ("native", "both"):
-            subprocess.check_call(["build/boing", "build", "tests-net/httptest.bas", "--target", "os4", "-o", "build/os4/httptest"])
-            files.append(("build/os4/httptest", "RAM:bbnet/httptest"))
+        for t in tests:
+            files.append(("tests-net/%s.bas" % t, "RAM:bbnet/%s.bas" % t))
+            if mode in ("native", "both"):
+                subprocess.check_call(["build/boing", "build", "tests-net/%s.bas" % t, "--target", "os4", "-o", "build/os4/" + t])
+                files.append(("build/os4/" + t, "RAM:bbnet/" + t))
         for a, b in files:
             print(g.push(m, a, b))
         gw = "192.168.101.2"
         args = "http://%s:%s https://%s:%s RAM:bbnet/ca.pem RAM:bbnet/" % (gw, hp, gw, sp)
-        runs = []
-        if mode in ("vm", "both"): runs.append(("vm", "RAM:bbnet/boing run RAM:bbnet/httptest.bas " + args))
-        if mode in ("native", "both"): runs.append(("native", "RAM:bbnet/httptest " + args))
-        for label, cmd in runs:
-            out = g.run_bg(m, cmd, "RAM:bbnet/%s.out" % label, limit=300)
-            got = "\n".join(l for l in out.replace("\r", "").split("\n") if re.match(r"^(ok|not ok|PASS|FAIL)", l)) + "\n"
-            same = got == expected
-            ok &= same
-            print("== %s: %s" % (label, "PASS (output == httptest.out)" if same else "FAIL"))
-            if not same: print(out)
+        for t in tests:
+            expected = open("tests-net/%s.out" % t).read()
+            runs = []
+            if mode in ("vm", "both"): runs.append(("vm", "RAM:bbnet/boing run RAM:bbnet/%s.bas %s" % (t, args)))
+            if mode in ("native", "both"): runs.append(("native", "RAM:bbnet/%s %s" % (t, args)))
+            for label, cmd in runs:
+                out = g.run_bg(m, cmd, "RAM:bbnet/%s-%s.out" % (t, label), limit=300)
+                got = "\n".join(l for l in out.replace("\r", "").split("\n") if re.match(r"^(ok|not ok|PASS|FAIL)", l)) + "\n"
+                same = got == expected
+                ok &= same
+                print("== %s %s: %s" % (t, label, "PASS (output == %s.out)" % t if same else "FAIL"))
+                if not same: print(out)
         n = g.reapers(m)
         if n:
             print("GRIM REAPER: %d" % n); ok = False

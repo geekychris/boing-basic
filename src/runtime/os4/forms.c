@@ -2190,8 +2190,10 @@ static void pump(int wait)
     if (edit_sigbit >= 0) sigs |= 1u << edit_sigbit;
     if (iconify_port) sigs |= 1u << iconify_port->mp_SigBit;
     sigs |= bbf_app_sigmask();          /* AppWindow/AppIcon messages, the ARexx port, help */
+    sigs |= bb_plat_wake_mask();        /* async Http workers (http_obj.c) */
     uint32 got = wait ? IExec->Wait(sigs) : IExec->SetSignal(0, sigs) & sigs;
     bbf_app_signals(got);
+    if (got & bb_plat_wake_mask()) bb_http_async_poll();
     if (edit_sigbit >= 0 && (got & (1u << edit_sigbit))) edits_handle();
     if (got & SIGBREAKF_CTRL_C) {
         ending = 1;

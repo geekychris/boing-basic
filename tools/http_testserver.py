@@ -17,6 +17,7 @@ with the openssl command) on free ports, and writes "http_port https_port ca_fil
   /relative              302 with a relative Location (hello)
   /see-other             303 to /echo (a POST continues as GET without body)
   /chunked               a chunked body (5 chunks)
+  /drip                  5000 bytes in 50 chunks over 5 s (progress and Cancel tests)
   /slow                  waits 5 s before answering
   /big?n=BYTES           BYTES bytes of a known pattern (byte i = i mod 251)
   /headers               sets X-One and X-Two response headers
@@ -96,6 +97,22 @@ class H(http.server.BaseHTTPRequestHandler):
             n = int(parse_qs(u.query).get("n", ["100000"])[0])
             data = bytes(i % 251 for i in range(n))
             return self.send(200, data, "application/octet-stream")
+        if p == "/drip":
+            # 50 chunks of 100 bytes, one every 100 ms (5 s in all): for progress and Cancel
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            try:
+                for i in range(50):
+                    self.wfile.write(b"64\r\n" + b"d" * 100 + b"\r\n")
+                    self.wfile.flush()
+                    time.sleep(0.1)
+                self.wfile.write(b"0\r\n\r\n")
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
         if p == "/chunked":
             self.send_response(200)
             self.send_header("Content-Type", "text/plain")
