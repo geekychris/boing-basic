@@ -1,0 +1,10 @@
+# palette.afg
+window name=palette title="Palette" width=280 height=0
+vlayout id=root
+  label id=chosen text="No colour picked yet"
+  hlayout even=1 weight=0
+    button id=pick text="_Palette..." default=1 hint="Edit the 32 colours and pick one"
+    button id=quit text="_Quit" cancel=1 hint="End the program"
+  statusbar id=sb panels="Ready" hints=1
+  commondialog id=dlg title="Pick a colour"
+  timer id=startUp interval=300 enabled=0

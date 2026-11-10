@@ -1,0 +1,4 @@
+# Palette: the CommonDialog's palette requester, ShowPalette (manual chapter 13)
+Name=Palette
+Startup=Form palette
+Form=palette.afg

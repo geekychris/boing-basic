@@ -133,6 +133,7 @@ see [chapter 13](13-menus-dialogs.md).)
 | `contextmenu` | | the id of a hidden menu that Shift or Ctrl + the right mouse button opens over the window ([chapter 13](13-menus-dialogs.md#context-menus)) |
 | `contextmenukey` | | `always` = context menus open with a plain right click (then the menu bar can't be reached over them) |
 | `mousemove` | 0 | 1 = `Form_MouseMove` for every move, not only while a button is held |
+| `helpnode` | | the AmigaGuide node the Help key opens over the window where no control has a node of its own; `main` if not given ([chapter 13](13-menus-dialogs.md#amigaguide-help)) |
 | `font`, `fontsize` | | the font of the window and all its controls, for example `font="DejaVu Sans" fontsize=15`; the screen's font if not given |
 | `screentitle` | | the text of the screen's title bar while the window is active (`ScreenTitle`) |
 | `pubscreen` | | the name of a public screen to open on; the default public screen if there is none of that name |
@@ -247,7 +248,8 @@ End Sub
 |---|---|
 | `id` | the control's name in your code; without one, code can't reach the control |
 | `disabled` | 1 = greyed out at first (`Enabled = False`) |
-| `hint` | a help bubble shown when the pointer rests on it (`ToolTipText`) |
+| `hint` | a help bubble shown when the pointer rests on it (`ToolTipText`); with a `statusbar hints=1` in the window, also shown in the status bar while the pointer is over the control |
+| `helpnode` | the AmigaGuide node the Help key opens while the pointer is over the control (`HelpNode`; [chapter 13](13-menus-dialogs.md#amigaguide-help)) |
 | `contextmenu` | the id of a hidden menu that Shift or Ctrl + the right mouse button opens over the control ([chapter 13](13-menus-dialogs.md#context-menus)) |
 | `dropfiles` | 1 = icons dropped on this control go to its own `OLEDragDrop` event |
 | `font`, `fontsize` | a font for this control alone; with only `fontsize`, the window's `font`, or DejaVu Sans |
@@ -376,7 +378,8 @@ the window closes.
 | `Name` | String, read-only | `id` | |
 | `Enabled` | Boolean | `disabled` (the opposite) | a disabled control is greyed out and ignores the user |
 | `Visible` | Boolean | | a hidden control takes no room: the window is laid out again |
-| `ToolTipText` | String | `hint` | the help bubble |
+| `ToolTipText` | String | `hint` | the help bubble (and the status bar's help line with `hints=1`) |
+| `HelpNode` | String | `helpnode` | the help node for the Help key; `""` if none |
 | `ContextMenu` | String | `contextmenu` | the id of a hidden menu |
 | `Tag` | String | | free for your program |
 | `Left`, `Top`, `Width`, `Height` | Long, read-only | | where the layout put the control, in pixels inside the window |
@@ -1072,7 +1075,9 @@ A drawing surface for graphics and games:
 ### Menus, toolbars, status bars and the CommonDialog
 
 `menu`, `toolbar`, `tool`, `statusbar` and `commondialog` objects are described in
-[chapter 13](13-menus-dialogs.md).
+[chapter 13](13-menus-dialogs.md). One `statusbar` key concerns every control: with
+`hints=1`, the status bar's first panel shows the `hint=` of the control under the pointer
+([chapter 13](13-menus-dialogs.md#status-bars)).
 
 ## The keyboard
 
@@ -1174,7 +1179,8 @@ program can tell left from right. A canvas can also be asked whether a key is do
 (`view.KeyDown(vbKeyLeft)`, [chapter 14](14-graphics.md#the-keyboard)), which also knows
 `vbKeyShift` (16) and `vbKeyMenu` (18) for either Shift or either Alt.
 
-The Help key opens the program's help when `App.HelpFile` is set
+The Help key opens the program's help when `App.HelpFile` is set, at the `helpnode=` of the
+control under the pointer, else of the window, else at `main`
 ([chapter 13](13-menus-dialogs.md#amigaguide-help)); otherwise it is an ordinary key.
 
 ## Several forms

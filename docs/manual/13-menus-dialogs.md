@@ -294,12 +294,24 @@ statusbar id=sb panels="Ready|Ln 1|" widths="0|60|50"
 |---|---|---|
 | `panels` | `Ready` | the panels' starting texts, separated by `\|` |
 | `widths` | | each panel's width in pixels; 0 = it takes the room left over |
+| `hints` | 0 | 1 = panel 0 shows the hint of the control under the pointer |
 
 | Property | Type | Notes |
 |---|---|---|
 | `Text`, `SimpleText` | String | panel 0 |
 | `Panel(i)` | String | panel `i`, from 0; error 381 for a panel that doesn't exist |
 | `PanelCount` | Long, read-only | |
+
+With `hints=1`, the status bar is also the window's help line, a common sight in Amiga
+programs: while the pointer is over a control that has a `hint=`, panel 0 shows that hint, and
+when the pointer moves away from it, panel 0 shows your own text again (what you last put in
+`Text` or `Panel(0)`). The hint is still the control's help bubble too. Give every button and
+field a short hint that says what it does:
+
+```text
+  button id=pick text="_Palette..." hint="Edit the 32 colours and pick one"
+  statusbar id=sb panels="Ready" hints=1
+```
 
 A status bar has no events. Update it from other events, such as a text editor's
 `CursorMove`:
@@ -315,7 +327,8 @@ End Sub
 
 ## The CommonDialog
 
-The *CommonDialog* opens the standard requesters: files, fonts, screen modes and colours.
+The *CommonDialog* opens the standard requesters: files, fonts, screen modes, colours and
+palettes.
 Put one in the form's layout (it takes no room, like a timer), with the settings you want:
 
 ```text
@@ -355,6 +368,7 @@ loaded). Both are described in [The AmigaOS 4 desktop](18-desktop.md#screens).
 | `ShowSave` | the file requester in save mode |
 | `ShowFont` | the font requester |
 | `ShowColor` | a colour requester (red, green and blue sliders) |
+| `ShowPalette` | a palette requester: edits the colours `Colors(0)` to `Colors(ColorCount - 1)` and picks one (`ColorIndex`) |
 | `ShowScreenMode` | the screen mode requester |
 | `ShowMessage(prompt, buttons [, title [, icon]])` | a message with buttons of your own (see [App.Request](#requesters-with-your-own-buttons)) |
 
@@ -377,7 +391,9 @@ loaded). Both are described in [The AmigaOS 4 desktop](18-desktop.md#screens).
 | `Color` | Long | the colour, as made by `RGB()` |
 | `ScreenModeID` | Long | the screen mode; set it to propose one |
 | `ScreenWidth`, `ScreenHeight`, `ScreenDepth` | Long, read-only | the size and depth chosen |
-| `Colors(i)`, `ColorCount` | Long | a palette (for `ShowPalette`, which isn't available yet) |
+| `ColorCount` | Long | `ShowPalette`: the number of colours in the palette, 1 to 256 (16 at first); error 380 otherwise |
+| `Colors(i)` | Long | `ShowPalette`: colour `i` of the palette, as made by `RGB()`; error 381 for `i` outside 0 to 255. Setting a colour past `ColorCount` makes the palette that long |
+| `ColorIndex` | Long | `ShowPalette`: the colour the requester starts on, and afterwards the colour the user picked; 0 to 255 (error 380) |
 
 | Flag | Value | Meaning |
 |---|---|---|
@@ -461,7 +477,81 @@ End Sub
 ```
 
 `Cancelled` is the simpler way to notice a cancel; `CancelError` suits code that already has
-an error handler. A `getfile` control ([chapter 12](12-forms.md#file-chooser-getfile)) is a
+an error handler.
+
+### The palette requester
+
+`ShowPalette` is for programs that work with a palette of their own, such as a paint program
+or a game's level editor. It shows the colours `Colors(0)` to `Colors(ColorCount - 1)` as
+swatches, 16 in a row. Clicking a swatch, or moving the **Colour** slider, picks a colour, and
+the **Red**, **Green** and **Blue** sliders change it; the line beside the Colour slider shows
+its number and its value in hexadecimal. **OK** (or Return) keeps the changes: `Colors(i)` are
+the edited colours and `ColorIndex` is the colour picked last. **Cancel** (or Esc, or the
+close gadget) leaves the palette and `ColorIndex` as they were, and sets `Cancelled`. Until you
+set them, the palette has 16 colours (black, dark and light primaries, greys and white).
+
+An example in `examples/book/ch13-menus-dialogs/palette/`: the window has a button that opens
+the requester on a palette of 32 colours, starting on colour 9, and a label that shows the
+colour picked. Its status bar has `hints=1`, so it shows the buttons' hints:
+
+```text
+# palette.afg
+window name=palette title="Palette" width=280 height=0
+vlayout id=root
+  label id=chosen text="No colour picked yet"
+  hlayout even=1 weight=0
+    button id=pick text="_Palette..." default=1 hint="Edit the 32 colours and pick one"
+    button id=quit text="_Quit" cancel=1 hint="End the program"
+  statusbar id=sb panels="Ready" hints=1
+  commondialog id=dlg title="Pick a colour"
+  timer id=startUp interval=300 enabled=0
+```
+
+*Listing 13.7* (`examples/book/ch13-menus-dialogs/palette/palette.bbp`)
+
+<!-- project: examples/book/ch13-menus-dialogs/palette/palette.bbp -->
+```basic
+Private Sub Form_Load()
+    Dim i As Integer
+    dlg.ColorCount = 32
+    For i = 0 To 15                       ' the first row: soft colours round the colour wheel
+        dlg.Colors(i) = HSV(i * 22.5, 0.55, 0.95)
+    Next
+    For i = 0 To 7                        ' the second row: deeper colours, then greys
+        dlg.Colors(16 + i) = HSV(i * 45 + 10, 0.8, 0.6)
+        dlg.Colors(24 + i) = RGB(i * 36, i * 36, i * 36)
+    Next
+    dlg.ColorIndex = 9                    ' the requester starts on colour 9
+    If Command() = "--show" Then startUp.Enabled = True
+End Sub
+
+' "--show": open the requester once the window is on the screen
+Private Sub startUp_Timer()
+    startUp.Enabled = False
+    pick_Click
+End Sub
+
+Private Sub pick_Click()
+    Dim c As Long
+    dlg.ShowPalette
+    If dlg.Cancelled Then sb.Text = "Cancelled": Exit Sub
+    c = dlg.Colors(dlg.ColorIndex)
+    chosen.Caption = "Colour " & dlg.ColorIndex & ": red " & (c And 255) & ", green " & _
+                     ((c \ 256) And 255) & ", blue " & ((c \ 65536) And 255)
+    sb.Text = "Picked colour " & dlg.ColorIndex
+End Sub
+```
+
+`HSV` is a small function of the program that makes a colour from a hue, a saturation and a
+brightness. `boing run palette.bbp --show` opens the requester as soon as the window is on the
+screen (a timer gives the window time to open first).
+
+![The palette requester](images/palette.png)
+
+*The palette requester of the example: 32 colours, 16 in a row, with colour 9 picked.*
+
+The colours a palette requester returns are ordinary `RGB()` values: use them with a Canvas's
+drawing methods ([chapter 14](14-graphics.md)), or keep them with `SaveSetting`. A `getfile` control ([chapter 12](12-forms.md#file-chooser-getfile)) is a
 file name field with its own requester button, for forms that show the chosen file.
 
 ## MsgBox and InputBox
@@ -534,7 +624,7 @@ Yes/No/Cancel) it waits for a line: `y` is Yes, `c` Cancel, anything else No. OK
 for `c` (Cancel) or anything else (OK); a message with only OK doesn't wait. `InputBox` prints
 the prompt and reads a line; an empty line gives the default.
 
-*Listing 13.7* (`examples/book/ch13-menus-dialogs/listing-13-07.bas`)
+*Listing 13.8* (`examples/book/ch13-menus-dialogs/listing-13-08.bas`)
 
 <!-- run stdin="n\nAnn" -->
 ```basic
@@ -566,7 +656,7 @@ chosen: 1 for the leftmost, 2 for the next, and so on; Esc or the close gadget g
 (rightmost) one, so put Cancel last. `icon` is one of `vbCritical`, `vbQuestion`,
 `vbExclamation`, `vbInformation`. `dlg.ShowMessage` of a CommonDialog does the same.
 
-*Listing 13.8* (`examples/book/ch13-menus-dialogs/dialogs/dialogs.bbp`)
+*Listing 13.9* (`examples/book/ch13-menus-dialogs/dialogs/dialogs.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/dialogs/dialogs.bbp -->
 ```basic
@@ -588,7 +678,7 @@ On the console, `App.Request` prints the prompt and returns 1.
 The *About...* item of the Project menu usually shows the program's name, version and author
 in a requester. `MsgBox` with `vbInformation` is enough:
 
-*Listing 13.9* (`examples/book/ch13-menus-dialogs/menus/menus.bbp`)
+*Listing 13.10* (`examples/book/ch13-menus-dialogs/menus/menus.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/menus/menus.bbp -->
 ```basic
@@ -627,7 +717,7 @@ program's drawer, `Name` being `App.EXEName`; without such an icon, `App.ToolTyp
 default. Templates, and starting interpreted programs from Workbench, are described in
 [chapter 18](18-desktop.md#arguments-templates-and-tooltypes).
 
-*Listing 13.10* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
+*Listing 13.11* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/workbench/workbench.bbp -->
 ```basic
@@ -651,7 +741,7 @@ your program saved, so that double-clicking the file starts your program with it
 default tool is this program (or `defaultTool`); its picture comes from the icon file
 `template`, or else the system's default project icon.
 
-*Listing 13.11* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
+*Listing 13.12* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/workbench/workbench.bbp -->
 ```basic
@@ -680,7 +770,7 @@ dragged onto it from Workbench. The drop calls:
 `Count` is the number of icons; their full paths are `App.DropFile(0)` to
 `App.DropFile(Count - 1)` (also `App.DropCount`).
 
-*Listing 13.12* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
+*Listing 13.13* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/workbench/workbench.bbp -->
 ```basic
@@ -698,7 +788,7 @@ The form stays loaded meanwhile, and its timers go on running. From code,
 `Me.WindowState = 1` iconifies and `Me.WindowState = 0` opens the window again. `Form_Resize`
 runs after both, so a program can tell:
 
-*Listing 13.13* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
+*Listing 13.14* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/workbench/workbench.bbp -->
 ```basic
@@ -732,7 +822,7 @@ code-behind is looked at first):
 | `AppIcon_DragDrop(Count As Integer)` | icons were dropped on the AppIcon (`App.DropFile(i)`) |
 | `AppMenu_Click(Index As Integer, Count As Integer)` | the Tools menu item `Index` was chosen, with `Count` icons selected in Workbench (`App.DropFile(i)`) |
 
-*Listing 13.14* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
+*Listing 13.15* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/workbench/workbench.bbp -->
 ```basic
@@ -789,12 +879,15 @@ The details, with Exchange and application.library, are in
 | `Clipboard.GetPicture(canvas)` | copies the clipboard's picture into the canvas; `True` if there was one |
 | `Clipboard.GetImage(canvas)` | makes the clipboard's picture a new image of the canvas and returns its id; 0 if there is none |
 | `Clipboard.HasPicture` | `True` if the clipboard holds a picture |
+| `Clipboard.HasText` | `True` if the clipboard holds text (not an empty one) |
+| `Clipboard.GetFormat(format)` | `True` if the clipboard holds data of this kind: `vbCFText` (1) text, `vbCFBitmap` (2) or `vbCFDIB` (8) a picture; `False` for any other format |
+| `Clipboard.Unit` | the clipboard unit that all the other members use, 0 to 255 (error 380 otherwise); 0 at first |
 
 Text goes through the clipboard as Latin-1. Other programs see what you put there at once, and
 `GetText` sees what they copy. On other systems the clipboard is the program's own (other
 programs don't see it), and there are no pictures:
 
-*Listing 13.15* (`examples/book/ch13-menus-dialogs/listing-13-15.bas`)
+*Listing 13.16* (`examples/book/ch13-menus-dialogs/listing-13-16.bas`)
 
 <!-- run -->
 ```basic
@@ -810,8 +903,38 @@ Boing!
 []
 ```
 
-The text editor control has its own `Cut`, `Copy` and `Paste` methods, which use the same
-clipboard. Canvases and images are in [chapter 14](14-graphics.md).
+**Clipboard units.** AmigaOS has 256 clipboards, called units. Unit 0 is the one every
+program shares, and the one Cut, Copy and Paste use everywhere; the others are free for
+programs that want a clipboard of their own, for example a second clipboard that the user's
+copying doesn't overwrite, or one that two of your programs use to pass data. Setting
+`Clipboard.Unit` switches every `Clipboard` member to that unit until you set it again. Text on
+units other than 0 is stored as an IFF FTXT text, the standard clipboard format, and pictures
+work on every unit. `GetFormat` asks what is there before you read it:
+
+*Listing 13.17* (`examples/book/ch13-menus-dialogs/listing-13-17.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Clipboard.SetText "for everyone"
+Print Clipboard.HasText; " "; Clipboard.GetFormat(vbCFText); " "; Clipboard.GetFormat(vbCFBitmap)
+Clipboard.Unit = 1                    ' a clipboard of the program's own
+Print Clipboard.HasText
+Clipboard.SetText "kept on unit 1"
+Print Clipboard.GetText()
+Clipboard.Unit = 0                    ' back to the shared clipboard
+Print Clipboard.GetText()
+```
+
+```output
+True True False
+False
+kept on unit 1
+for everyone
+```
+
+The text editor control has its own `Cut`, `Copy` and `Paste` methods, which use the shared
+clipboard (unit 0). Canvases and images are in [chapter 14](14-graphics.md).
 
 ## ARexx
 
@@ -826,7 +949,7 @@ port* can be sent commands by ARexx scripts and by other programs.
 closes the port. Every command that arrives
 calls the Sub `ARexx_Command`, which can be in any module:
 
-*Listing 13.16* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
+*Listing 13.18* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/workbench/workbench.bbp -->
 ```basic
@@ -882,8 +1005,9 @@ program, and in `DoEvents` in a program without forms.
 |---|---|
 | `App.ShowHelp file [, node]` | opens an AmigaGuide document at a node (`main` if none is given) in its own window; the program goes on running |
 | `App.HelpFile` | an AmigaGuide file: the Help key, pressed in any of the program's windows, opens it |
+| `helpnode=` (`.afg`), `HelpNode` | on a control: the node the Help key opens while the pointer is over that control; on the `window` line: the node for the rest of the window |
 
-*Listing 13.17* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
+*Listing 13.19* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/workbench/workbench.bbp -->
 ```basic
@@ -891,6 +1015,21 @@ Private Sub mnuHelp_Click()
     App.ShowHelp App.Path & "/Jotter.guide", "main"
 End Sub
 ```
+
+**Help for each control.** With `App.HelpFile` set, the Help key opens the help at a node
+chosen from where the pointer is: the `helpnode=` of the control under the pointer if it has
+one, else the `helpnode=` of the window line, else `main`. Layouts (`vlayout`, `hlayout`)
+take no `helpnode=`. At run time each control's `HelpNode` property reads and changes its node
+(`""` if it has none). So a settings window can explain each of its fields:
+
+```text
+window name=prefs title="Alarm preferences" helpnode=prefs
+vlayout id=root
+  string id=message label="_Message" helpnode=message hint="The text the alarm shows"
+  integer id=minutes label="_Every" helpnode=minutes value=30 min=1 max=999
+```
+
+The buttons of a toolbar (`tool`) have no node of their own: give the `toolbar` line one.
 
 A small AmigaGuide file (`Jotter.guide` in the example) looks like this:
 
@@ -937,7 +1076,7 @@ The texts are looked up as the form loads, before its `Form_Load` runs, so the c
 open by then. Jotter therefore starts in `Sub Main`, which opens the catalog and then shows the
 form (whose window has a name of its own, `jotterWin`, so that `start.bas` can reach it):
 
-*Listing 13.18* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
+*Listing 13.20* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
 <!-- project: examples/book/ch13-menus-dialogs/workbench/workbench.bbp -->
 ```basic
@@ -974,9 +1113,11 @@ doesn't exist (error 438).
 
 ## Settings
 
-Programs keep their preferences with `GetSetting`, `SaveSetting` and `DeleteSetting`, which
-store them in `ENV:` and `ENVARC:` under the program's name, and `App.EnvPath` is a drawer
-there for files of your own. These are described with the other system functions in
+Programs keep their preferences with `GetSetting`, `SaveSetting`, `UseSetting` and
+`DeleteSetting`, which store them in `ENV:` and `ENVARC:` under the program's name, and
+`App.EnvPath` is a drawer there for files of your own. `SaveSetting` is the **Save** button of
+a settings window (`ENV:` and `ENVARC:`, kept after a reboot), `UseSetting` its **Use** button
+(`ENV:` only, until the next reboot). These are described with the other system functions in
 [chapter 10](10-files.md).
 
 ## Summary
@@ -986,17 +1127,19 @@ there for files of your own. These are described with the other system functions
   `RemoveMenu` change them at run time; hidden titles are context menus (`contextmenu=`) and
   pop-up menus (`PopupMenu`).
 - A `toolbar` of `tool`s, linked to menu items with `menu=`, uses `TBImages:` pictures and
-  falls back to texts; a `statusbar` shows text panels.
+  falls back to texts; a `statusbar` shows text panels, and with `hints=1` the hint of the
+  control under the pointer.
 - Context menus open with Shift or Ctrl + right button (`contextmenukey=always` for a plain
   right click); the right button alone shows the menu bar.
-- The CommonDialog's `ShowOpen`, `ShowSave`, `ShowFont`, `ShowColor`, `ShowScreenMode` and
-  `ShowMessage` open the standard requesters; `Me.FontName` / `Me.FontSize` apply a chosen
+- The CommonDialog's `ShowOpen`, `ShowSave`, `ShowFont`, `ShowColor`, `ShowPalette`,
+  `ShowScreenMode` and `ShowMessage` open the standard requesters; `Me.FontName` / `Me.FontSize` apply a chosen
   font and `App.OpenScreen` a chosen screen mode. `MsgBox`, `InputBox` and `App.Request` ask
   quick questions.
 - The App object connects a program to Workbench (tooltypes, arguments and `ReadArgs`
   templates, drops, icons, AppIcons, iconify), notifications (`App.Notify`), hotkeys and
-  Exchange (`App.HotKey`, `App_Quit`), ARexx (`ARexxPort`, `ARexx_Command`, `SendARexx`), AmigaGuide help and
-  catalogs; `Clipboard` and `Printer` do what their names say.
+  Exchange (`App.HotKey`, `App_Quit`), ARexx (`ARexxPort`, `ARexx_Command`, `SendARexx`), AmigaGuide help
+  (per control with `helpnode=`) and catalogs; `Clipboard` (on unit 0 or a unit of your own)
+  and `Printer` do what their names say.
 
 See also: [Forms and controls](12-forms.md), [Graphics](14-graphics.md),
 [Files and the system](10-files.md), [Using AmiForge](03-amiforge.md).

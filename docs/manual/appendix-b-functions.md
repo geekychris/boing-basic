@@ -23,7 +23,11 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `AllocMem(size [, clear])` | allocates `size` bytes of memory (cleared to 0 if `clear` is True) and returns its address | [17](17-amigaos.md) |
 | `App.ArgValue(key)` | a value after `App.ReadArgs`, as text (`"1"` for a switch, `/M` values joined by `vbLf`, `""` if absent); error 5 for a key not in the template (AmigaOS) | [18](18-desktop.md#arguments-templates-and-tooltypes) |
 | `App.CloseScreen` | closes the program's own screen if no window is open on it; `True` when it is closed (AmigaOS) | [18](18-desktop.md#screens) |
+| `App.DecimalPoint` | the decimal point of the user's Locale settings, as a string (`"."` on a host) | [18](18-desktop.md#number-and-date-formats) |
 | `App.EXEName` | the program's name without directory or `.bas` | [10](10-files.md#the-app-object) |
+| `App.FormatDate(d [, format])` | the date `d` in the user's Locale format: `"short"` (default), `"long"`, `"time"`, `"datetime"` or a locale.library pattern (`"%Y-%m-%d"`) (AmigaOS; on a host as `CStr(d)`) | [18](18-desktop.md#number-and-date-formats) |
+| `App.FormatNumber(x [, decimals])` | `x` with the user's decimal point and thousands separator, `decimals` (default 2, 0-10) digits after the point | [18](18-desktop.md#number-and-date-formats) |
+| `App.GroupSeparator` | the thousands separator of the user's Locale settings, as a string (`","` on a host) | [18](18-desktop.md#number-and-date-formats) |
 | `App.HotKey name, keys` | statement: a Commodities hotkey (`"ctrl alt j"`) that calls `HotKey_Pressed(Name)`, and an Exchange entry under `App.Title` (AmigaOS) | [18](18-desktop.md#commodities-a-hotkey-and-exchange) |
 | `App.Notify title, text [, imagefile]` | statement: a Ringhio notification through application.library; error 5 if it can't be shown (AmigaOS) | [18](18-desktop.md#notifications) |
 | `App.NotifyResult` | application.library's answer to the last `App.Notify` (0 = queued) (AmigaOS) | [18](18-desktop.md#notifications) |
@@ -49,8 +53,11 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `ChrW$(code)` | the same as `Chr` | [09](09-builtins.md#characters-and-character-codes) |
 | `CInt(x)` | converts to Integer (rounding halves to even) | [07](07-expressions.md) |
 | `Clipboard.Clear` | statement: empties the clipboard | [13](13-menus-dialogs.md) |
+| `Clipboard.GetFormat(format)` | `True` if the clipboard holds that kind of data: `vbCFText` (text), `vbCFBitmap` or `vbCFDIB` (a picture); `False` for others | [13](13-menus-dialogs.md#the-clipboard) |
 | `Clipboard.GetText[(format)]` | the text on the clipboard (`format` is accepted and ignored) | [13](13-menus-dialogs.md) |
+| `Clipboard.HasText` | `True` if there is text on the clipboard | [13](13-menus-dialogs.md#the-clipboard) |
 | `Clipboard.SetText text [, format]` | statement: puts text on the clipboard | [13](13-menus-dialogs.md) |
+| `Clipboard.Unit` | the clipboard unit (0-255) every `Clipboard` member uses; 0 = the shared clipboard; can be assigned (error 380 outside 0-255) | [13](13-menus-dialogs.md#the-clipboard) |
 | `CLng(x)` | converts to Long (rounding halves to even) | [07](07-expressions.md) |
 | `Command$` | the program's command-line arguments | [10](10-files.md#command) |
 | `Cos(a)` | the cosine of an angle in radians | [09](09-builtins.md#arithmetic-functions) |
@@ -176,6 +183,7 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `UBound(array [, dimension])` | the highest index of an array | [04](04-data.md), [09](09-builtins.md#inspecting-values) |
 | `UCase$(s)` | `s` in capitals | [09](09-builtins.md#changing-case-trimming-building) |
 | `Unload form` | statement: unloads a form | [12](12-forms.md) |
+| `UseSetting app, section, key, value` | statement: stores a setting until the next reboot (`ENV:` only; on a host the same as `SaveSetting`) | [10](10-files.md#settings-savesetting-and-getsetting), [18](18-desktop.md#settings-in-env-and-envarc) |
 | `Val(s)` | the number at the start of `s` (0 if none) | [09](09-builtins.md#numbers-to-strings-and-back) |
 | `VarPtr(variable)` | the address of a variable's storage | [17](17-amigaos.md) |
 | `VarType(x)` | the type of `x` as a number | [09](09-builtins.md#inspecting-values) |

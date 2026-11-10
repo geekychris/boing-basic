@@ -211,6 +211,7 @@ native, and checks the others compile.
 | 10.15 | [ch10-files/listing-10-15.bas](ch10-files/listing-10-15.bas) | Environ |
 | 10.16 | [ch10-files/listing-10-16.bas](ch10-files/listing-10-16.bas) | Shell |
 | 10.17 | [ch10-files/listing-10-17.bas](ch10-files/listing-10-17.bas) | Settings: SaveSetting and GetSetting |
+| 10.18 | [ch10-files/listing-10-18.bas](ch10-files/listing-10-18.bas) | Settings: SaveSetting and GetSetting |
 
 ## Classes and objects
 
@@ -265,18 +266,20 @@ native, and checks the others compile.
 | 13.4 | [ch13-menus-dialogs/bars/bars.bbp](ch13-menus-dialogs/bars/bars.bbp) | Toolbars |
 | 13.5 | [ch13-menus-dialogs/bars/bars.bbp](ch13-menus-dialogs/bars/bars.bbp) | Status bars |
 | 13.6 | [ch13-menus-dialogs/dialogs/dialogs.bbp](ch13-menus-dialogs/dialogs/dialogs.bbp) | Examples |
-| 13.7 | [ch13-menus-dialogs/listing-13-07.bas](ch13-menus-dialogs/listing-13-07.bas) | On the console |
-| 13.8 | [ch13-menus-dialogs/dialogs/dialogs.bbp](ch13-menus-dialogs/dialogs/dialogs.bbp) | Requesters with your own buttons |
-| 13.9 | [ch13-menus-dialogs/menus/menus.bbp](ch13-menus-dialogs/menus/menus.bbp) | An About requester |
-| 13.10 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Icons and tooltypes |
+| 13.7 | [ch13-menus-dialogs/palette/palette.bbp](ch13-menus-dialogs/palette/palette.bbp) | The palette requester |
+| 13.8 | [ch13-menus-dialogs/listing-13-08.bas](ch13-menus-dialogs/listing-13-08.bas) | On the console |
+| 13.9 | [ch13-menus-dialogs/dialogs/dialogs.bbp](ch13-menus-dialogs/dialogs/dialogs.bbp) | Requesters with your own buttons |
+| 13.10 | [ch13-menus-dialogs/menus/menus.bbp](ch13-menus-dialogs/menus/menus.bbp) | An About requester |
 | 13.11 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Icons and tooltypes |
-| 13.12 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Drag and drop from Workbench |
-| 13.13 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Iconifying |
-| 13.14 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | AppIcons and Workbench menu items |
-| 13.15 | [ch13-menus-dialogs/listing-13-15.bas](ch13-menus-dialogs/listing-13-15.bas) | The clipboard |
-| 13.16 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Receiving commands |
-| 13.17 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | AmigaGuide help |
-| 13.18 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Locale catalogs |
+| 13.12 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Icons and tooltypes |
+| 13.13 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Drag and drop from Workbench |
+| 13.14 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Iconifying |
+| 13.15 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | AppIcons and Workbench menu items |
+| 13.16 | [ch13-menus-dialogs/listing-13-16.bas](ch13-menus-dialogs/listing-13-16.bas) | The clipboard |
+| 13.17 | [ch13-menus-dialogs/listing-13-17.bas](ch13-menus-dialogs/listing-13-17.bas) | The clipboard |
+| 13.18 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Receiving commands |
+| 13.19 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | AmigaGuide help |
+| 13.20 | [ch13-menus-dialogs/workbench/workbench.bbp](ch13-menus-dialogs/workbench/workbench.bbp) | Locale catalogs |
 
 ## Graphics: the Canvas
 
@@ -360,13 +363,16 @@ native, and checks the others compile.
 | 18.14 | [ch18-desktop/reminder/Reminder.bbp](ch18-desktop/reminder/Reminder.bbp) | Commodities: a hotkey and Exchange |
 | 18.15 | [ch18-desktop/listing-18-15.bas](ch18-desktop/listing-18-15.bas) | Settings in ENV: and ENVARC: |
 | 18.16 | [ch18-desktop/prefs/Prefs.bbp](ch18-desktop/prefs/Prefs.bbp) | Settings in ENV: and ENVARC: |
-| 18.17 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Translations: catalogs |
-| 18.18 | [ch18-desktop/listing-18-18.bas](ch18-desktop/listing-18-18.bas) | Translations: catalogs |
-| 18.19 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Help: AmigaGuide |
-| 18.20 | [ch18-desktop/listing-18-20.bas](ch18-desktop/listing-18-20.bas) | Version strings |
-| 18.21 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Version strings |
-| 18.22 | [ch18-desktop/game/Game.bbp](ch18-desktop/game/Game.bbp) | Games on the desktop |
-| 18.23 | [ch18-desktop/fullscreen/FullScreen.bbp](ch18-desktop/fullscreen/FullScreen.bbp) | A full-screen game on its own screen |
+| 18.17 | [ch18-desktop/listing-18-17.bas](ch18-desktop/listing-18-17.bas) | The clipboard |
+| 18.18 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Translations: catalogs |
+| 18.19 | [ch18-desktop/listing-18-19.bas](ch18-desktop/listing-18-19.bas) | Translations: catalogs |
+| 18.20 | [ch18-desktop/listing-18-20.bas](ch18-desktop/listing-18-20.bas) | Number and date formats |
+| 18.21 | [ch18-desktop/listing-18-21.bas](ch18-desktop/listing-18-21.bas) | Number and date formats |
+| 18.22 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Help: AmigaGuide |
+| 18.23 | [ch18-desktop/listing-18-23.bas](ch18-desktop/listing-18-23.bas) | Version strings |
+| 18.24 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Version strings |
+| 18.25 | [ch18-desktop/game/Game.bbp](ch18-desktop/game/Game.bbp) | Games on the desktop |
+| 18.26 | [ch18-desktop/fullscreen/FullScreen.bbp](ch18-desktop/fullscreen/FullScreen.bbp) | A full-screen game on its own screen |
 
 ## Networking and modern libraries
 

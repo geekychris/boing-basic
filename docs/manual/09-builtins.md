@@ -338,6 +338,14 @@ negative Long its 32-bit pattern (`Hex(-1&)` is `FFFFFFFF`).
 Without a pattern it gives the same text as `CStr`. The pattern is either one of the **named
 formats** or a pattern made of placeholder characters.
 
+`Format` always writes the same way, whatever the user's Locale settings: a `.` before the
+decimals, `,` between the thousands, `$` for currency, English names of days and months. That
+is right for files, logs and anything a program reads back. For numbers and dates shown to the
+user, `App.FormatNumber(x [, decimals])` and `App.FormatDate(d [, format])` use the decimal
+point, thousands separator and date order the user chose in the Locale preferences (`1.234,50`
+for a German user), and `App.DecimalPoint` and `App.GroupSeparator` give the separators
+themselves ([The AmigaOS 4 desktop](18-desktop.md#number-and-date-formats)).
+
 ### Named formats
 
 *Listing 9.11* (`examples/book/ch09-builtins/listing-09-11.bas`)
@@ -802,7 +810,8 @@ Saturday, 9 March | 2:05 PM | 14h 05m
 Saturday, March 9, 2024 | 14:05 | week 10, day 69
 ```
 
-Day and month names are in English.
+Day and month names are in English. For dates in the user's language and order, use
+`App.FormatDate` ([chapter 18](18-desktop.md#number-and-date-formats)).
 
 ## Conversions
 

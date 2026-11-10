@@ -11,19 +11,6 @@ Private Sub Form_Load()
     sound.ListIndex = Val(GetSetting(APPNAME, "Sound", "Sound", "1"))
 End Sub
 
-' Use: only ENV: (gone after a reboot); GetSetting reads ENV: first
-Private Sub UseSetting(ByVal section As String, ByVal key As String, ByVal value As String)
-    Dim f As Integer
-    On Error Resume Next                 ' the drawers may exist already
-    MkDir "ENV:" & APPNAME
-    MkDir "ENV:" & APPNAME & "/" & section
-    On Error GoTo 0
-    f = FreeFile
-    Open "ENV:" & APPNAME & "/" & section & "/" & key For Output As #f
-    Print #f, value
-    Close #f
-End Sub
-
 Private Sub save_Click()
     SaveSetting APPNAME, "Alarm", "Message", message.Text
     SaveSetting APPNAME, "Alarm", "Minutes", CStr(minutes.Value)
@@ -32,11 +19,12 @@ Private Sub save_Click()
     Unload Me
 End Sub
 
+' Use: only ENV: (gone after a reboot); GetSetting reads ENV: first
 Private Sub use_Click()
-    UseSetting "Alarm", "Message", message.Text
-    UseSetting "Alarm", "Minutes", CStr(minutes.Value)
-    UseSetting "Sound", "Flash", CStr(flash.Value)
-    UseSetting "Sound", "Sound", CStr(sound.ListIndex)
+    UseSetting APPNAME, "Alarm", "Message", message.Text
+    UseSetting APPNAME, "Alarm", "Minutes", CStr(minutes.Value)
+    UseSetting APPNAME, "Sound", "Flash", CStr(flash.Value)
+    UseSetting APPNAME, "Sound", "Sound", CStr(sound.ListIndex)
     Unload Me
 End Sub
 

@@ -3,7 +3,7 @@
 This chapter is about how a Boing BASIC program fits into the AmigaOS 4 desktop: windows that
 adapt to the user's fonts and screen, starting from Workbench or the Shell, arguments, icons and
 tooltypes, AppIcons and AppWindows, the standard requesters, ARexx, notifications, hotkeys and
-Exchange, settings, translations, help, and the conventions Amiga users expect, from the order of the menus to the Amiga-key shortcuts. The
+Exchange, settings, the clipboard, translations, number and date formats, help, and the conventions Amiga users expect, from the order of the menus to the Amiga-key shortcuts. The
 controls themselves are described in [Forms and controls](12-forms.md), and menus, toolbars and
 dialogs in detail in [Menus, toolbars, status bars and dialogs](13-menus-dialogs.md); here you
 find which of their features to use, and how, so that your program looks and behaves like an
@@ -28,12 +28,15 @@ the end.
 | asks before throwing work away | `Form_QueryUnload` and a requester | [Requesters](#confirmation-requesters) |
 | Project, Edit, Settings menus; Quit last in Project; Amiga-key shortcuts | `menu` objects with `key=` | [Menus](#menus-the-standard-layout) |
 | keyboard control | `_` shortcut letters, `default=1` and `cancel=1` buttons, Tab, Help | [Keyboard](#keyboard-control) |
+| a help line that says what the control under the pointer does | `hint=` on the controls, `statusbar hints=1` | [Hints](#window-titles-the-busy-pointer-and-hints) |
 | an ARexx port | `App.ARexxPort` and `ARexx_Command` | [ARexx](#an-arexx-port) |
 | tells the user something without stopping them | `App.Notify title, text` (a Ringhio notification) | [Notifications](#notifications) |
 | a hotkey, and an entry in Exchange that can show, hide and quit it | `App.HotKey`, `HotKey_Pressed`, `App_Show`, `App_Hide`, `App_Quit` | [Commodities](#commodities-a-hotkey-and-exchange) |
-| settings in `ENV:` and `ENVARC:` | `GetSetting` / `SaveSetting` | [Settings](#settings-in-env-and-envarc) |
+| settings in `ENV:` and `ENVARC:`, with Save, Use and Cancel | `GetSetting`, `SaveSetting`, `UseSetting` | [Settings](#settings-in-env-and-envarc) |
+| copies and pastes through the clipboard | `Clipboard.SetText`, `GetText`, `SetPicture`... | [Clipboard](#the-clipboard) |
 | speaks the user's language | `App.OpenCatalog`, `App.Str`, `$id:` texts | [Catalogs](#translations-catalogs) |
-| online help | `App.HelpFile`, `App.ShowHelp` (AmigaGuide) | [Help](#help-amigaguide) |
+| shows numbers and dates the way the user set them in Locale | `App.FormatNumber`, `App.FormatDate` | [Formats](#number-and-date-formats) |
+| online help, for the control under the pointer | `App.HelpFile`, `helpnode=`, `App.ShowHelp` (AmigaGuide) | [Help](#help-amigaguide) |
 | a version string | a `$VER:` constant | [Version strings](#version-strings) |
 
 Most of this chapter refers to one example, **Jotter**, a small text editor that follows these
@@ -498,6 +501,15 @@ Y As Integer)` runs with the number of icons and the drop position inside the wi
 control makes drops over that control call `<id>_OLEDragDrop` instead, with X and Y inside the
 control. `Me.OLEDropMode = 1` turns the AppWindow on from code.
 
+Dragging works in one direction only. AmigaOS 4 has no drag-and-drop protocol between
+programs: icons can be dropped *onto* an AppWindow or an AppIcon, but nothing can be dragged
+*out of* a program's window to the Workbench or to another program. This is a limit of the
+system, not of Boing BASIC. Give the user the data another way: through the clipboard
+(`Clipboard.SetText`, `Clipboard.SetPicture`), or by saving a file with an icon
+(`App.SaveIcon`), which can then be dragged from its drawer. Dragging inside a window works as
+usual: reordering the lines of a list or tree view, or dragging on a canvas with its
+`MouseDown` and `MouseMove` events.
+
 *Listing 18.6* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
@@ -600,6 +612,7 @@ detail in [Menus, toolbars, status bars and dialogs](13-menus-dialogs.md):
 | `ShowFont` | the font requester (`FontName`, `FontSize`, `FontBold`...) |
 | `ShowScreenMode` | the screen mode requester (`ScreenModeID`, `ScreenWidth`, `ScreenHeight`, `ScreenDepth`) |
 | `ShowColor` | a colour requester |
+| `ShowPalette` | a palette requester: edits up to 256 colours (`Colors(i)`, `ColorCount`) and picks one (`ColorIndex`) |
 | `ShowMessage` | a requester with your own buttons |
 
 Conventions:
@@ -814,6 +827,15 @@ End Sub
 - **Hints.** `hint="..."` on a control (`ToolTipText` at run time) is its help bubble, shown
   when the pointer rests on it. Give a hint to every tool bar button and to controls whose
   purpose is not obvious from their label.
+- **A help line in the status bar.** Many Amiga programs say in a line at the bottom of the
+  window what the control under the pointer does. A `statusbar` with `hints=1` does that with
+  the same `hint=` texts: while the pointer is over a control with a hint, the status bar's
+  first panel shows it, and when the pointer leaves, the panel shows your own text again. The
+  hint is the help bubble as well, so one text serves both:
+
+  ```text
+  statusbar id=sb panels="Ready|Ln 1" widths="0|60" hints=1
+  ```
 
 ## An ARexx port
 
@@ -1043,26 +1065,42 @@ grey
 
 AmigaOS settings editors (the programs in the `Prefs` drawer) have three buttons at the bottom:
 **Save** (use the settings and keep them), **Use** (use them until the next reboot) and
-**Cancel**. `SaveSetting` is Save. For Use, write only the `ENV:` file; `GetSetting` finds it
-there first:
+**Cancel**. Each has its statement:
+
+| Button | What to do |
+|---|---|
+| **Save** | `SaveSetting app, section, key, value`: writes `ENV:` and `ENVARC:`, so the setting is used now and kept after a reboot |
+| **Use** | `UseSetting app, section, key, value`: writes `ENV:` only, so the setting is used now and forgotten at the next reboot (the copy in `ENVARC:`, if there is one, comes back then) |
+| **Cancel** | nothing: close the window |
+
+`GetSetting` reads `ENV:` first, so a program that reads its settings finds a used setting as
+well as a saved one. The settings editor of the [layout example](#windows-that-fit-any-font-and-screen)
+does exactly this:
 
 *Listing 18.16* (`examples/book/ch18-desktop/prefs/Prefs.bbp`)
 
 <!-- project: examples/book/ch18-desktop/prefs/Prefs.bbp -->
 ```basic
+Private Sub save_Click()
+    SaveSetting APPNAME, "Alarm", "Message", message.Text
+    SaveSetting APPNAME, "Alarm", "Minutes", CStr(minutes.Value)
+    SaveSetting APPNAME, "Sound", "Flash", CStr(flash.Value)
+    SaveSetting APPNAME, "Sound", "Sound", CStr(sound.ListIndex)
+    Unload Me
+End Sub
+
 ' Use: only ENV: (gone after a reboot); GetSetting reads ENV: first
-Private Sub UseSetting(ByVal section As String, ByVal key As String, ByVal value As String)
-    Dim f As Integer
-    On Error Resume Next                 ' the drawers may exist already
-    MkDir "ENV:" & APPNAME
-    MkDir "ENV:" & APPNAME & "/" & section
-    On Error GoTo 0
-    f = FreeFile
-    Open "ENV:" & APPNAME & "/" & section & "/" & key For Output As #f
-    Print #f, value
-    Close #f
+Private Sub use_Click()
+    UseSetting APPNAME, "Alarm", "Message", message.Text
+    UseSetting APPNAME, "Alarm", "Minutes", CStr(minutes.Value)
+    UseSetting APPNAME, "Sound", "Flash", CStr(flash.Value)
+    UseSetting APPNAME, "Sound", "Sound", CStr(sound.ListIndex)
+    Unload Me
 End Sub
 ```
+
+`DeleteSetting` removes a setting from both places. On a host, where there is no `ENV:`, both
+statements write to the same settings directory ([Files and the system](10-files.md#settings-savesetting-and-getsetting)).
 
 `App.EnvPath` is `ENVARC:` followed by the program's name, for settings files of your own.
 
@@ -1080,8 +1118,47 @@ by themselves; elsewhere:
 | `Clipboard.HasPicture` | `True` if there is a picture on the clipboard |
 | `Clipboard.GetPicture(canvas)` | loads the clipboard's picture into the canvas; `True` if there was one |
 | `Clipboard.GetImage(canvas)` | the clipboard's picture as a new image of the canvas: its number, 0 if there is none |
+| `Clipboard.HasText` | `True` if there is text on the clipboard |
+| `Clipboard.GetFormat(format)` | `True` if the clipboard holds that kind of data: `vbCFText` for text, `vbCFBitmap` or `vbCFDIB` for a picture (other formats: `False`) |
+| `Clipboard.Unit` | the clipboard unit all the members above use: 0 (the shared clipboard, at first) to 255 |
 
-Offer the clipboard through the Edit menu with the standard keys (Amiga-X, -C, -V).
+Offer the clipboard through the Edit menu with the standard keys (Amiga-X, -C, -V), and grey
+out Paste when there is nothing to paste: check `Clipboard.HasText` (or `GetFormat`) when the
+window becomes active, since another program may have changed the clipboard meanwhile.
+
+AmigaOS has 256 clipboard **units**. Unit 0 is the clipboard of the desktop, the one users
+mean when they copy and paste. The others are for programs: a second clipboard that the user's
+copying doesn't overwrite (some editors offer several), or a place where two programs of yours
+exchange data. `Clipboard.Unit = 2` makes every `Clipboard` call use unit 2, until you set it
+back to 0. Text on other units is stored as IFF FTXT, the clipboard's standard text format, and
+pictures as IFF ILBM, as on unit 0, so other programs that know the unit can read them:
+
+*Listing 18.17* (`examples/book/ch18-desktop/listing-18-17.bas`)
+
+<!-- run -->
+```basic
+' A second clipboard: unit 1 keeps its text while the user copies other things
+Option Explicit
+Dim kept As String
+
+Clipboard.SetText "the user's text"
+Clipboard.Unit = 1
+Clipboard.SetText "a signature"
+Clipboard.Unit = 0
+Print Clipboard.GetText()
+
+Clipboard.Unit = 1
+If Clipboard.GetFormat(vbCFText) Then kept = Clipboard.GetText()
+Clipboard.Unit = 0
+Print kept
+```
+
+```output
+the user's text
+a signature
+```
+
+On a host, each unit is a clipboard of the program's own, which other programs don't see.
 
 ## Translations: catalogs
 
@@ -1104,7 +1181,7 @@ that. A program that starts with a form (`Startup=Form`) loads it first, so a tr
 starts with `Sub Main` instead, opens the catalog, and then shows its window with `Show vbModal`
 (which returns when the window is closed, ending the program):
 
-*Listing 18.17* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.18* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -1127,7 +1204,7 @@ also the name of its file's module, or of a procedure such as `Main`.)
 In code, translate every text the user sees, and build sentences with placeholders rather than
 by joining pieces, because the word order differs between languages:
 
-*Listing 18.18* (`examples/book/ch18-desktop/listing-18-18.bas`)
+*Listing 18.19* (`examples/book/ch18-desktop/listing-18-19.bas`)
 
 <!-- run -->
 ```basic
@@ -1151,6 +1228,77 @@ each language, compiled with a catalog compiler such as CatComp or FlexCat) and 
 program (`PROGDIR:Catalogs/`). Programs run by the interpreter have `boing`'s drawer as
 `PROGDIR:`, so install their catalogs in `LOCALE:Catalogs`.
 
+## Number and date formats
+
+The Locale preferences also say how the user writes numbers and dates: a decimal comma in
+Germany (`1.234,50`), a decimal point in Britain (`1,234.50`), the day before the month or
+after it. `Format` and the date functions always write them one way (see
+[Built-in functions](09-builtins.md#format)), which suits files and fixed layouts. For numbers
+and dates that the user reads, use the App object's locale functions instead:
+
+| | |
+|---|---|
+| `App.FormatNumber(x [, decimals])` | `x` with the user's decimal point and thousands separator, and `decimals` digits after the point (2 if not given; 0 to 10) |
+| `App.FormatDate(d [, format])` | the date (and time) `d` in the user's format: `"short"` (the default), `"long"`, `"time"` or `"datetime"`, or a pattern of your own (below) |
+| `App.DecimalPoint` | the user's decimal point, as a string (`"."` or `","`) |
+| `App.GroupSeparator` | the user's thousands separator, as a string (may be `""`) |
+
+*Listing 18.20* (`examples/book/ch18-desktop/listing-18-20.bas`)
+
+<!-- run -->
+```basic
+' Numbers in the user's own format; on a host: "." and ","
+Option Explicit
+Print App.FormatNumber(1234567.891)
+Print App.FormatNumber(-42.5, 1)
+Print App.FormatNumber(1999, 0)
+Print "Point "; App.DecimalPoint; ", separator "; App.GroupSeparator
+```
+
+```output
+1,234,567.89
+-42.5
+1,999
+Point ., separator ,
+```
+
+With German Locale settings, the same program prints `1.234.567,89`, `-42,5` and `1.999`.
+
+`App.FormatDate`'s own patterns are those of AmigaOS's locale.library, made of `%` codes; the
+names of days and months are in the user's language:
+
+| Code | Meaning | Code | Meaning |
+|---|---|---|---|
+| `%d`, `%-d` | day of the month, `09` / `9` | `%e` | day of the month with a leading space, ` 9` |
+| `%m`, `%-m` | month, `03` / `3` | `%b`, `%B` | month name, short and long |
+| `%y`, `%Y` | year, `24` / `2024` | `%a`, `%A` | day name, short and long |
+| `%H`, `%M`, `%S` | hour (24-hour clock), minute, second | `%I`, `%p` | hour (12-hour clock), AM or PM |
+| `%F` | `%Y-%m-%d` | `%T` | `%H:%M:%S` |
+| `%j` | day of the year, `069` | `%%` | a `%` |
+
+A `-` after the `%` leaves out the leading zero, as in `%-d`. The four named formats come from
+the user's Locale settings; the `%` codes are the same for everyone (only the names change
+language), so use a named format unless the layout really must be fixed.
+
+*Listing 18.21* (`examples/book/ch18-desktop/listing-18-21.bas`)
+
+```basic
+' Today's date as the user likes it
+Option Explicit
+Dim d As Date
+d = Now
+Print App.FormatDate(d)                   ' the short date, in the user's order
+Print App.FormatDate(d, "long")           ' the long date, with names
+Print App.FormatDate(d, "time")           ' the time
+Print App.FormatDate(d, "datetime")       ' both
+Print App.FormatDate(d, "%A %-d %B")      ' for example: Tuesday 10 November
+Print App.FormatDate(d, "%Y-%m-%d")       ' for example: 2026-11-10
+```
+
+On a host, without locale.library, `App.FormatDate` gives the same text as `CStr(d)` whatever
+the format. Keep `Format` for what a program writes into files: a number written with the
+user's decimal comma can't be read back with `Val`.
+
 ## Help: AmigaGuide
 
 AmigaOS help files are AmigaGuide documents (`.guide`), shown by the system's help viewer with
@@ -1161,18 +1309,30 @@ and by a Help item in the Project menu:
   node, from any of the program's windows.
 - `App.ShowHelp file [, node]` opens the help at a node, for a Help menu item or a "?" button.
   The help opens in its own window; the program keeps running.
+- **Help for the control under the pointer.** `helpnode=` on a control in the `.afg` (the
+  `HelpNode` property at run time) names the node the Help key opens while the pointer is over
+  that control; `helpnode=` on the `window` line is the node for the rest of the window. Without
+  either, Help opens `main`. This is the context-sensitive help Amiga users expect: point at a
+  field, press Help, read about that field.
 - Without `App.HelpFile`, the Help key arrives in `Form_KeyDown` as `vbKeyHelp`, so a program
   can do something of its own with it (a game can show its keys).
 
-*Listing 18.19* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.22* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
 Private Sub mnuHelp_Click(): App.ShowHelp App.HelpFile, "main": End Sub
 ```
 
-Give the guide a node for each window or area of the program, and a node listing the ARexx
-commands.
+Give the guide a node for each window or area of the program (named on its `window` line),
+nodes for the controls that need explaining, and a node listing the ARexx commands:
+
+```text
+window name=prefs title="Alarm preferences" helpnode=prefs
+vlayout id=root
+  vlayout title="Alarm"
+    string id=message label="_Message" helpnode=message hint="The text the alarm shows"
+```
 
 ## Version strings
 
@@ -1190,7 +1350,7 @@ Version=1.0
 `Version Jotter` in a Shell then prints `Jotter 1.0`. The program can read the same numbers as
 `App.Major`, `App.Minor` and `App.Revision`, and the title as `App.Title`:
 
-*Listing 18.20* (`examples/book/ch18-desktop/listing-18-20.bas`)
+*Listing 18.23* (`examples/book/ch18-desktop/listing-18-23.bas`)
 
 <!-- run -->
 ```basic
@@ -1212,7 +1372,7 @@ which works in the interpreter too:
 Raise the version when you release a new one, and write the date as day, month and year with
 dots. Jotter shows it in its About requester:
 
-*Listing 18.21* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.24* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -1247,7 +1407,7 @@ vlayout id=root
   timer id=tick interval=20
 ```
 
-*Listing 18.22* (`examples/book/ch18-desktop/game/Game.bbp`)
+*Listing 18.25* (`examples/book/ch18-desktop/game/Game.bbp`)
 
 <!-- project: examples/book/ch18-desktop/game/Game.bbp -->
 ```basic
@@ -1296,7 +1456,7 @@ remembers it). If the user chooses one that is big enough, `App.OpenScreen` open
 that mode before the form is loaded, so the form opens there; otherwise the form's
 `screen=own` opens the 800 x 600 screen:
 
-*Listing 18.23* (`examples/book/ch18-desktop/fullscreen/FullScreen.bbp`)
+*Listing 18.26* (`examples/book/ch18-desktop/fullscreen/FullScreen.bbp`)
 
 <!-- project: examples/book/ch18-desktop/fullscreen/FullScreen.bbp -->
 ```basic
@@ -1361,12 +1521,7 @@ Things to know about screens of your own:
 > - application.library beyond notifications and the Quit, Hide and Show messages (for example its list of recently used documents), and notifications with buttons.
 > - Commodities other than hotkeys (filtering or changing the input of other programs).
 > - `/T` (toggle) and `/N/M` items in `App.ReadArgs` templates.
-> - "Use" for settings: `SaveSetting` always writes both `ENV:` and `ENVARC:`.
-> - Context-sensitive help (a guide node per control for the Help key), and gadget help texts shown in a status bar.
-> - Number and date formats from the user's Locale preferences: `Format` and the date functions don't follow the locale.
-> - Dragging from the program to Workbench or to another program (only dropping onto the program).
-> - Clipboard units other than 0, and other clipboard formats than text and IFF pictures.
-> - `ShowPalette` (the palette requester).
+> - Clipboard data other than text and pictures (`Clipboard.GetFormat` answers `False` for any other format).
 
 ## Summary
 
@@ -1381,17 +1536,21 @@ Things to know about screens of your own:
   and give saved documents icons with `App.SaveIcon`.
 - A project icon with the default tool `boing` starts an interpreted program from Workbench,
   with a console window that opens when it prints.
-- Use the ASL requesters, ask before discarding work, and name requester buttons after what
-  they do.
+- Use the ASL requesters (and `ShowPalette` for a palette), ask before discarding work, and
+  name requester buttons after what they do.
+- Files can be dropped onto a program, but AmigaOS has no way to drag data out of one: offer
+  the clipboard (unit 0, or a unit of your own with `Clipboard.Unit`) or a saved file instead.
 - Project, Edit, Settings menus with the standard Amiga-key shortcuts; Quit last; `...` on items
   that open a requester; `_` shortcut letters, `default=1` and `cancel=1` buttons and Help for
   the keyboard; the right button shows the menu bar, Shift or Ctrl + right button a context
-  menu.
+  menu. `hint=` texts are help bubbles, and with `statusbar hints=1` a help line too.
 - `App.Notify` shows a Ringhio notification. `App.HotKey` gives a hotkey (`HotKey_Pressed`) and
   an Exchange entry; `App_Show`, `App_Hide` and `App_Quit` answer Exchange and application.library,
   and every program with a hotkey needs an `App_Quit`.
-- An ARexx port, settings in `ENV:`/`ENVARC:`, catalogs, AmigaGuide help and a `$VER:` string
-  make a program a full member of the desktop.
+- An ARexx port, settings in `ENV:`/`ENVARC:` (`SaveSetting` for Save, `UseSetting` for Use),
+  catalogs, numbers and dates in the user's format (`App.FormatNumber`, `App.FormatDate`),
+  AmigaGuide help with a node per control (`helpnode=`) and a `$VER:` string make a program a
+  full member of the desktop.
 
 See also: [Forms and controls](12-forms.md), [Menus, toolbars, status bars and
 dialogs](13-menus-dialogs.md), [Files and the system](10-files.md),

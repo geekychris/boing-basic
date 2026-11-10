@@ -3,7 +3,7 @@
 This chapter covers how a program talks to the world outside it: the console (`Print`,
 `Input`), files (opening, reading and writing text and binary files, records), the file system
 (directories, `Dir`, `Kill`, `Name`, copying), AmigaOS paths, the `App` object, the command line
-and environment variables, and saving settings with `SaveSetting` and `GetSetting`.
+and environment variables, and saving settings with `SaveSetting`, `UseSetting` and `GetSetting`.
 
 ## The console
 
@@ -583,6 +583,9 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 | `App.ReadArgs(template)`, `App.ArgValue(key)` | the arguments read with an AmigaDOS template such as `"FILE/A,SIZE/N,QUIET/S"` (`True` if they fit), and each value as text; from Workbench, the tooltypes (AmigaOS; see [below](#command)) |
 | `App.Notify title, text [, imagefile]` | a Ringhio notification (AmigaOS; [chapter 18](18-desktop.md#notifications)) |
 | `App.HotKey name, keys` | a hotkey such as `"ctrl alt j"`, which calls `HotKey_Pressed(Name)`, and an entry in Exchange (AmigaOS; [chapter 18](18-desktop.md#commodities-a-hotkey-and-exchange)) |
+| `App.FormatNumber(x [, decimals])` | the number with the decimal point and thousands separator of the user's Locale settings, and `decimals` digits after the point (2 if not given); on a host `.` and `,` ([chapter 18](18-desktop.md#number-and-date-formats)) |
+| `App.FormatDate(d [, format])` | a date in the user's format: `"short"` (the default), `"long"`, `"time"`, `"datetime"`, or a locale.library pattern such as `"%Y-%m-%d"` (AmigaOS; on a host the same as `CStr(d)`) |
+| `App.DecimalPoint`, `App.GroupSeparator` | the user's decimal point and thousands separator, as strings (on a host `.` and `,`) |
 
 *Listing 10.13* (`examples/book/ch10-files/listing-10-13.bas`)
 
@@ -688,7 +691,8 @@ an option. `SaveSetting` stores a value under an application name, a section and
 
 | Statement or function | What it does |
 |---|---|
-| `SaveSetting app, section, key, value` | stores `value` (a string) |
+| `SaveSetting app, section, key, value` | stores `value` (a string), to keep |
+| `UseSetting app, section, key, value` | stores `value` until the next reboot only (AmigaOS: in `ENV:`, not `ENVARC:`) |
 | `GetSetting(app, section, key [, default])` | the stored value, or `default` (`""` if not given) when there is none |
 | `DeleteSetting app [, section [, key]]` | deletes one key, a whole section, or all of an application's settings |
 
@@ -728,10 +732,30 @@ when reading. The application name, section and key must not be empty (error 5).
   computer is switched off), the way AmigaOS's own preferences are kept. `GetSetting` looks in
   `ENV:` first and then in `ENVARC:`. So the example above makes
   `ENVARC:BoingDemo/Window/Left`, which you can look at with `Type` in the Shell or delete with
-  `Delete ENVARC:BoingDemo ALL`.
+  `Delete ENVARC:BoingDemo ALL`. `UseSetting` writes only the `ENV:` file, which is lost when
+  the computer restarts: it is the **Use** button of a settings window, as `SaveSetting` is
+  its **Save** ([chapter 18](18-desktop.md#settings-in-env-and-envarc)). `DeleteSetting`
+  deletes from both.
 - On a host, the files are under the directory named by the environment variable
   `BOING_SETTINGS`, or `.boing` in your home directory if it is not set
-  (`~/.boing/BoingDemo/Window/Left`).
+  (`~/.boing/BoingDemo/Window/Left`). There is only one place there, so `UseSetting` and
+  `SaveSetting` do the same.
+
+*Listing 10.18* (`examples/book/ch10-files/listing-10-18.bas`)
+
+<!-- run -->
+```basic
+' Use: a setting for this session; GetSetting finds it like a saved one
+UseSetting "BoingDemo", "View", "Zoom", "200"
+Print GetSetting("BoingDemo", "View", "Zoom", "100")
+DeleteSetting "BoingDemo"
+Print GetSetting("BoingDemo", "View", "Zoom", "100")
+```
+
+```output
+200
+100
+```
 
 `GetAllSettings` is not available.
 
@@ -751,7 +775,8 @@ These file and system statements and functions are not part of Boing BASIC: `Get
 - The file system: `Dir`, `FileLen`, `Kill`, `Name ... As`, `FileCopy`, `MkDir`, `RmDir`,
   `ChDir`, `CurDir`.
 - `App.Path & "/file"` finds files beside the program; `Command`, `Environ` and `Shell` connect
-  to the Shell; `SaveSetting`/`GetSetting` keep settings in `ENV:` and `ENVARC:`.
+  to the Shell; `SaveSetting`/`GetSetting` keep settings in `ENV:` and `ENVARC:`, and
+  `UseSetting` in `ENV:` only.
 
 See also: [Built-in functions](09-builtins.md), [Errors and error handling](08-errors.md),
 [Menus and dialogs](13-menus-dialogs.md), [AmigaOS](17-amigaos.md).
