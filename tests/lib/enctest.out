@@ -1,0 +1,25 @@
+ 9             12           43 61 66 C3 A9 20 C2 A9 20 41 C3 BF
+True
+?5
+EUR5
+a?b?          ??
+
+plain ascii    0 
+True
+|Zg==|Zm8=|Zm9v|Zm9vYmFy
+foobar        foob          fooba
+True
+ 138           77           True
+ûÿ            FB FF
+dXNlcjpwYXNz
+a%20b%26c%3Dd%2Fe%3Ff~g.h_i-j             %E9
+a b&c=d e     True
+Caf%C3%A9
+426F696E6721  Boing!        Boin
+True
+ 31301 Base64: a character that isn't Base64 at character 5
+ 31301 Base64: data after the '=' padding at character 4
+ 31301 Base64: the data is cut short at character 1
+ 31301 URL: '%' isn't followed by two hex digits at character 4
+ 31301 hex: an odd number of digits at character 3
+ 31301 hex: a character that isn't a hex digit at character 1
