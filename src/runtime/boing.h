@@ -892,6 +892,7 @@ bb_long bb_datepart(bb_str *interval, bb_date d);
 
 /* Environment */
 bb_str *bb_command(void);
+bb_str *bb_create_uuid(void);              /* CreateUUID() (uuid.c) */
 bb_str *bb_environ(const bb_value *v);
 bb_long bb_shell(bb_str *cmd);
 void bb_beep(void);

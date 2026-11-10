@@ -15,6 +15,9 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <signal.h>
 
 static char *command, *app_path, *exename;
 static char *clip[256];       /* one per Clipboard.Unit */
@@ -271,4 +274,109 @@ char *bb_sys_real_path(const char *path)
 {
     char buf[PATH_MAX];
     return realpath(path, buf) ? xstrdup(buf) : NULL;
+}
+
+/* ---- Process ---- */
+
+int bb_sys_setenv(const char *name, const char *value)
+{
+    if (!name || !*name || strchr(name, '=')) return 5;
+    return (value ? setenv(name, value, 1) : unsetenv(name)) ? 5 : 0;
+}
+
+typedef struct { char *p; long n, cap; } growbuf;
+
+static void gb_add(growbuf *b, const char *p, long n)
+{
+    if (b->n + n + 1 > b->cap) {
+        b->cap = (b->n + n + 1) * 2;
+        b->p = realloc(b->p, (size_t)b->cap);
+    }
+    memcpy(b->p + b->n, p, (size_t)n);
+    b->n += n;
+    b->p[b->n] = 0;
+}
+
+int bb_sys_run(const char *cmd, const char *in, long inlen, char **out, long *outlen, char **eout, long *eoutlen,
+               char *err, int errsz)
+{
+    int pin[2], pout[2], perr[2], status = 0;
+    pid_t pid;
+    growbuf ob = {NULL, 0, 0}, eb = {NULL, 0, 0};
+    long inpos = 0;
+    void (*oldpipe)(int);
+    *out = *eout = NULL;
+    *outlen = *eoutlen = 0;
+    if (pipe(pin) < 0 || pipe(pout) < 0 || pipe(perr) < 0) {
+        snprintf(err, (size_t)errsz, "can't create pipes: %s", strerror(errno));
+        return -1;
+    }
+    fflush(stdout);
+    fflush(stderr);
+    pid = fork();
+    if (pid < 0) {
+        snprintf(err, (size_t)errsz, "can't start a process: %s", strerror(errno));
+        close(pin[0]); close(pin[1]); close(pout[0]); close(pout[1]); close(perr[0]); close(perr[1]);
+        return -1;
+    }
+    if (pid == 0) {
+        dup2(pin[0], 0);
+        dup2(pout[1], 1);
+        dup2(perr[1], 2);
+        close(pin[0]); close(pin[1]); close(pout[0]); close(pout[1]); close(perr[0]); close(perr[1]);
+        execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
+        _exit(127);
+    }
+    close(pin[0]);
+    close(pout[1]);
+    close(perr[1]);
+    oldpipe = signal(SIGPIPE, SIG_IGN);
+    if (!in || inlen <= 0) {
+        close(pin[1]);
+        pin[1] = -1;
+    } else
+        fcntl(pin[1], F_SETFL, fcntl(pin[1], F_GETFL, 0) | O_NONBLOCK);
+    for (;;) {
+        struct pollfd pf[3];
+        int n = 0, i;
+        char buf[8192];
+        if (pout[0] >= 0) { pf[n].fd = pout[0]; pf[n].events = POLLIN; n++; }
+        if (perr[0] >= 0) { pf[n].fd = perr[0]; pf[n].events = POLLIN; n++; }
+        if (pin[1] >= 0) { pf[n].fd = pin[1]; pf[n].events = POLLOUT; n++; }
+        if (!n) break;
+        if (poll(pf, (nfds_t)n, -1) < 0) {
+            if (errno == EINTR) continue;
+            break;
+        }
+        for (i = 0; i < n; i++) {
+            if (!pf[i].revents) continue;
+            if (pf[i].fd == pin[1]) {
+                ssize_t w = write(pin[1], in + inpos, (size_t)(inlen - inpos));
+                if (w > 0) inpos += w;
+                if (w < 0 && errno != EAGAIN) inpos = inlen;
+                if (inpos >= inlen) {
+                    close(pin[1]);
+                    pin[1] = -1;
+                }
+            } else {
+                ssize_t r = read(pf[i].fd, buf, sizeof buf);
+                if (r > 0) gb_add(pf[i].fd == pout[0] ? &ob : &eb, buf, r);
+                else if (r == 0 || errno != EINTR) {
+                    close(pf[i].fd);
+                    if (pf[i].fd == pout[0]) pout[0] = -1;
+                    else perr[0] = -1;
+                }
+            }
+        }
+    }
+    if (pin[1] >= 0) close(pin[1]);
+    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) ;
+    signal(SIGPIPE, oldpipe);
+    *out = ob.p ? ob.p : xstrdup("");
+    *outlen = ob.n;
+    *eout = eb.p ? eb.p : xstrdup("");
+    *eoutlen = eb.n;
+    if (WIFEXITED(status)) return WEXITSTATUS(status);
+    if (WIFSIGNALED(status)) return 128 + WTERMSIG(status);
+    return -1;
 }

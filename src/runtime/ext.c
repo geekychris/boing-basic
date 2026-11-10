@@ -32,6 +32,10 @@ bb_obj *bb_socket_new(void);
 extern const char *const bb_socket_events[];
 const bb_class *bb_regexp_class(void);   /* regexp.c */
 bb_obj *bb_regexp_new(void);
+const bb_class *bb_csv_class(void);   /* csv.c */
+bb_obj *bb_csv_new(void);
+const bb_class *bb_process_class(void);   /* process.c */
+bb_obj *bb_process_new(void);
 static bb_obj *new_canvas(void) { return bb_canvas_new(320, 200, NULL); }
 
 static void builtins(void)
@@ -47,6 +51,8 @@ static void builtins(void)
     bb_register_class("Socket", bb_socket_class(), bb_socket_new);
     bb_register_class_events("Socket", bb_socket_events);
     bb_register_class("RegExp", bb_regexp_class(), bb_regexp_new);
+    bb_register_class("Csv", bb_csv_class(), bb_csv_new);
+    bb_register_class("Process", bb_process_class(), bb_process_new);
 }
 
 static const char *strip(const char *name) { return name && !strncasecmp(name, "Boing.", 6) ? name + 6 : name; }

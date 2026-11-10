@@ -9,7 +9,9 @@ SRC = {"Canvas": ["src/runtime/canvas.c", "src/runtime/canvas_paint_impl.h"],
        "Engine3D": ["src/runtime/engine3d.c"], "Audio": ["src/runtime/audio.c"],
        "Http": ["src/runtime/http_obj.c"], "Dictionary": ["src/runtime/dict.c"],
        "StringBuilder": ["src/runtime/sbuilder.c"], "Socket": ["src/runtime/socket.c"],
-       "RegExp": ["src/runtime/regexp.c"]}
+       "RegExp": ["src/runtime/regexp.c"],
+       "Csv": ["src/runtime/csv.c"],
+       "Process": ["src/runtime/process.c"]}
 OUT = os.path.join(ROOT, "src/compiler/rtmembers.h")
 
 def members(path):

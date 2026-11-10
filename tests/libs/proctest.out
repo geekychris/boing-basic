@@ -1,0 +1,10 @@
+echo: 0  [hello world\n]  0  echo hello world
+exit code:TrueTrue
+lines: 3 one|two|three
+input: 0  line A|line B|
+error:TrueTrue
+getenv:forty two environ:forty two
+listed:TrueTrue
+child sees:forty two
+removed:[]
+big:True 0 

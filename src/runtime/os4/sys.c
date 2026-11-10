@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <strings.h>
 
 #include <exec/exec.h>
@@ -522,4 +523,96 @@ char *bb_sys_real_path(const char *path)
     }
     IDOS->UnLock(l);
     return n;
+}
+
+/* ---- Process ---- */
+
+int bb_sys_setenv(const char *name, const char *value)
+{
+    if (!name || !*name) return 5;
+    if (!value) {
+        IDOS->DeleteVar(name, GVF_LOCAL_ONLY);     /* removing one that isn't there is fine */
+        return 0;
+    }
+    return IDOS->SetVar(name, value, -1, GVF_LOCAL_ONLY) ? 0 : 5;
+}
+
+/* a whole file into a malloc'd buffer (NUL-terminated); "" if it can't be read */
+static char *slurp(const char *path, long *len)
+{
+    BPTR fh = IDOS->Open(path, MODE_OLDFILE);
+    char *buf = NULL;
+    long n = 0, cap = 0;
+    if (fh) {
+        for (;;) {
+            LONG r;
+            if (n + 4096 + 1 > cap) {
+                cap = (n + 4096 + 1) * 2;
+                buf = realloc(buf, (size_t)cap);
+            }
+            r = IDOS->Read(fh, buf + n, 4096);
+            if (r <= 0) break;
+            n += r;
+        }
+        IDOS->Close(fh);
+    }
+    if (!buf) buf = malloc(1);
+    buf[n] = 0;
+    *len = n;
+    return buf;
+}
+
+int bb_sys_run(const char *cmd, const char *in, long inlen, char **out, long *outlen, char **eout, long *eoutlen,
+               char *err, int errsz)
+{
+    static unsigned long seq;
+    char inname[64], outname[64], errname[64];
+    BPTR fin = 0, fout = 0, ferr = 0;
+    LONG rc;
+    unsigned long id = (unsigned long)(uintptr_t)IExec->FindTask(NULL);
+    seq++;
+    *out = *eout = NULL;
+    *outlen = *eoutlen = 0;
+    snprintf(inname, sizeof inname, "T:bbproc.%lx.%lu.in", id, seq);
+    snprintf(outname, sizeof outname, "T:bbproc.%lx.%lu.out", id, seq);
+    snprintf(errname, sizeof errname, "T:bbproc.%lx.%lu.err", id, seq);
+    if (in && inlen > 0) {
+        BPTR w = IDOS->Open(inname, MODE_NEWFILE);
+        if (!w || IDOS->Write(w, in, inlen) != inlen) {
+            if (w) IDOS->Close(w);
+            IDOS->Delete(inname);
+            snprintf(err, (size_t)errsz, "can't write the input file in T:");
+            return -1;
+        }
+        IDOS->Close(w);
+        fin = IDOS->Open(inname, MODE_OLDFILE);
+    } else
+        fin = IDOS->Open("NIL:", MODE_OLDFILE);
+    fout = IDOS->Open(outname, MODE_NEWFILE);
+    ferr = IDOS->Open(errname, MODE_NEWFILE);
+    if (!fin || !fout || !ferr) {
+        if (fin) IDOS->Close(fin);
+        if (fout) IDOS->Close(fout);
+        if (ferr) IDOS->Close(ferr);
+        IDOS->Delete(inname);
+        IDOS->Delete(outname);
+        IDOS->Delete(errname);
+        snprintf(err, (size_t)errsz, "can't open the files for the command's input and output in T:");
+        return -1;
+    }
+    rc = IDOS->SystemTags(cmd, SYS_Input, fin, SYS_Output, fout, SYS_Error, ferr, SYS_UserShell, TRUE, TAG_DONE);
+    /* synchronous: the handles stay ours */
+    IDOS->Close(fin);
+    IDOS->Close(fout);
+    IDOS->Close(ferr);
+    IDOS->Delete(inname);
+    *out = slurp(outname, outlen);
+    *eout = slurp(errname, eoutlen);
+    IDOS->Delete(outname);
+    IDOS->Delete(errname);
+    if (rc == -1) {
+        snprintf(err, (size_t)errsz, "can't start the command (no shell?)");
+        return -1;
+    }
+    return (int)rc;
 }

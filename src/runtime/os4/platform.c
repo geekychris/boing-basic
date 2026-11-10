@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
 #include <time.h>
 #include <proto/locale.h>
@@ -23,6 +24,7 @@
 #include <devices/timer.h>
 #include <proto/timer.h>
 #include <dos/dos.h>
+#include <dos/var.h>
 
 char *bb_plat_stack_limit(char *here)
 {
@@ -327,7 +329,61 @@ const char *bb_plat_getenv(const char *name)
     return env_value;
 }
 
-const char *bb_plat_env_at(int index) { (void)index; return NULL; }
+/* Environ(n): the program's local shell variables, then the global ones in ENV: (top level),
+ * as "NAME=value". The list is read again when n = 1. */
+static char **env_list;
+static int env_n;
+
+static void env_add(const char *name, const char *value, long len)
+{
+    size_t nl = strlen(name);
+    char *e;
+    int i;
+    for (i = 0; i < env_n; i++)         /* a local variable hides a global one */
+        if (!strncasecmp(env_list[i], name, nl) && env_list[i][nl] == '=') return;
+    e = malloc(nl + (size_t)len + 2);
+    memcpy(e, name, nl);
+    e[nl] = '=';
+    memcpy(e + nl + 1, value, (size_t)len);
+    e[nl + 1 + len] = 0;
+    env_list = realloc(env_list, sizeof(char *) * (size_t)(env_n + 1));
+    env_list[env_n++] = e;
+}
+
+static void env_read(void)
+{
+    struct Process *me = (struct Process *)IExec->FindTask(NULL);
+    struct Node *n;
+    APTR ctx;
+    int i;
+    for (i = 0; i < env_n; i++) free(env_list[i]);
+    env_n = 0;
+    for (n = (struct Node *)me->pr_LocalVars.mlh_Head; n->ln_Succ; n = n->ln_Succ) {
+        struct LocalVar *lv = (struct LocalVar *)n;
+        if (n->ln_Type == LV_VAR && !(lv->lv_Flags & GVF_BINARY_VAR) && n->ln_Name)
+            env_add(n->ln_Name, lv->lv_Value ? (const char *)lv->lv_Value : "", lv->lv_Value ? lv->lv_Len : 0);
+    }
+    ctx = IDOS->ObtainDirContextTags(EX_StringNameInput, "ENV:", EX_DataFields, EXF_NAME | EXF_TYPE, TAG_DONE);
+    if (ctx) {
+        struct ExamineData *d;
+        while ((d = IDOS->ExamineDir(ctx))) {
+            char buf[1024];
+            char path[300];
+            LONG len;
+            if (!EXD_IS_FILE(d)) continue;
+            snprintf(path, sizeof path, "%s", d->Name);
+            len = IDOS->GetVar(path, buf, sizeof buf, GVF_GLOBAL_ONLY);
+            if (len >= 0) env_add(path, buf, len);
+        }
+        IDOS->ReleaseDirContext(ctx);
+    }
+}
+
+const char *bb_plat_env_at(int index)
+{
+    if (index == 1 || !env_list) env_read();
+    return index >= 1 && index <= env_n ? env_list[index - 1] : NULL;
+}
 
 int bb_plat_system(const char *cmd) { return (int)bb_sys_shell(cmd, 1); }
 void bb_plat_beep(void) { bb_sys_beep(); }
