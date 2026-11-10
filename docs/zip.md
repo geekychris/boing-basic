@@ -21,9 +21,9 @@ z.Close
 |---|---|
 | `Compress(data [, format [, level]])` | data compressed. format: `zipGzip` (default; a `.gz` file's contents), `zipZlib`, `zipDeflate` (raw, no header). level: 0 (store) to 9 (smallest); default 6. |
 | `Decompress(data [, format])` | the original data. format: `zipAuto` (default: gzip or zlib, recognised by their headers), `zipGzip`, `zipZlib`, `zipDeflate` |
-| `CRC32(data)` | the CRC-32 of data (as in ZIP, gzip and PNG), a Long |
 
-Data is any String, text or binary. `Decompress` raises error 31501 if the data isn't what the
+Data is any String, text or binary. (`Crc32(data)`, a checksum ZIP and gzip use, is among the
+hashing functions.) `Decompress` raises error 31501 if the data isn't what the
 format says or is damaged.
 
 ```basic

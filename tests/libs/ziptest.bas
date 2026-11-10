@@ -1,4 +1,4 @@
-' Compress/Decompress/CRC32 and Zip archives: create, list, read, extract, foreign archives, errors
+' Compress/Decompress and Zip archives: create, list, read, extract, foreign archives, errors
 Option Explicit
 Dim z As Zip, s As String, c As String, i As Long, n As Long, t As String
 
@@ -13,7 +13,6 @@ c = Compress(s, zipDeflate, 1)
 Print "deflate:"; Decompress(c, zipDeflate) = s
 Print "level 0 bigger:"; Len(Compress(s, zipGzip, 0)) > Len(s)
 Print "empty:"; Len(Decompress(Compress(""))); " binary:"; Decompress(Compress(Chr(0) & Chr(255) & Chr(0))) = Chr(0) & Chr(255) & Chr(0)
-Print "crc:"; Hex(CRC32("123456789")); " "; CRC32(""); " "; Hex(CRC32("The quick brown fox jumps over the lazy dog"))
 
 ' a foreign archive (made with Info-ZIP's zip)
 Set z = CreateObject("Zip")

@@ -1,6 +1,6 @@
 /* zip.c - compression for Boing BASIC (docs/zip.md):
  *
- *   Compress(data [, format [, level]]), Decompress(data [, format]), CRC32(data)   functions
+ *   Compress(data [, format [, level]]), Decompress(data [, format])   functions
  *   Boing.Zip   ZIP archives: list, extract, create (stored or deflated entries)
  *
  *     Dim z As Zip
@@ -57,10 +57,6 @@ bb_str *bb_decompress(const bb_str *data, bb_long format)
     return r;
 }
 
-bb_long bb_crc32(const bb_str *data)
-{
-    return (bb_long)bb_z_crc32(0, bb_str_ptr(data), bb_str_len(data));
-}
 
 /* ---- ZIP archives ---- */
 

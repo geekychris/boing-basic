@@ -3,7 +3,6 @@ zlib:TrueTrueTrue
 deflate:True
 level 0 bigger:True
 empty: 0  binary:True
-crc:CBF43926  0  414FA339
 entries: 5 
  hello.txt 15 FalseTrue  2026 
  docs/ 0 TrueTrue  2026 

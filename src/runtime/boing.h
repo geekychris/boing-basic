@@ -895,7 +895,6 @@ bb_str *bb_command(void);
 bb_str *bb_create_uuid(void);              /* CreateUUID() (uuid.c) */
 bb_str *bb_compress(const bb_str *data, bb_long format, bb_long level);    /* zip.c */
 bb_str *bb_decompress(const bb_str *data, bb_long format);
-bb_long bb_crc32(const bb_str *data);
 bb_str *bb_environ(const bb_value *v);
 bb_long bb_shell(bb_str *cmd);
 void bb_beep(void);
