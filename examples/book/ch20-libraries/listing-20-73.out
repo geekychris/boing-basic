@@ -1,0 +1,5 @@
+ 31401 bad XML: </a> doesn't close <b> (line 1)
+ 31401 bad XML: an attribute value must be in quotes (line 1)
+ 31401 bad XML: more than one root element (line 1)
+ 31401 bad XML: no root element (line 1)
+ 5 not a valid element name

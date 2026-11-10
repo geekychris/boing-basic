@@ -20,6 +20,8 @@ the interpreter and in native programs, on AmigaOS 4 and on macOS and Linux:
 | [Running commands](#running-commands-process) | running Shell commands and capturing their output |
 | [Settings files](#inifile-settings-files) | reading and writing INI files, keeping their comments |
 | [Logging](#logger-logging) | log messages with levels, to the console or rotating files |
+| [XML](#xmldocument-reading-and-writing-xml) | reading, changing and writing XML documents |
+| [Compression and Zip archives](#compression-and-zip-archives) | gzip/zlib compression and .zip archives |
 
 Each library's classes are created with `New` or `CreateObject` like the runtime's other
 objects; its functions are called like built-in functions. One rule applies to all of them:
@@ -2929,6 +2931,511 @@ INFO: to the console, because there is no FileName
 | 61 | writing failed (the disk is full) |
 | 380 | a negative `Level` or `MaxSize`, or a `Log` level outside 0-99 |
 
+## XmlDocument: reading and writing XML
+
+XML is a text format for structured data: news feeds (RSS), configuration files, the answers
+of many web services, SVG pictures, office documents. An XML document is a tree of *elements*.
+Each element has a name, can have *attributes* (`name="value"` pairs in its start tag), and
+contains text and other elements:
+
+```text
+<rss version="2.0">
+  <channel>
+    <title>Amiga news</title>
+    <item id="1"><title>New release</title><link>https://example.com/1</link></item>
+  </channel>
+</rss>
+```
+
+`XmlDocument` reads such a document into a tree of `XmlElement` objects. Your program can walk
+the tree, find elements by name, read and change texts and attributes, add and remove elements,
+and write the document back out as text or to a file.
+
+<!-- fragment -->
+```basic
+Dim doc As XmlDocument, item As XmlElement
+Set doc = CreateObject("XmlDocument")
+doc.Load "PROGDIR:feed.rss"
+For Each item In doc.FindAll("item")
+    Print item.ChildText("title"); " - "; item.ChildText("link")
+Next
+```
+
+### XmlDocument
+
+| Member | What it does |
+|---|---|
+| `Load path` | reads a document from a file, replacing what was there. Error 31401 if it isn't well-formed XML. |
+| `LoadXml text` | the same from a String (for example the body of a web page fetched with `Http`) |
+| `Save path` | writes the document to a file, with an `<?xml ...?>` declaration first: the one that was read, or `<?xml version="1.0" encoding="ISO-8859-1"?>` |
+| `Xml` | the whole document as text, declaration included. The default member. Assigning to it is the same as `LoadXml`. |
+| `Root` | the top element, or `Nothing` for an empty document. Assigning an element (`Set doc.Root = e`) makes it the root. |
+| `CreateRoot(name)` | empties the document and gives it a new root element with this name; returns the root |
+| `CreateElement(name)` | a new element that isn't in the tree yet: put it there with `AppendChild` or `InsertBefore` |
+| `Find(name)` | the first element with this name anywhere in the document, or `Nothing` |
+| `FindAll(name)` | every element with this name anywhere in the document, in document order. `"*"` gives every element. |
+| `Indent` | True (the default): `Xml`, `Save` and an element's `Xml` write one element per line, indented by two spaces. False: everything on one line. |
+
+### XmlElement
+
+| Member | What it does |
+|---|---|
+| `Name` | the tag name. You can assign a new one. |
+| `Text` | all the text inside the element, the text of the elements inside it included. The default member. Assigning replaces everything inside the element with this text. |
+| `Attribute(name [, default])` | an attribute's value, or the default (`""` if none) when it isn't there. `e.Attribute("id") = 7` sets it (and adds it if needed). |
+| `HasAttribute(name)` | True if the element has the attribute |
+| `RemoveAttribute(name)` | removes an attribute; True if it was there |
+| `AttributeNames` | the attribute names, as an array of Strings in the order they appear |
+| `Children` | the child elements (those directly inside this one), as a list |
+| `ChildCount` | the number of child elements |
+| `Child(name)` | the first child element with this name, or `Nothing` |
+| `ChildText(name [, default])` | the text of that child, or the default (`""` if none) when there is no such child |
+| `Find(name)` | the first element with this name inside this one, at any depth, or `Nothing` |
+| `FindAll(name)` | every element with this name inside this one, at any depth (`"*"`: all of them) |
+| `SelectNodes(path)` | the elements reached by a path of child names separated by `/`, starting below this element: `channel/item/title`. `*` in the path matches any name. |
+| `Parent` | the element this one is in, or `Nothing` for the root (and for an element that isn't in the tree) |
+| `Document` | the `XmlDocument` the element belongs to |
+| `AddElement(name [, text])` | adds a new child element at the end, with this text in it; returns the new element |
+| `AppendChild(element)` | moves an element to the end of this one: a new element from `CreateElement`, or one from elsewhere in the same document. Returns it. |
+| `InsertBefore(element, child)` | the same, but places it before `child`, one of this element's children |
+| `RemoveChild(element)` | takes one of this element's children out of the tree |
+| `Remove` | takes this element out of the tree |
+| `Xml` | the element with everything inside it, as XML text |
+| `InnerXml` | what is inside the element, as XML text (without its own tags) |
+
+`Children`, `FindAll` and `SelectNodes` return a list of elements. A list has `Count` and
+`Item(i)`, counted from 0; `Item` is the default member, so `doc.FindAll("title")(0)` is the
+first title. Go through a list with `For Each`. `Children` takes no argument, so write
+`e.Children.Item(i)` (or `e.Children()(i)`), not `e.Children(i)`, which is error 438. A list is a snapshot: adding or removing elements
+later doesn't change it.
+
+Names are case-sensitive in XML: `Find("Title")` doesn't find `<title>`.
+
+An element object stays usable after you remove it from the tree, and you can put it back with
+`AppendChild`. An element can't be moved into another document.
+
+### Example: reading a feed
+
+The program reads a small RSS feed from a String (in a real program it comes from a file or
+from the web) and lists the news items.
+
+*Listing 20.71* (`examples/book/ch20-libraries/listing-20-71.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim doc As XmlDocument, chan As XmlElement, item As XmlElement, t As Variant
+Dim s As String
+
+s = "<?xml version=""1.0"" encoding=""ISO-8859-1""?>" & vbLf & _
+    "<rss version=""2.0"">" & vbLf & _
+    "  <channel>" & vbLf & _
+    "    <title>Amiga news</title>" & vbLf & _
+    "    <item id=""101"" category=""software"">" & vbLf & _
+    "      <title>Boing BASIC &amp; AmiForge released</title>" & vbLf & _
+    "      <link>https://example.com/news/101</link>" & vbLf & _
+    "    </item>" & vbLf & _
+    "    <item id=""102"">" & vbLf & _
+    "      <title>Meeting on Saturday</title>" & vbLf & _
+    "      <link>https://example.com/news/102</link>" & vbLf & _
+    "    </item>" & vbLf & _
+    "  </channel>" & vbLf & _
+    "</rss>"
+
+Set doc = CreateObject("XmlDocument")
+doc.LoadXml s
+Print doc.Root.Name; " version "; doc.Root.Attribute("version")
+Set chan = doc.Root.Child("channel")
+Print "Feed: "; chan.ChildText("title"); ","; chan.ChildCount; "elements in the channel"
+For Each item In doc.FindAll("item")
+    Print item.Attribute("id"); " ("; item.Attribute("category", "general"); ") "; _
+          item.ChildText("title")
+    Print "    "; item.ChildText("link")
+Next
+For Each t In doc.Root.SelectNodes("channel/item/title")
+    Print "title: "; t.Text
+Next
+Print doc.Find("guid") Is Nothing; " "; chan.Child("item").ChildText("guid", "(no guid)")
+```
+
+```output
+rss version 2.0
+Feed: Amiga news, 3 elements in the channel
+101 (software) Boing BASIC & AmiForge released
+    https://example.com/news/101
+102 (general) Meeting on Saturday
+    https://example.com/news/102
+title: Boing BASIC & AmiForge released
+title: Meeting on Saturday
+True (no guid)
+```
+
+`&amp;` in the document became `&` in the text: the reader turns XML's escapes into the
+characters they stand for, and the writer turns them back.
+
+`SelectNodes("channel/item/title")` starts *below* the root, so the path doesn't name `rss`
+itself. `FindAll("title")` would also have found the channel's own title.
+
+### Example: building and changing a document
+
+The program builds a high-score table, changes it, and prints it, indented and on one line.
+
+*Listing 20.72* (`examples/book/ch20-libraries/listing-20-72.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim doc As XmlDocument, root As XmlElement, e As XmlElement
+Dim names As Variant, points As Variant, i As Long
+
+names = Array("Ann", "Bob", "Cy")
+points = Array(5200, 4100, 900)
+Set doc = CreateObject("XmlDocument")
+Set root = doc.CreateRoot("highscores")
+root.Attribute("game") = "Boing & Bounce"
+For i = 0 To 2
+    Set e = root.AddElement("score", CStr(points(i)))
+    e.Attribute("player") = names(i)
+Next
+Print doc.Xml
+
+' a new best score goes first
+Set e = doc.CreateElement("score")
+e.Text = "6000"
+e.Attribute("player") = "Dee"
+root.InsertBefore e, root.Child("score")
+' the last one drops off the table
+root.Children.Item(root.ChildCount - 1).Remove
+' rename an attribute: read it, add the new one, remove the old one
+For Each e In root.Children
+    e.Attribute("name") = e.Attribute("player")
+    e.RemoveAttribute "player"
+Next
+doc.Indent = False
+Print root.Xml
+Print root.InnerXml
+```
+
+```output
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<highscores game="Boing &amp; Bounce">
+  <score player="Ann">5200</score>
+  <score player="Bob">4100</score>
+  <score player="Cy">900</score>
+</highscores>
+
+<highscores game="Boing &amp; Bounce"><score name="Dee">6000</score><score name="Ann">5200</score><score name="Bob">4100</score></highscores>
+<score name="Dee">6000</score><score name="Ann">5200</score><score name="Bob">4100</score>
+```
+
+To keep the table between runs, `doc.Save "PROGDIR:scores.xml"` writes it and
+`doc.Load "PROGDIR:scores.xml"` reads it back.
+
+### What is supported
+
+The reader understands:
+
+- elements and attributes (values in `"` or `'`), and empty elements (`<empty/>`);
+- text and `<![CDATA[...]]>` sections, which become ordinary text;
+- the entities `&lt;` `&gt;` `&amp;` `&quot;` `&apos;` and character references such as
+  `&#233;` and `&#xE9;`.
+
+Comments, processing instructions and `<!DOCTYPE ...>` are read past and not kept, so `Save`
+doesn't write them back. Text that is only white space between elements is dropped, so an
+indented file doesn't give you empty texts. When writing, `<`, `>` and `&` are escaped in texts,
+and also `"` and line breaks in attribute values.
+
+**Characters.** A Boing BASIC String is a sequence of bytes. A character reference below 256
+becomes that byte (Latin-1, the Amiga's character set); higher ones are stored as UTF-8. The
+text of a UTF-8 document stays UTF-8: convert it yourself if you need Latin-1.
+
+There are no namespaces (a name like `dc:title` is just a name with a colon in it), no DTD
+validation, and no XPath beyond the simple paths of `SelectNodes`.
+
+### Errors
+
+| Error | When |
+|---|---|
+| 31401 | the text isn't well-formed XML. `Err.Description` says what is wrong and on which line, for example `bad XML: </b> doesn't close <a> (line 3)`. |
+| 53 | `Load`: the file isn't there |
+| 75, 61 | `Save`: the file can't be created, or writing failed |
+| 5 | an invalid element or attribute name, an element put inside itself, an element from another document, or `InsertBefore` with an element that isn't a child |
+| 9 | a list index out of range |
+
+*Listing 20.73* (`examples/book/ch20-libraries/listing-20-73.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim doc As XmlDocument, bad As Variant, i As Long
+Set doc = CreateObject("XmlDocument")
+bad = Array("<a><b></a>", "<a b=1/>", "<a/><b/>", "")
+On Error Resume Next
+For i = 0 To UBound(bad)
+    doc.LoadXml bad(i)
+    Print Err.Number; Err.Description
+    Err.Clear
+Next
+doc.LoadXml "<a/>"
+doc.Root.AddElement "two words"
+Print Err.Number; Err.Description
+```
+
+```output
+ 31401 bad XML: </a> doesn't close <b> (line 1)
+ 31401 bad XML: an attribute value must be in quotes (line 1)
+ 31401 bad XML: more than one root element (line 1)
+ 31401 bad XML: no root element (line 1)
+ 5 not a valid element name
+```
+
+## Compression and Zip archives
+
+Boing BASIC can compress data and read and write ZIP archives, the same way on AmigaOS 4 and
+on the host. Two built-in functions compress and decompress a String: use them to make saved
+games or caches smaller, to write and read `.gz` files, or to unpack compressed data from the
+web. The `Zip` class reads and writes ZIP archives, the most common archive format outside the
+Amiga (and read by the Amiga's own archivers too): unpack a download, or pack a backup of a
+program's files.
+
+### Compress and Decompress
+
+| Function | What it returns |
+|---|---|
+| `Compress(data [, format [, level]])` | `data`, compressed |
+| `Decompress(data [, format])` | the original data |
+
+`data` is any String, text or binary. The formats are three ways of wrapping the same
+compression method (deflate):
+
+| Constant | Format |
+|---|---|
+| `zipGzip` | the contents of a `.gz` file (the gzip program's format). The default for `Compress`. |
+| `zipZlib` | zlib, a smaller header, used inside PNG pictures and by many web services |
+| `zipDeflate` | raw deflate data, with no header at all |
+| `zipAuto` | (only for `Decompress`, and its default) gzip or zlib, recognised by their headers |
+
+Raw deflate data has no header to recognise, so decompress it with `Decompress(data, zipDeflate)`.
+
+`level` is how hard `Compress` works: 0 only stores the data (the result is a little larger
+than the original), 1 is the fastest, 9 gives the smallest result, and the default is 6. All
+levels decompress the same way. (Level 9 is not always smaller than 6: on some data it gains
+nothing, or comes out a byte larger.)
+
+Both gzip and zlib data carry a checksum of the original data, and `Decompress` checks it:
+damaged data gives error 31501 rather than wrong text.
+
+*Listing 20.74* (`examples/book/ch20-libraries/listing-20-74.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim s As String, packed As String, i As Long
+
+For i = 1 To 200
+    s = s & "Line " & i & " of a text that repeats itself a lot." & vbLf
+Next
+packed = Compress(s)
+Print "original:"; Len(s); "bytes"
+Print "gzip, a tenth or less: "; Len(packed) <= Len(s) \ 10
+Print "zlib, level 9, recognised: "; Decompress(Compress(s, zipZlib, 9)) = s
+Print "stored (level 0):"; Len(Compress(s, zipGzip, 0)); "bytes"
+Print "round trip ok: "; Decompress(packed) = s
+Print "raw deflate ok: "; Decompress(Compress(s, zipDeflate), zipDeflate) = s
+```
+
+```output
+original: 9092 bytes
+gzip, a tenth or less: True
+zlib, level 9, recognised: True
+stored (level 0): 9115 bytes
+round trip ok: True
+raw deflate ok: True
+```
+
+Text that repeats itself, like this one, gets much smaller; data that is already compressed
+(JPEG pictures, LhA and ZIP archives, MP3 files) doesn't get smaller at all. The program
+compares sizes instead of printing them, because the exact compressed size can differ by a few
+bytes between versions of the compression library (the Amiga's and the host's, for example);
+the stored size (level 0: the data plus 23 bytes of gzip header and checksum) is always the same.
+
+`Compress` with the default format gives exactly the contents of a `.gz` file. Write it with
+`Put` in Binary mode, and read one back the same way:
+
+<!-- fragment -->
+```basic
+packed = Compress(report)
+Open "RAM:report.txt.gz" For Binary As #1
+Put #1, 1, packed
+Close #1
+```
+
+A checksum of the kind ZIP and gzip use, CRC-32, is the hashing function `Crc32(data)`, not
+part of the compression functions.
+
+### The Zip class: reading an archive
+
+A ZIP archive holds *entries*: files, and folders that contain them. Each entry has a name with
+`/` between folder names (`docs/readme.txt`); a folder entry's name ends in `/`.
+
+| Member | What it does |
+|---|---|
+| `Open path` | opens an archive and reads its list of entries. Error 53 if the file isn't there, 31501 if it isn't a ZIP file. |
+| `Count` | the number of entries |
+| `Name(i)` | the name of entry `i`, counted from 0 |
+| `Size(i)` | the size of the entry's data, in bytes |
+| `CompressedSize(i)` | the size it takes in the archive |
+| `IsFolder(i)` | True for a folder entry |
+| `FileDate(i)` | the date and time stored with the entry, as a Date |
+| `IndexOf(name)` | the index of the entry with this name (in any case), or -1 if there is none |
+| `Read(entry)` | the data of an entry, as a String. `entry` is an index or a name. |
+| `Extract entry, path` | writes one entry to a file, creating the folders in `path` that aren't there yet |
+| `ExtractAll(folder)` | writes every entry into `folder`, with their folders; returns how many it wrote |
+| `Path` | the file name of the open archive (read-only) |
+| `Close` | closes the archive |
+
+`Size`, `CompressedSize`, `IsFolder` and `FileDate` also take an entry's name instead of its
+index. Every entry's size and checksum are checked when it is read or extracted, so a damaged
+entry gives error 31501 ("... is damaged") instead of bad data.
+
+`ExtractAll` skips entries with absolute names (`/etc/x`, `DH0:x`) or with `..` in them: an
+archive from somewhere else can't write files outside the folder you chose.
+
+<!-- fragment -->
+```basic
+Dim z As Zip
+Set z = CreateObject("Zip")
+z.Open "RAM:download.zip"
+Print z.ExtractAll("RAM:download/"); "files unpacked"
+z.Close
+```
+
+### The Zip class: writing an archive
+
+| Member | What it does |
+|---|---|
+| `Create path` | starts a new archive, replacing a file of that name |
+| `AddText name, data` | adds an entry with this name, holding a String |
+| `AddFile path [, name]` | adds a file. `name` is its name in the archive; the default is the file's own name (without its drawer). |
+| `AddFolder path [, name]` | adds a folder with everything in it. `name` is the folder's name in the archive; without it the folder's contents go to the top of the archive. |
+| `Level` | the compression level for the next entries: 0 (store) to 9, default 6. An entry that wouldn't get smaller is stored. |
+| `Count` | the number of entries added so far |
+| `Close` | writes the archive's directory and closes the file |
+
+**An archive is only complete after `Close`**, which writes the list of entries at the end of
+the file. `Close` also happens when the `Zip` object goes away (at the end of the program, or
+when you `Set z = Nothing`), but call it yourself, so that you know the archive is finished.
+
+The archives are standard ZIP files that `unzip`, Windows, macOS and the AmigaOS archivers read.
+
+*Listing 20.75* (`examples/book/ch20-libraries/listing-20-75.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim z As Zip, i As Long, notes As String
+
+notes = "Shopping list" & vbLf & String(20, "-") & vbLf
+For i = 1 To 30
+    notes = notes & "item " & i & ": something to buy" & vbLf
+Next
+
+Set z = CreateObject("Zip")
+z.Create "texts.zip"
+z.AddText "readme.txt", "Made with Boing BASIC" & vbLf
+z.AddText "notes/shopping.txt", notes
+z.Close
+
+z.Open "texts.zip"
+Print z.Path; " has"; z.Count; "entries"
+For i = 0 To z.Count - 1
+    Print "  "; z.Name(i); z.Size(i); "bytes, smaller in the archive: "; z.CompressedSize(i) < z.Size(i)
+Next
+Print z.Read("readme.txt");
+Print "notes ok: "; z.Read(z.IndexOf("NOTES/SHOPPING.TXT")) = notes
+z.Close
+Kill "texts.zip"
+```
+
+```output
+texts.zip has 2 entries
+  readme.txt 22 bytes, smaller in the archive: False
+  notes/shopping.txt 806 bytes, smaller in the archive: True
+Made with Boing BASIC
+notes ok: True
+```
+
+The short `readme.txt` wouldn't get smaller, so it was stored as it is. The folder `notes/`
+needs no entry of its own: `ExtractAll` creates it from the entry's name.
+
+A backup of a program's saved games, with a note in it:
+
+<!-- fragment -->
+```basic
+Dim z As Zip
+Set z = CreateObject("Zip")
+z.Create "RAM:backup.zip"
+z.AddFolder "PROGDIR:saves", "saves"
+z.AddText "info.txt", "Backup of " & Now
+z.Close
+```
+
+### z.library on AmigaOS
+
+On AmigaOS 4 the compression itself is done by `z.library` (zlib as a shared library, version
+53 or newer, part of AmigaOS 4.1 since Update 1). It is opened the first time a program
+compresses or decompresses something, so a program that never does doesn't need it. If it is
+missing, you get error 31502 ("compression needs z.library"). On the host the system's zlib is
+used in the same way. The ZIP format itself (the directory, the headers, the checks) is
+Boing BASIC's own code.
+
+### Not supported
+
+ZIP64 (archives or entries over 4 GB), encrypted (password-protected) entries, compression
+methods other than store and deflate (for example bzip2 or LZMA entries), archives split over
+several disks, file comments, and the Amiga's protection bits and file notes (they aren't
+stored or restored). LhA and LZX archives are not ZIP files: `Open` gives error 31501.
+
+### Errors
+
+| Error | When |
+|---|---|
+| 31501 | not a ZIP file, a damaged archive or entry, or damaged compressed data in `Decompress` |
+| 31502 | no compression library (`z.library` missing on AmigaOS) |
+| 53 | the archive or a file to add isn't there, or no entry has that name |
+| 75, 61 | a file can't be created, or writing failed |
+| 5 | adding to an archive opened with `Open`, reading one made with `Create`, a bad entry name (empty, absolute or with `..`), or a bad format number |
+| 380 | a `Level` outside 0-9 |
+| 9 | an entry index out of range |
+
+*Listing 20.76* (`examples/book/ch20-libraries/listing-20-76.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim z As Zip, s As String
+Set z = CreateObject("Zip")
+On Error Resume Next
+z.Open "no-such.zip"
+Print "missing:"; Err.Number: Err.Clear
+s = Decompress("this was never compressed")
+Print "damaged:"; Err.Number: Err.Clear
+z.Create "bad.zip"
+z.AddText "../outside.txt", "x"
+Print "bad name:"; Err.Number; Err.Description: Err.Clear
+z.Level = 10
+Print "level:"; Err.Number: Err.Clear
+z.Close
+Kill "bad.zip"
+```
+
+```output
+missing: 53 
+damaged: 31501 
+bad name: 5 a bad name for an entry (empty, absolute or with ..)
+level: 380 
+```
+
 ## Summary
 
 - `Dictionary` maps keys to values; `JsonParse` turns JSON text into Dictionaries and arrays,
@@ -2942,6 +3449,8 @@ INFO: to the console, because there is no FileName
 - `Csv` reads and writes CSV files; `CreateUUID` makes unique IDs; `Process` runs Shell commands
   and captures their output.
 - `IniFile` reads and writes settings files; `Logger` writes leveled log messages.
+- `XmlDocument` reads, changes and writes XML; `Compress`/`Decompress` and `Zip` handle
+  compressed data and archives.
 
 See also: [Networking](19-networking.md) for fetching the data, [Built-in functions](09-builtins.md)
 and [Files](10-files.md).

@@ -1,0 +1,6 @@
+original: 9092 bytes
+gzip, a tenth or less: True
+zlib, level 9, recognised: True
+stored (level 0): 9115 bytes
+round trip ok: True
+raw deflate ok: True
