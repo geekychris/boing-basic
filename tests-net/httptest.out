@@ -1,0 +1,39 @@
+ok 1 - CreateObject("Http")
+ok 2 - defaults
+ok 3 - GET /hello
+ok 4 - StatusText and ContentType
+ok 5 - ResponseText and BytesReceived
+ok 6 - POST with a header
+ok 7 - POST body
+ok 8 - default POST content type
+ok 9 - PUT with a content type
+ok 10 - DELETE
+ok 11 - Send with any method
+ok 12 - SetHeader name, "" removes the header
+ok 13 - HEAD has no body
+ok 14 - 404 is an answer, not an error
+ok 15 - 500 is an answer too
+ok 16 - ResponseHeader (any case)
+ok 17 - ResponseHeaders
+ok 18 - a missing header is ""
+ok 19 - chunked body
+ok 20 - 3 redirects followed
+ok 21 - Url after redirects
+ok 22 - relative Location
+ok 23 - 303 continues as GET without the body
+ok 24 - FollowRedirects = False
+ok 25 - a redirect loop: error 31107
+ok 26 - MaxRedirects = 2
+ok 27 - 300000 bytes into a String, binary safe
+ok 28 - GetToFile
+ok 29 - the file holds the right bytes
+ok 30 - Timeout: error 31104
+ok 31 - an ftp:// URL: error 31101
+ok 32 - an unknown host: error 31102
+ok 33 - connection refused: error 31103
+ok 34 - HTTPS GET with the test CA
+ok 35 - HTTPS POST
+ok 36 - HTTPS chunked
+ok 37 - an untrusted certificate: error 31106
+ok 38 - VerifyCertificate = False
+PASS 38

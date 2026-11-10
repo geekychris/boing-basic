@@ -1412,16 +1412,16 @@ int sema_program(Program *p)
     /* the runtime's own classes as types (Dim e As Engine3D / As Boing.Engine3D): member names
        checked at compile time; a module or class of the program with the same name wins */
     {
-        static const char *rtn[] = {"Engine3D", "Canvas", "Audio"};
+        static const char *rtn[] = {"Engine3D", "Canvas", "Audio", "Http"};
         int k;
-        for (k = 0; k < 3; k++) {
+        for (k = 0; k < 4; k++) {
             ClassInfo *rc;
             Sym *s;
             if (scope_find_local(p->global, rtn[k]) || !bb_runtime_class(rtn[k])) continue;
             rc = (ClassInfo *)xcalloc(1, sizeof(ClassInfo));
             rc->name = xstrdup(rtn[k]);
             rc->rtcls = bb_runtime_class(rtn[k]);
-            rc->index = -2 - k;     /* the VM's CHKCLS: -2 Engine3D, -3 Canvas, -4 Audio */
+            rc->index = -2 - k;     /* the VM's CHKCLS: -2 Engine3D, -3 Canvas, -4 Audio, -5 Http */
             s = new_sym(SK_CLASS, rc->name, NULL);
             s->cls = rc;
             s->is_public = 1;

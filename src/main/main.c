@@ -24,7 +24,7 @@ static void usage(void)
             "  boing compile prog.bas -o prog.bbc               write a bytecode file\n"
             "  boing emit-c prog.bas [-o prog.c]                write the generated C\n"
             "  boing symbols file.bas|file.cls                  list declarations for an IDE\n"
-            "  boing disasm prog.bas                            show the bytecode\n  boing members [Engine3D|Canvas|Audio]            members of the runtime classes (completion)\n");
+            "  boing disasm prog.bas                            show the bytecode\n  boing members [Engine3D|Canvas|Audio|Http]       members of the runtime classes (completion)\n");
     exit(5);
 }
 

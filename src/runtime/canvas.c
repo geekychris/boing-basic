@@ -1000,12 +1000,15 @@ void bb_canvas_key_event(int key, int down)
    member names of variables declared As Engine3D / Canvas / Audio through their find() */
 const bb_class *bb_engine3d_class(void);
 const bb_class *bb_audio_class(void);
+const bb_class *bb_http_class(void);
+bb_obj *bb_http_new(void);
 const bb_class *bb_runtime_class(const char *name)
 {
     if (!strncasecmp(name, "Boing.", 6)) name += 6;
     if (!strcasecmp(name, "Canvas")) return &canvas_class;
     if (!strcasecmp(name, "Engine3D")) return bb_engine3d_class();
     if (!strcasecmp(name, "Audio")) return bb_audio_class();
+    if (!strcasecmp(name, "Http")) return bb_http_class();              /* http_obj.c */
     return NULL;
 }
 
@@ -1015,6 +1018,7 @@ bb_obj *bb_create_object(const bb_str *progid)
     if (!strcasecmp(p, "Boing.Canvas") || !strcasecmp(p, "Canvas")) return bb_canvas_new(320, 200, NULL);
     if (!strcasecmp(p, "Boing.Engine3D") || !strcasecmp(p, "Engine3D")) return bb_engine3d_new();
     if (!strcasecmp(p, "Boing.Audio") || !strcasecmp(p, "Audio")) return bb_audio_new();
+    if (!strcasecmp(p, "Boing.Http") || !strcasecmp(p, "Http")) return bb_http_new();
     {
         bb_obj *o = bb_forms_create_object(p);       /* Boing.CommonDialog (forms_rt.c) */
         if (o) return o;
