@@ -1431,8 +1431,14 @@ int sema_program(Program *p)
         }
         s->mod = m;
         s->is_public = 1;
-        if (scope_find_local(p->global, m->name)) diag(p, m->file, 1, 1, "duplicate module or class name '%s'", m->name);
-        else scope_add(p->global, s);
+        {
+            Sym *old = scope_find_local(p->global, m->name);
+            if (old && old->kind == SK_CLASS && old->cls && old->cls->builtin)
+                diag(p, m->file, 1, 1, "the %s '%s' hides the built-in class %s: rename the %s", m->is_class ? "class" : "module",
+                     m->name, old->cls->name, m->is_class ? "class" : "module");
+            else if (old) diag(p, m->file, 1, 1, "duplicate module or class name '%s'", m->name);
+        }
+        if (!scope_find_local(p->global, m->name)) scope_add(p->global, s);
         if (m->is_class && m->mainstmts.n)
             diag(p, m->file, m->mainstmts.v[0]->line, m->mainstmts.v[0]->col, "executable statements are not allowed at class module level");
     }

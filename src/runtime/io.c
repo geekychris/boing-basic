@@ -694,6 +694,15 @@ static int wild_match(const char *p, const char *s)
 }
 
 static int has_wild(const char *s) { return strpbrk(s, "*?#") != NULL; }
+/* a name that is a pattern only by its '#' (an AmigaDOS pattern character) but names an existing
+   file is that file: "Track#1.mod" */
+static int is_pattern(const char *s)
+{
+    long sz;
+    if (!has_wild(s)) return 0;
+    if (!strpbrk(s, "*?") && bb_plat_file_size(s, &sz) == 0) return 0;
+    return 1;
+}
 
 /* split "dir/pat" */
 static void split_path(const char *path, char *dir, size_t dn, const char **pat)
@@ -716,7 +725,7 @@ static void split_path(const char *path, char *dir, size_t dn, const char **pat)
 void bb_kill(bb_str *pattern)
 {
     const char *p = bb_str_ptr(pattern);
-    if (!has_wild(p)) { fs_check(bb_plat_remove(p)); return; }
+    if (!is_pattern(p)) { fs_check(bb_plat_remove(p)); return; }
     {
         char dir[1024], full[2048];
         const char *pat, *name;
@@ -815,7 +824,7 @@ bb_str *bb_dir(const bb_value *pattern, bb_long attr)
         long sz;
         if (dir_h) { bb_plat_dir_close(dir_h); dir_h = NULL; }
         dir_attr = attr;
-        if (!has_wild(bb_str_ptr(ps))) {
+        if (!is_pattern(bb_str_ptr(ps))) {
             /* plain name: exists? */
             const char *p = bb_str_ptr(ps);
             bb_str *r = NULL;

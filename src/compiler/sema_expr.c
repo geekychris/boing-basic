@@ -262,6 +262,7 @@ static Node *fold_binop(Ctx *c, Node *e)
         if (cv_is_int(a) && cv_is_int(b)) {
             int64_t x = op == OP_ADD ? a->i + b->i : op == OP_SUB ? a->i - b->i : a->i * b->i;
             r.type = int_result_type(a, b);
+            /* 200 * 200 overflows Integer: left to run time, as in VB (error 6, catchable) */
             if (!fits(r.type, x)) return e;
             r.i = x;
             return mk_const_node(e, &r);
@@ -727,6 +728,11 @@ static Node *default_arg(Ctx *c, Node *at, Param *pa)
 }
 
 /* argument for a ByRef parameter: pass the variable itself when the types match */
+static const char *article(const char *word)
+{
+    return strchr("AEIOUaeiou", word[0]) && word[0] ? "an" : "a";
+}
+
 static Node *byref_arg(Ctx *c, Node *arg, Param *pa, Proc *pr)
 {
     Node *a = arg;
@@ -734,6 +740,12 @@ static Node *byref_arg(Ctx *c, Node *arg, Param *pa, Proc *pr)
     if (paren) {
         a = check_value(c, arg->a);
         a->flags |= NF_PARENARG;
+        if (pr->kind == PK_DECLARE && (type_is_numeric(pa->ty) || pa->ty->kind == T_STRING)) {
+            /* (x) is a copy: the OS function would get a number, not the variable's address */
+            ERR(c, arg, "ByRef parameter '%s' of Declare %s needs %s %s variable, not a value in parentheses (or declare it ByVal)",
+                pa->name, pr->name, article(type_name(pa->ty)), type_name(pa->ty));
+            return a;
+        }
         return coerce(c, a, pa->ty);
     }
     a = check_expr(c, arg, M_ARG);
@@ -773,10 +785,10 @@ static Node *byref_arg(Ctx *c, Node *arg, Param *pa, Proc *pr)
         if (!type_eq(a->ty, pa->ty)) ERR(c, arg, "type mismatch: %s passed for %s", type_name(a->ty), type_name(pa->ty));
         return a;
     }
-    if (pr->kind == PK_DECLARE && type_is_numeric(pa->ty)) {
+    if (pr->kind == PK_DECLARE && (type_is_numeric(pa->ty) || pa->ty->kind == T_STRING)) {
         /* the OS function gets a pointer: a constant or another type would pass a number */
-        ERR(c, arg, "ByRef parameter '%s' of Declare %s needs a %s variable (or declare it ByVal)",
-            pa->name, pr->name, type_name(pa->ty));
+        ERR(c, arg, "ByRef parameter '%s' of Declare %s needs %s %s variable (or declare it ByVal)",
+            pa->name, pr->name, article(type_name(pa->ty)), type_name(pa->ty));
         return a;
     }
     return coerce(c, a, pa->ty);
@@ -1424,6 +1436,9 @@ static Node *resolve_dot(Ctx *c, Node *e, NodeList *args, int mode)
     }
     if (base->kind == E_NAME) {
         Sym *s = scope_find(c->scope, base->name);
+        if (s && s->kind == SK_MODULE && (name_eq(base->name, "App") || name_eq(base->name, "Clipboard") ||
+            name_eq(base->name, "Printer") || name_eq(base->name, "Err")) && !scope_find_local(s->mod->scope, e->name))
+            s = NULL;       /* app.bas: App.Title is still the built-in object's */
         if (!s && name_eq(base->name, "Err")) return err_prop(c, e, e->name, args, mode);
         if (!s && (name_eq(base->name, "App") || name_eq(base->name, "Clipboard") || name_eq(base->name, "Printer"))) {
             const char *on = name_eq(base->name, "App") ? "App" : name_eq(base->name, "Clipboard") ? "Clipboard" : "Printer";
@@ -1773,7 +1788,10 @@ Node *check_expr(Ctx *c, Node *e, int mode)
     case E_NEW: {
         ClassInfo *cls = find_class(c, e->name);
         if (!cls) {
-            ERR(c, e, "class '%s' is not defined", e->name);
+            Sym *ms = scope_find(c->scope, e->name);
+            if (ms && ms->kind == SK_MODULE && bb_runtime_class(e->name))
+                ERR(c, e, "the module '%s' hides the built-in class %s: rename the module", ms->name, e->name);
+            else ERR(c, e, "class '%s' is not defined", e->name);
             e->ty = &ty_object;
             return e;
         }
