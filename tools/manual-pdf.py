@@ -184,9 +184,14 @@ def convert(stem, known):
         os.makedirs(os.path.join(OUT, "diagrams"), exist_ok=True)
         png = os.path.join(OUT, "diagrams", name + ".png")
         try:
-            DIAG.render(mm.group(1) + "\n", png, scale=3)
+            DIAG.render(mm.group(1) + "\n", png, scale=2)
         except RuntimeError as e:
             raise SystemExit("manual-pdf: diagram %s doesn't render: %s" % (name, e))
+        try:                                  # 64 colours are plenty for a diagram: a third of the size
+            from PIL import Image
+            Image.open(png).convert("RGB").quantize(64, method=2, dither=0).save(png, optimize=True)
+        except ImportError:
+            pass
         small = os.path.join(DIAG.DIR, name + ".png")       # its width at 1x sets its width on the page
         width = 100
         try:
@@ -214,11 +219,19 @@ def convert(stem, known):
 
 
 def version():
+    """A release tag if HEAD has one (shown as "Version 1.2"), else the short hash
+    (shown as "Revision 2569295": the label makes clear that a hash of digits isn't a version)."""
     if os.environ.get("MANUAL_VERSION"):
-        return os.environ["MANUAL_VERSION"]
+        v = os.environ["MANUAL_VERSION"]
+        return v if re.match(r"^v?\d+\.\d+", v) else v[:7]
     try:
-        return subprocess.run(["git", "-C", ROOT, "describe", "--tags", "--always", "--dirty"],
-                              capture_output=True, text=True, check=True).stdout.strip()
+        tag = subprocess.run(["git", "-C", ROOT, "describe", "--tags", "--exact-match"],
+                             capture_output=True, text=True)
+        if tag.returncode == 0 and tag.stdout.strip():
+            return tag.stdout.strip()
+        h = subprocess.run(["git", "-C", ROOT, "rev-parse", "--short=7", "HEAD"],
+                           capture_output=True, text=True, check=True).stdout.strip()
+        return h
     except Exception:
         return "unknown"
 
@@ -228,6 +241,7 @@ def master(letter):
     L = ["= Boing BASIC: A structured BASIC for AmigaOS 4",
          ":doctype: book",
          ":revnumber: " + version(),
+         ":version-label: " + ("Version" if re.match(r"^v?\d+\.\d+", version()) else "Revision"),
          ":revdate: " + datetime.date.today().isoformat(),
          ":toc:", ":toclevels: 2", ":sectnums:", ":sectnumlevels: 1", ":partnums!:",
          ":chapter-signifier: Chapter",
