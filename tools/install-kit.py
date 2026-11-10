@@ -6,6 +6,7 @@ AmigaOS 4 guest as DH1:BoingBASIC, put the AmiForge icon on the Workbench deskto
     tools/install-kit.py BB_GUEST=m1 --verify-only        only the checks and the screenshot
     tools/install-kit.py BB_GUEST=m1 --icon-only          only the desktop icon (then the checks)
     options: --kit PATH.lha   --shot OUT.png   --no-icon   --check-all (boing check of every example)
+             --stage disk|ram (default: disk when DH1 has room for a second kit, else RAM:)
 
 Install (three guest sessions, each a FIFO ticket + emulator lock + banner, at most
 BB_SESSION_TIMEOUT s, 300 by default: checks + leftovers + space, the push, then unpack + swap +
@@ -195,6 +196,47 @@ def swap_lines(old, new):
     L += sum((['If NOT EXISTS %s' % q(D + e), '  Echo >RAM:bbkit/kitbad "1"', 'EndIf'] for e in new), [])
     L += ['If EXISTS RAM:bbkit/kitbad'] + back_new + back_old + ['  Echo "INSTALL-FAIL a new file didn\'t move in: rolled back"',
                                                          '  Quit 20', 'EndIf']
+    return L
+
+
+def ram_swap_lines(old, new, exists):
+    """The swap with the new kit staged in RAM: (when DH1 is short). Unpack to RAM:BBkit-new and
+    check it complete; back the old contents up to RAM:BoingBASIC-old and check that; delete the
+    old entries on DH1 (never MyProjects) and copy the new ones in, checking each Copy and every
+    entry; on any failure delete what was copied and copy the old contents back from RAM:.
+    The drawer itself stays (Workbench's left-out icon holds a lock on it)."""
+    old = [e for e in old if e not in KEEP]
+    new = [e for e in new if e not in KEEP]
+    D, N, B, BAD = "DH1:BoingBASIC/", "RAM:BBkit-new/BoingBASIC/", "RAM:BoingBASIC-old/", "RAM:bbkit/kitbad"
+    L = ['Delete %s QUIET' % BAD,
+         'If EXISTS RAM:BBkit-new', '  Delete RAM:BBkit-new ALL QUIET FORCE', 'EndIf', 'MakeDir RAM:BBkit-new',
+         'xadUnFile RAM:bbkit/BoingBASIC.lha DEST=RAM:BBkit-new QUIET']
+    L += sum((['If NOT EXISTS %s' % q(N + e), '  Echo "INSTALL-FAIL unpack in RAM: (%s missing)"' % e, '  Quit 20',
+               'EndIf'] for e in new), [])
+    if not exists:
+        L += ['MakeDir DH1:BoingBASIC']
+    # the backup of the old contents, checked before anything on DH1 changes
+    L += ['If EXISTS RAM:BoingBASIC-old', '  Delete RAM:BoingBASIC-old ALL QUIET FORCE', 'EndIf', 'MakeDir RAM:BoingBASIC-old']
+    for e in old:
+        L += ['Copy %s TO %s ALL CLONE QUIET' % (q(D + e), q(B + e)), 'If WARN', '  Echo >%s "1"' % BAD, 'EndIf']
+    L += sum((['If NOT EXISTS %s' % q(B + e), '  Echo >%s "1"' % BAD, 'EndIf'] for e in old), [])
+    L += ['If EXISTS %s' % BAD, '  Echo "INSTALL-FAIL the backup of the old install in RAM: failed (nothing changed)"',
+          '  Quit 20', 'EndIf']
+    # the window: old out, new in
+    L += ['Delete %s ALL QUIET FORCE' % q(D + e) for e in old]
+    for e in new:
+        L += ['Copy %s TO %s ALL CLONE QUIET' % (q(N + e), q(D + e)), 'If WARN', '  Echo >%s "1"' % BAD, 'EndIf']
+    L += sum((['If NOT EXISTS %s' % q(D + e), '  Echo >%s "1"' % BAD, 'EndIf'] for e in new), [])
+    rollback = ['  Delete %s ALL QUIET FORCE' % q(D + e) for e in new]
+    rollback += ['  Copy %s TO %s ALL CLONE QUIET' % (q(B + e), q(D + e)) for e in old]
+    rollback += ['  Echo "INSTALL-FAIL a new file didn\'t copy in: rolled back from RAM:BoingBASIC-old"', '  Quit 20']
+    L += ['If EXISTS %s' % BAD] + rollback + ['EndIf']
+    L += ['Copy RAM:BBkit-new/BoingBASIC.info DH1:BoingBASIC.info CLONE QUIET',
+          'If NOT EXISTS DH1:BoingBASIC/MyProjects', '  MakeDir DH1:BoingBASIC/MyProjects', 'EndIf',
+          'If NOT EXISTS DH1:BoingBASIC/MyProjects.info',
+          '  Copy DH1:BoingBASIC/Templates.info DH1:BoingBASIC/MyProjects.info CLONE QUIET', 'EndIf',
+          'Delete RAM:BBkit-new ALL QUIET FORCE', 'Delete RAM:BoingBASIC-old ALL QUIET FORCE',
+          'Delete RAM:bbkit/BoingBASIC.lha QUIET', 'Echo "INSTALL-OK"']
     return L
 
 
@@ -391,7 +433,65 @@ def install(m, phase):
     if "LEFTOVER" in out:
         log("leftovers of an earlier install: %s%s" % (" ".join(out.split())[:160],
             " (still locked: Workbench lets go at its next start; the next install deletes it)" if "in use" in out else ""))
-    check_space(m, need)
+    choose_mode(m)
+
+
+def drawer_size(m, drawer):
+    """Bytes in a drawer on the guest: List ALL FILES into a file in RAM:, pulled back over the
+    bridge (a listing through amiga_dos_command can come back cut short, "[RUNNING]")."""
+    dos(m, "makedir RAM:bbkit")
+    dos(m, 'list "%s" ALL FILES LFORMAT "%%l" TO RAM:bbkit/sizes' % drawer)
+    local = os.path.join(tempfile.gettempdir(), "bbkit-sizes-%d" % os.getpid())
+    try:
+        g.pull(m, "RAM:bbkit/sizes", local)
+        return sum(int(l.strip()) for l in open(local, encoding="latin-1") if l.strip().isdigit())
+    except Exception as e:
+        log("couldn't measure %s (%s): counting it as empty, which only makes the space check stricter" % (drawer, e))
+        return 0
+    finally:
+        if os.path.exists(local):
+            os.unlink(local)
+
+
+def ram_free(m):
+    out = dos(m, "avail FAST")
+    nums = [int(x) for x in re.findall(r"\b\d{6,}\b", out)]
+    return nums[0] if nums else None
+
+
+def choose_mode(m):
+    """Where the new kit is staged. "disk": DH1:BBkit-new next to the old install (a reboot during
+    the swap is recoverable: the old one waits in DH1:BBkit-old), when DH1 has room for a whole
+    second kit. Else "ram": staged in RAM: (the guests have ~1 GB free), the old contents backed up
+    to RAM:, then replaced on DH1, which needs only (new - old) plus a margin. --stage disk|ram
+    forces one. Returns (mode, DH1 bytes needed)."""
+    unpacked = unpacked_size()
+    disk_need = unpacked + (8 << 20)
+    info = dos(m, "info DH1:")
+    free = free_bytes(info)
+    if free is None:
+        raise RuntimeError("can't read DH1's free space: %s" % info.strip()[:300])
+    force = opt("--stage")
+    if force not in (None, "disk", "ram"):
+        raise RuntimeError("--stage disk or ram")
+    if force != "ram" and free >= disk_need:
+        log("DH1: free %.0f MB, staging on DH1 needs about %d MB: staging on DH1" % (free / 2**20, disk_need >> 20))
+        return "disk", disk_need
+    if force == "disk":
+        raise RuntimeError("DH1 has %.0f MB free, staging on DH1 needs about %.0f MB" % (free / 2**20, disk_need / 2**20))
+    old = drawer_size(m, DEST) if guest_entries(m, DEST) else 0
+    ram_need = max(0, unpacked - old) + (16 << 20)
+    rf = ram_free(m)
+    ram_want = os.path.getsize(KIT) + unpacked + old + (64 << 20)
+    log("DH1: free %.0f MB; the installed kit is %.0f MB, the new one %.0f MB: staging in RAM: needs about %.0f MB "
+        "on DH1 and %.0f MB of RAM (free: %s)" % (free / 2**20, old / 2**20, unpacked / 2**20, ram_need / 2**20,
+                                                 ram_want / 2**20, "%.0f MB" % (rf / 2**20) if rf else "?"))
+    if free < ram_need:
+        raise RuntimeError("DH1 has %.0f MB free; even staged in RAM: the kit needs about %.0f MB"
+                           % (free / 2**20, ram_need / 2**20))
+    if rf is not None and rf < ram_want:
+        raise RuntimeError("not enough free RAM to stage the kit (%.0f MB free, %.0f MB needed)" % (rf / 2**20, ram_want / 2**20))
+    return "ram", ram_need
 
 
 def check_space(m, need):
@@ -405,7 +505,7 @@ def check_space(m, need):
 
 
 def push_kit(m, lha_size, need):
-    check_space(m, need)
+    choose_mode(m)
     dos(m, "makedir RAM:bbkit")
     t0 = time.time()
     # bbfetch renames its .part file only after the length and CRC check, so an archive of the
@@ -422,6 +522,13 @@ def swap(m):
     exists = bool(have) or "Directory" in dos(m, "list %s DIRS QUICK" % DEST)
     if "MyProjects" in have:
         log("DH1:BoingBASIC/MyProjects stays as it is (the user's projects)")
+    mode, _ = choose_mode(m)
+    if mode == "ram":
+        # the delete-and-copy window: start it only with a bridge that answers right now
+        if not g.bridge_alive(max_age=20):
+            raise RuntimeError("the bridge's heartbeat is late: not starting the swap (the old install is untouched)")
+        lines = ram_swap_lines(have if exists else [], new_entries(), exists)
+        return finish_swap(m, lines)
     lines = [
         'If EXISTS DH1:BBkit-new', '  Delete DH1:BBkit-new ALL QUIET FORCE', 'EndIf',
         'MakeDir DH1:BBkit-new',
@@ -443,6 +550,10 @@ def swap(m):
         'Delete DH1:BBkit-new ALL QUIET FORCE',
         'If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf',
         'Delete RAM:bbkit/BoingBASIC.lha QUIET', 'Echo "INSTALL-OK"']
+    return finish_swap(m, lines)
+
+
+def finish_swap(m, lines):
     t0 = time.time()
     out = script(m, "install", lines, limit=SCRIPT_MAX)
     log("unpacked and swapped in %.0f s: %s" % (time.time() - t0, " ".join(out.split())[-300:]))
