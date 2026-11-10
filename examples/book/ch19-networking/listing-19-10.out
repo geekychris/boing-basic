@@ -1,0 +1,4 @@
+Finished: Busy is False, Status 0
+ended: True, error 31101: bad URL: ftp://example.com/readme.txt
+Finished: Busy is False, Status 0
+error 31103: can't connect to 127.0.0.1:1

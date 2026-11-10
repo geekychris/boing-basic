@@ -1,0 +1,6 @@
+# WordFreq: count the words of a text with a Dictionary, report with a StringBuilder,
+# save the counts as JSON (manual chapter 20)
+Name=WordFreq
+Startup=Sub Main
+Module=main.bas
+Module=WordStats.bas

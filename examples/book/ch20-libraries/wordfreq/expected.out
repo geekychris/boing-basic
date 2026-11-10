@@ -1,0 +1,9 @@
+Words: 42, different: 26
+Most common:
+  8  the
+  4  amiga
+  3  and
+  2  future
+  2  write
+As JSON: [{"word":"the","count":8},{"word":"amiga","count":4},{"word":"and","count":3},{"word":"future","count":2},{"word":"write","count":2}]
+(give a file name to save all 26 counts)

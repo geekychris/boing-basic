@@ -1,0 +1,10 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=asyncfetch title="Download" width=480 height=0
+vlayout id=root
+  string id=url label="URL" text="https://example.com/" maxchars=1024
+  string id=target label="Save as" text="RAM:download" maxchars=256
+  fuelgauge id=meter min=0 max=100 level=0
+  label id=status text="Type a URL and press Download"
+  hlayout even=1
+    button id=download text="_Download"
+    button id=abort text="_Cancel" disabled=1

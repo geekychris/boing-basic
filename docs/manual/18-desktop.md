@@ -1591,4 +1591,4 @@ Things to know about screens of your own:
 See also: [Forms and controls](12-forms.md), [Menus, toolbars, status bars and
 dialogs](13-menus-dialogs.md), [Files and the system](10-files.md),
 [Graphics](14-graphics.md), [Calling AmigaOS](17-amigaos.md),
-[Networking](19-networking.md), [Extending Boing BASIC](20-extending.md).
+[Networking](19-networking.md), [Extending Boing BASIC](21-extending.md).

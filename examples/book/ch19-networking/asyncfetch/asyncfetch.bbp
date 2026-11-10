@@ -1,0 +1,5 @@
+# AsyncFetch: download a file in the background, with a progress bar and a Cancel button
+# (manual chapter 19)
+Name=AsyncFetch
+Startup=Form asyncfetch
+Form=asyncfetch.afg

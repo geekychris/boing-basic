@@ -566,7 +566,7 @@ On the Amiga this prints `hook says 1042`. On other systems `AddressOf` still re
 (good only for comparing) and the Declare raises error 48.
 
 Writing your own extensions in C, and calling C code from BASIC in other ways, is the subject
-of [Extending Boing BASIC](20-extending.md).
+of [Extending Boing BASIC](21-extending.md).
 
 ## Common mistakes
 
@@ -595,4 +595,4 @@ of [Extending Boing BASIC](20-extending.md).
   error 5.
 
 See also: [Procedures](05-procedures.md), [Errors](08-errors.md),
-[Extending Boing BASIC](20-extending.md), [Appendix C: error messages](appendix-c-errors.md).
+[Extending Boing BASIC](21-extending.md), [Appendix C: error messages](appendix-c-errors.md).

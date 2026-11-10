@@ -40,8 +40,9 @@ provide.
 
 17. [Calling AmigaOS](17-amigaos.md): `Declare` and the system bindings
 18. [The AmigaOS 4 desktop](18-desktop.md): fitting in with the system's windows, screens, Workbench and conventions
-19. [Networking and modern libraries](19-networking.md): HTTP and HTTPS, web services and JSON
-20. [Extending Boing BASIC](20-extending.md): calling C, and extensions written in C or C++
+19. [Networking](19-networking.md): HTTP and HTTPS, web services, requests in the background
+20. [Modern libraries](20-libraries.md): Dictionary, JSON, text encodings, hashing, UTC dates, StringBuilder
+21. [Extending Boing BASIC](21-extending.md): calling C, and extensions written in C or C++
 
 **[Exercises](exercises/README.md)**: complete programs to build, step by step
 

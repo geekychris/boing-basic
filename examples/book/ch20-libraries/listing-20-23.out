@@ -1,0 +1,5 @@
+ 31301 Base64: a character that isn't Base64 at character 3
+ 31301 Base64: data after the '=' padding at character 4
+ 31301 URL: '%' isn't followed by two hex digits at character 4
+ 31301 hex: an odd number of digits at character 3
+ 31301 hex: a character that isn't a hex digit at character 2
