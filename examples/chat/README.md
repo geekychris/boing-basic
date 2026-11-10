@@ -33,5 +33,8 @@ From a shell:
 chat host 7000                              # host straight away
 chat join self 7000 Ann Hello from Boing!   # join this machine's chat and say something
 chat join 192.168.1.20 7000 Bob             # join another machine's
-chat host 7000 @20,140                      # ... and put the window at x=20, y=140
+chat host 7000 @20,140                      # ... and put the window at x=20, y=140 (*)
 ```
+
+(*) On AmigaOS the forms layer currently keeps only the last of two position changes made in a
+row, so the window gets the y but not the x until that is fixed; one coordinate at a time works.

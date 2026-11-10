@@ -326,6 +326,9 @@ static void c_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
     csv_obj *c = (csv_obj *)self;
     int set = kind & (BB_INV_LET | BB_INV_SET);
     bb_str *s;
+    if (set && (id == P_FIELDS || id == P_HEADERS || id == P_FIELDCOUNT || id == P_RECORDNUMBER ||
+                id == P_LINENUMBER || id == P_ATEND))
+        bb_raise(383, NULL);            /* read-only */
     switch (id) {
     case M_OPEN: {
         char *path;

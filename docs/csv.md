@@ -81,7 +81,8 @@ out.Close
 
 ## Errors
 
-53 the file isn't there, 57 it can't be read, 75 it can't be created, 61 writing failed (disk
+383 assigning to a read-only property (`Fields`, `Headers`, `FieldCount`, `RecordNumber`,
+`LineNumber`, `AtEnd`), 53 the file isn't there, 57 it can't be read, 75 it can't be created, 61 writing failed (disk
 full), 380 a bad `Delimiter`/`Quote` (more than one character, or both the same), 5 `Field` with
 a column name that doesn't exist (`Err.Description` names it), 9 a negative field index.
 

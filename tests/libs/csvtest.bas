@@ -93,3 +93,7 @@ rd.ReadRecord
 s = rd.Field("c")
 Print "column:"; Err.Number; " "; Err.Description: Err.Clear
 Print "short:["; rd.Field(5); "]"; Err.Number
+rd.Fields = Array("x")
+Print "read-only:"; Err.Number: Err.Clear
+rd.FieldCount = 3
+Print "read-only:"; Err.Number: Err.Clear
