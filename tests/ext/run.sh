@@ -64,7 +64,7 @@ else echo "FAIL ext STD_EXTS=sqlite interpreter (build)"; fail=1; fi
 # examples/csvimport: Csv into SQLite in Timer slices (a form program, headless, natively)
 ci=$root/examples/csvimport
 if (cd "$ci" && "$B" build csvimport.bbp -o "$tmp/csvimport" >/dev/null 2>&1); then
-    check "csvimport" "$(cd "$ci" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=60 "$tmp/csvimport" sample.csv "$tmp/ci.db" 2>&1 | sed 's/ in [0-9.]* s$//')" "Imported 1000 records into data"
+    check "csvimport" "$(cd "$ci" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=60 "$tmp/csvimport" sample.csv "$tmp/ci.db" 2>&1)" "Imported 1000 records into data"
 else echo "FAIL ext csvimport (build)"; fail=1; fi
 rm -rf "$tmp"
 echo "extension tests: $([ $fail = 0 ] && echo all passed || echo FAILURES)"

@@ -98,8 +98,8 @@ Private Sub tick_Timer()
         End If
         If Not table.ReadRecord() Then
             db.Commit
-            Finish "Imported " & table.RecordNumber & " records into " & Ident(tbl.Text) & " in " & _
-                   Format(Timer - t0, "0.0") & " s"
+            Finish "Imported " & table.RecordNumber & " records into " & Ident(tbl.Text), _
+                   " in " & Format(Timer - t0, "0.0") & " s"
             Exit Sub
         End If
         f = table.Fields
@@ -115,11 +115,11 @@ Failed:
     Finish "Error at record " & table.RecordNumber & ": " & Err.Description
 End Sub
 
-Private Sub Finish(ByVal message As String)
+Private Sub Finish(ByVal message As String, Optional ByVal detail As String = "")
     tick.Enabled = False
     importbtn.Enabled = True
     cancelbtn.Enabled = False
-    status.Caption = message
+    status.Caption = message & detail
     If Not table Is Nothing Then table.Close
     If Not db Is Nothing Then
         If db.IsOpen Then db.Close
