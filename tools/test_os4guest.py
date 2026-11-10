@@ -81,4 +81,54 @@ check(nodef and not opened, "no default monitor port for a profile without one")
 socket.create_connection, subprocess.run = real_conn, real_run
 check(g.GUESTS["m1b"]["hmp"] == 2448 and g.GUESTS["m1c"]["hmp"] == 2548 and g.GUESTS["local"]["hmp"] == 2348
       and g.GUESTS["spark"]["hmp"] == 2348, "monitor ports per guest")
+
+# bbfetch attempts: a stalled connection is retried once on the same gateway, then the next
+# gateway; each attempt carries its MAXSECONDS (size at 1 MB/s + 30 s)
+import time as _time
+_time.sleep = lambda s: None
+
+
+class FetchGuest:
+    def __init__(self, answers, size=24000000):
+        self.answers, self.calls, self.size, self.breaks = list(answers), [], size, 0
+
+    def tool(self, name, **a):
+        c = a.get("command", "")
+        if "bbfetch" in c and c.startswith(g.FETCH):
+            self.calls.append((c, a.get("timeout")))
+            return self.answers.pop(0)
+        if c == "status":
+            return "Process  9: Loaded as command: DH1:bbtools/bbfetch\n" if self.breaks == 0 else ""
+        if c.startswith("break"):
+            self.breaks += 1
+            return ""
+        if c.startswith("list"):
+            return str(self.size)
+        return ""
+
+
+urls = ["http://gw1/f", "http://gw2/f"]
+fg = FetchGuest(["FAIL too slow (still running after MAXSECONDS)", "OK 24000000 0abc"])
+out = g._fetch(fg, urls, "RAM:x", 24000000, "0abc")
+check("OK 24000000" in out and [c[0].split()[1] for c in fg.calls] == ["http://gw1/f", "http://gw1/f"]
+      and fg.breaks >= 1, "fetch: a stalled attempt is stopped and retried on the same gateway (new connection)")
+check(all(c[0].split()[-1] == "54" and abs(c[1] - 69.0) < 0.01 for c in fg.calls),
+      "fetch: each attempt has MAXSECONDS = size at 1 MB/s + 30 s (%s)" % [c[0].split()[-1] for c in fg.calls])
+fg = FetchGuest(["FAIL too slow", "FAIL receive timeout (no data for 30 s)", "OK 24000000 0abc"])
+out = g._fetch(fg, urls, "RAM:x", 24000000, "0abc")
+check("OK" in out and [c[0].split()[1] for c in fg.calls] == ["http://gw1/f", "http://gw1/f", "http://gw2/f"],
+      "fetch: two failed attempts on a gateway, then the next gateway")
+fg = FetchGuest(["FAIL too slow", "FAIL too slow", "FAIL connect", "OK 24000000 0abc"])
+out = g._fetch(fg, urls, "RAM:x", 24000000, "0abc")
+check("OK" in out and [c[0].split()[1] for c in fg.calls] == ["http://gw1/f"] * 2 + ["http://gw2/f", "http://gw1/f"]
+      and fg.calls[-1][0].split()[-1] == str(int(g._slow_timeout(24000000))),
+      "fetch: after the fast attempts, one slow attempt on the gateway that connected (%s)"
+      % [(c[0].split()[1], c[0].split()[-1]) for c in fg.calls])
+fg = FetchGuest(["FAIL connect", "OK 24000000 0abc"])
+out = g._fetch(fg, urls, "RAM:x", 24000000, "0abc")
+check("OK" in out and [c[0].split()[1] for c in fg.calls] == ["http://gw1/f", "http://gw2/f"],
+      "fetch: a gateway that doesn't connect is left at once")
+fg = FetchGuest(["[RUNNING] still going after 30s"])
+out = g._fetch(fg, urls, "RAM:x", 24000000, "0abc")
+check("OK 24000000" in out and len(fg.calls) == 1, "fetch: a bbfetch still running is waited for until its file is complete")
 sys.exit(0 if ok else 1)

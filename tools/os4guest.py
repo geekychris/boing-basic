@@ -300,16 +300,16 @@ def _remote_serve():
     return d
 
 
-def _fetch_timeout(data):
-    """Seconds to let bbfetch run: amiga_dos_command's 30 s default cut a 24 MB kit push short, and
-    the retry on the next gateway then found the first fetch's .part file still open."""
-    return max(30.0, 60.0 + len(data) / 100000.0)
+def _fetch_timeout(size):
+    """Seconds one bbfetch attempt may take: the guest fetches at several MB/s, so size at 1 MB/s
+    plus 30 s; a slower one is a stalled TCP connection (they trickle at ~100 KB/s while a new
+    connection runs at full speed: retry instead of waiting)."""
+    return 30.0 + size / 1000000.0
 
 
-def _wait_fetch(m, dest, size, limit=180):
-    """bbfetch is still running on a slow guest (the bridge reports "[RUNNING]" after 30 s): wait
-    for the file to appear with its full size (bbfetch renames it into place only when the CRC
-    matched)."""
+def _wait_fetch(m, dest, size, limit):
+    """bbfetch is still running (the bridge answers "[RUNNING]" after its own wait): wait for the
+    file to appear with its full size (bbfetch renames it into place only when the CRC matched)."""
     import time
     t0 = time.time()
     while time.time() - t0 < limit:
@@ -317,43 +317,85 @@ def _wait_fetch(m, dest, size, limit=180):
         out = m.tool("amiga_dos_command", command='list "%s" LFORMAT "%%L"' % dest)
         if out.strip().split("\n")[-1].strip() == str(size):
             return "OK %d (finished late)" % size
-    return "bbfetch didn't finish within %d s" % limit
+    return "FAIL still running after %d s" % limit
+
+
+def _stop_fetches(m):
+    """Ctrl-C to every bbfetch still running (an older bbfetch has no deadline of its own); it
+    deletes its .part file."""
+    import time
+    for _ in range(6):
+        st = m.tool("amiga_dos_command", command="status")
+        procs = re.findall(r"Process\s+(\d+): Loaded as command: \S*bbfetch", st)
+        if not procs:
+            return
+        for p in procs:
+            m.tool("amiga_dos_command", command="break %s C" % p)
+        time.sleep(3)
+
+
+def _slow_timeout(size):
+    """The last attempt's limit, after the fast ones: a busy guest can fetch at a few hundred KB/s
+    on every connection, and is then slow rather than stalled (100 KB/s plus 60 s)."""
+    return 60.0 + size / 100000.0
+
+
+def _fetch(m, urls, dest, size, crc):
+    """Fetch with bbfetch: each URL (one per gateway) gets two attempts, the second on a new
+    connection, each limited to _fetch_timeout(size) (bbfetch's own MAXSECONDS, and a wait on this
+    side for an older bbfetch without one); then one slow attempt (_slow_timeout) on the first
+    gateway that connected. Returns bbfetch's last answer."""
+    def attempt(url, limit):
+        out = m.tool("amiga_dos_command", command='%s %s "%s" %s %d' % (FETCH, url, dest, crc, int(limit)),
+                     timeout=limit + 15)
+        if "[RUNNING]" in out:
+            out = _wait_fetch(m, dest, size, limit)
+        return out
+
+    out, reached = "", []
+    for url in urls:
+        for n in (1, 2):
+            out = attempt(url, _fetch_timeout(size))
+            if "OK %d" % size in out:
+                return out
+            if "FAIL connect" in out:
+                break                   # this gateway isn't the guest's: the next one
+            if url not in reached:
+                reached.append(url)
+            _stop_fetches(m)
+            sys.stderr.write("os4guest: fetch attempt %d of %s: %s; %s\n" % (
+                n, url, out.strip()[:110], "retrying on a new connection" if n == 1 else "next gateway"))
+    if reached:
+        sys.stderr.write("os4guest: one slow attempt on %s (the guest may just be busy)\n" % reached[0])
+        out = attempt(reached[0], _slow_timeout(size))
+        if "OK %d" % size not in out:
+            _stop_fetches(m)
+    return out
 
 
 def http_push(m, local, dest):
     import zlib
+    data = open(local, "rb").read()
+    crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
+    name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
     if SSH:
         import subprocess
         d = _remote_serve()
-        name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
         subprocess.run(["scp", "-q", "-o", "BatchMode=yes", local, "%s:%s/%s" % (SSH, d, name)], check=True)
-        data = open(local, "rb").read()
-        crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
         try:
-            out = ""
-            for gw in GATEWAYS:
-                out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' %
-                             (FETCH, gw, REMOTE_PORT, name, dest, crc), timeout=_fetch_timeout(data))
-                if "OK %d" % len(data) in out:
-                    return "pushed %s (%d bytes, HTTP via %s, crc %s)" % (dest, len(data), SSH, crc)
+            out = _fetch(m, ["http://%s:%d/%s" % (gw, REMOTE_PORT, name) for gw in GATEWAYS], dest, len(data), crc)
+            if "OK %d" % len(data) in out:
+                return "pushed %s (%d bytes, HTTP via %s, crc %s)" % (dest, len(data), SSH, crc)
             raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))
         finally:
             _ssh("rm -f %s/%s" % (d, name))
     srv, d = _serve()
-    name = "%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
     shutil.copy(local, os.path.join(d, name))
-    data = open(local, "rb").read()
-    crc = "%08x" % (zlib.crc32(data) & 0xFFFFFFFF)
     port = srv.server_address[1]
     try:
-        out = ""
-        for gw in GATEWAYS:
-            out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' % (FETCH, gw, port, name, dest, crc),
-                         timeout=_fetch_timeout(data))
-            if "[RUNNING]" in out:
-                out = _wait_fetch(m, dest, len(data))
-            if "OK %d" % len(data) in out:
-                return "pushed %s (%d bytes, HTTP, crc %s)" % (dest, len(data), crc)
+        out = _fetch(m, ["http://%s:%d/%s" % (gw, port, name) for gw in GATEWAYS], dest, len(data), crc)
+        if "OK %d" % len(data) in out:
+            return "pushed %s (%d bytes, HTTP, crc %s)" % (dest, len(data), crc)
         raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))
     finally:
         os.unlink(os.path.join(d, name))

@@ -520,6 +520,13 @@ def verify(m):
         log("desktop screenshot: %s" % screenshot(m, SHOT))
         if "--no-icon" not in args:
             seen, (diff, where) = icon_visible(SHOT)
+            if not seen:
+                # a screen blanker that the 1-pixel move didn't wake: a bigger move, a wait, again
+                g.mouse(40, 0)
+                g.mouse(-40, 0)
+                time.sleep(3)
+                log("desktop screenshot again (the screen blanker?): %s" % screenshot(m, SHOT))
+                seen, (diff, where) = icon_visible(SHOT)
             log("AmiForge icon visible on the desktop: %s (best match at %s, difference %.0f)"
                 % ("yes" if seen else "NO", where, diff))
             ok &= seen
