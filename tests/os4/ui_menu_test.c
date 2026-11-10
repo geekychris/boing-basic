@@ -5,6 +5,7 @@
 #define MAIN_TITLE "Boing menu test - running"
 #include "test_inject.h"
 #include "bb_forms.h"
+#include <proto/input.h>
 
 static const char __attribute__((used)) stack_cookie[] = "$STACK:262144";
 
@@ -77,6 +78,16 @@ static int call(const char *ctl, const char *m, int argc, const char *a0, const 
 
 #define RAMIGA IEQUALIFIER_RCOMMAND
 enum { K_N = 0x36, K_G = 0x24, K_2 = 0x02, K_E = 0x12, K_D = 0x22 };
+
+static int rmb_wait;
+
+/* the qualifiers input.device sees now (the mouse buttons from QEMU included) */
+static struct InputIFace *ii;
+static uint16 qual(void)
+{
+    if (!ii && ireq) ii = (void *)IExec->GetInterface((struct Library *)ireq->io_Device, "main", 1, NULL);
+    return ii ? ii->PeekQualifier() : 0;
+}
 
 static void script(void);
 
@@ -153,42 +164,38 @@ static void script(void)
         break;
     case 7:
         check(c_dyn == 1, "its shortcut does nothing any more");
-        /* a context menu: RMB down over the OK button, move onto the first item, release */
+        /* a context menu: Shift + RMB down over the OK button, move onto the first item,
+           release. The Shift and the button come from QEMU (the "# HMP:" line, run by
+           os4guest.py test): input injected here while a menu is up can stall the bridge,
+           and timed injection made this step flaky on a busy guest */
         if (ready_mouse() && bb_ctl_screen_box(C("ok"), &ox, &oy, &ow, &oh)) {
             pointer(ox + ow / 2, oy + oh / 2);
-            IDOS->Delay(2);
-            /* context menus open with Shift + RMB (a plain RMB is the menu bar) */
-            struct InputEvent ie;
-            memset(&ie, 0, sizeof ie);
-            ie.ie_Class = IECLASS_RAWKEY;
-            ie.ie_Code = 0x60;
-            ie.ie_Qualifier = IEQUALIFIER_LSHIFT;
-            inject(&ie);
-            IDOS->Delay(2);
-            memset(&ie, 0, sizeof ie);      /* the press carries the Shift as well */
-            ie.ie_Class = IECLASS_RAWMOUSE;
-            ie.ie_Code = IECODE_RBUTTON;
-            ie.ie_Qualifier = IEQUALIFIER_RBUTTON | IEQUALIFIER_LSHIFT;
-            inject(&ie);
+            rmb_wait = 0;
+            printf("# HMP: sendkey shift 7000; sleep 0.5; mouse_button 2; sleep 5; mouse_button 0\n");
         } else
             step = 10;
         break;
     case 8:
-        /* the context menu opens with its first item under the pointer, or just below it */
+        /* wait for the button (from QEMU), then onto the menu's first item, under the pointer
+           or just below it */
+        if (!(qual() & IEQUALIFIER_RBUTTON)) {
+            if (++rmb_wait < 100) step--;
+            else {
+                printf("# the right button never went down (no HMP?), qualifiers %x\n", qual());
+                step = 10;
+            }
+            break;
+        }
         for (int i = 1; i <= 6; i++) {
             pointer(ox + ow / 2 + 2 * i, oy + oh / 2 + 2 * i);
             IDOS->Delay(1);
         }
+        rmb_wait = 0;
         break;
-    case 9: {
-        mbutton(IECODE_RBUTTON, 1);
-        struct InputEvent ie;
-        memset(&ie, 0, sizeof ie);
-        ie.ie_Class = IECLASS_RAWKEY;
-        ie.ie_Code = 0x60 | IECODE_UP_PREFIX;
-        inject(&ie);
+    case 9:
+        /* QEMU lets the button go: the item under the pointer is picked */
+        if ((qual() & IEQUALIFIER_RBUTTON) && ++rmb_wait < 100) step--;
         break;
-    }
     case 10:
         printf("# context menu: A %d, B %d, ContextControl \"%s\", qualifier seen %x\n", c_ctxa, c_ctxb, gets_("Form", "ContextControl"), geti("Form", "ContextQualifier"));
         check(c_ctxa + c_ctxb == 1, "the right mouse button over ok opened mnuCtx and picked an item");
@@ -226,6 +233,8 @@ int main(void)
     check(r == 0, "the event loop ended");
     bb_forms_cleanup();
     printf("# events: %s\n", log_);
+    if (ii) IExec->DropInterface((struct Interface *)ii);
+    ii = NULL;
     inject_close();
     printf("%s (%d/%d)\n", fails ? "FAIL" : "PASS", n - fails, n);
     return fails ? 10 : 0;

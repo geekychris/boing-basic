@@ -10,7 +10,9 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
     tools/os4guest.py mouse DX DY                      move the selected guest's mouse (through its devbench;
                                                       QEMU monitor commands: hmp(cmd) in scripts). Both
                                                       always refuse m1 (the user's guest)
-    tools/os4guest.py test LOCAL_TEST_BINARY [args]   push to RAM:bbtest/ and run it, exit 1 on FAIL
+    tools/os4guest.py test LOCAL_TEST_BINARY [args]   push to RAM:bbtest/ and run it, exit 1 on FAIL; a
+                                                      "# HMP: cmd; sleep s; cmd" line it prints is run on
+                                                      the QEMU monitor (buttons, held keys)
     tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|jit|native|both|all]
                                                       run a BASIC test with build/os4/boing (VM)
                                                       and/or natively built; exit 1 unless PASS
@@ -906,10 +908,21 @@ def main():
                 return 0
             run_bg_cmd(m, "%s >%s" % (" ".join(["RAM:bbtest/" + name] + args[1:]), outf))
             limit = float(os.environ.get("BB_TEST_TIMEOUT", "180"))
-            t0, out = time.time(), ""
+            t0, out, hmp_done = time.time(), "", 0
             while time.time() - t0 < limit:
                 time.sleep(2)
                 out = m.tool("amiga_dos_command", command="type %s" % outf)
+                # "# HMP: cmd; sleep 1.5; cmd" lines: input at the QEMU level (mouse buttons, held
+                # keys), which a test can't inject safely itself while a menu is up. A whole
+                # sequence is one line, so nothing is polled through the bridge in between.
+                lines = re.findall(r"^# HMP: (.*)$", out, re.M)
+                for line in lines[hmp_done:]:
+                    for c in [x.strip() for x in line.split(";") if x.strip()]:
+                        if c.startswith("sleep "):
+                            time.sleep(float(c.split()[1]))
+                        else:
+                            hmp(c, wait=0.2)
+                hmp_done = len(lines)
                 if re.search(r"^(PASS|FAIL)\b", out, re.M):
                     break
             else:
