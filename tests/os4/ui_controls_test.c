@@ -5,6 +5,7 @@
 #define MAIN_TITLE "Boing controls test - running"
 #include "test_inject.h"
 #include "bb_forms.h"
+#include "os4/forms_int.h"     /* the listbrowser's nodes, read back below */
 
 static const char __attribute__((used)) stack_cookie[] = "$STACK:262144";
 
@@ -154,6 +155,23 @@ int main(void)
     bb_fval item = { BB_FV_STR, 0, "d.txt\t5", NULL };
     bb_ctl_call(C("files"), "AddItem", 1, &item, &r);
     check(geti("files", "ListCount", -1) == 4 && geti("files", "Selected", 2) == -1, "AddItem keeps the selection");
+    {
+        /* what listbrowser.gadget holds and draws: each node's column texts (LBNCA_Text), which
+           must be the row's own cells, not the last cell in every column */
+        bb_ctl *lc = C("files");
+        int row = 0, bad = 0;
+        for (struct Node *nd = lc->labels.lh_Head; nd->ln_Succ; nd = nd->ln_Succ, row++)
+            for (int k = 0; k < 2; k++) {
+                STRPTR txt = NULL;
+                bbf_ILB->GetListBrowserNodeAttrs(nd, LBNA_Column, k, LBNCA_Text, &txt, TAG_DONE);
+                const char *want = gets2("files", "Cell", row, k);
+                if (!txt || strcmp((const char *)txt, want)) {
+                    printf("# row %d column %d shows \"%s\", Cell is \"%s\"\n", row, k, txt ? (char *)txt : "(null)", want);
+                    bad++;
+                }
+            }
+        check(row == 4 && bad == 0, "every listbrowser column shows its own cell (node texts read back)");
+    }
 
     /* texteditor */
     printf("# initial Text \"%s\"\n", gets_("ed", "Text", -1));
