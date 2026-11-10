@@ -1,5 +1,5 @@
 # AmiForge GUI (edit with Tools > GUI Designer)
-window name=chat title="Boing Chat" width=520 height=380 resizable=1
+window name=chat title="Boing Chat" width=420 height=260 resizable=1
 vlayout id=root
   hlayout weight=0
     string id=host label="Host" text="127.0.0.1" maxchars=128
@@ -13,4 +13,4 @@ vlayout id=root
   hlayout weight=0
     string id=msg label="Say" maxchars=400
     button id=sendbtn text="_Send" weight=0 disabled=1
-  label id=status text="Host a chat, or join one at Host:Port"
+  label id=status text="Host a chat, or join one at Host:Port" weight=0

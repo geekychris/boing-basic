@@ -1,5 +1,10 @@
 # Boing Chat
 
+![Three Boing Chat windows on AmigaOS 4: the host and two clients](docs/guest-chat.png)
+
+*On the AmigaOS 4 guest: `chat host 7000`, then `chat join self 7000 Ann ...` and
+`chat join self 7000 Bob ...`; the host (top) relays every line to everyone.*
+
 A chat room over TCP, written with the `Socket` class (docs/socket.md). One program is both
 ends:
 
@@ -22,3 +27,11 @@ reading with `Peek` + `ReceiveLine`, connecting with events (`Connect`/`Error`),
 `MachineAddress` to tell the user where to connect.
 
 Two instances on one machine: host in one, join `127.0.0.1` (or the shown address) in the other.
+From a shell:
+
+```
+chat host 7000                              # host straight away
+chat join self 7000 Ann Hello from Boing!   # join this machine's chat and say something
+chat join 192.168.1.20 7000 Bob             # join another machine's
+chat host 7000 @20,140                      # ... and put the window at x=20, y=140
+```
