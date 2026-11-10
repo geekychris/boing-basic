@@ -1,21 +1,25 @@
-Private mVolume As Integer
+Dim level As Integer
 
-Property Get Volume() As Integer
-    Volume = mVolume
-End Property
+Sub Show()
+    Dim level As Integer          ' hides the module's level
+    level = 99
+    Print "inside"; level
+End Sub
 
-Property Let Volume(ByVal v As Integer)
-    If v < 0 Then v = 0
-    If v > 64 Then v = 64          ' keep it in range
-    mVolume = v
-End Property
+Function NextId() As Long
+    Static lastId As Long
+    lastId = lastId + 1
+    NextId = lastId
+End Function
 
-Property Get Cell(ByVal row As Long, ByVal col As Long) As Long
-    Cell = row * 10 + col
-End Property
+Static Function RunningTotal(ByVal x As Long) As Long
+    Dim sum As Long               ' static, because the whole Function is Static
+    sum = sum + x
+    RunningTotal = sum
+End Function
 
-Volume = 100
-Print Volume
-Volume = Volume - 70
-Print Volume
-Print Cell(2, 3)
+level = 1
+Show
+Print "outside"; level
+Print NextId(); NextId(); NextId()
+Print RunningTotal(5); RunningTotal(10)

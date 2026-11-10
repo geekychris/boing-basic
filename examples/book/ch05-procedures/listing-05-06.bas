@@ -1,16 +1,17 @@
-Function Area(ByVal w As Double, Optional ByVal h As Double = -1) As Double
-    If h < 0 Then h = w          ' a square if no height is given
-    Area = w * h
+Function Sum(values() As Long) As Long
+    Dim i As Long
+    For i = LBound(values) To UBound(values)
+        Sum = Sum + values(i)
+    Next
 End Function
 
-Sub Report(ByVal title As String, Optional detail As Variant)
-    If IsMissing(detail) Then
-        Print title
-    Else
-        Print title; ": "; detail
-    End If
+Sub Grow(values() As Long, ByVal extra As Long)
+    ReDim Preserve values(UBound(values) + extra)
 End Sub
 
-Print Area(3); Area(3, 4)
-Report "Done"
-Report "Done", "3 files"
+Dim fixed(1 To 3) As Long, dyn() As Long
+fixed(1) = 10: fixed(2) = 20: fixed(3) = 30
+Print Sum(fixed)
+ReDim dyn(1)
+Grow dyn, 4
+Print UBound(dyn)

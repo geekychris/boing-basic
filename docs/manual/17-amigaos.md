@@ -161,22 +161,43 @@ Public Const MEMF_CLEAR = 65536
 Print "These lines come from exec.bi"
 ```
 
-To use a binding, add it to your project as a module. In the `.bbp` file:
+To use a binding, include it: a line `#Include "dos.bi"` at the start of a line of your
+program (usually at the top) adds `dos.bi` to the program as a module of its own, and all its
+Declares and constants can then be used in every module:
+
+*Listing 17.4* (`examples/book/ch17-amigaos/listing-17-04.bas`)
+
+```basic
+Option Explicit
+#Include "exec.bi"
+
+Print "MEMF_CLEAR ="; MEMF_CLEAR; " MEMF_CHIP ="; MEMF_CHIP
+```
+
+In a project, the key `Uses=` does the same for several bindings at once; name them without
+`.bi`:
 
 ```ini
 # Boing BASIC project: a window and animation through intuition and graphics
 Name=DeclareGfx
 Startup=Sub Main
 Module=declare_gfx.bas
-Module=BOING:bindings/exec.bi
-Module=BOING:bindings/intuition.bi
-Module=BOING:bindings/graphics.bi
+Uses=exec,intuition,graphics
 ```
 
-A path with a colon (`BOING:bindings/exec.bi`) is used as it is; other paths are relative to
-the project file (`../../bindings/exec.bi`). A `.bi` file is an ordinary module, so you can
-also open it in an editor to look up a function's arguments. (There is no `#Include`
-statement: bindings go into the project.)
+Each file is added once, however many modules include it. `boing` looks for it beside the file
+that includes it (or beside the project, for `Uses=`), then in the directory named by the
+environment variable `BOING_BINDINGS` if that is set, and then in the `bindings` directory of
+Boing BASIC itself: `BOING:bindings/` on the Amiga (if there is no `BOING:` assign, the
+`bindings` drawer beside the `boing` command). So a file of your own with the same name, beside
+your program, wins over the ready-made one. A name with a colon (`Work:mybindings/foo.bi`)
+is used as it is. A file that can't be found is a compile error that says where `boing`
+looked. `#Include` is not allowed in a class module; include the binding in a standard module
+(its declarations are visible in the class too).
+
+A `.bi` file is an ordinary module, so you can also list it in a project with `Module=` and a
+path, and open it in an editor to look up a function's arguments. The general rules of
+`#Include` and `Uses=` are in [Procedures](05-procedures.md#sharing-code-include-and-uses).
 
 The generated names follow the SDK, with a few changes:
 
@@ -236,7 +257,7 @@ function gets the variable's own memory, so a function that writes into a buffer
 your string. That is how you receive text: make the variable long enough first with
 `Space(n)`, call, then cut it to the length the function returns (or to the first zero byte):
 
-*Listing 17.4* (`examples/book/ch17-amigaos/listing-17-04.bas`)
+*Listing 17.5* (`examples/book/ch17-amigaos/listing-17-05.bas`)
 
 ```basic
 Option Explicit
@@ -273,7 +294,7 @@ C function returns a 16-bit value or a flag. For a function that returns a point
 C string), declare the result `As String`: Boing BASIC copies the text into a String for you,
 and a NULL result gives `""`. dos.library's `FilePart` returns the file name part of a path:
 
-*Listing 17.5* (`examples/book/ch17-amigaos/listing-17-05.bas`)
+*Listing 17.6* (`examples/book/ch17-amigaos/listing-17-06.bas`)
 
 ```basic
 Declare Function FilePart Lib "dos.library" (ByVal path As String) As String
@@ -297,17 +318,11 @@ Many dos.library functions report failure through `IoErr()`. Read it immediately
 call that failed: anything that writes to the console (a `Print`) changes it, and so does the
 first call of a declared function, which opens its library.
 
-*Listing 17.6* (`examples/book/ch17-amigaos/listing-17-06.bas`)
+*Listing 17.7* (`examples/book/ch17-amigaos/listing-17-07.bas`)
 
 ```basic
 Option Explicit
-
-Declare Function Dos_Lock Lib "dos.library" Alias "#13" (ByVal name_ As String, ByVal type_ As Long) As Long
-Declare Sub Dos_UnLock Lib "dos.library" Alias "#14" (ByVal lock_ As Long)
-Declare Function IoErr Lib "dos.library" Alias "#21" () As Long
-
-Const SHARED_LOCK = -2
-Const ERROR_OBJECT_NOT_FOUND = 205
+#Include "dos.bi"           ' Dos_Lock, Dos_UnLock, IoErr, SHARED_LOCK, ERROR_OBJECT_NOT_FOUND
 
 Sub Main()
     Dim lk As Long, e As Long
@@ -384,7 +399,7 @@ to 2-byte boundaries). Some that are often needed:
 
 Give offsets names with `Const` so the code says what it reads:
 
-*Listing 17.7* (`examples/book/ch17-amigaos/listing-17-07.bas`)
+*Listing 17.8* (`examples/book/ch17-amigaos/listing-17-08.bas`)
 
 ```basic
 Option Explicit
@@ -413,18 +428,11 @@ one to a library; build the structure in memory as above.
 For binary data, such as a file read with dos.library, use a block from `AllocMem` and
 `StrPtr` for text you send:
 
-*Listing 17.8* (`examples/book/ch17-amigaos/listing-17-08.bas`)
+*Listing 17.9* (`examples/book/ch17-amigaos/listing-17-09.bas`)
 
 ```basic
 Option Explicit
-
-Declare Function Dos_Open Lib "dos.library" Alias "#4" (ByVal name_ As String, ByVal accessMode As Long) As Long
-Declare Function Dos_Close Lib "dos.library" Alias "#5" (ByVal file As Long) As Long
-Declare Function Dos_Read Lib "dos.library" Alias "#6" (ByVal file As Long, ByVal buffer As Long, ByVal length As Long) As Long
-Declare Function Dos_Write Lib "dos.library" Alias "#7" (ByVal file As Long, ByVal buffer As Long, ByVal length As Long) As Long
-
-Const MODE_OLDFILE = 1005
-Const MODE_NEWFILE = 1006
+#Include "dos.bi"           ' Dos_Open, Dos_Close, Dos_Read, Dos_Write, MODE_OLDFILE, MODE_NEWFILE
 
 Sub Main()
     Dim fh As Long, s As String, mem As Long, n As Long
@@ -466,7 +474,7 @@ returns its address; `FreeTagList` frees it.
 This excerpt from `examples/declare_gfx` opens a window with `OpenWindowTagList` and reads
 its RastPort and borders from `struct Window`:
 
-*Listing 17.9* (`examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp`)
+*Listing 17.10* (`examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp`)
 
 <!-- project: examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp -->
 ```basic
@@ -487,7 +495,7 @@ its RastPort and borders from `struct Window`:
 
 and this is how it checks the window's message port for a click on the close gadget:
 
-*Listing 17.10* (`examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp`)
+*Listing 17.11* (`examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp`)
 
 <!-- project: examples/book/ch17-amigaos/declare_gfx/declare_gfx.bbp -->
 ```basic
@@ -524,7 +532,7 @@ Function in a module, as a Long, to store in a `struct Hook` or pass to a librar
 
 On AmigaOS 4 a hook's function is called with the hook, the object and the message:
 
-*Listing 17.11* (`examples/book/ch17-amigaos/listing-17-11.bas`)
+*Listing 17.12* (`examples/book/ch17-amigaos/listing-17-12.bas`)
 
 ```basic
 ' A utility.library hook whose function is written in BASIC
@@ -576,8 +584,8 @@ of [Extending Boing BASIC](20-extending.md).
 - `Declare Sub|Function name Lib "x.library" [Alias "#n" | "Name"] [Interface "main"]
   [Version n] (...)` calls any AmigaOS 4 library function; the library opens at the first call
   and closes at the end.
-- The generated `bindings/*.bi` files declare the SDK's functions and constants: add them to
-  the project with `Module=`.
+- The generated `bindings/*.bi` files declare the SDK's functions and constants: bring them
+  in with `#Include "dos.bi"` or the project key `Uses=dos,intuition`.
 - Arguments are 32-bit values: write `ByVal`, use Longs for pointers, String variables
   (made with `Space(n)`) for buffers and `vbNullString` for NULL.
 - `PeekB/W/L`, `PokeB/W/L`, `PeekS`, `VarPtr`, `StrPtr`, `AllocMem` and `TagList` handle

@@ -4,7 +4,5 @@
 Name=DeclareGfx
 Startup=Sub Main
 Module=declare_gfx.bas
-Module=../../../../bindings/exec.bi
-Module=../../../../bindings/intuition.bi
-Module=../../../../bindings/graphics.bi
+Uses=exec,intuition,graphics
 Stack=262144

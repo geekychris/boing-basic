@@ -1,4 +1,5 @@
-App.Path is set: True
-title = name: True
-My program
-window width 640
+read-only:True
+read-only:False
+changed in the last minute:True
+directory:True
+missing file: error 53 

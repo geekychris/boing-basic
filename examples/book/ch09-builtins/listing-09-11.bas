@@ -1,3 +1,3 @@
-Print Format(1234.5, "General Number"); " | "; Format(1234.5, "Fixed"); " | "; Format(1234.5, "Standard")
-Print Format(1234.5, "Currency"); " | "; Format(-1234.5, "Currency"); " | "; Format(0.256, "Percent")
-Print Format(123.456, "Scientific"); " | "; Format(1, "Yes/No"); " | "; Format(0, "True/False"); " | "; Format(5, "On/Off")
+Print "["; Str(42); "]["; Str(-7); "]["; Str(0.5); "]["; CStr(42); "]"
+Print Val("12 apples"); Val(" 3.5e2 "); Val("&HFF"); Val("-1 2 3"); Val("none")
+Print Hex(255); " "; Hex(-1); " "; Hex(65536); " "; Oct(8); " &H"; Hex(48879)

@@ -1,6 +1,18 @@
-Dim f As Integer, s As String
+Dim f As Integer
 f = FreeFile
-Open App.Path & "/readme.txt" For Input As #f
-Line Input #f, s
+Open "report.txt" For Output As #f
+Print #f, "Monthly report"
 Close #f
-Print s
+
+Print "size"; FileLen("report.txt")
+FileCopy "report.txt", "backup.txt"
+Name "report.txt" As "final.txt"
+Print Dir("report.txt") = ""; " "; Dir("final.txt"); " "; Dir("backup.txt")
+
+MkDir "archive"
+Name "backup.txt" As "archive/backup.txt"
+Print Dir("archive/*.txt")
+
+Kill "final.txt"
+Kill "archive/backup.txt"
+RmDir "archive"

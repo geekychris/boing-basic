@@ -218,6 +218,30 @@ exist, or an array that was not declared. Check the spelling, and that the proce
 Print Lenn("abc")
 ```
 
+**ambiguous name 'x': it is a Public procedure in modules A and B (write A.x)**: two modules
+have a `Public` procedure of that name, and a third module uses it without saying which. Write
+the module name in front, as the message suggests ([Procedures](05-procedures.md#qualified-names)).
+Inside module A or B, the name alone means that module's own procedure.
+
+**cannot find include file 'x' (looked beside the program, in $BOING_BINDINGS and in the
+bindings directory)**: an `#Include` line or a `Uses=` key names a file that isn't in any of
+those places. Check the spelling, or set `BOING_BINDINGS`
+([Procedures](05-procedures.md#sharing-code-include-and-uses)).
+
+<!-- error: cannot find include file 'utils.bi' -->
+```basic
+#Include "utils.bi"
+Print "never compiled"
+```
+
+**#Include is not allowed in a class module: put it in a standard module**: include the file in
+any standard module; its Public declarations are visible in the class too.
+
+**the form 'x' has the same name as the module / class / procedure 'x'**: a form's window name
+(`name=` in the `.afg`) is also the name of another module, a class, or a `Public` procedure or
+variable. Rename one of them ([Forms](12-forms.md#reaching-a-form-from-other-modules)). A
+window may have the name of its own code-behind module.
+
 **'x' is already declared in this procedure** / **'x' is already defined**: the same name
 declared twice.
 
@@ -374,5 +398,10 @@ name 'collection'** instead.)
 
 **'x' hides the Public 'x' of module M here**: a module-level variable with the same name as a
 `Public` one in another module; in this module the name means the local one.
+
+**module-level statements in 'M' never run (only the startup module's do): move them into a
+Sub**: statements outside any procedure in a module that is not the startup module (also in a
+file added with `#Include` or `Uses=`). Only declarations belong there; put the statements in
+a Sub and call it ([Program structure](04-data.md#the-shape-of-a-program)).
 
 See also: [Errors and error handling](08-errors.md), [Built-in functions](appendix-b-functions.md).

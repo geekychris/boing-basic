@@ -1198,8 +1198,9 @@ Public Sub Main()
 End Sub
 ```
 
-(The form is called `editor` here: a form can't be shown from another module if its name is
-also the name of its file's module, or of a procedure such as `Main`.)
+(The form is called `editor` here, though `jotter`, the name of its own file, would do as
+well. What it can't be called is the name of another module, a class or a Public procedure or
+variable, such as `Main` or `Startup`: that is a compile error.)
 
 In code, translate every text the user sees, and build sentences with placeholders rather than
 by joining pieces, because the word order differs between languages:

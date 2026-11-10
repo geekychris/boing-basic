@@ -59,7 +59,9 @@ window's close gadget.
    underlines the next letter: Amiga users can press that key instead of clicking.
 4. Select the window and set its title to `Hello`. Its **Code name** is the form's name
    (`main` here), the `name=` of the `window` line. `Startup=Form main` in the `.bbp` names the
-   startup form by its file, `main.afg`; in the template the two names are the same.
+   startup form by its file, `main.afg`; in the template the two names are the same. They may
+   differ, but the window name must not be the name of another module, a class or a Public
+   procedure or variable (`boing check` reports that as an error).
 5. **Double-click the button** in the Layout tree (or click it twice in the preview). The
    editor opens `main.bas` at a new, empty `Sub hello_Click()`, with the cursor inside it.
    Type the code below.
