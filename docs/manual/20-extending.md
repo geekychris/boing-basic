@@ -335,8 +335,9 @@ static bb_obj *new_stats(void)
 ```
 
 `bb_obj_new` makes a zeroed object with one reference. `bb_register_class` makes
-`Set s = New Stats`, `CreateObject("Stats")` (or `"Boing.Stats"`), `Dim s As Stats` and
-`TypeName(s)` work. The runtime counts the references to an object and calls `terminate` when
+`Set s = New Stats`, `Dim s As New Stats`, `CreateObject("Stats")` (or `"Boing.Stats"`),
+`Dim s As Stats` and `TypeName(s)` work; a registered class without a create function raises
+error 429 when a program tries to make one. The runtime counts the references to an object and calls `terminate` when
 the last one goes, then frees its memory. The whole file is
 `examples/book/ch20-extending/mathx/mathx.c` in the book examples.
 
