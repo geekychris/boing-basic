@@ -66,22 +66,35 @@ GUESTS = {
     "local": {"url": "http://localhost:3010/mcp", "lock": "/tmp/amiga-emu.lock",
               "queue": "/tmp/amiga-emu.queue", "ssh": None, "hmp": 2348},
     "m1": {"url": "http://localhost:3020/mcp", "lock": "/tmp/amiga-emu-m1.lock",
-           "queue": "/tmp/amiga-emu-m1.queue", "ssh": "chriscollins@m1.local"},   # the USER's guest: no "hmp" (no screenshots/input)
+           "queue": "/tmp/amiga-emu-m1.queue", "ssh": "remote"},   # the USER's guest: no "hmp" (no screenshots/input)
     # the second guest on m1 (~/retro/os4b.sh there, devbench :3003; tunnel localhost:3030 -> m1:3003)
     "m1b": {"url": "http://localhost:3030/mcp", "lock": "/tmp/amiga-emu-m1b.lock",
-            "queue": "/tmp/amiga-emu-m1b.queue", "ssh": "chriscollins@m1.local", "http_port": 18781,
+            "queue": "/tmp/amiga-emu-m1b.queue", "ssh": "remote", "http_port": 18781,
             "hmp": 2448},
     # the third guest on m1 (~/retro/os4c.sh there, devbench :3004; tunnel localhost:3040 -> m1:3004)
     "m1c": {"url": "http://localhost:3040/mcp", "lock": "/tmp/amiga-emu-m1c.lock",
-            "queue": "/tmp/amiga-emu-m1c.queue", "ssh": "chriscollins@m1.local", "http_port": 18782,
+            "queue": "/tmp/amiga-emu-m1c.queue", "ssh": "remote", "http_port": 18782,
             "hmp": 2548},
     "spark": {"url": "http://127.0.0.1:3032/mcp", "lock": "/tmp/amiga-emu-spark.lock",
-              "queue": "/tmp/amiga-emu-spark.queue", "ssh": "chris@spark.local", "hmp": 2348},
+              "queue": "/tmp/amiga-emu-spark.queue", "ssh": "remote", "hmp": 2348},
 }
 GUEST = os.environ.get("BB_GUEST", "local")
 if GUEST not in GUESTS:
     sys.exit("os4guest: unknown BB_GUEST %r (local, m1, m1b, m1c, spark)" % GUEST)
 _G = GUESTS[GUEST]
+# "remote" guests' ssh logins aren't kept in the repo: BB_SSH_<GUEST> (e.g. BB_SSH_M1B=me@host.local),
+# or a {"m1": "me@host.local", ...} map in ~/.config/boing-basic/os4guest-hosts.json (BB_GUEST_HOSTS)
+if _G["ssh"] == "remote":
+    _hosts = os.environ.get("BB_GUEST_HOSTS", os.path.expanduser("~/.config/boing-basic/os4guest-hosts.json"))
+    try:
+        with open(_hosts) as _f:
+            _G = dict(_G, ssh=json.load(_f).get(GUEST))
+    except (OSError, ValueError):
+        _G = dict(_G, ssh=None)
+    _G["ssh"] = os.environ.get("BB_SSH_" + GUEST.upper(), _G["ssh"])
+    if not _G["ssh"] and not os.environ.get("OS4_SSH"):
+        sys.exit("os4guest: no ssh login for guest %r: set BB_SSH_%s=user@host or add it to %s"
+                 % (GUEST, GUEST.upper(), _hosts))
 URL = os.environ.get("OS4_MCP", _G["url"])
 LOCK = os.environ.get("OS4_LOCK", _G["lock"])
 SSH = os.environ.get("OS4_SSH", _G["ssh"] or "") or None
