@@ -459,6 +459,24 @@ static void declare_members(Program *p, Module *m)
             pr->iface = d->d ? d->d->name : xstrdup("main");
             pr->version = (int)d->ival;
             if (d->op == PK_FUNCTION && !pr->ret) pr->ret = &ty_variant;
+            if (!strcmp(pr->lib, "C")) {
+                /* Lib "C": ByVal numbers, Booleans and Strings; the same for the result */
+                int k;
+                pr->clib = 1;
+                for (k = 0; k < pr->nparams; k++) {
+                    Param *pa = &pr->params[k];
+                    int tk = pa->ty->kind;
+                    if (pa->byref || pa->optional || pa->paramarray) ERR(c, d, "Lib \"C\" parameters must be ByVal (%s)", pa->name);
+                    else if (tk != T_LONG && tk != T_INTEGER && tk != T_BYTE && tk != T_BOOLEAN && tk != T_SINGLE && tk != T_DOUBLE && tk != T_STRING)
+                        ERR(c, d, "Lib \"C\" parameter %s: only Long, Integer, Byte, Boolean, Single, Double or String", pa->name);
+                }
+                if (pr->ret) {
+                    int tk = pr->ret->kind;
+                    if (tk == T_VARIANT) ERR(c, d, "a Lib \"C\" Function needs an As type");
+                    else if (tk != T_LONG && tk != T_INTEGER && tk != T_BYTE && tk != T_BOOLEAN && tk != T_SINGLE && tk != T_DOUBLE && tk != T_STRING)
+                        ERR(c, d, "a Lib \"C\" Function returns Long, Integer, Byte, Boolean, Single, Double or String");
+                }
+            }
             add_proc(p, pr);
             s->proc = pr;
             s->mod = m;

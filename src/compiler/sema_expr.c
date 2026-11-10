@@ -1289,11 +1289,8 @@ static Node *resolve_member(Ctx *c, Node *e, Node *base, const char *name, NodeL
             e->ty = &ty_variant;
             return e;
         }
-        if ((mode == M_LVAL || mode == M_SETLVAL) && m->kind != 1) {
+        if ((mode == M_LVAL || mode == M_SETLVAL) && m->kind != 1)
             ERR(c, e, "%s.%s is %s", t->cls->name, m->name, m->kind == 2 ? "read-only" : "a method");
-            e->ty = &ty_variant;
-            return e;
-        }
         if (mode == M_STMT) kind = BB_INV_METHOD;
         if (mode == M_LVAL) kind = BB_INV_LET;
         if (mode == M_SETLVAL) kind = BB_INV_SET;

@@ -297,6 +297,7 @@ struct Proc {
     char *lib, *alias, *iface;  /* Declare */
     int version;
     int is_func_declare;
+    int clib;               /* Declare ... Lib "C": a C function of a CSource= file (docs/extensions.md) */
     int line, file;
     char *cname;
     int is_handler;

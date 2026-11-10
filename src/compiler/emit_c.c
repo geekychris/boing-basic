@@ -732,10 +732,43 @@ static char *call_args(EC *e, Proc *pr, Node *n, const char *self)
     return b.p ? b.p : xstrdup("");
 }
 
+/* the C type of a Lib "C" parameter or result */
+static const char *clib_ctype(Type *t)
+{
+    switch (t->kind) {
+    case T_INTEGER: return "int16_t";
+    case T_BYTE: return "uint8_t";
+    case T_BOOLEAN: return "int";
+    case T_SINGLE: return "float";
+    case T_DOUBLE: return "double";
+    case T_STRING: return "const char *";
+    default: return "int32_t";
+    }
+}
+
 static R call(EC *e, Node *n)
 {
     Proc *pr = n->proc;
     char *args;
+    if (pr->clib) {
+        /* Declare ... Lib "C": a direct call of the C function (CSource=) */
+        Buf b = {0, 0, 0};
+        int i;
+        char *callx;
+        for (i = 0; i < n->list.n; i++) {
+            Node *a = n->list.v[i];
+            if (a->ty->kind == T_STRING) buf_printf(&b, "%sbb_str_ptr(%s)", i ? ", " : "", val(e, a));
+            else buf_printf(&b, "%s(%s)(%s)", i ? ", " : "", clib_ctype(a->ty), val(e, a));
+        }
+        callx = xsprintf("%s(%s)", pr->alias, b.p ? b.p : "");
+        if (!pr->ret) return mkr(callx, 0);
+        if (pr->ret->kind == T_STRING) return mkr(xsprintf("bb_str_from_c(%s)", callx), 1);
+        {
+            char *tn = new_temp(e, pr->ret, 0);
+            pre(e, "%s = (%s)%s;", tn, ctype(pr->ret), callx);
+            return mkr(tn, 0);
+        }
+    }
     if (pr->kind == PK_DECLARE) {
         Buf b = {0, 0, 0};
         int i;
@@ -2209,10 +2242,18 @@ int emit_c(Program *p, Buf *outb, int debug)
                    t->kind == T_VARIANT ? " = {0, 0, 0, {0}}" : "");
         if (s->withevents) buf_printf(outb, "static bb_wevconn wevg%d;\n", s->index);
     }
-    /* declares */
+    /* declares (Lib "C": a prototype of the C function, called directly) */
     for (i = 0; i < p->nprocs; i++) {
         Proc *pr = p->procs[i];
-        if (pr->kind != PK_DECLARE) continue;
+        int k;
+        if (pr->kind != PK_DECLARE || !pr->clib) continue;
+        buf_printf(outb, "%s %s(", pr->ret ? clib_ctype(pr->ret) : "void", pr->alias);
+        for (k = 0; k < pr->nparams; k++) buf_printf(outb, "%s%s", k ? ", " : "", clib_ctype(pr->params[k].ty));
+        buf_printf(outb, "%s);\n", pr->nparams ? "" : "void");
+    }
+    for (i = 0; i < p->nprocs; i++) {
+        Proc *pr = p->procs[i];
+        if (pr->kind != PK_DECLARE || pr->clib) continue;
         buf_printf(outb, "static bb_declare bb_decl%d = {\"%s\", %s, %s, %s, %d, %d, NULL};\n", pr->index, pr->name,
                    cstrlit(pr->lib, (int)strlen(pr->lib)), cstrlit(pr->alias, (int)strlen(pr->alias)),
                    cstrlit(pr->iface, (int)strlen(pr->iface)), pr->version, pr->nparams);

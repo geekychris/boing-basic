@@ -416,6 +416,15 @@ static void args_for_params(E *e, Node *n, Proc *pr)
 static void call(E *e, Node *n)
 {
     Proc *pr = n->proc;
+    if (pr->clib) {
+        /* Declare ... Lib "C": through the function registry (boing vm --project links the C
+           and its glue; otherwise error 453 when called) */
+        int i;
+        for (i = 0; i < n->list.n; i++) expr(e, n->list.v[i]);
+        op3(e, I_CALLX, str_const(e, pr->name, (int)strlen(pr->name)), n->list.n, pr->ret != NULL);
+        if (pr->ret) op1(e, I_CVT, vt_of(pr->ret));
+        return;
+    }
     if (pr->kind == PK_DECLARE) {
         int i;
         for (i = 0; i < n->list.n; i++) {

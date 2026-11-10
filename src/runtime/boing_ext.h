@@ -36,10 +36,17 @@ const char *bb_ext_class_name(int i);
 int bb_ext_linked(const char *ext);                     /* an extension's init ran */
 void bb_ext_mark_linked(const char *ext);
 
-/* BB_EXTENSION(name) { ... } defines bb_ext_init_name(), run once before the program starts */
+/* BB_EXTENSION(name) { ... } defines bb_ext_init_name() (C linkage, also from C++), run once
+   before the program starts */
+#ifdef __cplusplus
+#define BB_EXT_LINKAGE extern "C"
+#else
+#define BB_EXT_LINKAGE
+#endif
 #define BB_EXTENSION(name) \
     static void bb_ext_body_##name(void); \
-    void bb_ext_init_##name(void) { bb_ext_mark_linked(#name); bb_ext_body_##name(); } \
+    BB_EXT_LINKAGE void bb_ext_init_##name(void); \
+    BB_EXT_LINKAGE void bb_ext_init_##name(void) { bb_ext_mark_linked(#name); bb_ext_body_##name(); } \
     static void bb_ext_body_##name(void)
 
 #ifdef __cplusplus
