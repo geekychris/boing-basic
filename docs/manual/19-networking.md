@@ -1166,7 +1166,7 @@ client can join in too. To try it on one machine, start it twice: host in one wi
 
 ![Three Boing Chat windows on AmigaOS 4](images/chat.png)
 
-*Three chat windows on AmigaOS 4: the host (top) with the whole conversation, then Ann and
+*Three chat windows on AmigaOS 4: the host (left) with the whole conversation, then Ann and
 Bob, who joined it.*
 
 The chat can also be started from the Shell, with what to do on its command line (built with
@@ -1176,10 +1176,13 @@ The chat can also be started from the Shell, with what to do on its command line
 chat host 7000                              ; host a chat on port 7000 straight away
 chat join self 7000 Ann Hello from Boing!   ; join this machine's chat as Ann and say hello
 chat join 192.168.1.20 7000 Bob             ; join another machine's chat as Bob
+chat join self 7000 Bob Hi @640,0           ; ...with the window at x 640, y 0
 ```
 
 `self` stands for this machine's own address (`MachineAddress`), and the words after the name
-are said once the connection is made. The three windows in the picture were started this way.
+are said once the connection is made. A last word `@X,Y` places the window at that position on
+the screen (the program calls `Me.Move x, y` in `Form_Load`). The three windows in the picture
+were started this way, side by side.
 
 ```text
 # chat.afg
