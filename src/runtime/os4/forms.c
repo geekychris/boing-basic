@@ -1106,6 +1106,9 @@ static void canvas_refresh_all(bb_form *f)
     }
 }
 
+static void req_box_before_open(bb_form *f);
+static void req_box_after_open(bb_form *f);
+
 int bb_form_show(bb_form *f)
 {
     if (!f->loaded) return 364;
@@ -1113,8 +1116,10 @@ int bb_form_show(bb_form *f)
         IIntuition->WindowToFront(f->win);
         return 0;
     }
+    req_box_before_open(f);
     f->win = (struct Window *)IIntuition->IDoMethod(f->winobj, WM_OPEN);
     if (!f->win) return 7;
+    req_box_after_open(f);
     f->self.visible = 1;
     bbf_screen_unlock(f);
     if (f->scrtitle) IIntuition->SetWindowTitles(f->win, (STRPTR)~0, f->scrtitle);
@@ -1236,6 +1241,71 @@ static char *editor_text(bb_ctl *c)
     return o;
 }
 
+/* The window's box (outer x, y, w, h): the one last asked of ChangeWindowBox while Intuition
+   hasn't applied it yet (it acts later: two settings in a row must build on the first), else
+   the window's own. After a second the window's own wins (it may have been clamped, or moved). */
+static void win_box(bb_form *f, int b[4])
+{
+    struct Window *w = f->win;
+    if (f->pend && bb_plat_seconds() - f->ptime < 1.0 &&
+        (w->LeftEdge != f->pbox[0] || w->TopEdge != f->pbox[1] || w->Width != f->pbox[2] || w->Height != f->pbox[3])) {
+        memcpy(b, f->pbox, sizeof f->pbox);
+        return;
+    }
+    f->pend = 0;
+    b[0] = w->LeftEdge;
+    b[1] = w->TopEdge;
+    b[2] = w->Width;
+    b[3] = w->Height;
+}
+
+/* Left/Top/Width/Height (inner) for the bits in mask: remembered until the window opens, else
+   one ChangeWindowBox */
+static void set_box(bb_form *f, int mask, int x, int y, int iw, int ih)
+{
+    struct Window *w = f->win;
+    int v[4] = { x, y, iw, ih }, b[4];
+    if (!w) {
+        for (int i = 0; i < 4; i++)
+            if (mask & (1 << i)) f->req[i] = v[i];
+        f->req_mask |= mask;
+        return;
+    }
+    win_box(f, b);
+    if (mask & 1) b[0] = x;
+    if (mask & 2) b[1] = y;
+    if (mask & 4) b[2] = iw + w->BorderLeft + w->BorderRight;
+    if (mask & 8) b[3] = ih + w->BorderTop + w->BorderBottom;
+    IIntuition->ChangeWindowBox(w, b[0], b[1], b[2], b[3]);
+    memcpy(f->pbox, b, sizeof b);
+    f->pend = 1;
+    f->ptime = bb_plat_seconds();
+}
+
+/* the box set before the window opened: given to window.class, and applied once more after
+   the open in case it placed the window itself (WINDOW_Position, a remembered box) */
+static void req_box_before_open(bb_form *f)
+{
+    if (!f->req_mask) return;
+    if (f->req_mask & 3) IIntuition->SetAttrs(f->winobj, WINDOW_Position, 0, TAG_DONE);
+    if (f->req_mask & 1) IIntuition->SetAttrs(f->winobj, WA_Left, f->req[0], TAG_DONE);
+    if (f->req_mask & 2) IIntuition->SetAttrs(f->winobj, WA_Top, f->req[1], TAG_DONE);
+    if (f->req_mask & 4) IIntuition->SetAttrs(f->winobj, WA_InnerWidth, f->req[2], TAG_DONE);
+    if (f->req_mask & 8) IIntuition->SetAttrs(f->winobj, WA_InnerHeight, f->req[3], TAG_DONE);
+}
+
+static void req_box_after_open(bb_form *f)
+{
+    int mask = f->req_mask;
+    if (!mask || !f->win) return;
+    f->req_mask = 0;
+    struct Window *w = f->win;
+    int iw = w->Width - w->BorderLeft - w->BorderRight, ih = w->Height - w->BorderTop - w->BorderBottom;
+    if (((mask & 1) && w->LeftEdge != f->req[0]) || ((mask & 2) && w->TopEdge != f->req[1]) ||
+        ((mask & 4) && iw != f->req[2]) || ((mask & 8) && ih != f->req[3]))
+        set_box(f, mask, f->req[0], f->req[1], f->req[2], f->req[3]);
+}
+
 static int form_get(bb_form *f, const char *prop, bb_fval *out)
 {
     struct Window *w = f->win;
@@ -1249,10 +1319,17 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
     if (IS("Enabled")) return ret_int(out, vb_bool(f->enabled));
     if (IS("Tag")) return ret_str(&f->self, out, f->self.tagstr);
     if (IS("WindowState")) return ret_int(out, f->iconified ? 1 : 0);
-    if (IS("Width")) return ret_int(out, w ? w->Width - w->BorderLeft - w->BorderRight : afg_get_int(f->afg, "width"));
-    if (IS("Height")) return ret_int(out, w ? w->Height - w->BorderTop - w->BorderBottom : afg_get_int(f->afg, "height"));
-    if (IS("Left")) return ret_int(out, w ? w->LeftEdge : 0);
-    if (IS("Top")) return ret_int(out, w ? w->TopEdge : 0);
+    if (IS("Width") || IS("Height") || IS("Left") || IS("Top")) {
+        int i = IS("Left") ? 0 : IS("Top") ? 1 : IS("Width") ? 2 : 3, b[4];
+        if (!w) {
+            if (f->req_mask & (1 << i)) return ret_int(out, f->req[i]);
+            return ret_int(out, i == 2 ? afg_get_int(f->afg, "width") : i == 3 ? afg_get_int(f->afg, "height") : 0);
+        }
+        win_box(f, b);
+        if (i == 2) return ret_int(out, b[2] - w->BorderLeft - w->BorderRight);
+        if (i == 3) return ret_int(out, b[3] - w->BorderTop - w->BorderBottom);
+        return ret_int(out, b[i]);
+    }
     if (IS("ContextMenu")) return ret_str(&f->self, out, f->self.ctxmenu ? f->self.ctxmenu : afg_get(f->afg, "contextmenu"));
     if (IS("ContextMenuKey")) return ret_int(out, f->ctxkey);
     if (IS("HelpNode")) return ret_str(&f->self, out, afg_get(f->afg, "helpnode"));
@@ -1271,7 +1348,6 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
 static int form_set(bb_form *f, const char *prop, const bb_fval *v)
 {
     char buf[16];
-    struct Window *w = f->win;
     if (IS("Caption")) {
         /* window.class keeps the pointer: keep our own copy */
         free(f->self.text);
@@ -1291,13 +1367,8 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
         return 0;
     }
     if (IS("Width") || IS("Height") || IS("Left") || IS("Top")) {
-        if (!w) return 0;
-        int x = w->LeftEdge, y = w->TopEdge, ww = w->Width, hh = w->Height, n = vint(v);
-        if (IS("Width")) ww = n + w->BorderLeft + w->BorderRight;
-        if (IS("Height")) hh = n + w->BorderTop + w->BorderBottom;
-        if (IS("Left")) x = n;
-        if (IS("Top")) y = n;
-        IIntuition->ChangeWindowBox(w, x, y, ww, hh);
+        int i = IS("Left") ? 0 : IS("Top") ? 1 : IS("Width") ? 2 : 3, n = vint(v);
+        set_box(f, 1 << i, i == 0 ? n : 0, i == 1 ? n : 0, i == 2 ? n : 0, i == 3 ? n : 0);
         return 0;
     }
     if (IS("HelpNode")) {
@@ -1720,8 +1791,12 @@ int bb_ctl_call(bb_ctl *c, const char *method, int argc, const bb_fval *argv, bb
             return 0;
         }
         if (IS("Move")) {
-            static const char *const p[4] = { "Left", "Top", "Width", "Height" };
-            for (int i = 0; i < argc && i < 4; i++) form_set(f, p[i], &argv[i]);
+            int a[4] = { 0, 0, 0, 0 }, mask = 0;      /* one ChangeWindowBox for all of them */
+            for (int i = 0; i < argc && i < 4; i++) {
+                a[i] = vint(&argv[i]);
+                mask |= 1 << i;
+            }
+            set_box(f, mask, a[0], a[1], a[2], a[3]);
             return 0;
         }
         return bbf_form_menu_call(f, method, argc, argv, ret);

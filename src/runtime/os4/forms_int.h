@@ -119,6 +119,11 @@ struct bb_form {
     char *ret;               /* the last string returned */
     int loaded, unloading, enabled;
     int16 lastw, lasth;
+    /* Left/Top/Width/Height set before the window opens (bit i of req_mask: req[i], Width and
+       Height inner), and the box last asked of ChangeWindowBox, which acts later (pbox, outer) */
+    int req_mask, req[4];
+    int pend, pbox[4];
+    double ptime;
     struct Hook idcmp_hook;  /* IDCMPUPDATE: per-keystroke Change, slider Scroll */
     uint16 upd[32];          /* gadget ids reported by the hook, handled after it */
     int nupd;
