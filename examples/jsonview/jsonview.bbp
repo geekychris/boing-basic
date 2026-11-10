@@ -1,0 +1,4 @@
+# Boing BASIC project: fetch a JSON API with Http, parse it with JsonParse, show it in a form
+Name=JsonView
+Startup=Form jsonview
+Form=jsonview.afg

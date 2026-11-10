@@ -691,6 +691,10 @@ void bb_freemem(bb_long p);
 bb_long bb_taglist(int argc, const bb_value *argv);
 void bb_ptr_cleanup(void);
 
+/* JSON (json.c): objects as Dictionaries (dict.h), arrays as 0-based Variant arrays */
+bb_value bb_jsonparse(bb_str *text);
+bb_str *bb_jsonstringify(const bb_value *v, bb_long indent);
+
 /* Built-in classes */
 extern const bb_class bb_collection_class;
 bb_obj *bb_collection_new(void);

@@ -1,0 +1,10 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=jsonview title="JSON Viewer" width=560 height=360 resizable=1
+vlayout id=root
+  hlayout weight=0
+    string id=url label="URL" text="https://jsonplaceholder.typicode.com/users/1" maxchars=1024
+    button id=go text="_Get" weight=0
+  listbrowser id=tree
+  hlayout weight=0
+    label id=status text="Type the URL of a JSON API and press Get"
+    button id=pretty text="Show _JSON" weight=0
