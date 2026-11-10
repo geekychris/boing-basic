@@ -132,6 +132,16 @@ tools/os4guest.py bas tests-os4/declare/declare.bbp native   # BASIC project: VM
 tools/os4-form-test.sh both                                  # the BASIC form test with a real click
 ```
 
+**Mouse buttons and held keys from QEMU.** A test that needs a real button press (a menu or
+context menu opened with the right button) prints a line `# HMP: cmd; sleep s; cmd`;
+`os4guest.py test` runs it on the guest's QEMU monitor while it polls the output, e.g.
+`# HMP: sendkey shift 7000; sleep 0.5; mouse_button 2; sleep 5; mouse_button 0` (Shift held 7 s,
+right button down, released 5 s later). On the sam460ex guests `mouse_button` 1 is the left
+button and 2 the right one. A whole sequence is one line, so nothing goes through the bridge
+while the menu is up; the test moves the pointer itself (input.device) and waits for the
+button with `PeekQualifier()` (tests/os4/ui_menu_test.c). Buttons injected through
+input.device, from the test or the bridge, while a menu is up can stall the bridge.
+
 Tests run in a background CLI (`run`) with their output in a file that the tools poll, so a
 test stuck in a requester can't block the bridge; stderr goes to a second file and a runtime
 error ends the wait.
@@ -144,7 +154,7 @@ error ends the wait.
 | `tests-os4/declare/` (`tools/os4guest.py bas`) | Declare from BASIC: generated bindings (slots), Declares by name, Interface/Version, a String argument, a Space(n) buffer filled by GetVar | 8/8 VM and native (2026-11-08) |
 | `tests-os4/bindings/` | exec, dos, utility, intuition/graphics, locale and error paths through the generated bindings ([bindings.md](bindings.md)) | 42/42 VM and native, output == libs.out |
 | `tests-os4/audio/` (`tools/os4guest.py bas`) | the Audio object: fx.mod and effects rendered off-line give the Mac's PCM hashes, then music + effects through AHI from the mixer task ([audio.md](audio.md)) | PASS VM and native, mixer 0.9 % CPU on m1 (2026-11-08) |
-| `tests/os4/ui_menu_test.c` | menus ([ui.md](ui.md)): Amiga-key shortcuts fire `<menu>_Click`, checkable/radio items, Enabled, AddMenu/RemoveMenu, a context menu opened with the right mouse button | 25/25 (m1 and local, 2026-11-08) |
+| `tests/os4/ui_menu_test.c` | menus ([ui.md](ui.md)): Amiga-key shortcuts fire `<menu>_Click`, checkable/radio items, Enabled, AddMenu/RemoveMenu, a context menu opened with Shift + the right mouse button, both from QEMU (`# HMP:`) | 25/25 (m1c, 2026-11-10) |
 | `tests/os4/ui_mouse_test.c` | canvas MouseDown/Move/Up in canvas pixels (scale 2), DblClick, Form_MouseDown | 7/7 |
 | `tests/os4/ui_bars_test.c` | toolbar (click, menu= link), status bar, image, CommonDialog: custom-button requester, asl open (Esc, CancelError, Return), colour requester | 25/25 (local) |
 | `tests/os4/ui_controls_test.c` | TextEditor selection/find/replace, ListBrowser columns/sort/multi-select, tabs, TreeView, Grid (typed cell edit, keys) | 35/35 (local) |
