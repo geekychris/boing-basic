@@ -1,0 +1,4 @@
+# Injection: ? parameters keep whatever a value holds out of the SQL (manual chapter 20)
+Name=Injection
+Module=injection.bas
+Extension=sqlite

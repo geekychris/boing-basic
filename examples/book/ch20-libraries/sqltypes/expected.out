@@ -1,0 +1,16 @@
+Long: stored as integer, read as Long
+big integer: stored as integer, read as Double
+Double: stored as real, read as Double
+Currency: stored as real, read as Double
+whole Currency: stored as integer, read as Long
+Boolean: stored as integer, read as Long
+Date: stored as text, read as String
+bytes: stored as text, read as String
+Null: stored as null, read as Null
+Empty: stored as null, read as Null
+no value: stored as null, read as Null
+ 3 bytes
+2026-11-10 14:30:00
+ 2026 
+2026-12-10
+[]

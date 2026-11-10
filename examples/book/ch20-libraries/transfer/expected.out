@@ -1,0 +1,4 @@
+moved 30 
+the transfer of 500 failed: CHECK constraint failed: balance >= 0
+  Ann 70 
+  Bob 50 

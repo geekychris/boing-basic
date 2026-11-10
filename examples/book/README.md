@@ -506,6 +506,17 @@ native, and checks the others compile.
 | 20.74 | [ch20-libraries/listing-20-74.bas](ch20-libraries/listing-20-74.bas) | Compress and Decompress |
 | 20.75 | [ch20-libraries/listing-20-75.bas](ch20-libraries/listing-20-75.bas) | The Zip class: writing an archive |
 | 20.76 | [ch20-libraries/listing-20-76.bas](ch20-libraries/listing-20-76.bas) | Errors |
+| 20.77 | [ch20-libraries/albums/albums.bbp](ch20-libraries/albums/albums.bbp) | Asking for SQLite: Extension=sqlite |
+| 20.78 | [ch20-libraries/records/records.bbp](ch20-libraries/records/records.bbp) | Asking for SQLite: Extension=sqlite |
+| 20.79 | [ch20-libraries/injection/injection.bbp](ch20-libraries/injection/injection.bbp) | Parameters: always use ? |
+| 20.80 | [ch20-libraries/scores/scores.bbp](ch20-libraries/scores/scores.bbp) | SqlRecordset: the rows of a query |
+| 20.81 | [ch20-libraries/sqltypes/sqltypes.bbp](ch20-libraries/sqltypes/sqltypes.bbp) | Types |
+| 20.82 | [ch20-libraries/readings/readings.bbp](ch20-libraries/readings/readings.bbp) | Transactions |
+| 20.83 | [ch20-libraries/transfer/transfer.bbp](ch20-libraries/transfer/transfer.bbp) | Transactions |
+| 20.84 | [ch20-libraries/addressbook/addressbook.bbp](ch20-libraries/addressbook/addressbook.bbp) | Example: an address book |
+| 20.85 | [ch20-libraries/addressbook/addressbook.bbp](ch20-libraries/addressbook/addressbook.bbp) | Example: an address book |
+| 20.86 | [ch20-libraries/addressbook/addressbook.bbp](ch20-libraries/addressbook/addressbook.bbp) | Example: an address book |
+| 20.87 | [ch20-libraries/sqlerrors/sqlerrors.bbp](ch20-libraries/sqlerrors/sqlerrors.bbp) | Errors |
 
 ## Extending Boing BASIC
 

@@ -1,0 +1,4 @@
+# Transfer: all or nothing, with Rollback in the error handler (manual chapter 20)
+Name=Transfer
+Module=transfer.bas
+Extension=sqlite

@@ -1,0 +1,4 @@
+# Readings: a prepared statement and transactions (manual chapter 20)
+Name=Readings
+Module=readings.bas
+Extension=sqlite

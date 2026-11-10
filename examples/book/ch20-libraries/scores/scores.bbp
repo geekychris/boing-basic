@@ -1,0 +1,4 @@
+# Scores: reading the rows of a query four ways (manual chapter 20)
+Name=Scores
+Module=scores.bas
+Extension=sqlite

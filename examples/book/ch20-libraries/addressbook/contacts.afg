@@ -1,0 +1,15 @@
+# contacts.afg
+window name=contacts title="Address Book" width=560 height=320 resizable=1
+hlayout id=root splitter=1
+  listbrowser id=people columns="Name|Phone" widths="60|40" weight=45
+  vlayout weight=55
+    string id=nameField label="_Name" maxchars=80
+    string id=phoneField label="_Phone" maxchars=40
+    string id=emailField label="_E-mail" maxchars=80
+    string id=notesField label="N_otes" maxchars=200
+    hlayout weight=0
+      button id=addButton text="_Add"
+      button id=saveButton text="_Save"
+      button id=deleteButton text="_Delete"
+    space
+    label id=status text=" "

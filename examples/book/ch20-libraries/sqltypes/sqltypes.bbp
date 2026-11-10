@@ -1,0 +1,4 @@
+# SqlTypes: how Boing BASIC values are stored in SQLite and read back (manual chapter 20)
+Name=SqlTypes
+Module=sqltypes.bas
+Extension=sqlite
