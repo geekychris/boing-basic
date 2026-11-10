@@ -71,6 +71,7 @@ but no `Enabled`, `ToolTipText` or `SetFocus`.
 | | | `dropfiles` | an AppWindow (see Drag and drop) |
 | `Tag` | String | — | |
 | `ContextMenu` | String | `contextmenu` | the window's context menu (over no control that has one) |
+| `HelpNode` | String | `helpnode` | the AmigaGuide node the Help key opens over no control that has one |
 | `ContextControl` | String, R/O | — | the control the last context menu was opened over |
 
 | Method | Notes |
@@ -470,6 +471,7 @@ statusbar id=sb panels="Ready|Ln 1|100%" widths="0|60|50"
 | `Text` / `SimpleText` | String | first of `panels` | panel 0 |
 | `Panel(i)` | String | `panels` | panel i |
 | `PanelCount` | Long, R/O | | |
+| `Hint` | String, R/O | | with `hints=1`: the hint shown in panel 0, "" if none (`Text`/`Panel(0)` stay the program's text) |
 | | | `widths` | pixel widths, 0 = takes the rest |
 | | | `hints` | 1: panel 0 shows the `hint` of the control under the pointer |
 

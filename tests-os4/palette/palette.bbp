@@ -1,0 +1,5 @@
+# ShowPalette from BASIC (docs/ui.md section 3): opened from a Timer event over a form with a
+# status bar with hints, closed by tests/os4/key_inject (Return / Esc)
+Name=PaletteTest
+Startup=Form palette
+Form=palette.afg

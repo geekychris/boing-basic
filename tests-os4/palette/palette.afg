@@ -1,0 +1,9 @@
+window name=palette title="Boing palette test" width=280 height=0
+vlayout id=root
+  label id=chosen text="No colour picked yet"
+  hlayout even=1 weight=0
+    button id=pick text="_Palette..." default=1 hint="Edit the colours"
+    button id=quit text="_Quit" cancel=1 hint="End"
+  statusbar id=sb panels="Ready" hints=1
+  commondialog id=dlg title="Palette test"
+  timer id=startUp interval=300 enabled=0

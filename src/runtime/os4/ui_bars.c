@@ -241,6 +241,12 @@ static Object *build_statusbar(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
 static int panel_set(bb_ctl *c, int i, const char *s)
 {
     if (i < 0 || i >= c->npanels) return 381;
+    if (i == 0 && c->extra && !bbf_hint_setting) {
+        /* a hint is showing (statusbar hints=1): the program's text comes back when it goes */
+        free(c->extra);
+        c->extra = xstrdup(s);
+        return 0;
+    }
     free(c->items[i]);
     c->items[i] = xstrdup(s);
     if (!c->panels[i]) return 0;
@@ -285,11 +291,13 @@ int bbf_ext_get(bb_ctl *c, const char *prop, int index, bb_fval *out)
     switch (c->kind) {
     case AFG_TOOL: return tool_get_prop(c, prop, out);
     case AFG_STATUSBAR:
-        if (IS("Text") || IS("SimpleText")) return ret_str(c, out, c->npanels ? c->items[0] : "");
+        /* while a hint is showing, panel 0 is still the program's own text (c->extra) */
+        if (IS("Text") || IS("SimpleText")) return ret_str(c, out, c->extra ? c->extra : c->npanels ? c->items[0] : "");
         if (IS("PanelCount")) return ret_int(out, c->npanels);
+        if (IS("Hint")) return ret_str(c, out, c->extra && c->npanels ? c->items[0] : "");   /* hints=1: the hint shown */
         if (IS("Panel")) {
             if (index < 0 || index >= c->npanels) return 381;
-            return ret_str(c, out, c->items[index]);
+            return ret_str(c, out, index == 0 && c->extra ? c->extra : c->items[index]);
         }
         return 438;
     case AFG_IMAGE:
@@ -324,7 +332,7 @@ int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
     case AFG_STATUSBAR:
         if (IS("Text") || IS("SimpleText")) return panel_set(c, 0, vstr(v, buf));
         if (IS("Panel")) return panel_set(c, index, vstr(v, buf));
-        if (IS("PanelCount")) return 383;
+        if (IS("PanelCount") || IS("Hint")) return 383;
         return 438;
     case AFG_IMAGE:
         if (IS("Picture")) {

@@ -300,5 +300,6 @@ int bbf_form_menu_call(bb_form *f, const char *method, int argc, const bb_fval *
 char *bbf_strip_underscore(const char *s);
 
 int bb_forms_quit(int mode);
+extern int bbf_hint_setting;     /* status_hint is writing a hint to panel 0 (not the program) */
 
 #endif
