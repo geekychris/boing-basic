@@ -40,18 +40,18 @@ esac
 opt="-O${BOING_OPT:-2}"; [ -n "$debug" ] && opt="-O0 -gstabs"       # stabs: what AmiForge's debugger reads
 # linked extensions and CSource= files (docs/extensions.md): copied beside the generated C (the
 # container sees only this tree), each compiled to an object; with C++ the C++ driver links
-xdir=$work/$base.ext; rm -rf "$xdir"; mkdir -p "$xdir"
+xd=$base.ext.$$; xdir=$work/$xd; rm -rf "$xdir"; mkdir -p "$xdir"     # per run: Docker's file share can miss a directory deleted and made again
 xobjs= cmds= link=ppc-amigaos-gcc progx=
 case $src in *.bbp)
   n=0
   for f in $("$boing" sources "$src"); do
     n=$((n+1)); b=$(basename "$f"); cp "$f" "$xdir/$n-$b"
     case $b in
-    *.cpp|*.cc) cmds="$cmds ppc-amigaos-g++ -athread=native -mcrt=newlib -mcpu=powerpc $opt -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -c build/os4-apps/$base.ext/$n-$b -o build/os4-apps/$base.ext/$n.o &&"
+    *.cpp|*.cc) cmds="$cmds ppc-amigaos-g++ -athread=native -mcrt=newlib -mcpu=powerpc $opt -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -c build/os4-apps/$xd/$n-$b -o build/os4-apps/$xd/$n.o &&"
                 link='ppc-amigaos-g++ -athread=native'; progx="-x c" ;;
-    *) cmds="$cmds ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc $opt -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -c build/os4-apps/$base.ext/$n-$b -o build/os4-apps/$base.ext/$n.o &&" ;;
+    *) cmds="$cmds ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc $opt -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -c build/os4-apps/$xd/$n-$b -o build/os4-apps/$xd/$n.o &&" ;;
     esac
-    xobjs="$xobjs build/os4-apps/$base.ext/$n.o"
+    xobjs="$xobjs build/os4-apps/$xd/$n.o"
   done ;;
 esac
 [ -n "$progx" ] && xobjs="-x none$xobjs"
@@ -63,5 +63,6 @@ docker run --rm -v "$root":/src -w /src "${PPC_IMAGE:-$img}" sh -c "
   n=\$(ppc-amigaos-objdump -d build/os4-apps/$base.exe | grep -c dlmzb || true); test \"\$n\" = 0 ||
   { echo 'boing-build-os4: dlmzb instructions found (440-only)' >&2; exit 20; }"
 mv "$work/$base.exe" "$out"
+rm -rf "$xdir"
 [ -n "$keep" ] && cp "$cfile" "$(dirname "$out")/$base.c"
 echo "$out"
