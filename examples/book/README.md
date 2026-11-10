@@ -413,6 +413,15 @@ native, and checks the others compile.
 | 19.15 | [ch19-networking/asyncfetch/asyncfetch.bbp](ch19-networking/asyncfetch/asyncfetch.bbp) | A downloader with a progress bar |
 | 19.16 | [ch19-networking/asyncfetch/asyncfetch.bbp](ch19-networking/asyncfetch/asyncfetch.bbp) | A downloader with a progress bar |
 | 19.17 | [ch19-networking/asyncfetch/asyncfetch.bbp](ch19-networking/asyncfetch/asyncfetch.bbp) | A downloader with a progress bar |
+| 19.18 | [ch19-networking/listing-19-18.bas](ch19-networking/listing-19-18.bas) | Sockets: TCP and UDP |
+| 19.19 | [ch19-networking/listing-19-19.bas](ch19-networking/listing-19-19.bas) | A server and a client with waiting calls |
+| 19.20 | [ch19-networking/listing-19-20.bas](ch19-networking/listing-19-20.bas) | A server and a client with waiting calls |
+| 19.21 | [ch19-networking/listing-19-21.bas](ch19-networking/listing-19-21.bas) | UDP |
+| 19.22 | [ch19-networking/listing-19-22.bas](ch19-networking/listing-19-22.bas) | Events |
+| 19.23 | [ch19-networking/chat/chat.bbp](ch19-networking/chat/chat.bbp) | A chat room in a form |
+| 19.24 | [ch19-networking/chat/chat.bbp](ch19-networking/chat/chat.bbp) | A chat room in a form |
+| 19.25 | [ch19-networking/listing-19-25.bas](ch19-networking/listing-19-25.bas) | Errors |
+| 19.26 | [ch19-networking/slices/slices.bbp](ch19-networking/slices/slices.bbp) | Example: statistics of a big text file |
 
 ## Modern libraries
 

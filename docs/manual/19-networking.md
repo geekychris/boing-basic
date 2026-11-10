@@ -701,6 +701,702 @@ worker signals your program's task as data arrives, and the event loop, `DoEvent
 - Errors are not raised: check `ErrorNumber` (0, 31101 to 31110, or 18) and `ErrorText`, then
   `Status`.
 
+## Sockets: TCP and UDP
+
+`Http` covers web servers. For everything else on the network there is `Socket`: a client for
+a line-based protocol (mail, a game server, a telnet-style service), a small server of your
+own, a chat between two Amigas, game positions sent many times a second over UDP. It works on
+AmigaOS 4 (through `bsdsocket.library`, the Roadshow TCP/IP stack) and on macOS and Linux, with
+the same behaviour.
+
+You can use a socket in two ways, and mix them in one program:
+
+- **Waiting calls.** `Connect`, `Send`, `Read`, `ReceiveLine` and `Accept` wait until they are
+  done, but at most `Timeout` milliseconds. This is the easy way for console programs and
+  simple clients.
+- **Events.** Declare the variable `WithEvents` and write handlers such as `link_Connect`,
+  `link_DataArrival` and `link_Close`. In a form program they arrive through the window's
+  event loop, like a button's `Click`, so the window stays responsive while the network works.
+
+A first client, asking a web server for the headers of its home page by hand:
+
+*Listing 19.18* (`examples/book/ch19-networking/listing-19-18.bas`)
+
+```basic
+Option Explicit
+Dim web As Socket
+Set web = CreateObject("Socket")
+web.Connect "example.com", 80
+web.Send "HEAD / HTTP/1.0" & vbCrLf & "Host: example.com" & vbCrLf & vbCrLf
+Print web.ReceiveLine()            ' HTTP/1.0 200 OK
+web.Close
+```
+
+### Making a socket
+
+`Set s = CreateObject("Socket")` (or `CreateObject("Boing.Socket")`) makes a new socket. It
+starts closed. `Connect` opens it as a TCP client, `Listen` as a TCP server and `Bind` as a UDP
+socket. `Close` closes it; it can then be opened again, in any of the three ways. A socket is also
+closed when the last reference to it goes away (the last variable that holds it is set to
+`Nothing` or goes out of scope).
+
+Declare the variable `As Socket`: then the compiler checks the member names you use, and
+AmiForge can complete them.
+
+Don't name your program or one of its modules `socket.bas`. The module `socket` would take the
+class's name, and `boing check` stops with "the module 'socket' hides the built-in class
+Socket: rename the module".
+
+### A server and a client with waiting calls
+
+A TCP connection has two ends. The server `Listen`s on a port; a client `Connect`s to the
+server's address and that port; the server's `Accept` then returns a new socket for its end of
+that connection. Both ends `Send` and receive bytes; each `Close`s its end when done.
+
+This program is a tiny echo server and its client at once. The server answers every line in
+capitals. Port 0 asks for any free port, which `LocalPort` then tells you:
+
+*Listing 19.19* (`examples/book/ch19-networking/listing-19-19.bas`)
+
+<!-- run -->
+```basic
+' an echo server and its client in one program, with waiting calls
+Option Explicit
+Dim server As Socket, client As Socket, conn As Socket, addr As String, word As Variant
+
+Set server = CreateObject("Socket")
+addr = "127.0.0.1"
+On Error Resume Next
+server.Listen 0, addr                  ' 0: any free port
+If Err.Number <> 0 Then                ' no loopback interface (some Roadshow setups)
+    addr = server.MachineAddress
+    Err.Clear
+    server.Listen 0, addr
+End If
+On Error GoTo 0
+
+Set client = CreateObject("Socket")
+client.Timeout = 5000
+client.Connect addr, server.LocalPort
+Set conn = server.Accept(2000)         ' the server's end of the connection
+conn.Timeout = 5000
+
+For Each word In Array("hello", "Amiga", "bye")
+    client.SendLine word               ' the client sends a line
+    conn.SendLine UCase(conn.ReceiveLine())     ' the server echoes it in capitals
+    Print "client got: "; client.ReceiveLine()
+Next
+
+client.Close
+Print "server sees the end:"; conn.ReceiveLine() = ""; conn.AtEnd
+conn.Close
+server.Close
+```
+
+```output
+client got: HELLO
+client got: AMIGA
+client got: BYE
+server sees the end:TrueTrue
+```
+
+`127.0.0.1` is the *loopback* address: this machine, talking to itself. Some Roadshow setups on
+AmigaOS have no loopback interface, so listening on `127.0.0.1` fails there; the program then
+uses `MachineAddress`, the machine's own address on the network, instead.
+
+A real server waits for clients in a loop and serves them one after the other:
+
+*Listing 19.20* (`examples/book/ch19-networking/listing-19-20.bas`)
+
+```basic
+Option Explicit
+Dim server As Socket, client As Socket
+Set server = CreateObject("Socket")
+server.Listen 7000
+Do
+    Set client = server.Accept(60000)        ' Nothing when nobody came within a minute
+    If Not client Is Nothing Then
+        client.SendLine "Hello from the Amiga, " & client.RemoteHost
+        client.Close
+    End If
+Loop
+```
+
+Try it with `telnet` or `nc` from another computer: `nc amiga.local 7000`. Stop it with Ctrl-C.
+
+### TCP client members
+
+| Member | What it does |
+|---|---|
+| `Connect host, port` | connects to a host name or address. Without events it waits until it is connected (at most `Timeout`). With events it returns at once, and `Connect` (or `Error`) fires later. |
+| `Send data` | sends all the bytes of a String (binary data is fine), waiting while the network is busy (at most `Timeout`). If the socket is still connecting, it waits for the connection first. |
+| `SendLine text` | the same as `Send text & vbCrLf` |
+| `Receive([maxBytes])` | what has arrived so far (at most maxBytes), without waiting; `""` when nothing is there |
+| `Peek([maxBytes])` | like `Receive`, but the data stays there to be read again |
+| `Read(count)` | waits until count bytes have arrived and returns them; fewer only when the other side has closed. Error 31104 after `Timeout`. |
+| `ReceiveLine()` | waits for a line ending in LF and returns it without the line end (a CR before the LF is dropped too). When the other side has closed, it returns what is left, and then `""`. Error 31104 after `Timeout`. |
+| `BytesAvailable` | how many bytes can be read now |
+| `AtEnd` | True when the other side has closed and everything has been read |
+| `Close` | closes the connection |
+
+Reading everything until the other side closes:
+
+<!-- fragment -->
+```basic
+Do Until s.AtEnd
+    Print s.ReceiveLine()
+Loop
+```
+
+### TCP server members
+
+| Member | What it does |
+|---|---|
+| `Listen port [, address]` | waits for connections on port (0: any free port; read it back from `LocalPort`). address limits it to one network interface, for example `"127.0.0.1"` for this machine only; the default is all of them. |
+| `Accept([waitMs])` | takes a waiting connection and returns it as a new, connected Socket, or `Nothing` when none came within waitMs milliseconds (default: `Timeout`; 0: don't wait) |
+
+### UDP
+
+UDP sends single messages, *datagrams*, without a connection. It is quick and simple, which
+suits games that send their state many times a second, but a datagram can be lost or arrive out
+of order, and nobody tells you. Each `SendTo` is one datagram; keep them under about 1400 bytes
+so that each fits in one network packet.
+
+| Member | What it does |
+|---|---|
+| `Bind port [, address]` | opens a UDP socket on port (0: any free port) |
+| `SendTo host, port, data` | sends one datagram. On a socket that isn't open yet, it first opens a UDP socket on any free port. |
+| `ReceiveFrom([waitMs])` | the next datagram, or `""` if none came within waitMs milliseconds (default 0: don't wait). `RemoteHost` and `RemotePort` then tell you who sent it. |
+| `BytesAvailable` | the size of the next datagram |
+
+*Listing 19.21* (`examples/book/ch19-networking/listing-19-21.bas`)
+
+<!-- run -->
+```basic
+' UDP: two sockets on this machine send each other datagrams
+Option Explicit
+Dim a As Socket, b As Socket, addr As String, msg As String
+
+Set b = CreateObject("Socket")
+addr = "127.0.0.1"
+On Error Resume Next
+b.Bind 0, addr                        ' 0: any free port
+If Err.Number <> 0 Then addr = b.MachineAddress: Err.Clear: b.Bind 0, addr
+On Error GoTo 0
+Print "b:"; b.Protocol; " "; b.State = sockOpen
+
+Set a = CreateObject("Socket")
+a.SendTo addr, b.LocalPort, "ping"    ' a opens itself on any free port
+msg = b.ReceiveFrom(2000)             ' wait up to 2 seconds
+Print "b got "; msg; ", from a:"; b.RemotePort = a.LocalPort
+b.SendTo b.RemoteHost, b.RemotePort, "pong"
+Print "a got "; a.ReceiveFrom(2000)
+Print "nothing more: ["; a.ReceiveFrom(); "]"
+```
+
+```output
+b:UDP True
+b got ping, from a:True
+a got pong
+nothing more: []
+```
+
+### Properties
+
+| Property | What it holds |
+|---|---|
+| `State` | what the socket is doing: one of the constants below |
+| `Connected` | True while a TCP connection is open |
+| `RemoteHost`, `RemotePort` | the other side's address and port (for UDP: the sender of the last datagram read) |
+| `LocalHost`, `LocalPort` | this side's address and port |
+| `MachineAddress` | this machine's IPv4 address on the network, the one other machines use to reach it (`"127.0.0.1"` without a network) |
+| `Timeout` | how many milliseconds the waiting calls wait; 30000 at first |
+| `Protocol` | `"TCP"` or `"UDP"` |
+| `Tag` | any value your program wants to keep with the socket, a user name for example |
+
+| `State` constant | Value | Meaning |
+|---|---|---|
+| `sockClosed` | 0 | not open |
+| `sockOpen` | 1 | a UDP socket, open |
+| `sockListening` | 2 | a TCP server waiting for connections |
+| `sockConnecting` | 6 | a `Connect` with events is under way |
+| `sockConnected` | 7 | connected |
+| `sockClosing` | 8 | the other side has closed; data may still be waiting to be read |
+| `sockError` | 9 | the connection failed |
+
+### Events
+
+Declare the socket `WithEvents` at module level (or in a class) and write subs named
+`<variable>_<event>`, as for a control:
+
+| Event | When it fires |
+|---|---|
+| `Connect()` | a `Connect` with events has succeeded |
+| `Error(ByVal Number As Long, ByVal Description As String)` | a `Connect` with events has failed (refused, unreachable) |
+| `DataArrival(ByVal Bytes As Long)` | data has arrived; Bytes is how much is waiting now. Read it with `Receive`, with `ReceiveLine` (once `Peek` shows a whole line) or, for UDP, with `ReceiveFrom`. It fires once per arrival: data you leave unread doesn't fire it again, but more data does. |
+| `Close()` | the other side has closed the connection (data may still be waiting: read it) |
+| `ConnectionRequest()` | a client is connecting to a listening socket: call `Accept` here. A request you don't accept is refused. |
+| `ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)` | on a listening socket: data has arrived on one of the connections it accepted |
+| `ClientClose(ByVal Client As Socket)` | on a listening socket: the other side has closed one of its connections |
+
+The two `Client...` events let one handler serve every connection of a server. A socket
+returned by `Accept` that has no event handlers of its own reports its events to the listening
+socket, with itself as `Client`.
+
+**Where events fire.** Events never interrupt code that is running: they wait until your
+program is ready for them.
+
+- In a form program they fire in the event loop, between the other events, with no code
+  needed. A form program that only waits for the network uses no CPU time meanwhile.
+- In a program without forms they fire in `DoEvents`, and in `s.WaitEvents([ms])`. That waits
+  up to ms milliseconds (default: `Timeout`) for events of **any** socket, fires them, and
+  returns True if any fired. Use `WaitEvents` in a loop: unlike a `DoEvents` loop it doesn't
+  keep the CPU busy.
+
+A run-time error in an event handler ends the program, as in any event handler; use
+`On Error` inside the handler where something can go wrong.
+
+Here is the echo server and client again, with events. The server keeps the connections it
+accepts in a Collection; the client sends its lines as soon as it is connected and closes the
+connection when the answer to "bye" comes back:
+
+*Listing 19.22* (`examples/book/ch19-networking/listing-19-22.bas`)
+
+<!-- run -->
+```basic
+' the echo server and client again, with events
+Option Explicit
+Dim WithEvents server As Socket
+Dim WithEvents link As Socket
+Dim conns As New Collection            ' the accepted connections (keep them!)
+Dim done As Boolean
+
+Sub server_ConnectionRequest()
+    conns.Add server.Accept()
+End Sub
+
+Sub server_ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)
+    Do While InStr(Client.Peek(), vbLf) > 0
+        Client.SendLine UCase(Client.ReceiveLine())
+    Loop
+End Sub
+
+Sub server_ClientClose(ByVal Client As Socket)
+    Client.Close
+End Sub
+
+Sub link_Connect()
+    Print "connected"
+    link.SendLine "hello"
+    link.SendLine "bye"
+End Sub
+
+Sub link_DataArrival(ByVal Bytes As Long)
+    Dim reply As String
+    Do While InStr(link.Peek(), vbLf) > 0
+        reply = link.ReceiveLine()
+        Print "client got: "; reply
+        If reply = "BYE" Then link.Close: done = True
+    Loop
+End Sub
+
+Sub link_Error(ByVal Number As Long, ByVal Description As String)
+    Print "can't connect: "; Description
+    done = True
+End Sub
+
+Sub Main()
+    Dim addr As String, t As Double
+    Set server = CreateObject("Socket")
+    addr = "127.0.0.1"
+    On Error Resume Next
+    server.Listen 0, addr
+    If Err.Number <> 0 Then addr = server.MachineAddress: Err.Clear: server.Listen 0, addr
+    On Error GoTo 0
+    Set link = CreateObject("Socket")
+    link.Connect addr, server.LocalPort        ' returns at once: Connect or Error follows
+    t = Timer
+    Do Until done Or Timer - t > 10
+        server.WaitEvents 100                  ' fires the events of every socket
+    Loop
+    server.Close
+End Sub
+```
+
+```output
+connected
+client got: HELLO
+client got: BYE
+```
+
+Two things in this program are worth copying every time:
+
+- **Reading lines in a handler.** One `DataArrival` can bring half a line, one line or several.
+  `Do While InStr(s.Peek(), vbLf) > 0 ... s.ReceiveLine() ... Loop` takes every whole line
+  that is there, and leaves a half line for the next event. Calling `ReceiveLine` without
+  checking first would wait (and freeze a form) until the rest of the line comes.
+- **Keeping accepted sockets.** A server must keep the sockets `Accept` returns, in a
+  Collection or an array. A socket that no variable refers to is closed, so a connection
+  accepted into a local variable would end as soon as the handler returns.
+
+Names in Boing BASIC aren't case-sensitive, so a parameter called `Client` hides a module
+variable called `client`. That is why the client socket here is called `link`.
+
+### A chat room in a form
+
+The book example `examples/book/ch19-networking/chat` is a chat room: one program is both
+ends. "Host a chat" listens on a port and relays every line to everyone connected; "Join"
+connects to a host. The protocol is plain text lines (`name: text`), so a `telnet` or `nc`
+client can join in too. To try it on one machine, start it twice: host in one window and join
+`127.0.0.1` (or the address the host shows) in the other.
+
+```text
+# chat.afg
+window name=chat title="Boing Chat" width=520 height=380 resizable=1
+vlayout id=root
+  hlayout weight=0
+    string id=host label="Host" text="127.0.0.1" maxchars=128
+    string id=port label="Port" text="7000" maxchars=5 weight=0
+    string id=nick label="Name" text="Amiga" maxchars=32 weight=0
+  hlayout weight=0
+    button id=hostbtn text="_Host a chat"
+    button id=joinbtn text="_Join"
+    button id=leavebtn text="_Leave" disabled=1
+  texteditor id=log
+  hlayout weight=0
+    string id=msg label="Say" maxchars=400
+    button id=sendbtn text="_Send" weight=0 disabled=1
+  label id=status text="Host a chat, or join one at Host:Port"
+```
+
+The hosting half: the listening socket accepts every client into a Collection, and its
+`ClientDataArrival` and `ClientClose` events serve all of them with one handler each.
+`MachineAddress` tells the user what the others should type into Host:
+
+*Listing 19.23* (`examples/book/ch19-networking/chat/chat.bbp`)
+
+<!-- project: examples/book/ch19-networking/chat/chat.bbp -->
+```basic
+Private WithEvents server As Socket     ' when hosting: the listening socket
+Private WithEvents link As Socket       ' when joined: the connection to the host
+Private clients As Collection           ' when hosting: the connected clients
+
+Private Sub hostbtn_Click()
+    On Error GoTo Failed
+    Set clients = New Collection
+    Set server = CreateObject("Socket")
+    server.Listen CLng(port.Text)
+    SetConnected True, "Hosting on " & server.MachineAddress & ":" & server.LocalPort & " - 0 people joined"
+    Show "* You are hosting. Others join with Host = " & server.MachineAddress & ", Port = " & server.LocalPort
+    Exit Sub
+Failed:
+    status.Caption = "Can't host: " & Err.Description
+    Set server = Nothing
+End Sub
+
+Private Sub server_ConnectionRequest()
+    Dim c As Socket
+    Set c = server.Accept()
+    If c Is Nothing Then Exit Sub
+    clients.Add c
+    Relay Nothing, "* someone joined from " & c.RemoteHost
+    status.Caption = "Hosting - " & clients.Count & " people joined"
+End Sub
+
+Private Sub server_ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)
+    Do While InStr(Client.Peek(), vbLf) > 0
+        Relay Client, Client.ReceiveLine()
+    Loop
+End Sub
+
+Private Sub server_ClientClose(ByVal Client As Socket)
+    Dim i As Long
+    For i = clients.Count To 1 Step -1
+        If clients(i) Is Client Then clients.Remove i
+    Next
+    Client.Close
+    Relay Nothing, "* someone left"
+    status.Caption = "Hosting - " & clients.Count & " people joined"
+End Sub
+
+' a line to everyone but its sender, and to our own window
+Private Sub Relay(ByVal from As Socket, ByVal text As String)
+    Dim c As Variant
+    Show text
+    On Error Resume Next            ' a client that just went away
+    For Each c In clients
+        If Not c Is from Then c.SendLine text
+    Next
+End Sub
+```
+
+The joining half connects with events, so the window doesn't freeze while it connects, and
+shows each line as it arrives:
+
+*Listing 19.24* (`examples/book/ch19-networking/chat/chat.bbp`)
+
+<!-- project: examples/book/ch19-networking/chat/chat.bbp -->
+```basic
+Private Sub joinbtn_Click()
+    On Error GoTo Failed
+    Set link = CreateObject("Socket")
+    link.Timeout = 10000
+    status.Caption = "Connecting to " & host.Text & ":" & port.Text & " ..."
+    link.Connect host.Text, CLng(port.Text)        ' with events: Connect or Error follows
+    hostbtn.Enabled = False
+    joinbtn.Enabled = False
+    Exit Sub
+Failed:
+    status.Caption = "Can't connect: " & Err.Description
+End Sub
+
+Private Sub link_Connect()
+    SetConnected True, "Connected to " & link.RemoteHost & ":" & link.RemotePort
+    link.SendLine "* " & nick.Text & " is here"
+End Sub
+
+Private Sub link_Error(ByVal Number As Long, ByVal Description As String)
+    SetConnected False, "Can't connect: " & Description
+End Sub
+
+Private Sub link_DataArrival(ByVal Bytes As Long)
+    Do While InStr(link.Peek(), vbLf) > 0
+        Show link.ReceiveLine()
+    Loop
+End Sub
+
+Private Sub link_Close()
+    Show "* the host closed the chat"
+    SetConnected False, "Disconnected"
+End Sub
+```
+
+The rest of `chat.bas` (sending what the user typed, Leave, `Show` and `SetConnected`) is
+ordinary form code; the whole program is in the example's drawer.
+
+### Errors
+
+The waiting calls raise run-time errors that you can catch with `On Error`. The network
+numbers are the same as for `Http`:
+
+| `Err.Number` | Meaning |
+|---|---|
+| 31102 | the host name can't be resolved |
+| 31103 | can't connect (refused, unreachable, no TCP/IP stack running), or can't listen or bind (the port is in use) |
+| 31104 | nothing came within `Timeout` (`Connect`, `Send`, `Read`, `ReceiveLine`) |
+| 31109 | the socket isn't open, or the connection broke while sending |
+| 380 | a port outside 0 to 65535, or a negative `Timeout` |
+| 5 | a call that doesn't fit the socket: `Send` on a UDP socket, `Accept` on one that isn't listening, `ReceiveFrom` on a TCP socket |
+| 18 | the user pressed Ctrl-C while a call was waiting |
+
+*Listing 19.25* (`examples/book/ch19-networking/listing-19-25.bas`)
+
+<!-- run -->
+```basic
+' what goes wrong, as run-time errors
+Option Explicit
+Dim s As Socket, l As Socket, addr As String, port As Long, text As String
+
+Set l = CreateObject("Socket")
+addr = "127.0.0.1"
+On Error Resume Next
+l.Listen 0, addr
+If Err.Number <> 0 Then addr = l.MachineAddress: Err.Clear: l.Listen 0, addr
+port = l.LocalPort
+l.Close                               ' nobody listens on port now
+
+Set s = CreateObject("Socket")
+s.Timeout = 3000
+s.Connect addr, port
+Print "connect:"; Err.Number
+Err.Clear
+s.Send "x"
+Print "send:"; Err.Number; " "; Err.Description
+Err.Clear
+s.Listen 70000
+Print "listen:"; Err.Number; " "; Err.Description
+Err.Clear
+l.Listen 0, addr
+Set s = CreateObject("Socket")
+s.Connect addr, l.LocalPort
+s.Timeout = 300
+text = s.ReceiveLine()               ' the server never sends anything
+Print "line:"; Err.Number; " "; Err.Description
+```
+
+```output
+connect: 31103 
+send: 31109  the socket isn't open
+listen: 380  a port is 0 to 65535
+line: 31104  no line within 300 ms
+```
+
+A `Connect` with events reports a failure through the `Error` event instead, and `State`
+becomes `sockError`.
+
+### On AmigaOS
+
+- `bsdsocket.library` is opened when the program makes its first socket, so a program that
+  never makes one doesn't need a running TCP/IP stack.
+- The waiting calls can be interrupted with Ctrl-C (error 18). A form program with sockets
+  waits for the network and the window together, and uses no CPU time while nothing happens.
+- Some Roadshow setups have no loopback interface, so `127.0.0.1` doesn't work there. To talk
+  to a server on the same Amiga, use `MachineAddress`, as the examples above do.
+- Host names are looked up with the system's `gethostbyname`, which has no time limit: with no
+  DNS server reachable, an unknown name can take minutes, and `Timeout` doesn't help. On such
+  setups use numeric addresses (`"192.168.1.20"`).
+- Only IPv4 is supported.
+
+### Limits
+
+- No encrypted (TLS) sockets: use `Http` for HTTPS.
+- No IPv6.
+- `Send` always waits until the data is out; a very large send from a form program holds the
+  window until then. Send big data in pieces from a Timer (see the next section).
+- Looking up a host name always waits.
+
+## Long jobs without freezing the window: Timer slices
+
+A form program does one thing at a time. While an event sub runs, the window can't be moved,
+redrawn or clicked: the next event waits until the sub returns. That is fine for a sub that
+takes a fraction of a second. A job that takes longer (reading a big file, importing thousands
+of records, working through every picture in a drawer) would freeze the window, and the user
+couldn't even press a Cancel button.
+
+Boing BASIC programs run as one AmigaOS task, and there are no background threads. Network
+waits don't need any: `Socket` events and asynchronous `Http` requests arrive through the event
+loop on their own. For work that keeps the processor busy, the way to stay responsive is to cut
+the job into small pieces, *slices*, and do one slice per `Timer` event:
+
+1. A Start button prepares the job (opens the file, resets the counters), clears a `cancelled`
+   flag and enables a Timer with a short `Interval` (10 ms, say).
+2. Each `Timer` event does a fixed amount of work (200 lines, 200 records), updates a progress
+   bar and returns. Between two ticks the event loop handles everything else: redrawing,
+   moving the window, the Cancel button.
+3. The Cancel button only sets `cancelled = True`. The next tick sees it and stops.
+4. When the work is done (or cancelled) the tick disables the Timer and cleans up.
+
+Choose the slice so that one tick takes about a twentieth of a second or less: the window then
+feels as quick as usual, and the job loses little time to the gaps between ticks. Timer events
+never overlap: if a tick is still running when the next is due, that one is skipped, so a slice
+that is too big makes the job slower, never wrong.
+
+### Example: statistics of a big text file
+
+The book example `examples/book/ch19-networking/slices` counts the lines and words of a text
+file and finds its longest line, 200 lines per tick, with a progress bar and a Cancel button:
+
+```text
+# scan.afg
+window name=scan title="Text statistics" width=420 height=0
+vlayout id=root
+  getfile id=src label="File" title="Choose a text file"
+  hlayout weight=0
+    button id=startbtn text="_Start"
+    button id=cancelbtn text="_Cancel" disabled=1
+  fuelgauge id=progress min=0 max=100 level=0
+  label id=status text="Choose a file and press Start"
+  timer id=tick interval=10 enabled=0
+```
+
+The progress is how far into the file the job has read: `Seek(f)` is the position of the next
+byte to read (from 1) and `LOF(f)` the file's length.
+
+*Listing 19.26* (`examples/book/ch19-networking/slices/slices.bbp`)
+
+<!-- project: examples/book/ch19-networking/slices/slices.bbp -->
+```basic
+' scan.bas - the code-behind of scan.afg: a long job in Timer slices.
+' Each tick reads at most SLICE lines, updates the progress bar and checks the Cancel flag,
+' then returns to the event loop, so the window can be moved, resized and clicked meanwhile.
+Option Explicit
+
+Private Const SLICE = 200            ' lines per tick
+
+Private f As Integer                 ' the open file, 0 while no job runs
+Private lines As Long, words As Long, longest As Long
+Private cancelled As Boolean
+Private started As Double
+
+Private Sub startbtn_Click()
+    If src.FileName = "" Then status.Caption = "Choose a file first": Exit Sub
+    On Error GoTo Failed
+    f = FreeFile
+    Open src.FileName For Input As #f
+    lines = 0: words = 0: longest = 0
+    cancelled = False
+    started = Timer
+    progress.Value = 0
+    startbtn.Enabled = False
+    cancelbtn.Enabled = True
+    tick.Enabled = True              ' the work starts at the next tick
+    Exit Sub
+Failed:
+    status.Caption = "Can't open it: " & Err.Description
+    f = 0
+End Sub
+
+Private Sub tick_Timer()
+    Dim i As Long, text As String
+    For i = 1 To SLICE
+        If cancelled Or EOF(f) Then
+            Finish
+            Exit Sub
+        End If
+        Line Input #f, text
+        lines = lines + 1
+        words = words + CountWords(text)
+        If Len(text) > longest Then longest = Len(text)
+    Next
+    If LOF(f) > 0 Then progress.Value = CLng(100 * (Seek(f) - 1) / LOF(f))
+    status.Caption = lines & " lines so far ..."
+End Sub
+
+Private Sub cancelbtn_Click()
+    cancelled = True                 ' the next tick stops (events never interrupt a tick)
+End Sub
+
+Private Sub Finish()
+    tick.Enabled = False
+    Close #f
+    f = 0
+    startbtn.Enabled = True
+    cancelbtn.Enabled = False
+    If cancelled Then
+        status.Caption = "Cancelled after " & lines & " lines"
+    Else
+        progress.Value = 100
+        status.Caption = lines & " lines, " & words & " words, longest line " & longest & _
+                         " characters (" & Format(Timer - started, "0.0") & " s)"
+    End If
+End Sub
+```
+
+The rest of `scan.bas` is the `CountWords` function and a `Form_Unload` that closes the file if
+the window is closed in the middle of a job.
+
+All the job's state lives in module variables (`f`, `lines`, `words`...), not in local
+variables: a tick returns after each slice, and its locals are gone. Disable the Start button
+while the job runs, so that a second click can't start a second job on top of the first.
+
+### The same pattern for other jobs
+
+Any job that can be done a piece at a time fits this shape. Importing a big CSV file into an
+SQLite database, for example, opens the `Csv` reader and the database and starts a transaction
+in the Start button's `Click`; each tick reads 200 records with `ReadRecord` and inserts them,
+and sets the progress bar from the record number; at the end the tick commits the transaction,
+and after a Cancel it rolls the transaction back, so the database is left as it was. (The `Csv` reader and `SQLite` are
+described in [Modern libraries](20-libraries.md).)
+
+### Slices or DoEvents?
+
+A long loop that calls `DoEvents` now and then also lets events in, and is shorter to write.
+But the events then run *inside* your loop: a click on Start can start the job a second time
+while the first is still running, and closing the window leaves the loop running on a form that
+has gone. With Timer slices, your code is never in the middle of the job when an event comes,
+so these problems can't arise. Use `DoEvents` for a short burst of work with a progress bar;
+use Timer slices for anything the user may want to cancel.
+
 ## Limits
 
 Not supported yet: compressed (gzip) answers, cookies, proxies, reusing connections between
@@ -714,6 +1410,8 @@ requests, and IPv6 on AmigaOS.
 - Set headers with `SetHeader`; keep certificate checking on.
 - Read JSON answers with `JsonParse` ([chapter 20](20-libraries.md#json)).
 - `GetAsync` and `SendAsync` fetch in the background, so a window stays responsive.
+- `Socket` talks TCP and UDP to any server, with waiting calls or with events.
+- Long jobs run in slices on a Timer, so the window keeps working.
 
 See also: [Forms and controls](12-forms.md), [Errors](08-errors.md),
 [Built-in functions](09-builtins.md).

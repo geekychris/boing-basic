@@ -1,0 +1,4 @@
+# Slices: a long job in a form, in small pieces from a Timer (manual chapter 19)
+Name=Slices
+Startup=Form scan
+Form=scan.afg

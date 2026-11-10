@@ -1,0 +1,16 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=chat title="Boing Chat" width=520 height=380 resizable=1
+vlayout id=root
+  hlayout weight=0
+    string id=host label="Host" text="127.0.0.1" maxchars=128
+    string id=port label="Port" text="7000" maxchars=5 weight=0
+    string id=nick label="Name" text="Amiga" maxchars=32 weight=0
+  hlayout weight=0
+    button id=hostbtn text="_Host a chat"
+    button id=joinbtn text="_Join"
+    button id=leavebtn text="_Leave" disabled=1
+  texteditor id=log
+  hlayout weight=0
+    string id=msg label="Say" maxchars=400
+    button id=sendbtn text="_Send" weight=0 disabled=1
+  label id=status text="Host a chat, or join one at Host:Port"
