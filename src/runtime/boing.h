@@ -705,6 +705,14 @@ bb_str *bb_urldecode(bb_str *s);
 bb_str *bb_hexencode(bb_str *s);
 bb_str *bb_hexdecode(bb_str *s);
 
+/* Hashes (hash.c): hex digests, or raw bytes when raw is True */
+bb_long bb_crc32(bb_str *s);
+bb_str *bb_md5(bb_str *s, bb_bool raw);
+bb_str *bb_sha1(bb_str *s, bb_bool raw);
+bb_str *bb_sha256(bb_str *s, bb_bool raw);
+bb_str *bb_hmacsha1(bb_str *key, bb_str *msg, bb_bool raw);
+bb_str *bb_hmacsha256(bb_str *key, bb_str *msg, bb_bool raw);
+
 /* Built-in classes */
 extern const bb_class bb_collection_class;
 bb_obj *bb_collection_new(void);
