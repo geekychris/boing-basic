@@ -64,6 +64,35 @@ def main():
                         fails.append("inline code missing from the PDF: %s: `%s`" % (stem, code))
         if missing > 20:
             fails.append("... %d inline code spans missing in all" % missing)
+    # one picture per figure: the Markdown's images, one per Mermaid diagram, and the title logo
+    if shutil.which("pdfimages") and shutil.which("pdftotext"):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("manual_pdf2", os.path.join(ROOT, "tools", "manual-pdf.py"))
+        mp2 = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mp2)
+        images = diagrams = 0
+        captions = []
+        for stem in mp2.all_stems():
+            md = open(os.path.join(ROOT, "docs", "manual", stem + ".md"), encoding="utf-8").read()
+            images += len(re.findall(r"^\s*!\[", md, re.M))
+            for m in re.finditer(r"^```mermaid\n.*?^```\n\n\*Figure: (.*?)\*", md, re.M | re.S):
+                captions.append((stem, m.group(1)))
+            diagrams += len(re.findall(r"^```mermaid$", md, re.M))
+        lst = subprocess.run(["pdfimages", "-list", PDF], capture_output=True, text=True).stdout.splitlines()[2:]
+        got = sum(1 for l in lst if l.split()[2:3] == ["image"])
+        want = images + diagrams + 1
+        if got != want:
+            fails.append("%d pictures in the PDF, expected %d (%d images, %d diagrams, the title logo)"
+                         % (got, want, images, diagrams))
+        if len(captions) != diagrams:
+            fails.append("%d diagrams but %d 'Figure:' captions after them" % (diagrams, len(captions)))
+        flat_body = re.sub(r"\s+", " ", subprocess.run(["pdftotext", "-raw", PDF, "-"], capture_output=True,
+                                                         text=True).stdout)
+        flat_body = flat_body.replace("\u2019", "'").replace("\u2018", "'").replace("\u201c", '"').replace("\u201d", '"')
+        for stem, cap in captions:
+            if re.sub(r"\s+", " ", cap)[:60] not in flat_body:
+                fails.append("diagram caption not in the PDF: %s: %s" % (stem, cap[:60]))
+        print("manual-pdf: %d pictures (%d diagrams)" % (got, diagrams))
     for f in fails:
         print("FAIL manual-pdf:", f)
     print("manual-pdf: %s, %d pages, %d KB%s" % (os.path.relpath(PDF, ROOT), pages, os.path.getsize(PDF) // 1024,

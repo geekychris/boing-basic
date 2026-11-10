@@ -123,11 +123,26 @@ def latin1(text):
     return text.encode("latin-1", errors="replace")
 
 
+def diagram_name(src, n):
+    """The name tools/manual-diagrams.py gives the n-th Mermaid diagram of a manual file."""
+    parts = os.path.normpath(src).split(os.sep)
+    stem = os.path.splitext(parts[-1])[0]
+    return ("ex-" + stem if len(parts) > 1 and parts[-2] == "exercises" else stem) + "-%d" % n
+
+
 def md2txt(src):
-    out, fence = [], False
+    out, fence, mermaid, ndiag = [], False, False, 0
     for line in open(src, encoding="utf-8").read().splitlines():
         if line.lstrip().startswith("```"):
+            if not fence and line.strip() == "```mermaid":         # a diagram: point to its picture
+                ndiag += 1
+                mermaid = True
+                out.append("  [Diagram: images/diagrams/%s.png]" % diagram_name(src, ndiag))
+            elif fence:
+                mermaid = False
             fence = not fence
+            continue
+        if mermaid:
             continue
         if fence:
             out.append("    " + line)
@@ -188,10 +203,20 @@ def md2guide(files, title):
         text = open(path, encoding="utf-8").read().splitlines()
         first = next((re.sub(r"^#+\s*", "", l) for l in text if l.startswith("#")), node)
         L.append('@node %s "%s"' % (node, _guide_esc(re.sub(r"[`*]", "", first)).replace('"', "'")))
-        fence = False
+        fence = mermaid = False
+        ndiag = 0
         for line in text:
             if line.lstrip().startswith("```"):
+                if not fence and line.strip() == "```mermaid":     # a diagram: a link that shows its picture
+                    ndiag += 1
+                    mermaid = True
+                    L.append('  @{" Show the diagram " link "Manual/images/diagrams/%s.png/main"}'
+                             % diagram_name(path, ndiag))
+                elif fence:
+                    mermaid = False
                 fence = not fence
+                continue
+            if mermaid:
                 continue
             if line.lstrip().startswith("<!--"):
                 continue
@@ -568,6 +593,12 @@ def assemble(o):
             name = ("00-contents" if node == "MAIN" else node) + ".txt"
             open(os.path.join(mdir, name), "wb").write(md2txt(src))
             shutil.copy(os.path.join(icons, "doc.info"), os.path.join(mdir, name + ".info"))
+        ddir = os.path.join(bb, "docs", "manual", "images", "diagrams")
+        if os.path.isdir(ddir):                    # the diagrams' pictures, for the text and the guide
+            os.makedirs(os.path.join(mdir, "images", "diagrams"))
+            for f in sorted(os.listdir(ddir)):
+                if f.endswith(".png"):
+                    shutil.copy(os.path.join(ddir, f), os.path.join(mdir, "images", "diagrams", f))
         open(os.path.join(docs, "BoingBASIC-Manual.guide"), "wb").write(md2guide(mf, "Boing BASIC user manual"))
         shutil.copy(os.path.join(icons, "doc.info"), os.path.join(docs, "BoingBASIC-Manual.guide.info"))
         # the manual as a PDF (for TrapezePDF / AmiPDF), when pandoc and asciidoctor-pdf are here

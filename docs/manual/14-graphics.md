@@ -544,6 +544,17 @@ A game redraws its picture many times a second. In Boing BASIC the loop is a **T
 control in the form: its `Timer` event runs every `Interval` milliseconds, and each event
 draws one frame.
 
+```mermaid
+flowchart LR
+    t(["Timer event<br/>(every Interval ms)"]) --> k["read the input"]
+    k --> l["logic: move,<br/>collide, score"]
+    l --> d["draw the picture"]
+    d --> p["present:<br/>view.Refresh"]
+    p -->|next tick| t
+```
+
+*Figure: One frame of a game: each Timer event reads the input, moves the game on, draws the picture and shows it.*
+
 | Timer | |
 |---|---|
 | `.afg` line | `timer id=tick interval=20 enabled=1` (a timer takes no room in the window) |

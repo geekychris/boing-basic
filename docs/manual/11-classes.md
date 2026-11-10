@@ -13,6 +13,18 @@ A *class* describes a kind of object: the data each object holds and the procedu
 on it. An *object* is one instance of a class, made at run time with `New`. You can make as
 many objects of a class as you like, and each one has its own copy of the class's data.
 
+```mermaid
+flowchart TB
+    a["variable a"] -->|refers to| o1
+    b["variable b<br/>(Set b = a)"] -->|refers to| o1
+    cls["class module<br/>Account.cls"] -->|New Account| o1["object 1<br/>balance = 100"]
+    cls -->|New Account| o2["object 2<br/>balance = 25"]
+    c["variable c"] -->|refers to| o2
+    o2 -. RaiseEvent .-> h["c_Changed<br/>(Dim WithEvents c)"]
+```
+
+*Figure: A class is the pattern; New makes objects from it, and variables refer to objects. An object lives while something refers to it.*
+
 A variable whose type is a class does not hold the object itself, only a *reference* to it.
 Two variables can refer to the same object, and a variable that refers to no object holds the
 special value `Nothing`.

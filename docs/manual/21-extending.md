@@ -147,6 +147,24 @@ main.bas:8: runtime error 453: function 'CRC32' is not linked into this program 
 classes (with methods and properties) and functions that the compiler knows about, so a
 program uses them like Canvas or Audio:
 
+```mermaid
+flowchart TB
+    subgraph ext ["your extension"]
+        bbx["name.bbx<br/>classes, members, functions"]
+        csrc["name.c or name.cpp<br/>BB_EXTENSION(name)"]
+    end
+    proj["P.bbp<br/>Extension=name"] --> comp["boing compiler<br/>checks names and arguments"]
+    bbx --> comp
+    comp -->|boing vm --project P.bbp| myb["myboing<br/>an interpreter with the extension"]
+    comp -->|boing build| exe["native program<br/>your code + the extension"]
+    csrc --> exe
+    csrc --> myb
+    myb --> reg[("registry: CreateObject,<br/>New, functions")]
+    exe --> reg
+```
+
+*Figure: How an extension reaches a program: the compiler reads its .bbx; native builds link the C or C++ file; for the interpreter, boing vm builds an interpreter that includes it.*
+
 *Listing 21.2* (`examples/book/ch21-extending/mathx/demo.bbp`)
 
 <!-- project: examples/book/ch21-extending/mathx/demo.bbp -->
