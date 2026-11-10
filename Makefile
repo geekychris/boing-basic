@@ -95,6 +95,10 @@ test: all
 manual-pdf:
 	sh tools/manual-pdf.sh $(PDF_ARGS)
 
+manual-diagrams:
+	python3 tools/manual-diagrams.py
+	python3 tools/manual-diagrams.py --check
+
 manual-pdf-test:
 	python3 tools/manual-pdf-test.py
 
@@ -104,7 +108,7 @@ manual-test: all
 clean:
 	rm -rf $(B)
 
-.PHONY: all test clean FORCE manual-test manual-pdf manual-pdf-test
+.PHONY: all test clean FORCE manual-test manual-pdf manual-pdf-test manual-diagrams
 
 bench: all
 	python3 tools/bench.py $(BENCH_ARGS)

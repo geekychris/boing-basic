@@ -263,6 +263,22 @@ The keys of each kind of control are in the [control reference](#the-controls) b
 
 The code-behind is an ordinary module with three extras:
 
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant I as Intuition
+    participant R as forms runtime
+    participant S as your code
+    U->>I: clicks the button "greet"
+    I->>R: a message on the window's port
+    Note over R: finds the control "greet"<br/>and its event: Click
+    R->>S: calls Sub greet_Click()
+    S-->>R: returns
+    R->>I: waits for the next message
+```
+
+*Figure: How a click reaches your code: AmigaOS reports it to the window, the forms runtime finds the control, and calls its event Sub.*
+
 - **Control variables.** Every object of the `.afg` with an `id` is a module-level variable
   of that name, holding the control. You don't declare them, and `Option Explicit` knows them. (A layout's `id`, such as `root`,
   is also a name, but it holds no control.)
@@ -380,6 +396,22 @@ End Sub
 ```
 
 ### Events
+
+
+```mermaid
+stateDiagram-v2
+    [*] --> Loaded: Load or Show
+    note right of Loaded: Form_Load runs here
+    Loaded --> Open: the window opens
+    note right of Open: control events, Resize,<br/>Activate, Timer events...
+    Open --> Hidden: Hide
+    Hidden --> Open: Show
+    Open --> Closing: close gadget or Unload
+    Closing --> Open: Form_QueryUnload sets Cancel
+    Closing --> [*]: Form_Unload, the window closes
+```
+
+*Figure: The life of a form: the events it gets from being loaded until it is unloaded.*
 
 | Event | Sub | When |
 |---|---|---|

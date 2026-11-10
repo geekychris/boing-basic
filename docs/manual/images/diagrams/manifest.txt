@@ -1,0 +1,13 @@
+# tools/manual-diagrams.py: diagram name and the hash of its source
+01-introduction-1 a281ccbd5891
+02-shell-1 b8d72bcbc443
+05-procedures-1 2c2e1e1c8314
+08-errors-1 063109329622
+11-classes-1 dafe42f47db8
+12-forms-1 a36c5bb2d0ed
+12-forms-2 3afad97e8ae2
+14-graphics-1 c1f0cba0354c
+19-networking-1 0a06bbbbab9c
+19-networking-2 a7220ebfd807
+19-networking-3 e33575400eed
+21-extending-1 0bb621397c38

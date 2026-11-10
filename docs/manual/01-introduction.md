@@ -11,6 +11,19 @@ text fields, lists and menus, and then write the code that runs when the user cl
 chooses something. The same language also writes Shell programs, games with fast 2D and 3D
 graphics, and music and sound programs.
 
+```mermaid
+flowchart TB
+    src["your program: .bas .bbp .afg .cls"] --> boing["boing (the compiler)"]
+    af["AmiForge IDE"] -.->|Run, Build| boing
+    boing -->|boing run| bc["bytecode"]
+    bc --> vm["the Boing BASIC VM<br/>runs it at once"]
+    boing -->|boing build| c["C source"]
+    c --> gcc["GCC + libboing.a"]
+    gcc --> exe["a native program<br/>that runs on its own"]
+```
+
+*Figure: How a Boing BASIC program becomes something that runs: interpreted by the VM, or translated to C and compiled into a native program.*
+
 A program can be run in two ways:
 
 - **Interpreted.** `boing run` compiles the program to bytecode and runs it in the Boing BASIC

@@ -435,6 +435,26 @@ console program that is what you want. In a form it isn't: while the program wai
 handle events, so the window doesn't redraw, buttons don't react, and a download of a few
 megabytes freezes it for as long as it takes.
 
+```mermaid
+sequenceDiagram
+    participant P as Your program
+    participant H as Http object
+    participant W as worker task
+    participant S as web server
+    P->>H: GetAsync url
+    H->>W: start the request
+    H-->>P: returns at once
+    W->>S: connect, send the request
+    S-->>W: answer, piece by piece
+    W-->>H: progress
+    H-->>P: web_Progress(got, total)
+    S-->>W: last piece
+    W-->>H: done
+    H-->>P: web_Done() (or web_Failed)
+```
+
+*Figure: An asynchronous request: a worker task does the network work while the program keeps handling its window; the results come back as events on the program's own task.*
+
 The asynchronous calls start the request in the background and return at once. Your program
 goes on handling events; the `Http` object tells you how far the request has got, and calls a
 Sub of yours when it is done.
@@ -822,6 +842,19 @@ a line-based protocol (mail, a game server, a telnet-style service), a small ser
 own, a chat between two Amigas, game positions sent many times a second over UDP. It works on
 AmigaOS 4 (through `bsdsocket.library`, the Roadshow TCP/IP stack) and on macOS and Linux, with
 the same behaviour.
+
+```mermaid
+flowchart TB
+    net["data from the network"] --> loop{"event loop<br/>(form, DoEvents, WaitEvents)"}
+    win["window input"] --> loop
+    loop -->|connected| c["link_Connect"]
+    loop -->|data waiting| d["link_DataArrival"]
+    loop -->|closed| x["link_Close"]
+    loop -->|new client| r["server_ConnectionRequest"]
+    d --> rd["Receive / ReceiveLine"]
+```
+
+*Figure: Socket events: the event loop waits for the window and the sockets together, and calls your Subs when something arrives.*
 
 You can use a socket in two ways, and mix them in one program:
 
@@ -1400,6 +1433,20 @@ redrawn or clicked: the next event waits until the sub returns. That is fine for
 takes a fraction of a second. A job that takes longer (reading a big file, importing thousands
 of records, working through every picture in a drawer) would freeze the window, and the user
 couldn't even press a Cancel button.
+
+```mermaid
+flowchart TD
+    start["Start button:<br/>open the job, reset counters,<br/>tick.Enabled = True"] --> tick(["Timer event"])
+    tick --> c{"Cancel pressed?"}
+    c -->|yes| stop["clean up, tick.Enabled = False"]
+    c -->|no| slice["do one slice<br/>(e.g. 200 records)"]
+    slice --> prog["update the progress bar"]
+    prog --> done{"finished?"}
+    done -->|no| tick
+    done -->|yes| fin["finish, tick.Enabled = False"]
+```
+
+*Figure: Timer slices: a long job does a small piece on each Timer event, so the window stays responsive between pieces.*
 
 Boing BASIC programs run as one AmigaOS task, and there are no background threads. Network
 waits don't need any: `Socket` events and asynchronous `Http` requests arrive through the event

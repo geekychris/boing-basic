@@ -10,6 +10,18 @@ where it builds programs for that computer or, with Docker, for AmigaOS 4.)
 Write a program with any editor (NotePad, MultiEdit, GoldED, or AmiForge's editor) and save
 it with the extension `.bas`:
 
+```mermaid
+flowchart TB
+    edit["edit<br/>(any editor or AmiForge)"] --> check["boing check<br/>(AmiForge does it on Run and Build)"]
+    check -->|errors: file:line:col| edit
+    check -->|no errors| run["boing run<br/>(AmiForge: Ctrl-F5)"]
+    run -->|change something| edit
+    run -->|ready to share| build["boing build<br/>(AmiForge: F7)"]
+    build --> exe["a native program"]
+```
+
+*Figure: The edit, check, run and build cycle, with the Shell command and the AmiForge key for each step.*
+
 *Listing 2.1* (`examples/book/ch02-shell/listing-02-01.bas`)
 
 <!-- run stdin="Amy" -->

@@ -22,6 +22,11 @@ OUT = os.path.join(ROOT, "build", "manual-adoc")
 PANDOC = shutil.which("pandoc") or "/opt/homebrew/bin/pandoc"
 ASCIIDOCTOR_PDF = shutil.which("asciidoctor-pdf") or "/opt/homebrew/bin/asciidoctor-pdf"
 REPO_URL = "https://github.com/geekychris/boing-basic/blob/main/"
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location("manual_diagrams", os.path.join(ROOT, "tools", "manual-diagrams.py"))
+DIAG = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(DIAG)
 
 PARTS = [
     ("Using Boing BASIC", ["01-introduction", "02-shell", "03-amiforge"]),
@@ -168,13 +173,40 @@ def convert(stem, known):
     adoc = adoc.replace("[source,basic]", "[source,boingbasic]")   # tools/manual-pdf-lexer.rb
     adoc = re.sub(r"\[source,(output|text)\]", "[listing]", adoc)
 
+    # Mermaid diagrams -> pictures rendered at 3x by mmdc (tools/manual-diagrams.py), captioned
+    # by the "Figure: ..." line after them
+    md_name = DIAG.name_of(src)
+    counter = [0]
+
+    def diagram(mm):
+        counter[0] += 1
+        name = "%s-%d" % (md_name, counter[0])
+        os.makedirs(os.path.join(OUT, "diagrams"), exist_ok=True)
+        png = os.path.join(OUT, "diagrams", name + ".png")
+        try:
+            DIAG.render(mm.group(1) + "\n", png, scale=3)
+        except RuntimeError as e:
+            raise SystemExit("manual-pdf: diagram %s doesn't render: %s" % (name, e))
+        small = os.path.join(DIAG.DIR, name + ".png")       # its width at 1x sets its width on the page
+        width = 100
+        try:
+            from PIL import Image
+            width = max(30, min(100, round(Image.open(small).size[0] / 10)))   # 1000 px = the page width
+        except Exception:
+            pass
+        title = mm.group(2) or name
+        return ".%s\nimage::%s[%s,pdfwidth=%d%%]\n" % (title, png, name, width)
+    adoc = re.sub(r"\[source,mermaid\]\n----\n(.*?)\n----\n(?:\n_Figure: (.*?)_\n)?", diagram, adoc, flags=re.S)
+    if "[source,mermaid]" in adoc:
+        raise SystemExit("manual-pdf: %s: a mermaid block wasn't turned into a picture" % stem)
+
     # pictures: a paragraph that is only an image -> a figure, captioned by the italic line after it
     def figure(mm):
         path, alt, cap = mm.group(1), mm.group(2), mm.group(4)
         full = os.path.normpath(os.path.join(here, path))
         title = cap if cap else alt
         return ".%s\nimage::%s[%s]\n" % (title, full, alt.replace(",", ""))
-    adoc = re.sub(r"^image:([^\[\s]+)\[([^\]]*)\]\n(\n_([^\n]+)_\n)?", figure, adoc, flags=re.M)
+    adoc = re.sub(r"^image:(?!:)([^\[\s]+)\[([^\]]*)\]\n(\n_([^\n]+)_\n)?", figure, adoc, flags=re.M)
     if re.search(r"^_Listing \d+\.\d+_", adoc, re.M):
         raise SystemExit("manual-pdf: %s: a Listing caption wasn't turned into a block title" % stem)
     adoc = restore_code_spans(adoc, spans)

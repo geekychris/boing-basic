@@ -503,6 +503,19 @@ with class modules on `Class=` lines and forms on `Form=` lines. The first modul
 startup module ([chapter 4](04-data.md#the-shape-of-a-program)). Projects and their keys are
 described in [chapter 2](02-shell.md).
 
+```mermaid
+flowchart TD
+    bbp["Notes.bbp<br/>(project)"] -->|Module=| m["Files.bas<br/>module"]
+    bbp -->|Form=| f["main.afg + main.bas<br/>form and code-behind"]
+    bbp -->|Class=| c["Document.cls<br/>class module"]
+    bbp -->|Uses= / #Include| bi["dos.bi ...<br/>declarations"]
+    m -. Public procedures, variables .-> f
+    f -. calls .-> m
+    f -->|New Document| c
+```
+
+*Figure: A project and its parts: modules, forms with their code-behind, class modules and included files.*
+
 Only the startup module's module-level statements run. Statements at module level in any
 other module (anything but declarations) would never run, so `boing check` warns about them:
 

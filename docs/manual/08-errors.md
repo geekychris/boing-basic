@@ -415,6 +415,21 @@ When an error happens in a procedure that has no handler of its own, Boing BASIC
 procedure that called it, then at that one's caller, and so on, and jumps to the first handler
 it finds. The procedures in between are left at once, as if they had all returned:
 
+```mermaid
+flowchart TD
+    e["a run-time error<br/>in procedure P"] --> h{"P has an active<br/>On Error handler?"}
+    h -->|On Error GoTo label| hl["the handler runs<br/>Err holds the error"]
+    hl --> r{"how it ends"}
+    r -->|Resume / Resume Next| back["back into P"]
+    r -->|End Sub / Exit Sub| ret["P returns to its caller"]
+    h -->|On Error Resume Next| nx["next statement in P"]
+    h -->|no| up{"the caller has<br/>a handler?"}
+    up -->|yes| hl2["the caller's handler runs"]
+    up -->|no caller left| stop["program stops:<br/>file:line: runtime error N"]
+```
+
+*Figure: Where a run-time error goes: to the current procedure's handler, else up through the callers, else it ends the program.*
+
 *Listing 8.13* (`examples/book/ch08-errors/listing-08-13.bas`)
 
 <!-- run -->
