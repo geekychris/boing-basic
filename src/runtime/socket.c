@@ -67,6 +67,7 @@ typedef struct sock_obj {
     int close_fired;            /* Close / ClientClose fired for this eof */
     dgram *dq, **dqtail;        /* UDP: received datagrams */
     int ndq;
+    int dq_fresh;               /* UDP: queued datagrams DataArrival hasn't reported yet */
     char rhost[64];
     int rport;
     struct sock_obj *parent;    /* the listening socket that accepted this one (retained) */
@@ -192,6 +193,7 @@ static int fill_udp(sock_obj *s)
         *s->dqtail = d;
         s->dqtail = &d->next;
         s->ndq++;
+        s->dq_fresh++;
         got++;
     }
     return got;
@@ -209,6 +211,7 @@ static void close_sock(sock_obj *s)
     }
     s->dqtail = &s->dq;
     s->ndq = 0;
+    s->dq_fresh = 0;
     if (s->parent) {
         sock_obj *p = s->parent;
         s->parent = NULL;
@@ -521,6 +524,7 @@ static void s_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         s->dq = d->next;
         if (!s->dq) s->dqtail = &s->dq;
         s->ndq--;
+        if (s->dq_fresh > s->ndq) s->dq_fresh = s->ndq;
         snprintf(s->rhost, sizeof s->rhost, "%s", d->host);
         s->rport = d->port;
         *ret = bb_v_str(bb_str_new(d->data, d->len));
@@ -692,6 +696,7 @@ static int pump(int timeout_ms, uint32_t *sigs, int fatal)
         if (!s->udp && (s->state == ST_CONNECTED || s->state == ST_CLOSING) &&
             (s->fresh > 0 || (s->eof && !s->close_fired)))
             imm = 1;                    /* data read in by Peek/State..., or an end not reported yet */
+        if (s->udp && s->dq_fresh > 0) imm = 1;     /* datagrams queued by ReceiveFrom/BytesAvailable */
         if (s->state == ST_CONNECTING) w = BB_NET_WR;
         else if (s->state == ST_LISTENING) w = BB_NET_RD;
         else if (s->udp) w = s->ndq < MAXDGRAMS ? BB_NET_RD : 0;
@@ -715,7 +720,8 @@ static int pump(int timeout_ms, uint32_t *sigs, int fatal)
     free(nets);
     if (r >= 0 && nimm) {
         for (i = 0; i < n; i++)
-            if (!want[i] || (!list[i]->udp && (list[i]->fresh > 0 || (list[i]->eof && !list[i]->close_fired))))
+            if (!want[i] || (list[i]->udp && list[i]->dq_fresh > 0) ||
+                (!list[i]->udp && (list[i]->fresh > 0 || (list[i]->eof && !list[i]->close_fired))))
                 got[i] |= BB_NET_RD;
         r = 1;
     }
@@ -767,9 +773,11 @@ static int pump(int timeout_ms, uint32_t *sigs, int fatal)
                     if (!bb_net_accept(s->n, &c, err, sizeof err) && c) bb_net_close(c);
                 }
             } else if (s->udp) {
-                int k = fill_udp(s);
-                while (k-- > 0 && s->n && watched(s)) {
+                /* one DataArrival per datagram, also for those a handler's ReceiveFrom queued */
+                fill_udp(s);
+                while (s->dq_fresh > 0 && s->n && watched(s)) {
                     bb_value a = bb_v_long(s->dq ? s->dq->len : 0);
+                    s->dq_fresh--;
                     if (s->hdr.sinks) fire(s, EV_DATA, 1, &a);
                     fired++;
                 }
