@@ -27,7 +27,13 @@ def host_reference(src):
     env = dict(os.environ, BOING_HEADLESS="1")     # form programs run without a display on the host
     p = subprocess.run([os.path.join(ROOT, "build/boing"), "run", os.path.basename(src)], cwd=d,
                        capture_output=True, env=env)
-    return (p.stdout + p.stderr).decode("latin-1")
+    return norm(p.stdout.decode("latin-1")) + norm(p.stderr.decode("latin-1"))
+
+
+def norm(s):
+    """the bridge drops white space at the end of what it types: compare without it"""
+    s = s.replace("\r", "").rstrip()
+    return s + "\n" if s else ""
 
 
 def run(m, label, cmd, rdir, limit):
@@ -51,7 +57,7 @@ def run(m, label, cmd, rdir, limit):
             err = m.tool("amiga_dos_command", command="type %s.err" % tag)
             for f in (".out", ".err", ".done", ".script"):
                 m.tool("amiga_dos_command", command="delete %s%s QUIET" % (tag, f))
-            return clean(out) + clean(err), True
+            return norm(clean(out)) + norm(clean(err)), True
     return "", False
 
 
@@ -76,7 +82,7 @@ def main():
     expected = open(os.path.splitext(src)[0] + ".out", encoding="latin-1").read()
     ref = host_reference(src)
     rel = os.path.relpath(src, ROOT)
-    rdir = "RAM:bbt/" + os.path.dirname(rel)
+    rdir = "RAM:bbt/lt%d/%s" % (os.getpid(), os.path.basename(os.path.dirname(src)))   # its own drawer
     m = g.MCP(g.URL)
     ok = True
     with g.testing("Boing BASIC library test " + os.path.basename(src)):
@@ -96,13 +102,14 @@ def main():
         for label, cmd in runs:
             got, finished = run(m, label, cmd, rdir, limit)
             # the bridge drops trailing white space at the very end of an output
-            same = finished and got.rstrip() == ref.rstrip()
+            same = finished and got == ref
             ok &= same
             print("== %s: %s" % (label, "PASS (output = the host's)" if same else
                                  "FAIL" + ("" if finished else " (not finished within %ds)" % limit)))
             if not same:
                 import difflib
                 sys.stdout.writelines(difflib.unified_diff(ref.splitlines(True), got.splitlines(True), "host", label))
+        m.tool("amiga_dos_command", command="delete RAM:bbt/lt%d ALL QUIET FORCE" % os.getpid())
         n = g.reapers(m)
         if n:
             print("GRIM REAPER: %d" % n)
