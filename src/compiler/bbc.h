@@ -386,6 +386,7 @@ struct Program {
     Udt **udts; int nudts;
     ClassInfo **classes; int nclasses;
     char **files; int nfiles;           /* source file paths */
+    char **includes; int nincludes;     /* #Include / Uses= files already added (resolved paths) */
     char **srcs;
     int nerrors, nwarnings;
     int max_errors;
@@ -414,6 +415,7 @@ ExtMember *ext_member_find(ExtClass *c, const char *name);
 ExtFunc *ext_func_find(Program *p, const char *name);
 
 Program *prog_new(void);
+extern char *(*bbc_home)(void);   /* the installation directory, for #Include/Uses= bindings (main.c) */
 char *read_file(const char *path, long *len);   /* malloc'ed, NUL terminated; NULL if unreadable */
 Module *prog_add_source(Program *p, const char *path, const char *src, int is_class);
 int prog_load_file(Program *p, const char *path);      /* .bas/.cls/.bbp */

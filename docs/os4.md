@@ -93,6 +93,13 @@ Const MODE_OLDFILE = 1005
 Const WA_Left = &H80000064
 ```
 
+Using them: `#Include "dos.bi"` at the top of a module, or `Uses=dos,intuition` in a `.bbp`.
+Each file is added to the program once, as a module of its own (its `Public` Declares and
+constants are visible everywhere). Files are found beside the including file, then in
+`$BOING_BINDINGS`, then in `bindings/` of the Boing BASIC installation (`BOING_HOME`, else the
+directory of the `boing` executable). `#Include` works with any file of Public declarations,
+not only bindings; it isn't allowed in a class module.
+
 - `Alias "#n"` is the function's slot in the interface (Obtain = 0, the library's own functions
   from 4). Without it the runtime looks the name up in `os4_slots.c`.
 - Pointers are `Long`. C strings are `ByVal As String` (VB6 Declare semantics: a NUL-terminated
