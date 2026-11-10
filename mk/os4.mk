@@ -122,3 +122,7 @@ all: $(OUT)/ptr
 $(OUT)/bbfetch: tools/os4/bbfetch.c
 	$(CC) -mcrt=newlib -mcpu=powerpc -O2 -Wall -o $@ $< -lauto
 all: $(OUT)/bbfetch
+# ready/waiting tasks for os4guest.py's session-start snapshot (infra-m1b)
+$(OUT)/tasklist: tools/os4/tasklist.c
+	$(CC) -mcrt=newlib -mcpu=powerpc -O2 -Wall -D__USE_INLINE__ -o $@ $< -lauto
+all: $(OUT)/tasklist

@@ -90,6 +90,10 @@ int main(int argc, char **argv)
     /* no data for 30 s: recv returns -1 instead of waiting for ever */
     struct timeval tv = { 30, 0 };
     ISocket->setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
+    /* a large receive window: with the stack's default the transfer through QEMU's user-mode
+     * network crawled at ~80 KB/s per connection */
+    int rcvbuf = 512 * 1024;
+    ISocket->setsockopt(s, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof rcvbuf);
     char req[700];
     int rl = snprintf(req, sizeof req, "GET %s HTTP/1.0\r\nHost: %s\r\nConnection: close\r\n\r\n", path, host);
     if (ISocket->send(s, req, rl, 0) != rl) {

@@ -140,7 +140,8 @@ def script(m, name, lines, limit=240):
     finally:
         os.unlink(local)
     dos(m, "delete %s QUIET" % outf)
-    dos(m, "run >NIL: execute RAM:bbkit/%s.dos" % name)
+    # the install's swap is protected: a Ctrl-C half-way would be worse than letting it finish
+    g.run_bg_cmd(m, "execute RAM:bbkit/%s.dos" % name, protect=(name == "install"))
     t0, out = time.time(), ""
     while time.time() - t0 < limit:
         time.sleep(3)
