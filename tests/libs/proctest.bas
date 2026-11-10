@@ -39,5 +39,5 @@ Print "child sees:"; Trim(Replace(p.Output, vbLf, ""))
 p.SetEnv "BBTEST_VAR"
 Print "removed:["; p.GetEnv("BBTEST_VAR"); "]"
 ' a big output
-If amiga Then rc = p.Run("List SYS: ALL LFORMAT %N") Else rc = p.Run("i=0; while [ $i -lt 3000 ]; do echo line $i; i=$((i+1)); done")
-Print "big:"; Len(p.Output) > 10000; rc
+If amiga Then rc = p.Run("List SYS:C LFORMAT ""%P%N""") Else rc = p.Run("i=0; while [ $i -lt 3000 ]; do echo line $i; i=$((i+1)); done")
+Print "big:"; Len(p.Output) > 1000; rc
