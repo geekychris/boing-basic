@@ -61,6 +61,11 @@ check "sqlite links" "$(cd "$sq" && "$B" links sqltest.bbp)" "-lsqlite3"
 if (cd "$root" && make -s STD_EXTS=sqlite BOING_EXE="$tmp/boing-sql" "$tmp/boing-sql" >/dev/null 2>&1); then
     check "sqlite std interpreter" "$(cd "$sq" && BOING_EXT="$root/ext" "$tmp/boing-sql" run sqltest.bbp 2>&1)" "$(cat "$sq/sqltest.out")"
 else echo "FAIL ext STD_EXTS=sqlite interpreter (build)"; fail=1; fi
+# examples/csvimport: Csv into SQLite in Timer slices (a form program, headless, natively)
+ci=$root/examples/csvimport
+if (cd "$ci" && "$B" build csvimport.bbp -o "$tmp/csvimport" >/dev/null 2>&1); then
+    check "csvimport" "$(cd "$ci" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=60 "$tmp/csvimport" sample.csv "$tmp/ci.db" 2>&1 | sed 's/ in [0-9.]* s$//')" "Imported 1000 records into data"
+else echo "FAIL ext csvimport (build)"; fail=1; fi
 rm -rf "$tmp"
 echo "extension tests: $([ $fail = 0 ] && echo all passed || echo FAILURES)"
 exit $fail
