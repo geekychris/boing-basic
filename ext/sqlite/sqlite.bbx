@@ -1,0 +1,37 @@
+# sqlite.bbx - the SQLite standard extension (sqlite.c, docs/sqlite.md): Extension=sqlite
+link sqlite3
+class SQLite
+  method Open(ByVal path As String, ByVal readOnly As Boolean)
+  method Close()
+  method Execute(ByVal sql As String, ByVal values As Variant) As Long
+  method Query(ByVal sql As String, ByVal values As Variant) As SqlRecordset
+  method QueryValue(ByVal sql As String, ByVal values As Variant) As Variant
+  method QueryAll(ByVal sql As String, ByVal values As Variant) As Variant
+  method Prepare(ByVal sql As String) As SqlStatement
+  method BeginTransaction()
+  method Commit()
+  method Rollback()
+  property LastInsertId As Variant ReadOnly
+  property Changes As Long ReadOnly
+  property ErrorCode As Long ReadOnly
+  property Version As String ReadOnly
+  property IsOpen As Boolean ReadOnly
+  property InTransaction As Boolean ReadOnly
+  property Available As Boolean ReadOnly
+  property Path As String ReadOnly
+  property Timeout As Long
+class SqlRecordset
+  method Field(ByVal column As Variant) As Variant
+  method MoveNext()
+  method FieldName(ByVal index As Long) As String
+  method Close()
+  property AtEnd As Boolean ReadOnly
+  property EOF As Boolean ReadOnly
+  property FieldCount As Long ReadOnly
+  property Fields As Variant ReadOnly
+  property RowNumber As Long ReadOnly
+class SqlStatement
+  method Execute(ByVal values As Variant) As Long
+  method Query(ByVal values As Variant) As SqlRecordset
+  method Close()
+  property ParameterCount As Long ReadOnly

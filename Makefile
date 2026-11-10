@@ -48,7 +48,7 @@ $(BOING_EXE): $(B)/obj/main/main.o $(EXT_INIT) $(CC_OBJ) $(VM_OBJ) $(B)/libboing
 # STD_EXTS: the glue (regenerated when the list changes) and each extension's object
 $(B)/obj/stdext/glue.c: FORCE
 	@mkdir -p $(dir $@)
-	@sh tools/stdext.sh glue $(STD_EXTS) | cmp -s - $@ || sh tools/stdext.sh glue $(STD_EXTS) > $@
+	@sh tools/stdext.sh glue $(STD_EXTS) | cmp -s - $@ || { sh tools/stdext.sh glue $(STD_EXTS) > $@; rm -f $(B)/obj/stdext/glue.o; }
 $(B)/obj/stdext/glue.o: $(B)/obj/stdext/glue.c
 	$(CC) $(WARN) $(CFLAGS) -c $< -o $@
 define stdext_rule

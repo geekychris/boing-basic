@@ -51,6 +51,16 @@ case $got in *"extension 'stdhello' not found"*) ;; *) echo "FAIL ext std not fo
 if (cd "$root" && make -s STD_EXTS=stdhello STD_EXT_DIR=tests/ext/std BOING_EXE="$tmp/boing-std" "$tmp/boing-std" >/dev/null 2>&1); then
     check "std interpreter" "$(cd "$sd" && BOING_EXT=../std "$tmp/boing-std" run stdproj.bbp 2>&1)" "cube 3 -2 "
 else echo "FAIL ext STD_EXTS interpreter (build)"; fail=1; fi
+# the SQLite standard extension (ext/sqlite, Extension=sqlite): natively, and in a stock
+# interpreter built with STD_EXTS=sqlite (as the kit's is)
+sq=$root/tests/ext/sqlite
+if (cd "$sq" && "$B" build sqltest.bbp -o "$tmp/sql.nat" >/dev/null 2>&1); then
+    check "sqlite native" "$(cd "$sq" && "$tmp/sql.nat" 2>&1)" "$(cat "$sq/sqltest.out")"
+else echo "FAIL ext sqlite native (build)"; fail=1; fi
+check "sqlite links" "$(cd "$sq" && "$B" links sqltest.bbp)" "-lsqlite3"
+if (cd "$root" && make -s STD_EXTS=sqlite BOING_EXE="$tmp/boing-sql" "$tmp/boing-sql" >/dev/null 2>&1); then
+    check "sqlite std interpreter" "$(cd "$sq" && BOING_EXT="$root/ext" "$tmp/boing-sql" run sqltest.bbp 2>&1)" "$(cat "$sq/sqltest.out")"
+else echo "FAIL ext STD_EXTS=sqlite interpreter (build)"; fail=1; fi
 rm -rf "$tmp"
 echo "extension tests: $([ $fail = 0 ] && echo all passed || echo FAILURES)"
 exit $fail

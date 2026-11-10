@@ -25,7 +25,8 @@ import os4guest as g  # noqa: E402
 def host_reference(src):
     d = os.path.dirname(src)
     env = dict(os.environ, BOING_HEADLESS="1")     # form programs run without a display on the host
-    p = subprocess.run([os.path.join(ROOT, "build/boing"), "run", os.path.basename(src)], cwd=d,
+    host = os.environ.get("BB_HOST_BOING", os.path.join(ROOT, "build/boing"))   # e.g. one with STD_EXTS
+    p = subprocess.run([host, "run", os.path.basename(src)], cwd=d,
                        capture_output=True, env=env)
     return norm(p.stdout.decode("latin-1")) + norm(p.stderr.decode("latin-1"))
 

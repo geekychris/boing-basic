@@ -1,0 +1,4 @@
+# the SQLite standard extension (tests/ext/run.sh)
+Name=SqlTest
+Module=sqltest.bas
+Extension=sqlite

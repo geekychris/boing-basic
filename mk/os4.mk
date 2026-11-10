@@ -83,7 +83,7 @@ $(OUT)/boing: $(BOING_OBJS) $(OUT)/libboing.a
 
 $(OUT)/obj/stdext/glue.c: FORCE
 	@mkdir -p $(dir $@)
-	@sh tools/stdext.sh glue $(STD_EXTS) | cmp -s - $@ || sh tools/stdext.sh glue $(STD_EXTS) > $@
+	@sh tools/stdext.sh glue $(STD_EXTS) | cmp -s - $@ || { sh tools/stdext.sh glue $(STD_EXTS) > $@; rm -f $(OUT)/obj/stdext/glue.o; }
 $(OUT)/obj/stdext/glue.o: $(OUT)/obj/stdext/glue.c
 	$(CC) $(CFLAGS) -c $< -o $@
 define stdext_rule
