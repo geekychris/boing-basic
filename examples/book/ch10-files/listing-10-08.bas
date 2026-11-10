@@ -1,18 +1,17 @@
-Dim f As Integer, magic As Long, s As String, b As Byte
+Dim f As Integer, done As Boolean, born As Date, note As Variant, title As String
 
 f = FreeFile
-Open "data.bin" For Binary As #f
-magic = &H424F4E47                  ' the letters B O N G
-Put #f, , magic
-Put #f, , "Boing!"
-Print "length"; LOF(f); "position"; Seek(f)
-
-Seek #f, 1
-Get #f, , b
-Print "first byte"; b; "("; Chr(b); ")"
-s = Space(6)
-Get #f, 5, s
-Print "string ["; s; "]"; Loc(f); EOF(f)
+Open "record.txt" For Output As #f
+Write #f, "Ada", True, #12/10/1815#, Null
 Close #f
 
-Kill "data.bin"
+Open "record.txt" For Input As #f
+Print Input(LOF(f), #f);
+Close #f
+
+Open "record.txt" For Input As #f
+Input #f, title, done, born, note
+Close #f
+Print title; " "; done; " "; born; " "; IsNull(note)
+Print TypeName(done); " "; TypeName(born); " "; TypeName(note)
+Kill "record.txt"

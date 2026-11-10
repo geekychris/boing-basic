@@ -66,8 +66,15 @@ Procedures can sit before, between or after module-level statements. If the star
 has module-level statements, they are the program, and `Sub Main` is then an ordinary
 procedure that runs only if you call it.
 
-Module-level statements in a module other than the startup module never run. Put code that
-another module needs into a procedure and call it.
+Module-level statements in a module other than the startup module never run, and `boing
+check` warns about them ("module-level statements in 'util' never run (only the startup
+module's do): move them into a Sub"). Put code that another module needs into a procedure and
+call it. Declarations (`Dim`, `Public`, `Const`, `Type`, `Enum`, `Declare`) belong at module
+level in any module.
+
+A module can bring in a file of shared declarations with `#Include "file.bi"` at the start of
+a line, and a project with the key `Uses=`: each file becomes a module of its own. Both are
+described in [chapter 5](05-procedures.md#sharing-code-include-and-uses).
 
 ## Lexical rules
 
@@ -1071,7 +1078,8 @@ files with `Put` and `Get` ([chapter 10](10-files.md)).
 
 ## Summary
 
-- A program is module-level statements, or a `Sub Main`, or a startup form.
+- A program is module-level statements, or a `Sub Main`, or a startup form. Only the startup
+  module's module-level statements run.
 - `'` and `Rem` start comments, `:` separates statements, ` _` continues a line, and case
   never matters.
 - Use `Option Explicit` and give every variable a type with `As`.

@@ -1,25 +1,18 @@
-Type HiScore
-    Points As Long
-    Initials As String * 3
-End Type
-
-Dim f As Integer, h As HiScore, i As Integer
+Dim f As Integer, magic As Long, s As String, b As Byte
 
 f = FreeFile
-Open "scores.dat" For Random As #f Len = Len(h)
-For i = 1 To 3
-    h.Points = 5000 - i * 1000
-    h.Initials = Choose(i, "ADA", "BOB", "CAT")
-    Put #f, i, h
-Next
-Print "records:"; LOF(f) / Len(h); "of"; Len(h); "bytes"
+Open "data.bin" For Binary As #f
+magic = &H424F4E47                  ' the letters B O N G
+Put #f, , magic
+Put #f, , "Boing!"
+Print "length"; LOF(f); "position"; Seek(f)
 
-Get #f, 2, h
-Print h.Initials; h.Points
-h.Points = 9999
-Put #f, 2, h                      ' change one record in place
-Get #f, 2, h
-Print h.Initials; h.Points
+Seek #f, 1
+Get #f, , b
+Print "first byte"; b; "("; Chr(b); ")"
+s = Space(6)
+Get #f, 5, s
+Print "string ["; s; "]"; Loc(f); EOF(f)
 Close #f
 
-Kill "scores.dat"
+Kill "data.bin"

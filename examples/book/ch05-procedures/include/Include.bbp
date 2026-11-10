@@ -1,0 +1,5 @@
+# Boing BASIC project: shared declarations from mylib.bi (#Include) and exec.bi (Uses=)
+Name=Include
+Startup=Sub Main
+Module=main.bas
+Uses=exec

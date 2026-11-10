@@ -297,12 +297,23 @@ Other modules reach a form by its window name, `name=` in the `.afg` (`hello.Sho
 control of it as `form.control` (`hello.answer.Caption = "Hi"`).
 
 The form's code-behind is also a module, named after its file (`hello.bas` is the module
-`hello`), and its `Public` variables and procedures are reached as `module.name`. When the
-window name and the module name are the same (`hello` and `hello`), the module wins: other
-modules can then use the module's Public members, but not the form. So if other modules must
-show or change a form, give its window a name of its own, as the dialog in the
-[multiple forms](#several-forms) example does: file `person.afg`, `window name=dlgPerson`.
-Then `dlgPerson.Show` is the form and `person.Answer` a Public variable of its code-behind.
+`hello`), and its `Public` variables and procedures are reached as `module.name`. The window
+name and the module name may be the same, and usually are: then one name reaches both, so
+`hello.Show` and `hello.Caption` are the form, and `hello.Answer` a Public variable of its
+code-behind. They may also differ, as in the dialog of the [multiple forms](#several-forms)
+example: file `person.afg`, `window name=dlgPerson`. Then `dlgPerson.Show` is the form and
+`person.Answer` a Public variable of its code-behind.
+
+A window name must not be the name of anything else of the program that other modules can
+reach: another module, a class, or a `Public` procedure or variable. That would make the name
+mean two things, so it is a compile error:
+
+```text
+prefs.bas:1:1: error: the form 'Settings' has the same name as the procedure 'Settings' in module main: rename the window (window name=) or the other
+```
+
+The same goes for a form named `main` in a program that has a module `main.bas`, or a form
+named like a class. Rename the window, or the other thing.
 
 ## The form
 
@@ -1198,8 +1209,9 @@ Form=person.afg
 Form=about.afg
 ```
 
-The dialog's layout gives the window a name of its own, `dlgPerson`, so that the main form can
-reach both the form (`dlgPerson`) and its code-behind module (`person`):
+The dialog's layout gives the window a name of its own, `dlgPerson`, so the main form's code
+shows which is which: the form (`dlgPerson`) or its code-behind module (`person`). Naming the
+window `person` would work too.
 
 ```text
 # person.afg - a small modal dialog

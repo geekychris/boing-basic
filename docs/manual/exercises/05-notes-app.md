@@ -274,11 +274,14 @@ Private Sub mnuFind_Click()
 End Sub
 ```
 
-**Give each window a name that is different from its file name.** The code-behind module of
-`findwin.afg` is called `findwin`, after its file. If the window were also called `findwin`,
-then `findwin.Show` in another module would mean the module, not the form, and `boing check`
-would report "module 'findwin' has no public member 'Show'". `Startup=Form main` names the
-startup form by its file (`main.afg`), not by its window name.
+The code-behind module of `findwin.afg` is called `findwin`, after its file. The window could
+have that name too (`window name=findwin`): then `findwin.Show` is the form and `findwin.what`
+its control, and a `Public` member of the code-behind is reached the same way. Here the
+windows have names of their own, which makes it clear in the code that you mean the form.
+What a window can't be called is the name of a different module, a class, or a `Public`
+procedure or variable: `boing check` reports that as an error ("the form 'x' has the same name
+as ..."). `Startup=Form main` names the startup form by its file (`main.afg`), not by its
+window name.
 
 The first use of a form, or of one of its controls, loads it (`Form_Load` runs). `Show` opens
 its window; `finder.Show vbModal` would instead wait until the window is closed, and keep the

@@ -1,7 +1,6 @@
-Dim t As Double, i As Long, total As Double
-Print "Today is "; Format(Date, "dddd d mmmm yyyy"); ", the time is "; Format(Time, "hh:nn")
-t = TimerMs
-For i = 1 To 100000
-    total = total + Sqr(i)
-Next
-Print "That took"; Int(TimerMs - t); "ms"
+Dim d As Date
+d = #3/9/2024 2:05:09 PM#
+Print d
+Print #2024-12-25#
+Print #6:30:00 AM#
+Print d + 1; " | "; d - #3/1/2024#

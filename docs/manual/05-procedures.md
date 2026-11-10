@@ -169,9 +169,46 @@ Dim i As Integer
 AddOneRef i
 ```
 
-A typed variable passed to a `ByRef` Variant parameter is passed as a copy: the procedure
-can change the parameter, but the caller's variable is not changed. Only a Variant variable
-passed to a Variant parameter is shared.
+A `ByRef` Variant parameter (also one with no type, which is a Variant) takes a variable of
+any type. The procedure works on a Variant copy of the value, and when it returns, the new
+value is copied back into the caller's variable, converted to the variable's type. So a
+Variant parameter gives results back just as a typed one does. If the new value can't be
+converted (a text such as `"ten"` into a Long), the call ends with error 13, "Type mismatch",
+and the variable keeps its old value:
+
+*Listing 5.5* (`examples/book/ch05-procedures/listing-05-05.bas`)
+
+<!-- run -->
+```basic
+Sub Twice(v As Variant)
+    v = v * 2
+End Sub
+
+Sub Shout(v)
+    v = UCase$(v) & "!"
+End Sub
+
+Sub MakeText(v)
+    v = "ten"
+End Sub
+
+Dim n As Long, s As String
+n = 21: s = "hello"
+Twice n
+Shout s
+Print n; s
+Twice (n)                 ' in parentheses: a copy
+Print n
+On Error Resume Next
+MakeText n                ' "ten" can't go back into a Long
+Print "error"; Err.Number; n
+```
+
+```output
+ 42 HELLO!
+ 42 
+error 13  42 
+```
 
 Use `ByVal` for values a procedure only reads, and `ByRef` when it has to give results back
 through its parameters. Arrays and user-defined types are always passed by reference;
@@ -182,7 +219,7 @@ declaring them `ByVal` is a compile error.
 Declare an array parameter with empty parentheses. The procedure can use `LBound` and
 `UBound` to find the array's size, and can `ReDim` a dynamic array it is given:
 
-*Listing 5.5* (`examples/book/ch05-procedures/listing-05-05.bas`)
+*Listing 5.6* (`examples/book/ch05-procedures/listing-05-06.bas`)
 
 <!-- run -->
 ```basic
@@ -220,7 +257,7 @@ any array, including one made by `Array()` or `Split()`.
 without a default, `IsMissing(param)` tells you whether the caller passed it. Every
 parameter after an `Optional` one must be `Optional` too.
 
-*Listing 5.6* (`examples/book/ch05-procedures/listing-05-06.bas`)
+*Listing 5.7* (`examples/book/ch05-procedures/listing-05-07.bas`)
 
 <!-- run -->
 ```basic
@@ -259,7 +296,7 @@ To leave out an argument in the middle, write nothing between the commas:
 You can pass arguments by the parameter's name, with `:=`, in any order. This is clearest
 with procedures that have several optional parameters:
 
-*Listing 5.7* (`examples/book/ch05-procedures/listing-05-07.bas`)
+*Listing 5.8* (`examples/book/ch05-procedures/listing-05-08.bas`)
 
 <!-- run -->
 ```basic
@@ -291,7 +328,7 @@ the last parameter, and it is declared as a Variant array, `ParamArray name()` (
 `ParamArray name() As Variant`). With no arguments, the array is empty and its `UBound` is
 -1.
 
-*Listing 5.8* (`examples/book/ch05-procedures/listing-05-08.bas`)
+*Listing 5.9* (`examples/book/ch05-procedures/listing-05-09.bas`)
 
 <!-- run -->
 ```basic
@@ -327,7 +364,7 @@ Got 0 item(s):
 A procedure can call itself. Inside a Function, the function's name with arguments in
 parentheses is a recursive call; without them it is the result variable:
 
-*Listing 5.9* (`examples/book/ch05-procedures/listing-05-09.bas`)
+*Listing 5.10* (`examples/book/ch05-procedures/listing-05-10.bas`)
 
 <!-- run -->
 ```basic
@@ -368,7 +405,7 @@ a module variable of the same name.
 next. `Static` in front of `Sub`, `Function` or `Property` makes every local variable of that
 procedure static:
 
-*Listing 5.10* (`examples/book/ch05-procedures/listing-05-10.bas`)
+*Listing 5.11* (`examples/book/ch05-procedures/listing-05-11.bas`)
 
 <!-- run -->
 ```basic
@@ -422,7 +459,7 @@ modules too:
 - `Property Set Name(ByVal v As Object)` runs when an object is assigned
   (`Set Name = obj`).
 
-*Listing 5.11* (`examples/book/ch05-procedures/listing-05-11.bas`)
+*Listing 5.12* (`examples/book/ch05-procedures/listing-05-12.bas`)
 
 <!-- run -->
 ```basic
@@ -464,8 +501,101 @@ compile error. `Exit Property` leaves a property procedure early.
 A project (`.bbp` file) lists the modules that make up the program, one per `Module=` line,
 with class modules on `Class=` lines and forms on `Form=` lines. The first module is the
 startup module ([chapter 4](04-data.md#the-shape-of-a-program)). Projects and their keys are
-described in [chapter 2](02-shell.md). There is no `#Include` statement: to share code, add
-its module to the project.
+described in [chapter 2](02-shell.md).
+
+Only the startup module's module-level statements run. Statements at module level in any
+other module (anything but declarations) would never run, so `boing check` warns about them:
+
+```text
+modB.bas:4:1: warning: module-level statements in 'modB' never run (only the startup module's do): move them into a Sub
+```
+
+Put such code into a Sub and call it from the startup module (for example from `Sub Main`).
+`Dim`, `Const`, `Type` and the other declarations are fine in any module.
+
+### Sharing code: #Include and Uses=
+
+A module can also pull another file into the program itself. A line
+
+```text
+#Include "util.bi"
+```
+
+at the start of a line (spaces before it are allowed) adds the file `util.bi` to the program
+as a module of its own. Its `Public` declarations (procedures, variables, constants, types,
+`Declare`s) are then visible in every module, as if the file were listed in the project with
+`Module=`. A file is added only once, however many modules include it. The file can have any
+name; `.bi` is the custom for files of declarations. Its module name is the file name without
+the extension (`util.bi` is the module `util`, so `util.Twice` works), and that must not be
+the name of another module of the program: a file `prog.bas` that includes `prog.bi` is an
+error, "duplicate module or class name 'prog'". The included file's other module-level
+statements never run (it is not the startup module), and `#Include` is not allowed in a class
+module (put it in a standard module instead).
+
+The file is looked for in this order:
+
+1. beside the file that has the `#Include` line;
+2. in the directory named by the environment variable `BOING_BINDINGS`, if it is set;
+3. in the `bindings` directory of Boing BASIC itself (`BOING:bindings/` on the Amiga), where
+   the ready-made AmigaOS bindings are ([chapter 17](17-amigaos.md#the-ready-made-bindings)).
+
+A name with a colon or starting with `/` is a full path and is used as it is. A file that
+can't be found is a compile error:
+
+```text
+prog.bas:1:1: error: cannot find include file 'utils.bi' (looked beside the program, in $BOING_BINDINGS and in the bindings directory)
+```
+
+In a project, the key `Uses=` does the same for a list of files: `Uses=exec, dos, mylib.bi`
+adds `exec.bi`, `dos.bi` and `mylib.bi` (a name without a dot gets `.bi`), found the same way,
+starting beside the project file. They are added after the project's own modules, so the
+first `Module=` stays the startup module.
+
+Here is a small project, `examples/book/ch05-procedures/include/`, that does both. Its file
+`mylib.bi` holds declarations to share:
+
+```text
+' mylib.bi - declarations shared by several programs
+Public Const GREETING = "Hello from mylib"
+
+Public Function Twice(ByVal x As Long) As Long
+    Twice = 2 * x
+End Function
+```
+
+The project file names the startup module and asks for the ready-made `exec.bi`:
+
+```ini
+Name=Include
+Startup=Sub Main
+Module=main.bas
+Uses=exec
+```
+
+and `main.bas` includes `mylib.bi` and uses names from both files:
+
+*Listing 5.13* (`examples/book/ch05-procedures/include/Include.bbp`)
+
+<!-- project: examples/book/ch05-procedures/include/Include.bbp -->
+```basic
+#Include "mylib.bi"
+Option Explicit
+
+Sub Main()
+    Print GREETING
+    Print "Twice(21) ="; Twice(21)
+    Print "MEMF_CLEAR from exec.bi ="; MEMF_CLEAR
+End Sub
+```
+
+```output
+Hello from mylib
+Twice(21) = 42 
+MEMF_CLEAR from exec.bi = 65536 
+```
+
+A single `.bas` file can include bindings too, with no project at all: `#Include "exec.bi"` at
+the top of `prog.bas`, and `boing run prog.bas`.
 
 ### What each module can see
 
@@ -487,9 +617,18 @@ its module to the project.
 
 To use a name from a particular module, write the module's name (its file name without
 `.bas`) and a dot: `util.Twice(5)`, `util.Counter`. This is how you choose between two
-modules that each have a public procedure of the same name. Without the module name, the
-first module in the project's list that has the name is used, so qualify names that are
-defined in more than one module.
+modules that each have a public procedure of the same name.
+
+Inside a module that defines a procedure, its own one is used without the module name. In any
+other module, an unqualified name that is a `Public` procedure in two or more modules is a
+compile error, because Boing BASIC can't know which one you mean:
+
+```text
+modC.bas:2:5: error: ambiguous name 'Hello': it is a Public procedure in modules modA and modB (write modA.Hello)
+```
+
+Write `modA.Hello` or `modB.Hello` there. (The same name for a `Public` variable in two modules
+is an error in itself: "public variable 'N' is already defined in another module".)
 
 A module-level declaration with the same name as another module's `Public` one hides it in
 that module; `boing check` warns about it.
@@ -509,7 +648,7 @@ Module=shapes.bas
 
 `util.bas`:
 
-*Listing 5.12* (`examples/book/ch05-procedures/modules/modules.bbp`)
+*Listing 5.14* (`examples/book/ch05-procedures/modules/modules.bbp`)
 
 <!-- project: examples/book/ch05-procedures/modules/modules.bbp -->
 ```basic
@@ -548,7 +687,7 @@ End Function
 
 `shapes.bas`:
 
-*Listing 5.13* (`examples/book/ch05-procedures/modules/modules.bbp`)
+*Listing 5.15* (`examples/book/ch05-procedures/modules/modules.bbp`)
 
 <!-- project: examples/book/ch05-procedures/modules/modules.bbp -->
 ```basic
@@ -568,7 +707,7 @@ End Function
 
 `main.bas`, the startup module:
 
-*Listing 5.14* (`examples/book/ch05-procedures/modules/modules.bbp`)
+*Listing 5.16* (`examples/book/ch05-procedures/modules/modules.bbp`)
 
 <!-- project: examples/book/ch05-procedures/modules/modules.bbp -->
 ```basic
@@ -607,7 +746,7 @@ A project for a program with windows usually names a form to open instead
 (`Startup=Form MainForm` in the `.bbp` file); the form's events then drive the program.
 Forms are covered in [chapter 12](12-forms.md).
 
-*Listing 5.15* (`examples/book/ch05-procedures/listing-05-15.bas`)
+*Listing 5.17* (`examples/book/ch05-procedures/listing-05-17.bas`)
 
 <!-- run -->
 ```basic
@@ -638,7 +777,10 @@ Done
   `ParamArray` make flexible procedures.
 - `Static` keeps local variables between calls.
 - `Public` names are shared across a project's modules; qualify with `module.name` when two
-  modules use the same name.
+  modules have a Public procedure of the same name (unqualified, it is a compile error).
+- `#Include "file.bi"` and the project key `Uses=` add a file of shared declarations, such as
+  a ready-made binding, as a module of its own.
+- Only the startup module's module-level statements run; `boing check` warns about others.
 
 See also: [Program structure and data](04-data.md), [Control flow](06-control-flow.md),
 [Errors and error handling](08-errors.md), [Classes and objects](11-classes.md).

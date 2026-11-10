@@ -263,7 +263,36 @@ name -> Boing=Ball
 Two delimiters in a row give an empty piece (`parts(2)` above). Splitting an empty string gives
 an empty array, whose `UBound` is -1.
 
-There is no `Filter` function. To keep only some elements of an array, copy them in a loop.
+`Filter(array, match [, include [, compare]])` keeps the elements of a one-dimensional String
+or Variant array that contain `match` anywhere in them, and returns them as a new String array
+(numbered from 0). With `include` False it keeps the elements that do **not** contain `match`.
+`compare` is `vbBinaryCompare` (the default: capitals and small letters differ) or
+`vbTextCompare` (they don't). When nothing is kept, the result is an empty array, whose
+`UBound` is -1:
+
+*Listing 9.9* (`examples/book/ch09-builtins/listing-09-09.bas`)
+
+<!-- run -->
+```basic
+Dim fruit() As String, hits() As String
+fruit = Split("apple,Banana,cherry,grape,PEAR", ",")
+hits = Filter(fruit, "an")
+Print UBound(hits) + 1; "with an: "; Join(hits, " ")
+hits = Filter(fruit, "e", False)
+Print UBound(hits) + 1; "without e: "; Join(hits, " ")
+hits = Filter(fruit, "AP", True, vbTextCompare)
+Print UBound(hits) + 1; "with ap, any case: "; Join(hits, " ")
+Print UBound(Filter(fruit, "kiwi"))
+```
+
+```output
+ 1 with an: Banana
+ 2 without e: Banana PEAR
+ 2 with ap, any case: apple grape
+-1 
+```
+
+`PEAR` is kept by the second `Filter` because a capital E is not an `e` in a binary compare.
 
 ### Characters and character codes
 
@@ -273,7 +302,7 @@ There is no `Filter` function. To keep only some elements of an array, copy them
 | `Chr(code)` | the character with that code (0 to 255; anything else is error 5) |
 | `AscW(s)`, `ChrW(code)` | the same as `Asc` and `Chr`: strings are 8-bit, so there are no codes above 255 |
 
-*Listing 9.9* (`examples/book/ch09-builtins/listing-09-09.bas`)
+*Listing 9.10* (`examples/book/ch09-builtins/listing-09-10.bas`)
 
 <!-- run -->
 ```basic
@@ -308,7 +337,7 @@ Some characters have names of their own: `vbCr` (13), `vbLf` (10), `vbCrLf` (13 
 | `Hex(n)`, `Oct(n)` | `n` in hexadecimal / octal, without a prefix |
 | `Format(n, pattern)` | `n` laid out by a pattern (see [Format](#format)) |
 
-*Listing 9.10* (`examples/book/ch09-builtins/listing-09-10.bas`)
+*Listing 9.11* (`examples/book/ch09-builtins/listing-09-11.bas`)
 
 <!-- run -->
 ```basic
@@ -348,7 +377,7 @@ themselves ([The AmigaOS 4 desktop](18-desktop.md#number-and-date-formats)).
 
 ### Named formats
 
-*Listing 9.11* (`examples/book/ch09-builtins/listing-09-11.bas`)
+*Listing 9.12* (`examples/book/ch09-builtins/listing-09-12.bas`)
 
 <!-- run -->
 ```basic
@@ -389,7 +418,7 @@ The named formats for dates are described under [Formatting dates](#formatting-d
 | `\c` | the character `c` shown as it is |
 | other characters | such as `$ - + ( ) :` and spaces, shown as they are |
 
-*Listing 9.12* (`examples/book/ch09-builtins/listing-09-12.bas`)
+*Listing 9.13* (`examples/book/ch09-builtins/listing-09-13.bas`)
 
 <!-- run -->
 ```basic
@@ -410,7 +439,7 @@ A pattern can have up to three **sections** separated by `;`: the first is for p
 numbers, the second for negative ones (shown without the minus sign, so the section decides how
 a negative number looks), the third for zero:
 
-*Listing 9.13* (`examples/book/ch09-builtins/listing-09-13.bas`)
+*Listing 9.14* (`examples/book/ch09-builtins/listing-09-14.bas`)
 
 <!-- run -->
 ```basic
@@ -438,7 +467,7 @@ For a string value, these placeholders apply:
 | `!` | fill the placeholders from the left (normally they fill from the right) |
 | `<` / `>` | the whole result in small / capital letters |
 
-*Listing 9.14* (`examples/book/ch09-builtins/listing-09-14.bas`)
+*Listing 9.15* (`examples/book/ch09-builtins/listing-09-15.bas`)
 
 <!-- run -->
 ```basic
@@ -470,7 +499,7 @@ WORKBENCH workbench
 | `Sin(a)`, `Cos(a)`, `Tan(a)` | sine, cosine and tangent of an angle in **radians** |
 | `Atn(x)` | the arctangent, in radians (-pi/2 to pi/2) |
 
-*Listing 9.15* (`examples/book/ch09-builtins/listing-09-15.bas`)
+*Listing 9.16* (`examples/book/ch09-builtins/listing-09-16.bas`)
 
 <!-- run -->
 ```basic
@@ -498,7 +527,7 @@ result to an Integer or Long variable, or use `CLng`, when you need a whole-numb
 There is no built-in for pi, logarithms to other bases, or angles in degrees, but they are
 simple to make:
 
-*Listing 9.16* (`examples/book/ch09-builtins/listing-09-16.bas`)
+*Listing 9.17* (`examples/book/ch09-builtins/listing-09-17.bas`)
 
 <!-- run -->
 ```basic
@@ -527,7 +556,7 @@ The arithmetic operators (`+ - * / \ Mod ^`) are described in [Expressions](07-e
 at a different place each run, from the clock; `Randomize n` starts it at a place chosen by `n`,
 so the same `n` gives the same sequence each time:
 
-*Listing 9.17* (`examples/book/ch09-builtins/listing-09-17.bas`)
+*Listing 9.18* (`examples/book/ch09-builtins/listing-09-18.bas`)
 
 <!-- run -->
 ```basic
@@ -567,7 +596,7 @@ faster than Doubles.
 
 A result that does not fit in a Long is error 6, "Overflow".
 
-*Listing 9.18* (`examples/book/ch09-builtins/listing-09-18.bas`)
+*Listing 9.19* (`examples/book/ch09-builtins/listing-09-19.bas`)
 
 <!-- run -->
 ```basic
@@ -596,7 +625,7 @@ write a date in a program between `#` signs, in month/day/year order or as year-
 
 A Date prints (and converts to a String) in the form month/day/year and a 12-hour time:
 
-*Listing 9.19* (`examples/book/ch09-builtins/listing-09-19.bas`)
+*Listing 9.20* (`examples/book/ch09-builtins/listing-09-20.bas`)
 
 <!-- run -->
 ```basic
@@ -626,10 +655,12 @@ another way (for example day/month/year, as in Europe), use `Format`.
 | `Now` | the current date and time |
 | `Date` | today's date (time 0:00:00) |
 | `Time` | the current time of day (date part 0) |
+| `Date$` | today's date as a String, `mm-dd-yyyy` (`11-10-2026`) |
+| `Time$` | the current time as a String, `hh:mm:ss` with a 24-hour clock (`14:05:09`) |
 | `Timer` | seconds since midnight, as a Single, with fractions |
 | `TimerMs` | milliseconds from a fixed starting point, as a Double. Good for measuring how long something takes and for timing game loops |
 
-*Listing 9.20* (`examples/book/ch09-builtins/listing-09-20.bas`)
+*Listing 9.21* (`examples/book/ch09-builtins/listing-09-21.bas`)
 
 ```basic
 Dim t As Double, i As Long, total As Double
@@ -641,7 +672,9 @@ Next
 Print "That took"; Int(TimerMs - t); "ms"
 ```
 
-`Date` and `Time` are functions only: they cannot be assigned to set the system clock. Use
+`Date` and `Time` (and `Date$` and `Time$`) are functions only: they cannot be assigned to set
+the system clock. `Date$` and `Time$` always have the same shape, with leading zeros, whatever
+the locale; use `Format` for dates that people read. Use
 `TimerMs` rather than `Timer` to measure time: `Timer` jumps back to 0 at midnight.
 
 ### Building and taking apart dates
@@ -658,7 +691,7 @@ Print "That took"; Int(TimerMs - t); "ms"
 | `MonthName(m [, abbreviate])` | "January" ... "December"; with `True`, "Jan" ... "Dec" |
 | `WeekdayName(n [, abbreviate])` | "Sunday" ... "Saturday" for 1 to 7; with `True`, "Sun" ... "Sat" |
 
-*Listing 9.21* (`examples/book/ch09-builtins/listing-09-21.bas`)
+*Listing 9.22* (`examples/book/ch09-builtins/listing-09-22.bas`)
 
 <!-- run -->
 ```basic
@@ -711,7 +744,7 @@ An unknown interval is error 5.
 - `DatePart(interval, date)` gives one part of a date: the year, quarter, month, day of the
   year, day, day of the week, week of the year, hour, minute or second.
 
-*Listing 9.22* (`examples/book/ch09-builtins/listing-09-22.bas`)
+*Listing 9.23* (`examples/book/ch09-builtins/listing-09-23.bas`)
 
 <!-- run -->
 ```basic
@@ -744,7 +777,7 @@ understand month/day/year (`"3/9/2024"`), year-month-day (`"2024-03-09"`), month
 `"2:05 PM"`). Three numbers are always read as month/day/year, or as year-month-day when the
 first one is a year: `"5/12/2024"` is 12 May, and `"31/12/2024"` is not a date at all:
 
-*Listing 9.23* (`examples/book/ch09-builtins/listing-09-23.bas`)
+*Listing 9.24* (`examples/book/ch09-builtins/listing-09-24.bas`)
 
 <!-- run -->
 ```basic
@@ -793,7 +826,7 @@ And the characters for date patterns:
 | `/ : - , .` and spaces | shown as they are |
 | `"text"`, `\c` | text shown as it is |
 
-*Listing 9.24* (`examples/book/ch09-builtins/listing-09-24.bas`)
+*Listing 9.25* (`examples/book/ch09-builtins/listing-09-25.bas`)
 
 <!-- run -->
 ```basic
@@ -852,7 +885,7 @@ These functions answer questions about a value, mostly a Variant:
 | `LBound(a [, dim])`, `UBound(a [, dim])` | the lowest / highest index of an array (dimension 1 unless you give `dim`) |
 | `Array(a, b, ...)` | a Variant holding an array (index 0 up) of the values |
 
-*Listing 9.25* (`examples/book/ch09-builtins/listing-09-25.bas`)
+*Listing 9.26* (`examples/book/ch09-builtins/listing-09-26.bas`)
 
 <!-- run -->
 ```basic
@@ -878,9 +911,11 @@ Arrays, `LBound` and `UBound` are described in [Data](04-data.md), and `Variant`
 ## Choosing a value: IIf and Choose
 
 `IIf(condition, a, b)` gives `a` if the condition is true and `b` if not. `Choose(n, a, b, c,
-...)` gives the `n`th of its values (1 for the first), or `Null` if there is no `n`th value:
+...)` gives the `n`th of its values (1 for the first), or `Null` if there is no `n`th value.
+`Switch(condition1, value1, condition2, value2, ...)` gives the value after the first condition
+that is true, or `Null` if none is (it needs pairs: an odd number of arguments is error 5):
 
-*Listing 9.26* (`examples/book/ch09-builtins/listing-09-26.bas`)
+*Listing 9.27* (`examples/book/ch09-builtins/listing-09-27.bas`)
 
 <!-- run -->
 ```basic
@@ -898,10 +933,29 @@ pass
 Mon Tue Wed Null 
 ```
 
-Unlike `If ... Then ... Else`, `IIf` and `Choose` work out **all** their arguments before
-choosing, so `IIf(x <> 0, 1 / x, 0)` still divides by zero when `x` is 0. Use an `If` statement
-when one of the choices must not be worked out. There is no `Switch` function; use `Select Case`
-([Control flow](06-control-flow.md)).
+*Listing 9.28* (`examples/book/ch09-builtins/listing-09-28.bas`)
+
+<!-- run -->
+```basic
+Dim t As Integer, r As Variant
+For t = -5 To 35 Step 20
+    Print t; Switch(t < 0, "freezing", t < 20, "mild", t < 30, "warm")
+Next
+r = Switch(t > 100, "boiling")
+Print IsNull(r)
+```
+
+```output
+-5 freezing
+ 15 mild
+ 35 Null
+True
+```
+
+Unlike `If ... Then ... Else`, `IIf`, `Choose` and `Switch` work out **all** their arguments
+before choosing, so `IIf(x <> 0, 1 / x, 0)` still divides by zero when `x` is 0. Use an `If`
+statement or `Select Case` ([Control flow](06-control-flow.md)) when one of the choices must not
+be worked out.
 
 ## The system and the program
 
@@ -914,17 +968,42 @@ when one of the choices must not be worked out. There is no `Switch` function; u
 | `DoEvents` | lets windows, timers and other events be handled during a long calculation; returns 0 |
 | `Beep` | flashes the screen (on AmigaOS, `DisplayBeep`), or sounds the terminal bell on a host |
 | `RGB(red, green, blue)` | a colour value from three numbers 0 to 255, for forms and graphics |
+| `QBColor(n)` | one of 16 standard colours, `n` 0 to 15, as an `RGB` value (error 5 for other numbers) |
 
 `Environ`, `Command` and `Shell` are described with the other system functions in
 [Files and the system](10-files.md). `RGB` packs red into the lowest byte, then green, then
 blue (`RGB(255, 0, 0)` is 255, the same as the constant `vbRed`); see [Graphics](14-graphics.md)
-for colours. There is no `QBColor`.
+for colours.
+
+`QBColor` gives the 16 colours of the classic 16-colour PC palette: 0 black, 1 blue, 2 green,
+3 cyan, 4 red, 5 magenta, 6 brown, 7 light grey, 8 dark grey, and 9 to 15 the bright versions of
+1 to 7, ending with 15 white. Printed in hexadecimal, blue is in the high byte and red in the
+low byte, as with `RGB`:
+
+*Listing 9.29* (`examples/book/ch09-builtins/listing-09-29.bas`)
+
+<!-- run -->
+```basic
+Dim i As Integer
+For i = 0 To 15
+    Print Right$("00000" & Hex(QBColor(i)), 6); " ";
+    If i = 7 Then Print
+Next
+Print
+Print QBColor(12) = RGB(255, 0, 0); QBColor(9) = vbBlue
+```
+
+```output
+000000 800000 008000 808000 000080 800080 008080 C0C0C0 
+808080 FF0000 00FF00 FFFF00 0000FF FF00FF 00FFFF FFFFFF 
+TrueTrue
+```
 
 `Sleep` and `DoEvents` matter in programs with windows: while your code runs, the program does
 not react to the mouse or redraw its windows. A long loop should call `DoEvents` now and then.
 Both also check for Ctrl-C (see [Errors](08-errors.md)).
 
-*Listing 9.27* (`examples/book/ch09-builtins/listing-09-27.bas`)
+*Listing 9.30* (`examples/book/ch09-builtins/listing-09-30.bas`)
 
 <!-- run -->
 ```basic
@@ -941,15 +1020,15 @@ slept at least 200 ms: True
 ## Summary
 
 - Strings: `Len Left Right Mid InStr InStrRev StrComp UCase LCase Trim LTrim RTrim Space String
-  StrReverse Replace Split Join Asc Chr Str Val Hex Oct`, the `Mid` statement and `LSet`/`RSet`.
+  StrReverse Replace Split Join Filter Asc Chr Str Val Hex Oct`, the `Mid` statement and `LSet`/`RSet`.
 - `Format` lays out numbers, dates and strings with named formats or patterns.
 - Maths: `Abs Sgn Int Fix Round Sqr Exp Log Sin Cos Tan Atn Rnd Randomize`, plus `Shl ShrA ShrL
   MulShr MulDiv` for bits and fixed point.
-- Dates: `Now Date Time Timer TimerMs DateSerial TimeSerial DateValue TimeValue Year Month Day
+- Dates: `Now Date Time Date$ Time$ Timer TimerMs DateSerial TimeSerial DateValue TimeValue Year Month Day
   Hour Minute Second Weekday MonthName WeekdayName DateAdd DateDiff DatePart`.
 - Values: `IsNumeric IsDate IsEmpty IsNull IsObject IsArray IsMissing TypeName VarType LBound
-  UBound Array IIf Choose`.
-- Not available: `Filter`, `Switch`, `QBColor`.
+  UBound Array IIf Choose Switch`.
+- Colours: `RGB` and `QBColor`.
 
 See also: [Expressions](07-expressions.md), [Files and the system](10-files.md),
 [All built-in functions](appendix-b-functions.md).

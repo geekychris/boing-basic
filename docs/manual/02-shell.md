@@ -188,6 +188,7 @@ Each line is `Key=value`. Lines starting with `#` or `'` are comments.
 | `Module` | a module: a `.bas` file of procedures, variables, constants and types (one line per file) |
 | `Form` | a form: its layout file `name.afg`; its code is the `.bas` file with the same name beside it (`name.bas`, the form's "code-behind") |
 | `Class` | a class module, `.cls` (see [Classes and objects](11-classes.md)) |
+| `Uses` | files of shared declarations, such as the ready-made AmigaOS bindings: `Uses=exec,dos,intuition` adds `exec.bi`, `dos.bi` and `intuition.bi` (a name without a dot gets `.bi`), each as a module of its own. They are looked for beside the project, then in `$BOING_BINDINGS`, then in Boing BASIC's `bindings` directory (see [Procedures](05-procedures.md#sharing-code-include-and-uses)) |
 | `Stack` | the stack size of the native program in bytes (default 262144; complex windows need at least that) |
 | `Icon` | the program's icon (`.info` file), used when it is packaged |
 | `Title`, `Version` | information for packaging tools |

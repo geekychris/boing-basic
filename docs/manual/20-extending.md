@@ -450,6 +450,37 @@ The file is `examples/book/ch20-extending/textutil/textutil.cpp`. On AmigaOS 4 t
 library needs the thread model `-athread=native`, which `boing build` and `boing vm` add for
 C++ extensions.
 
+## Extensions that use C libraries
+
+An extension often wraps an existing C library. Say so in its `.bbx` with `link` lines, and
+every build that includes the extension (native builds on the Amiga or from a Mac or PC, and
+`boing vm`) links that library too:
+
+```text
+link sqlite3          # -lsqlite3 for every target
+link os4 foo          # only for AmigaOS 4 builds
+link host bar         # only for macOS and Linux builds
+```
+
+The maths library (and on AmigaOS 4 the `auto` library) is always linked. `boing links P.bbp`
+(optionally followed by `os4` or `host`) prints the link options a project will use.
+
+## Standard extensions
+
+`Extension=` with just a name, no directory, finds a **standard extension**: a drawer `NAME`
+holding `NAME.c` (or `.cpp`) and `NAME.bbx`, looked for in the drawer named by the environment
+variable `BOING_EXT`, then in the `ext` drawer of the Boing BASIC installation (beside `boing`,
+`PROGDIR:ext/` on AmigaOS). Put extensions you use in several projects there:
+
+```ini
+Extension=sqlite
+```
+
+A standard extension can also be built into the interpreter itself, so plain `boing run` runs
+programs that use it without a `boing vm` of their own. That is chosen when Boing BASIC itself is
+built (`make STD_EXTS=sqlite`); the Boing BASIC kit's `boing` includes the SQLite extension
+this way. Native programs always get an extension from their own `Extension=` line.
+
 ## Rules for C and C++ code
 
 - **Ownership.** Values you return are owned by the caller; values in `argv` belong to the

@@ -68,6 +68,7 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `CVar(x)` | converts to Variant | [07](07-expressions.md) |
 | `CVDate(x)` | the same as `CDate` | [07](07-expressions.md) |
 | `Date` | today's date | [09](09-builtins.md#the-current-date-and-time) |
+| `Date$` | today's date as a String, `mm-dd-yyyy` | [09](09-builtins.md#the-current-date-and-time) |
 | `DateAdd(interval, n, date)` | `date` plus `n` intervals (`"yyyy" "q" "m" "y" "d" "w" "ww" "h" "n" "s"`) | [09](09-builtins.md#date-arithmetic-dateadd-datediff-datepart) |
 | `DateDiff(interval, d1, d2)` | the number of interval boundaries from `d1` to `d2` | [09](09-builtins.md#date-arithmetic-dateadd-datediff-datepart) |
 | `DatePart(interval, date)` | one part of a date (year, quarter, week...) | [09](09-builtins.md#date-arithmetic-dateadd-datediff-datepart) |
@@ -88,12 +89,16 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `Error$([n])` | the message of error `n`, or of the current error | [08](08-errors.md#the-err-object) |
 | `Exp(x)` | e to the power `x` | [09](09-builtins.md#arithmetic-functions) |
 | `FileCopy source, dest` | statement: copies a file | [10](10-files.md#working-with-files-and-directories) |
+| `FileDateTime(path)` | the date and time a file was last changed | [10](10-files.md#attributes-and-dates-getattr-setattr-filedatetime) |
 | `FileLen(path)` | the size of a file in bytes | [10](10-files.md#working-with-files-and-directories) |
+| `Filter(array, match [, include [, compare]])` | a String array of the elements that contain `match` (or, with `include` False, don't) | [09](09-builtins.md#splitting-and-joining) |
 | `Fix(x)` | `x` without its fraction (towards zero) | [09](09-builtins.md#arithmetic-functions) |
 | `Format$(x [, pattern])` | `x` as text laid out by a named format or a pattern | [09](09-builtins.md#format) |
 | `FreeFile` | the lowest unused file number (1-255) | [10](10-files.md#opening-and-closing) |
 | `FreeMem address` | statement: frees memory from `AllocMem` | [17](17-amigaos.md) |
 | `FreeTagList address` | statement: frees a tag list from `TagList` | [17](17-amigaos.md) |
+| `GetAllSettings(app, section)` | all the keys of a section: a 2-D array of name and value, sorted by name; Empty if none | [10](10-files.md#settings-savesetting-and-getsetting) |
+| `GetAttr(path)` | the attributes of a file or directory: `vbReadOnly`, `vbHidden` (hosts), `vbDirectory`, `vbArchive` (AmigaOS: the A bit is clear) | [10](10-files.md#attributes-and-dates-getattr-setattr-filedatetime) |
 | `GetSetting(app, section, key [, default])` | a saved setting | [10](10-files.md#settings-savesetting-and-getsetting) |
 | `Hex$(x)` | `x` in hexadecimal | [09](09-builtins.md#numbers-to-strings-and-back) |
 | `Hour(d)` | the hour, 0-23 | [09](09-builtins.md#building-and-taking-apart-dates) |
@@ -118,6 +123,7 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `Len(x)` | the length of a string, or the size in bytes of a variable | [09](09-builtins.md#length-and-pieces) |
 | `Load form` | statement: loads a form without showing it | [12](12-forms.md) |
 | `Loc(n)` | the position in file `n` (bytes or records before it) | [10](10-files.md#binary-files-get-and-put) |
+| `Lock #n [, record [To record]]` | statement: accepted and checked (error 52 if the file isn't open), but locks nothing | [10](10-files.md#opening-and-closing) |
 | `LOF(n)` | the length of file `n` in bytes | [10](10-files.md#binary-files-get-and-put) |
 | `Log(x)` | the natural logarithm | [09](09-builtins.md#arithmetic-functions) |
 | `LSet var = s` | statement: `s` left-aligned in the String variable, keeping its length | [09](09-builtins.md#fixed-width-fields-lset-and-rset) |
@@ -142,8 +148,10 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `PokeB address, value` | statement: writes a byte to memory | [17](17-amigaos.md) |
 | `PokeL address, value` | statement: writes a 32-bit value to memory | [17](17-amigaos.md) |
 | `PokeW address, value` | statement: writes a 16-bit value to memory | [17](17-amigaos.md) |
+| `QBColor(n)` | one of the 16 standard colours (0-15) as an `RGB` value | [09](09-builtins.md#the-system-and-the-program) |
 | `Randomize [seed]` | statement: starts a new random sequence (from the clock, or from `seed`) | [09](09-builtins.md#random-numbers) |
 | `Replace(s, find, with [, start [, count [, compare]]])` | `s` with `find` replaced by `with` | [09](09-builtins.md#changing-case-trimming-building) |
+| `Reset` | statement: closes every open file | [10](10-files.md#opening-and-closing) |
 | `RGB(red, green, blue)` | a colour value | [09](09-builtins.md#the-system-and-the-program), [14](14-graphics.md) |
 | `Right$(s, n)` | the last `n` characters | [09](09-builtins.md#length-and-pieces) |
 | `RmDir path` | statement: removes an empty directory | [10](10-files.md#files-and-directories) |
@@ -152,6 +160,7 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `RSet var = s` | statement: `s` right-aligned in the String variable, keeping its length | [09](09-builtins.md#fixed-width-fields-lset-and-rset) |
 | `RTrim$(s)` | `s` without trailing spaces | [09](09-builtins.md#changing-case-trimming-building) |
 | `SaveSetting app, section, key, value` | statement: saves a setting | [10](10-files.md#settings-savesetting-and-getsetting) |
+| `SetAttr path, attributes` | statement: makes a file read-only (`vbReadOnly`) or writable (`vbNormal`); on AmigaOS also the archive bit (`vbArchive`) | [10](10-files.md#attributes-and-dates-getattr-setattr-filedatetime) |
 | `Second(d)` | the second, 0-59 | [09](09-builtins.md#building-and-taking-apart-dates) |
 | `Seek(n)` | the current position in file `n` (from 1) | [10](10-files.md#binary-files-get-and-put) |
 | `Sgn(x)` | -1, 0 or 1 | [09](09-builtins.md#arithmetic-functions) |
@@ -170,10 +179,12 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `String$(n, char)` | `n` copies of a character | [09](09-builtins.md#changing-case-trimming-building) |
 | `StrPtr(s)` | the address of a string's characters | [17](17-amigaos.md) |
 | `StrReverse(s)` | `s` backwards | [09](09-builtins.md#changing-case-trimming-building) |
+| `Switch(cond1, value1, cond2, value2, ...)` | the value after the first true condition, or Null (all are worked out) | [09](09-builtins.md#choosing-a-value-iif-and-choose) |
 | `Tab[(n)]` | in `Print`: moves to column `n` (or the next zone) | [10](10-files.md#print) |
 | `TagList(tag, value, ...)` | builds an AmigaOS tag list in memory and returns its address | [17](17-amigaos.md) |
 | `Tan(a)` | the tangent of an angle in radians | [09](09-builtins.md#arithmetic-functions) |
 | `Time` | the current time of day | [09](09-builtins.md#the-current-date-and-time) |
+| `Time$` | the current time as a String, `hh:mm:ss` | [09](09-builtins.md#the-current-date-and-time) |
 | `Timer` | seconds since midnight | [09](09-builtins.md#the-current-date-and-time) |
 | `TimerMs` | milliseconds from a fixed start: for measuring time | [09](09-builtins.md#the-current-date-and-time) |
 | `TimeSerial(h, m, s)` | the time for an hour, minute and second | [09](09-builtins.md#building-and-taking-apart-dates) |
@@ -183,20 +194,18 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `UBound(array [, dimension])` | the highest index of an array | [04](04-data.md), [09](09-builtins.md#inspecting-values) |
 | `UCase$(s)` | `s` in capitals | [09](09-builtins.md#changing-case-trimming-building) |
 | `Unload form` | statement: unloads a form | [12](12-forms.md) |
+| `Unlock #n [, record [To record]]` | statement: accepted and checked, like `Lock` | [10](10-files.md#opening-and-closing) |
 | `UseSetting app, section, key, value` | statement: stores a setting until the next reboot (`ENV:` only; on a host the same as `SaveSetting`) | [10](10-files.md#settings-savesetting-and-getsetting), [18](18-desktop.md#settings-in-env-and-envarc) |
 | `Val(s)` | the number at the start of `s` (0 if none) | [09](09-builtins.md#numbers-to-strings-and-back) |
 | `VarPtr(variable)` | the address of a variable's storage | [17](17-amigaos.md) |
 | `VarType(x)` | the type of `x` as a number | [09](09-builtins.md#inspecting-values) |
 | `Weekday(d [, firstday])` | the day of the week, 1-7 (1 = Sunday) | [09](09-builtins.md#building-and-taking-apart-dates) |
 | `WeekdayName(n [, abbreviate])` | "Sunday"... or "Sun"... | [09](09-builtins.md#building-and-taking-apart-dates) |
+| `Width #n, columns` | statement: lines written to file `n` wrap at that column (0-255; 0 = no limit) | [10](10-files.md#writing-and-reading-text) |
 | `Year(d)` | the year | [09](09-builtins.md#building-and-taking-apart-dates) |
 
 ## Not available
 
-These functions are not built into Boing BASIC: `Filter`,
-`Switch`, `QBColor`, `GetAttr`, `SetAttr`, `FileDateTime`, `FileAttr`, `GetAllSettings`,
-`Date$` and `Time$` (use `Format(Date, ...)` and `Format(Time, ...)`), and statements that set
-the date or time. Using one is a compile-time error: "Sub, Function or array '...' is not
-defined", or for `Date$` and `Time$` "'Date$' is not a function".
-
-See also: [Appendix A: Keywords](appendix-a-keywords.md), [Appendix C: Errors](appendix-c-errors.md).
+`FileAttr` is not built into Boing BASIC, and there are no statements that set the date or
+time (`Date` and `Time`, with or without `$`, can only be read). Using `FileAttr` is a
+compile-time error: "Sub, Function or array 'FileAttr' is not defined".

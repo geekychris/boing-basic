@@ -101,6 +101,7 @@ names elsewhere.
 | Word | Where | Chapter |
 |---|---|---|
 | `Rem` | at the start of a statement: a comment | [4](04-data.md#comments) |
+| `#Include` | `#Include "file.bi"` at the start of a line: adds that file to the program as a module of its own (once) | [5](05-procedures.md#sharing-code-include-and-uses), [17](17-amigaos.md#the-ready-made-bindings) |
 | `Explicit`, `Base`, `Compare`, `Binary`, `Text`, `Module` | after `Option` | [4](04-data.md#option-statements) |
 | `DefBool`, `DefByte`, `DefInt`, `DefLng`, `DefCur`, `DefSng`, `DefDbl`, `DefDate`, `DefStr`, `DefObj`, `DefVar` | at the start of a line at module level: default types by first letter | [4](04-data.md#deftype-statements) |
 | `Line` | `Line Input [#n,] var`: reads a whole line | [10](10-files.md) |
@@ -110,6 +111,8 @@ names elsewhere.
 | `Name` | `Name old As new`: renames a file | [10](10-files.md) |
 | `Output`, `Append`, `Binary`, `Random` | `Open ... For` mode | [10](10-files.md) |
 | `Access`, `Read`, `Shared`, `Lock`, `Len` | in `Open` (`Access Read Write`, `Len = reclen`) | [10](10-files.md) |
+| `Lock`, `Unlock` | `Lock #n [, rec [To rec]]` as a statement: accepted and checked, locks nothing | [10](10-files.md#opening-and-closing) |
+| `Width` | `Width #n, columns`: lines written to a file wrap at that column | [10](10-files.md#writing-and-reading-text) |
 | `Spc`, `Tab` | in a `Print` list | [10](10-files.md) |
 | `Lib`, `Alias`, `Interface`, `Version` | in `Declare` | [17](17-amigaos.md) |
 | `Attribute`, `VERSION`, `BEGIN` | header lines of class and form files saved by other tools; skipped | [11](11-classes.md) |
@@ -155,13 +158,14 @@ details are in [appendix B](appendix-b-functions.md).
 | `Randomize [seed]` | starts a new random number sequence | [9](09-builtins.md) |
 | `Beep` | sounds the system beep (on AmigaOS, the display beep) | [9](09-builtins.md) |
 | `Sleep ms` | waits a number of milliseconds | [9](09-builtins.md) |
-| `Kill`, `MkDir`, `RmDir`, `ChDir`, `FileCopy` | files and directories | [10](10-files.md) |
-| `SaveSetting`, `DeleteSetting` | program settings | [10](10-files.md) |
+| `Kill`, `MkDir`, `RmDir`, `ChDir`, `FileCopy`, `SetAttr` | files and directories | [10](10-files.md) |
+| `Reset` | closes every open file | [10](10-files.md#opening-and-closing) |
+| `SaveSetting`, `UseSetting`, `DeleteSetting` | program settings | [10](10-files.md) |
 | `Load`, `Unload` | open and close forms | [12](12-forms.md) |
 | `PokeB`, `PokeW`, `PokeL`, `FreeMem`, `FreeTagList` | memory and pointers | [17](17-amigaos.md) |
 
 ## Not supported
 
-There is no `#Include`, no conditional compilation (`#If`), no `Decimal` variable type (use
+There is no conditional compilation (`#If`), no `Decimal` variable type (use
 `CDec` and a Variant, [chapter 4](04-data.md#decimal)), no `Exit While` (use `Exit Do`), and
 no statement to continue with the next pass of a loop.

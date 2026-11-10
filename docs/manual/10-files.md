@@ -151,12 +151,18 @@ Without `For mode`, a file is opened for `Random`.
 it is opened read-only, so you can read files on write-protected disks and CD-ROMs. The lock
 words (`Shared`, `Lock Read`, `Lock Write`, `Lock Read Write`) are accepted and ignored.
 
+The statements `Lock #n [, record [To record]]` and `Unlock #n [, record [To record]]` are
+accepted too, and checked: the file must be open (error 52 if not) and the records must make
+sense (a first record of at least 1, a last one not before it; error 5 otherwise). They lock
+nothing, though: Boing BASIC treats an open file as belonging to one program at a time, so
+there is nothing to lock. They are there so that programs which use them run unchanged.
+
 The file number is 1 to 511. `FreeFile` gives the lowest number from 1 to 255 that is not in
 use, so you do not have to keep track of them. Opening a number that is already open is error 55,
 "File already open".
 
 `Close #n` closes a file (the `#` is optional, and you can close several: `Close #1, #2`).
-`Close` alone closes all open files. A program's files are closed anyway when it ends, also
+`Close` alone closes all open files, and so does `Reset`. A program's files are closed anyway when it ends, also
 after an error, but closing a file as soon as you have finished with it makes sure everything is
 written to the disk.
 
@@ -203,6 +209,42 @@ Kill "log.txt"
 line feed (Windows) or a carriage return alone, and does not include the line end in the string.
 `Print #` ends lines with a line feed only.
 
+`Width #n, columns` makes `Print #` and `Write #` start a new line before a character that
+would go past that column, so no line in the file is longer than `columns` characters. The
+width is 0 to 255 (error 5 otherwise); 0, the default, means no limit:
+
+*Listing 10.6* (`examples/book/ch10-files/listing-10-06.bas`)
+
+<!-- run -->
+```basic
+Dim f As Integer, s As String
+f = FreeFile
+Open "wrap.txt" For Output As #f
+Width #f, 10
+Print #f, "The quick brown fox jumps over the lazy dog"
+Print #f, "ok"
+Close #f
+
+Open "wrap.txt" For Input As #f
+Do While Not EOF(f)
+    Line Input #f, s
+    Print "["; s; "]"
+Loop
+Close #f
+Kill "wrap.txt"
+```
+
+```output
+[The quick ]
+[brown fox ]
+[jumps over]
+[ the lazy ]
+[dog]
+[ok]
+```
+
+The text is cut at exactly that column, not between words.
+
 ### Data files: Write # and Input #
 
 `Write #n, items` writes values separated by commas, in a form that `Input #` can read back:
@@ -210,7 +252,7 @@ strings in double quotes, numbers without spaces, `#TRUE#` and `#FALSE#`, `#NULL
 as `#yyyy-mm-dd hh:mm:ss#`. Each `Write #` writes one line. `Input #n, variables` reads the
 values, one variable after another, across lines:
 
-*Listing 10.6* (`examples/book/ch10-files/listing-10-06.bas`)
+*Listing 10.7* (`examples/book/ch10-files/listing-10-07.bas`)
 
 <!-- run -->
 ```basic
@@ -250,7 +292,7 @@ the Booleans True and False, `#NULL#` as Null, and a date between `#` signs as t
 everything `Write #` writes comes back as it was, into a variable of the right type or into a
 Variant. Into a Variant, an unquoted number becomes a Double and an empty value Empty.
 
-*Listing 10.7* (`examples/book/ch10-files/listing-10-07.bas`)
+*Listing 10.8* (`examples/book/ch10-files/listing-10-08.bas`)
 
 <!-- run -->
 ```basic
@@ -314,7 +356,7 @@ example `hi * 256 + lo`.
 read or written, from 1). `LOF(n)` is the length of the file in bytes and `Loc(n)` the number of
 bytes before the current position. `EOF(n)` is True when the position is at the end.
 
-*Listing 10.8* (`examples/book/ch10-files/listing-10-08.bas`)
+*Listing 10.9* (`examples/book/ch10-files/listing-10-09.bas`)
 
 <!-- run -->
 ```basic
@@ -354,7 +396,7 @@ bytes). `Put #n, record, variable` writes a record and `Get #n, record, variable
 counting records from 1. A user-defined type with fixed-length fields makes a natural record,
 and `Len(variable)` gives its size:
 
-*Listing 10.9* (`examples/book/ch10-files/listing-10-09.bas`)
+*Listing 10.10* (`examples/book/ch10-files/listing-10-10.bas`)
 
 <!-- run -->
 ```basic
@@ -414,7 +456,7 @@ The common errors when working with files:
 
 A program that opens a file the user chose should be ready for these:
 
-*Listing 10.10* (`examples/book/ch10-files/listing-10-10.bas`)
+*Listing 10.11* (`examples/book/ch10-files/listing-10-11.bas`)
 
 <!-- run -->
 ```basic
@@ -452,6 +494,9 @@ Print ReadFirstLine("no-such-file.txt")
 | `RmDir path` | removes a directory, which must be empty |
 | `ChDir path` | changes the current directory |
 | `CurDir` | the current directory, as a full path |
+| `GetAttr(path)` | the attributes of a file or directory, as a sum of `vb...` constants (error 53 if it does not exist) |
+| `SetAttr path, attributes` | makes a file read-only (`vbReadOnly`) or writable again (`vbNormal`) |
+| `FileDateTime(path)` | the date and time the file was last changed, as a Date |
 
 ### Listing a directory with Dir
 
@@ -469,7 +514,7 @@ never returned, as on AmigaOS. To tell files from directories, try `Dir(path, vb
 plain name without wildcards, `Dir` returns the name if it exists, and a directory only with
 `vbDirectory`.
 
-*Listing 10.11* (`examples/book/ch10-files/listing-10-11.bas`)
+*Listing 10.12* (`examples/book/ch10-files/listing-10-12.bas`)
 
 <!-- run -->
 ```basic
@@ -511,12 +556,11 @@ Collect the names into an array first if you need to look into sub-directories. 
 names is the order the file system gives them, which is not necessarily alphabetical.
 
 The other attribute constants (`vbNormal`, `vbReadOnly`, `vbHidden`, `vbSystem`, `vbVolume`,
-`vbArchive`) are defined but have no effect on `Dir`. `GetAttr`, `SetAttr` and `FileDateTime` are
-not available.
+`vbArchive`) have no effect on `Dir`; they are for `GetAttr` and `SetAttr`.
 
 ### Working with files and directories
 
-*Listing 10.12* (`examples/book/ch10-files/listing-10-12.bas`)
+*Listing 10.13* (`examples/book/ch10-files/listing-10-13.bas`)
 
 <!-- run -->
 ```basic
@@ -550,6 +594,61 @@ backup.txt
 (and `CurDir` returns it). When the program starts, the current directory is the one it was
 started from (the Shell's current directory, or the project's directory in AmiForge).
 
+### Attributes and dates: GetAttr, SetAttr, FileDateTime
+
+`GetAttr(path)` tells you what kind of thing a name is and how it is protected. The result is
+a sum of these values; test one with `And`, as in `(GetAttr(p) And vbDirectory) <> 0`:
+
+| Constant | Value | Set when |
+|---|---|---|
+| `vbReadOnly` | 1 | the file can't be written (on AmigaOS: its W protection bit is cleared) |
+| `vbHidden` | 2 | on a host only: the name starts with a dot |
+| `vbDirectory` | 16 | it is a directory (a drawer) |
+| `vbArchive` | 32 | on AmigaOS only: the A (archive) protection bit of a file is clear, which means the file has changed since a backup program last set the bit |
+
+`vbSystem` (4) and `vbVolume` (8) are never set. A name that does not exist is error 53.
+
+`SetAttr path, attributes` changes the protection. With `vbReadOnly` the file becomes
+read-only (on AmigaOS the W and D bits are cleared, so it can't be written or deleted); without
+it the file becomes writable again. On AmigaOS, `vbArchive` in the attributes clears the A bit
+and leaving it out sets it; on a host `vbArchive` and `vbHidden` change nothing. `vbDirectory`
+can't be set (error 5). `vbNormal` (0) is "no attributes": a writable file.
+
+`FileDateTime(path)` is the date and time the file was last changed, in local time.
+
+*Listing 10.14* (`examples/book/ch10-files/listing-10-14.bas`)
+
+<!-- run -->
+```basic
+Dim f As Integer
+f = FreeFile
+Open "notes.txt" For Output As #f
+Print #f, "Remember the milk"
+Close #f
+SetAttr "notes.txt", vbReadOnly
+Print "read-only:"; (GetAttr("notes.txt") And vbReadOnly) <> 0
+SetAttr "notes.txt", vbNormal
+Print "read-only:"; (GetAttr("notes.txt") And vbReadOnly) <> 0
+Print "changed in the last minute:"; Abs(DateDiff("s", FileDateTime("notes.txt"), Now)) < 60
+Kill "notes.txt"
+
+MkDir "work"
+Print "directory:"; (GetAttr("work") And vbDirectory) <> 0
+RmDir "work"
+
+On Error Resume Next
+f = GetAttr("no such file")
+Print "missing file: error"; Err.Number
+```
+
+```output
+read-only:True
+read-only:False
+changed in the last minute:True
+directory:True
+missing file: error 53 
+```
+
 ## Paths on AmigaOS
 
 On AmigaOS a full path starts with a **volume**, **device** or **assign** name and a colon, and
@@ -574,7 +673,7 @@ A program usually keeps its data files (pictures, levels, music) in its own dire
 `App.Path` is that directory, as a full path, so `App.Path & "/level1.dat"` finds a file beside
 the program wherever it was installed and whatever the current directory is:
 
-*Listing 10.13* (`examples/book/ch10-files/listing-10-13.bas`)
+*Listing 10.15* (`examples/book/ch10-files/listing-10-15.bas`)
 
 ```basic
 Dim f As Integer, s As String
@@ -615,7 +714,7 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 | `App.FormatDate(d [, format])` | a date in the user's format: `"short"` (the default), `"long"`, `"time"`, `"datetime"`, or a locale.library pattern such as `"%Y-%m-%d"` (AmigaOS; on a host the same as `CStr(d)`) |
 | `App.DecimalPoint`, `App.GroupSeparator` | the user's decimal point and thousands separator, as strings (on a host `.` and `,`) |
 
-*Listing 10.14* (`examples/book/ch10-files/listing-10-14.bas`)
+*Listing 10.16* (`examples/book/ch10-files/listing-10-16.bas`)
 
 <!-- run -->
 ```basic
@@ -656,7 +755,7 @@ name, joined by single spaces. Quotes round an argument are removed by the Shell
 boing run greet.bas Ada "and Grace"
 ```
 
-*Listing 10.15* (`examples/book/ch10-files/listing-10-15.bas`)
+*Listing 10.17* (`examples/book/ch10-files/listing-10-17.bas`)
 
 ```basic
 If Command = "" Then
@@ -687,7 +786,7 @@ an argument that wasn't). Started from Workbench, the same template reads the ic
 set. On AmigaOS these are the Shell's local variables (`Set`) and the global variables in `ENV:`
 (`SetEnv`):
 
-*Listing 10.16* (`examples/book/ch10-files/listing-10-16.bas`)
+*Listing 10.18* (`examples/book/ch10-files/listing-10-18.bas`)
 
 ```basic
 Print "Language: "; Environ("Language")
@@ -704,7 +803,7 @@ it to finish. It returns the command's return code: 0 for success; on AmigaOS 5 
 `ERROR` and 20 `FAIL` (on a host, any failure is some number other than 0). The command's
 output goes to the program's console:
 
-*Listing 10.17* (`examples/book/ch10-files/listing-10-17.bas`)
+*Listing 10.19* (`examples/book/ch10-files/listing-10-19.bas`)
 
 ```basic
 Dim rc As Long
@@ -727,7 +826,7 @@ an option. `SaveSetting` stores a value under an application name, a section and
 | `GetSetting(app, section, key [, default])` | the stored value, or `default` (`""` if not given) when there is none |
 | `DeleteSetting app [, section [, key]]` | deletes one key, a whole section, or all of an application's settings |
 
-*Listing 10.18* (`examples/book/ch10-files/listing-10-18.bas`)
+*Listing 10.20* (`examples/book/ch10-files/listing-10-20.bas`)
 
 <!-- run -->
 ```basic
@@ -772,7 +871,7 @@ when reading. The application name, section and key must not be empty (error 5).
   (`~/.boing/BoingDemo/Window/Left`). There is only one place there, so `UseSetting` and
   `SaveSetting` do the same.
 
-*Listing 10.19* (`examples/book/ch10-files/listing-10-19.bas`)
+*Listing 10.21* (`examples/book/ch10-files/listing-10-21.bas`)
 
 <!-- run -->
 ```basic
@@ -788,12 +887,41 @@ Print GetSetting("BoingDemo", "View", "Zoom", "100")
 100
 ```
 
-`GetAllSettings` is not available.
+`GetAllSettings(app, section)` gives all the keys of a section at once, as a two-dimensional
+array: `all(i, 0)` is the name of a key and `all(i, 1)` its value, sorted by name, with `i`
+from 0. When the section has no keys, the result is `Empty`, so test it with `IsEmpty` before
+you use it as an array:
+
+*Listing 10.22* (`examples/book/ch10-files/listing-10-22.bas`)
+
+<!-- run -->
+```basic
+Dim all As Variant, i As Integer
+SaveSetting "BoingDemo", "Window", "Width", "640"
+SaveSetting "BoingDemo", "Window", "Height", "480"
+SaveSetting "BoingDemo", "Window", "Left", "20"
+all = GetAllSettings("BoingDemo", "Window")
+For i = LBound(all, 1) To UBound(all, 1)
+    Print all(i, 0); " = "; all(i, 1)
+Next
+DeleteSetting "BoingDemo"
+Print IsEmpty(GetAllSettings("BoingDemo", "Window"))
+```
+
+```output
+Height = 480
+Left = 20
+Width = 640
+True
+```
+
+On AmigaOS the keys of both `ENV:` and `ENVARC:` are listed (each name once), with the value
+`GetSetting` would give.
 
 ## Not available
 
-These file and system statements and functions are not part of Boing BASIC: `GetAttr`, `SetAttr`, `FileDateTime`, `FileAttr`, `GetAllSettings`, `Lock` and
-`Unlock` (as statements), `Reset`, `Width #`. Locking words in `Open` are accepted and ignored.
+`FileAttr` (the mode a file number was opened with) is not part of Boing BASIC: keep the mode
+in a variable of your own if you need it later.
 
 ## Summary
 
@@ -804,10 +932,12 @@ These file and system statements and functions are not part of Boing BASIC: `Get
 - Text files: `Print #`, `Write #`, `Line Input #`, `Input #`, `Input(n, #f)`, `EOF`.
 - Binary and record files: `Get`, `Put`, `Seek`, `LOF`, `Loc`; numbers are little-endian.
 - The file system: `Dir`, `FileLen`, `Kill`, `Name ... As`, `FileCopy`, `MkDir`, `RmDir`,
-  `ChDir`, `CurDir`.
+  `ChDir`, `CurDir`, `GetAttr`, `SetAttr`, `FileDateTime`.
+- `Width #` wraps a file's lines; `Reset` closes every file; `Lock` and `Unlock` are accepted
+  but lock nothing.
 - `App.Path & "/file"` finds files beside the program; `Command`, `Environ` and `Shell` connect
   to the Shell; `SaveSetting`/`GetSetting` keep settings in `ENV:` and `ENVARC:`, and
-  `UseSetting` in `ENV:` only.
+  `UseSetting` in `ENV:` only; `GetAllSettings` lists a section.
 
 See also: [Built-in functions](09-builtins.md), [Errors and error handling](08-errors.md),
 [Menus and dialogs](13-menus-dialogs.md), [AmigaOS](17-amigaos.md).

@@ -79,17 +79,19 @@ native, and checks the others compile.
 | 5.2 | [ch05-procedures/listing-05-02.bas](ch05-procedures/listing-05-02.bas) | Function procedures |
 | 5.3 | [ch05-procedures/listing-05-03.bas](ch05-procedures/listing-05-03.bas) | Function procedures |
 | 5.4 | [ch05-procedures/listing-05-04.bas](ch05-procedures/listing-05-04.bas) | ByVal and ByRef |
-| 5.5 | [ch05-procedures/listing-05-05.bas](ch05-procedures/listing-05-05.bas) | Array parameters |
-| 5.6 | [ch05-procedures/listing-05-06.bas](ch05-procedures/listing-05-06.bas) | Optional parameters |
-| 5.7 | [ch05-procedures/listing-05-07.bas](ch05-procedures/listing-05-07.bas) | Named arguments |
-| 5.8 | [ch05-procedures/listing-05-08.bas](ch05-procedures/listing-05-08.bas) | ParamArray |
-| 5.9 | [ch05-procedures/listing-05-09.bas](ch05-procedures/listing-05-09.bas) | Recursion |
-| 5.10 | [ch05-procedures/listing-05-10.bas](ch05-procedures/listing-05-10.bas) | Local variables and Static |
-| 5.11 | [ch05-procedures/listing-05-11.bas](ch05-procedures/listing-05-11.bas) | Property procedures |
-| 5.12 | [ch05-procedures/modules/modules.bbp](ch05-procedures/modules/modules.bbp) | An example project |
-| 5.13 | [ch05-procedures/modules/modules.bbp](ch05-procedures/modules/modules.bbp) | An example project |
+| 5.5 | [ch05-procedures/listing-05-05.bas](ch05-procedures/listing-05-05.bas) | ByVal and ByRef |
+| 5.6 | [ch05-procedures/listing-05-06.bas](ch05-procedures/listing-05-06.bas) | Array parameters |
+| 5.7 | [ch05-procedures/listing-05-07.bas](ch05-procedures/listing-05-07.bas) | Optional parameters |
+| 5.8 | [ch05-procedures/listing-05-08.bas](ch05-procedures/listing-05-08.bas) | Named arguments |
+| 5.9 | [ch05-procedures/listing-05-09.bas](ch05-procedures/listing-05-09.bas) | ParamArray |
+| 5.10 | [ch05-procedures/listing-05-10.bas](ch05-procedures/listing-05-10.bas) | Recursion |
+| 5.11 | [ch05-procedures/listing-05-11.bas](ch05-procedures/listing-05-11.bas) | Local variables and Static |
+| 5.12 | [ch05-procedures/listing-05-12.bas](ch05-procedures/listing-05-12.bas) | Property procedures |
+| 5.13 | [ch05-procedures/include/Include.bbp](ch05-procedures/include/Include.bbp) | Sharing code: #Include and Uses= |
 | 5.14 | [ch05-procedures/modules/modules.bbp](ch05-procedures/modules/modules.bbp) | An example project |
-| 5.15 | [ch05-procedures/listing-05-15.bas](ch05-procedures/listing-05-15.bas) | Sub Main and the startup form |
+| 5.15 | [ch05-procedures/modules/modules.bbp](ch05-procedures/modules/modules.bbp) | An example project |
+| 5.16 | [ch05-procedures/modules/modules.bbp](ch05-procedures/modules/modules.bbp) | An example project |
+| 5.17 | [ch05-procedures/listing-05-17.bas](ch05-procedures/listing-05-17.bas) | Sub Main and the startup form |
 
 ## Control flow
 
@@ -173,25 +175,28 @@ native, and checks the others compile.
 | 9.6 | [ch09-builtins/listing-09-06.bas](ch09-builtins/listing-09-06.bas) | Changing case, trimming, building |
 | 9.7 | [ch09-builtins/listing-09-07.bas](ch09-builtins/listing-09-07.bas) | Fixed-width fields: LSet and RSet |
 | 9.8 | [ch09-builtins/listing-09-08.bas](ch09-builtins/listing-09-08.bas) | Splitting and joining |
-| 9.9 | [ch09-builtins/listing-09-09.bas](ch09-builtins/listing-09-09.bas) | Characters and character codes |
-| 9.10 | [ch09-builtins/listing-09-10.bas](ch09-builtins/listing-09-10.bas) | Numbers to strings and back |
-| 9.11 | [ch09-builtins/listing-09-11.bas](ch09-builtins/listing-09-11.bas) | Named formats |
-| 9.12 | [ch09-builtins/listing-09-12.bas](ch09-builtins/listing-09-12.bas) | Number patterns |
+| 9.9 | [ch09-builtins/listing-09-09.bas](ch09-builtins/listing-09-09.bas) | Splitting and joining |
+| 9.10 | [ch09-builtins/listing-09-10.bas](ch09-builtins/listing-09-10.bas) | Characters and character codes |
+| 9.11 | [ch09-builtins/listing-09-11.bas](ch09-builtins/listing-09-11.bas) | Numbers to strings and back |
+| 9.12 | [ch09-builtins/listing-09-12.bas](ch09-builtins/listing-09-12.bas) | Named formats |
 | 9.13 | [ch09-builtins/listing-09-13.bas](ch09-builtins/listing-09-13.bas) | Number patterns |
-| 9.14 | [ch09-builtins/listing-09-14.bas](ch09-builtins/listing-09-14.bas) | String patterns |
-| 9.15 | [ch09-builtins/listing-09-15.bas](ch09-builtins/listing-09-15.bas) | Arithmetic functions |
+| 9.14 | [ch09-builtins/listing-09-14.bas](ch09-builtins/listing-09-14.bas) | Number patterns |
+| 9.15 | [ch09-builtins/listing-09-15.bas](ch09-builtins/listing-09-15.bas) | String patterns |
 | 9.16 | [ch09-builtins/listing-09-16.bas](ch09-builtins/listing-09-16.bas) | Arithmetic functions |
-| 9.17 | [ch09-builtins/listing-09-17.bas](ch09-builtins/listing-09-17.bas) | Random numbers |
-| 9.18 | [ch09-builtins/listing-09-18.bas](ch09-builtins/listing-09-18.bas) | Bit shifts and fixed-point arithmetic |
-| 9.19 | [ch09-builtins/listing-09-19.bas](ch09-builtins/listing-09-19.bas) | Date values |
-| 9.20 | [ch09-builtins/listing-09-20.bas](ch09-builtins/listing-09-20.bas) | The current date and time |
-| 9.21 | [ch09-builtins/listing-09-21.bas](ch09-builtins/listing-09-21.bas) | Building and taking apart dates |
-| 9.22 | [ch09-builtins/listing-09-22.bas](ch09-builtins/listing-09-22.bas) | Date arithmetic: DateAdd, DateDiff, DatePart |
-| 9.23 | [ch09-builtins/listing-09-23.bas](ch09-builtins/listing-09-23.bas) | Dates from strings |
-| 9.24 | [ch09-builtins/listing-09-24.bas](ch09-builtins/listing-09-24.bas) | Formatting dates |
-| 9.25 | [ch09-builtins/listing-09-25.bas](ch09-builtins/listing-09-25.bas) | Inspecting values |
-| 9.26 | [ch09-builtins/listing-09-26.bas](ch09-builtins/listing-09-26.bas) | Choosing a value: IIf and Choose |
-| 9.27 | [ch09-builtins/listing-09-27.bas](ch09-builtins/listing-09-27.bas) | The system and the program |
+| 9.17 | [ch09-builtins/listing-09-17.bas](ch09-builtins/listing-09-17.bas) | Arithmetic functions |
+| 9.18 | [ch09-builtins/listing-09-18.bas](ch09-builtins/listing-09-18.bas) | Random numbers |
+| 9.19 | [ch09-builtins/listing-09-19.bas](ch09-builtins/listing-09-19.bas) | Bit shifts and fixed-point arithmetic |
+| 9.20 | [ch09-builtins/listing-09-20.bas](ch09-builtins/listing-09-20.bas) | Date values |
+| 9.21 | [ch09-builtins/listing-09-21.bas](ch09-builtins/listing-09-21.bas) | The current date and time |
+| 9.22 | [ch09-builtins/listing-09-22.bas](ch09-builtins/listing-09-22.bas) | Building and taking apart dates |
+| 9.23 | [ch09-builtins/listing-09-23.bas](ch09-builtins/listing-09-23.bas) | Date arithmetic: DateAdd, DateDiff, DatePart |
+| 9.24 | [ch09-builtins/listing-09-24.bas](ch09-builtins/listing-09-24.bas) | Dates from strings |
+| 9.25 | [ch09-builtins/listing-09-25.bas](ch09-builtins/listing-09-25.bas) | Formatting dates |
+| 9.26 | [ch09-builtins/listing-09-26.bas](ch09-builtins/listing-09-26.bas) | Inspecting values |
+| 9.27 | [ch09-builtins/listing-09-27.bas](ch09-builtins/listing-09-27.bas) | Choosing a value: IIf and Choose |
+| 9.28 | [ch09-builtins/listing-09-28.bas](ch09-builtins/listing-09-28.bas) | Choosing a value: IIf and Choose |
+| 9.29 | [ch09-builtins/listing-09-29.bas](ch09-builtins/listing-09-29.bas) | The system and the program |
+| 9.30 | [ch09-builtins/listing-09-30.bas](ch09-builtins/listing-09-30.bas) | The system and the program |
 
 ## Files, the console and the system
 
@@ -204,20 +209,23 @@ native, and checks the others compile.
 | 10.3 | [ch10-files/listing-10-03.bas](ch10-files/listing-10-03.bas) | Input and Line Input |
 | 10.4 | [ch10-files/listing-10-04.bas](ch10-files/listing-10-04.bas) | Input and Line Input |
 | 10.5 | [ch10-files/listing-10-05.bas](ch10-files/listing-10-05.bas) | Writing and reading text |
-| 10.6 | [ch10-files/listing-10-06.bas](ch10-files/listing-10-06.bas) | Data files: Write # and Input # |
+| 10.6 | [ch10-files/listing-10-06.bas](ch10-files/listing-10-06.bas) | Writing and reading text |
 | 10.7 | [ch10-files/listing-10-07.bas](ch10-files/listing-10-07.bas) | Data files: Write # and Input # |
-| 10.8 | [ch10-files/listing-10-08.bas](ch10-files/listing-10-08.bas) | Binary files: Get and Put |
-| 10.9 | [ch10-files/listing-10-09.bas](ch10-files/listing-10-09.bas) | Random-access files: records |
-| 10.10 | [ch10-files/listing-10-10.bas](ch10-files/listing-10-10.bas) | Files and errors |
-| 10.11 | [ch10-files/listing-10-11.bas](ch10-files/listing-10-11.bas) | Listing a directory with Dir |
-| 10.12 | [ch10-files/listing-10-12.bas](ch10-files/listing-10-12.bas) | Working with files and directories |
-| 10.13 | [ch10-files/listing-10-13.bas](ch10-files/listing-10-13.bas) | Files beside the program: App.Path |
-| 10.14 | [ch10-files/listing-10-14.bas](ch10-files/listing-10-14.bas) | The App object |
-| 10.15 | [ch10-files/listing-10-15.bas](ch10-files/listing-10-15.bas) | Command |
-| 10.16 | [ch10-files/listing-10-16.bas](ch10-files/listing-10-16.bas) | Environ |
-| 10.17 | [ch10-files/listing-10-17.bas](ch10-files/listing-10-17.bas) | Shell |
-| 10.18 | [ch10-files/listing-10-18.bas](ch10-files/listing-10-18.bas) | Settings: SaveSetting and GetSetting |
-| 10.19 | [ch10-files/listing-10-19.bas](ch10-files/listing-10-19.bas) | Settings: SaveSetting and GetSetting |
+| 10.8 | [ch10-files/listing-10-08.bas](ch10-files/listing-10-08.bas) | Data files: Write # and Input # |
+| 10.9 | [ch10-files/listing-10-09.bas](ch10-files/listing-10-09.bas) | Binary files: Get and Put |
+| 10.10 | [ch10-files/listing-10-10.bas](ch10-files/listing-10-10.bas) | Random-access files: records |
+| 10.11 | [ch10-files/listing-10-11.bas](ch10-files/listing-10-11.bas) | Files and errors |
+| 10.12 | [ch10-files/listing-10-12.bas](ch10-files/listing-10-12.bas) | Listing a directory with Dir |
+| 10.13 | [ch10-files/listing-10-13.bas](ch10-files/listing-10-13.bas) | Working with files and directories |
+| 10.14 | [ch10-files/listing-10-14.bas](ch10-files/listing-10-14.bas) | Attributes and dates: GetAttr, SetAttr, FileDateTime |
+| 10.15 | [ch10-files/listing-10-15.bas](ch10-files/listing-10-15.bas) | Files beside the program: App.Path |
+| 10.16 | [ch10-files/listing-10-16.bas](ch10-files/listing-10-16.bas) | The App object |
+| 10.17 | [ch10-files/listing-10-17.bas](ch10-files/listing-10-17.bas) | Command |
+| 10.18 | [ch10-files/listing-10-18.bas](ch10-files/listing-10-18.bas) | Environ |
+| 10.19 | [ch10-files/listing-10-19.bas](ch10-files/listing-10-19.bas) | Shell |
+| 10.20 | [ch10-files/listing-10-20.bas](ch10-files/listing-10-20.bas) | Settings: SaveSetting and GetSetting |
+| 10.21 | [ch10-files/listing-10-21.bas](ch10-files/listing-10-21.bas) | Settings: SaveSetting and GetSetting |
+| 10.22 | [ch10-files/listing-10-22.bas](ch10-files/listing-10-22.bas) | Settings: SaveSetting and GetSetting |
 
 ## Classes and objects
 
@@ -339,14 +347,15 @@ native, and checks the others compile.
 | 17.1 | [ch17-amigaos/listing-17-01.bas](ch17-amigaos/listing-17-01.bas) | Declare |
 | 17.2 | [ch17-amigaos/listing-17-02.bas](ch17-amigaos/listing-17-02.bas) | Declare on other systems |
 | 17.3 | [ch17-amigaos/listing-17-03.bas](ch17-amigaos/listing-17-03.bas) | The ready-made bindings |
-| 17.4 | [ch17-amigaos/listing-17-04.bas](ch17-amigaos/listing-17-04.bas) | Strings and buffers |
-| 17.5 | [ch17-amigaos/listing-17-05.bas](ch17-amigaos/listing-17-05.bas) | Results |
-| 17.6 | [ch17-amigaos/listing-17-06.bas](ch17-amigaos/listing-17-06.bas) | AmigaOS error codes |
-| 17.7 | [ch17-amigaos/listing-17-07.bas](ch17-amigaos/listing-17-07.bas) | Structures |
-| 17.8 | [ch17-amigaos/listing-17-08.bas](ch17-amigaos/listing-17-08.bas) | Buffers for binary data |
-| 17.9 | [ch17-amigaos/declare_gfx/declare_gfx.bbp](ch17-amigaos/declare_gfx/declare_gfx.bbp) | Tag lists |
+| 17.4 | [ch17-amigaos/listing-17-04.bas](ch17-amigaos/listing-17-04.bas) | The ready-made bindings |
+| 17.5 | [ch17-amigaos/listing-17-05.bas](ch17-amigaos/listing-17-05.bas) | Strings and buffers |
+| 17.6 | [ch17-amigaos/listing-17-06.bas](ch17-amigaos/listing-17-06.bas) | Results |
+| 17.7 | [ch17-amigaos/listing-17-07.bas](ch17-amigaos/listing-17-07.bas) | AmigaOS error codes |
+| 17.8 | [ch17-amigaos/listing-17-08.bas](ch17-amigaos/listing-17-08.bas) | Structures |
+| 17.9 | [ch17-amigaos/listing-17-09.bas](ch17-amigaos/listing-17-09.bas) | Buffers for binary data |
 | 17.10 | [ch17-amigaos/declare_gfx/declare_gfx.bbp](ch17-amigaos/declare_gfx/declare_gfx.bbp) | Tag lists |
-| 17.11 | [ch17-amigaos/listing-17-11.bas](ch17-amigaos/listing-17-11.bas) | Hooks and callbacks: AddressOf |
+| 17.11 | [ch17-amigaos/declare_gfx/declare_gfx.bbp](ch17-amigaos/declare_gfx/declare_gfx.bbp) | Tag lists |
+| 17.12 | [ch17-amigaos/listing-17-12.bas](ch17-amigaos/listing-17-12.bas) | Hooks and callbacks: AddressOf |
 
 ## The AmigaOS 4 desktop
 

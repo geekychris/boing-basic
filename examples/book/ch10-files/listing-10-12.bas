@@ -1,18 +1,25 @@
-Dim f As Integer
+Dim name As String, count As Integer, f As Integer
+
+MkDir "pics"
 f = FreeFile
-Open "report.txt" For Output As #f
-Print #f, "Monthly report"
-Close #f
+Open "pics/boing.iff" For Output As #f: Close #f
+Open "pics/notes.txt" For Output As #f: Close #f
+MkDir "pics/old"
 
-Print "size"; FileLen("report.txt")
-FileCopy "report.txt", "backup.txt"
-Name "report.txt" As "final.txt"
-Print Dir("report.txt") = ""; " "; Dir("final.txt"); " "; Dir("backup.txt")
+name = Dir("pics/*.IFF")
+Do While name <> ""
+    Print "picture: "; name
+    name = Dir
+Loop
 
-MkDir "archive"
-Name "backup.txt" As "archive/backup.txt"
-Print Dir("archive/*.txt")
+name = Dir("pics/#?", vbDirectory)
+Do While name <> ""
+    count = count + 1
+    name = Dir
+Loop
+Print count; "entries in pics"
+Print "["; Dir("pics/old"); "] ["; Dir("pics/old", vbDirectory); "]"
 
-Kill "final.txt"
-Kill "archive/backup.txt"
-RmDir "archive"
+Kill "pics/*.*"
+RmDir "pics/old"
+RmDir "pics"
