@@ -42,7 +42,7 @@ TOOL_OBJS := $(call obj,$(COMP_SRCS) $(VM_SRCS) $(MAIN_SRCS))
 TEST_SRCS := $(wildcard tests/os4/*.c)
 TEST_BINS := $(patsubst tests/os4/%.c,$(OUT)/tests/%,$(TEST_SRCS))
 
-all: $(OUT)/libboing.a $(if $(MAIN_SRCS),$(OUT)/boing) $(TEST_BINS)
+all: $(OUT)/libboing.a $(if $(MAIN_SRCS),$(OUT)/boing $(OUT)/libboingvm.a) $(TEST_BINS)
 
 # every object depends on a stamp of the compiler, the flags and the -O2 file list: change any of
 # them and everything rebuilds (an incremental build over objects made with other flags mixed
@@ -68,13 +68,19 @@ $(OUT)/libboing.a: $(RT_OBJS)
 $(OUT)/boing: $(TOOL_OBJS) $(OUT)/libboing.a
 	$(CC) $(LDFLAGS) -o $@ $(TOOL_OBJS) $(OUT)/libboing.a $(LIBS)
 
+# the interpreter as a library for `boing vm` (an interpreter with linked extensions)
+$(OUT)/libboingvm.a: $(TOOL_OBJS)
+	@mkdir -p $(dir $@)
+	rm -f $@
+	$(AR) rcs $@ $^
+
 $(OUT)/tests/%: tests/os4/%.c $(OUT)/libboing.a $(OUT)/flags.stamp
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $< $(OUT)/libboing.a $(LIBS)
 
 # no 440-only instructions anywhere
 check-cpu: all
-	@n=0; for f in $(OUT)/libboing.a $(wildcard $(OUT)/boing) $(TEST_BINS); do \
+	@n=0; for f in $(OUT)/libboing.a $(wildcard $(OUT)/libboingvm.a) $(wildcard $(OUT)/boing) $(TEST_BINS); do \
 	  c=$$($(OBJDUMP) -d $$f | grep -c dlmzb); echo "$$f: dlmzb=$$c"; n=$$((n+c)); done; \
 	  test $$n -eq 0
 

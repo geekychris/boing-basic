@@ -1,0 +1,5 @@
+# Boing BASIC project: the shapes extension demo (a class and a function in C++)
+Name=ShapesDemo
+Startup=Sub Main
+Module=demo.bas
+Extension=shapes

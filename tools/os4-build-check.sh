@@ -11,7 +11,17 @@ fi
 log=$(mktemp "${TMPDIR:-/tmp}/bbos4.XXXXXX")
 if sh "$root/tools/build-os4.sh" check-cpu >"$log" 2>&1; then
     grep -q "dlmzb=[1-9]" "$log" && { cat "$log" >&2; echo "os4 build check: 440-only instructions" >&2; rm -f "$log"; exit 1; }
-    echo "os4 build check: OK"
+    # the extension samples link for OS4 (C, C++ with libstdc++, Lib "C"; native and boing vm)
+    tmp=$(mktemp -d "${TMPDIR:-/tmp}/bbos4x.XXXXXX")
+    for t in examples/ext_counter/demo.bbp examples/ext_shapes/demo.bbp tests/ext/clib/clib.bbp; do
+        d=$root/$(dirname "$t"); f=$(basename "$t"); n=$(basename "$(dirname "$t")")
+        if ! (cd "$d" && "$root/build/boing" build "$f" --target os4 -o "$tmp/$n.nat" >>"$log" 2>&1 &&
+              "$root/build/boing" vm --project "$f" --target os4 -o "$tmp/$n.vm" >>"$log" 2>&1); then
+            tail -20 "$log" >&2; echo "os4 build check: extension $t does not build for OS4 (log: $log)" >&2; rm -rf "$tmp"; exit 1
+        fi
+    done
+    rm -rf "$tmp"
+    echo "os4 build check: OK (with the extension samples)"
     rm -f "$log"
     exit 0
 fi

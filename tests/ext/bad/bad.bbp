@@ -1,0 +1,4 @@
+Name=Bad
+Startup=Sub Main
+Module=bad.bas
+Extension=../../../examples/ext_counter/counter

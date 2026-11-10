@@ -185,6 +185,9 @@ void bb_poll_slow(void);
 int bb_err_from_break(void);    /* the current error is Ctrl-C's 18: On Error Resume Next lets it through */
 /* Dim x As New C: the object is created when x is first used */
 BB_INLINE bb_obj *bb_autonew(bb_obj **p, bb_obj *(*ctor)(void)) { if (!*p) *p = ctor(); return *p; }
+/* As New of a registered (runtime or extension) class: created by name, 429 if it can't be;
+   p NULL = just create one (the VM stores it itself) */
+bb_obj *bb_autonew_named(bb_obj **p, const char *name);
 /* Shl / ShrA / ShrL: 32-bit shifts of a Long (Shl wraps, no overflow); count 0..31, else error 5 */
 void bb_shift_range_error(void) BB_NORETURN;
 BB_INLINE bb_long bb_shl(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return (bb_long)((uint32_t)x << n); }
@@ -578,7 +581,8 @@ bb_value bb_v_invoke(const bb_value *v, const char *name, int kind, int argc, bb
 typedef struct bb_site { const bb_class *cls; int32_t id; } bb_site;
 bb_value bb_invoke_site(bb_obj *o, bb_site *s, const char *name, int kind, int argc, bb_value *argv);
 bb_value bb_invoke_rt(bb_obj *o, const bb_class *cls, int32_t id, const char *name, int kind, int argc, bb_value *argv);
-const bb_class *bb_runtime_class(const char *name);    /* Boing.Engine3D/Canvas/Audio, else NULL */
+const bb_class *bb_runtime_class(const char *name);    /* registered classes (boing_ext.h), else NULL */
+bb_value bb_ext_call(const char *name, int argc, bb_value *argv);   /* an extension's function (error 453 if not linked) */
 bb_value bb_v_invoke_site(const bb_value *v, bb_site *s, const char *name, int kind, int argc, bb_value *argv);
 /* Convenience for platform code */
 bb_value bb_get_prop(bb_obj *o, const char *name);

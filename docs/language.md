@@ -127,6 +127,11 @@ stderr and exits with code 20, as before; the runtime's own cleanup (forms, Audi
 files) runs either way. `On Error Resume Next` does not swallow a break (it goes on to an
 `On Error GoTo` handler further up, or ends the program), so such loops can still be stopped.
 
+## Extensions
+
+Classes and functions in C or C++ linked into a program (`Extension=dir/name` in the project,
+`Declare ... Lib "C"` with `CSource=`): see [extensions.md](extensions.md).
+
 ## The runtime's classes as types
 
 `CreateObject("Boing.Engine3D")`, `"Boing.Canvas"` and `"Boing.Audio"` give the runtime's own

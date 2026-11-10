@@ -1,6 +1,7 @@
 /* sema.c - declarations, statements and the program-level checks */
 #include "sema.h"
 #include "../runtime/boing.h"
+#include "../runtime/boing_ext.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -171,11 +172,10 @@ static Sym *make_var(Ctx *c, Node *d, int storage)
     }
     if (d->flags & NF_NEW) {
         if (t->kind != T_OBJECT || !t->cls) ERR(c, d, "'As New' needs a class");
-        else if (t->cls->rtcls) ERR(c, d, "use CreateObject(\"Boing.%s\") to make a %s", t->cls->name, t->cls->name);
-        else s->is_new = 1;
+        else s->is_new = 1;     /* registered classes too: created by name (bb_ext_create) */
     }
     if (d->flags & NF_WITHEVENTS) {
-        if (t->kind != T_OBJECT || !t->cls || t->cls->rtcls) ERR(c, d, "WithEvents needs a class type");
+        if (t->kind != T_OBJECT || !t->cls || IS_REGCLS(t->cls)) ERR(c, d, "WithEvents needs a class type");
         s->withevents = 1;
     }
     s->ty = t;
@@ -458,6 +458,24 @@ static void declare_members(Program *p, Module *m)
             pr->iface = d->d ? d->d->name : xstrdup("main");
             pr->version = (int)d->ival;
             if (d->op == PK_FUNCTION && !pr->ret) pr->ret = &ty_variant;
+            if (!strcmp(pr->lib, "C")) {
+                /* Lib "C": ByVal numbers, Booleans and Strings; the same for the result */
+                int k;
+                pr->clib = 1;
+                for (k = 0; k < pr->nparams; k++) {
+                    Param *pa = &pr->params[k];
+                    int tk = pa->ty->kind;
+                    if (pa->byref || pa->optional || pa->paramarray) ERR(c, d, "Lib \"C\" parameters must be ByVal (%s)", pa->name);
+                    else if (tk != T_LONG && tk != T_INTEGER && tk != T_BYTE && tk != T_BOOLEAN && tk != T_SINGLE && tk != T_DOUBLE && tk != T_STRING)
+                        ERR(c, d, "Lib \"C\" parameter %s: only Long, Integer, Byte, Boolean, Single, Double or String", pa->name);
+                }
+                if (pr->ret) {
+                    int tk = pr->ret->kind;
+                    if (tk == T_VARIANT) ERR(c, d, "a Lib \"C\" Function needs an As type");
+                    else if (tk != T_LONG && tk != T_INTEGER && tk != T_BYTE && tk != T_BOOLEAN && tk != T_SINGLE && tk != T_DOUBLE && tk != T_STRING)
+                        ERR(c, d, "a Lib \"C\" Function returns Long, Integer, Byte, Boolean, Single, Double or String");
+                }
+            }
             add_proc(p, pr);
             s->proc = pr;
             s->mod = m;
@@ -504,7 +522,7 @@ static void resolve_implements(Program *p, Module *m)
         if (d->kind != D_IMPLEMENTS) continue;
         if (!m->cls) { ERR(c, d, "Implements is only allowed in a class module"); continue; }
         iface = find_class(c, d->name);
-        if (!iface || iface->builtin || iface->rtcls) { ERR(c, d, "class '%s' is not defined", d->name); continue; }
+        if (!iface || iface->builtin || IS_REGCLS(iface)) { ERR(c, d, "class '%s' is not defined", d->name); continue; }
         if (iface == m->cls) { ERR(c, d, "a class cannot implement itself"); continue; }
         iface->is_interface = 1;
         m->cls->impls = (ClassInfo **)xrealloc(m->cls->impls, sizeof(ClassInfo *) * (size_t)(m->cls->nimpls + 1));
@@ -1414,16 +1432,32 @@ int sema_program(Program *p)
     /* the runtime's own classes as types (Dim e As Engine3D / As Boing.Engine3D): member names
        checked at compile time; a module or class of the program with the same name wins */
     {
-        static const char *rtn[] = {"Engine3D", "Canvas", "Audio", "Http"};
-        int k;
-        for (k = 0; k < 4; k++) {
+        int k, nk = bb_ext_class_count();
+        /* extension classes first (Extension= in the project): members from their .bbx */
+        for (k = 0; k < p->nxclasses; k++) {
+            ExtClass *xc = p->xclasses[k];
             ClassInfo *rc;
             Sym *s;
-            if (scope_find_local(p->global, rtn[k]) || !bb_runtime_class(rtn[k])) continue;
+            if (scope_find_local(p->global, xc->name)) { diag(p, 0, 1, 1, "extension class '%s' clashes with a name of the program", xc->name); continue; }
             rc = (ClassInfo *)xcalloc(1, sizeof(ClassInfo));
-            rc->name = xstrdup(rtn[k]);
-            rc->rtcls = bb_runtime_class(rtn[k]);
-            rc->index = -2 - k;     /* the VM's CHKCLS: -2 Engine3D, -3 Canvas, -4 Audio, -5 Http */
+            rc->name = xstrdup(xc->name);
+            rc->xcls = xc;
+            rc->rtcls = NULL;
+            rc->index = -1;
+            s = new_sym(SK_CLASS, rc->name, NULL);
+            s->cls = rc;
+            s->is_public = 1;
+            scope_add(p->global, s);
+        }
+        for (k = 0; k < nk; k++) {
+            const char *rn = bb_ext_class_name(k);
+            ClassInfo *rc;
+            Sym *s;
+            if (scope_find_local(p->global, rn) || !bb_runtime_class(rn)) continue;
+            rc = (ClassInfo *)xcalloc(1, sizeof(ClassInfo));
+            rc->name = xstrdup(rn);
+            rc->rtcls = bb_runtime_class(rn);
+            rc->index = -1;         /* the VM's CHKCLS finds it by name (emit_bc) */
             s = new_sym(SK_CLASS, rc->name, NULL);
             s->cls = rc;
             s->is_public = 1;

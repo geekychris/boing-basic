@@ -6,7 +6,7 @@
 #include "../runtime/boing.h"
 
 #define BBC_MAGIC "BBC1"
-#define BBC_VERSION 11
+#define BBC_VERSION 12
 
 /* array operands of the register forms: slot >= 0, global -1 - index, field of Me BB_ME_OPND - index */
 #define BB_ME_OPND (-0x20000000)
@@ -44,7 +44,7 @@
     OP(OPEN, 1) OP(CLOSE, 0) OP(CLOSEALL, 0) OP(GETREC, 2) OP(PUTREC, 2) OP(SEEK, 0) OP(NAMEF, 0) \
     OP(REDIM, 4) OP(ERASE, 0) OP(MIDSET, 0) \
     OP(FEBEGIN, 1) OP(FENEXT, 2) OP(FEEND, 1) \
-    OP(RAISEEV, 3) OP(WEVCONN, 3) OP(ARRLIT, 1) OP(SWAP, 0) OP(LINE, 1) OP(UNKEEP, 0) OP(LDE1, 1) OP(AUTONEW, 3) OP(AUTONEWM, 2) OP(ADDROF, 3) OP(STRBUF, 0) \
+    OP(RAISEEV, 3) OP(WEVCONN, 3) OP(ARRLIT, 1) OP(SWAP, 0) OP(LINE, 1) OP(UNKEEP, 0) OP(LDE1, 1) OP(AUTONEW, 3) OP(AUTONEWM, 2) OP(ADDROF, 3) OP(STRBUF, 0) OP(CALLX, 3) \
     /* register forms (operands are frame slots, I immediates, K constants): must stay last */ \
     OP(R_MOV, 2) OP(R_MOVI_I, 2) OP(R_MOVI_L, 2) OP(R_MOVK, 2) \
     OP(R_ADD_LRR, 3) OP(R_ADD_LRI, 3) OP(R_SUB_LRR, 3) OP(R_SUB_LRI, 3) OP(R_SUB_LIR, 3) \
@@ -200,6 +200,8 @@ typedef struct VMImage {
     char **form_name, **form_afg, **form_path;
     int32_t startup_form;       /* index into forms, -1 = none */
     char *title;                /* App.Title from the project (Title=, else Name=), "" = none */
+    int32_t nexts;              /* the linked extensions the program needs (Extension=) */
+    char **ext_names;
 } VMImage;
 
 extern const char *const bb_opnames[];
