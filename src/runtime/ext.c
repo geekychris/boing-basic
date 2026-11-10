@@ -23,6 +23,7 @@ const bb_class *bb_engine3d_class(void);
 const bb_class *bb_audio_class(void);
 const bb_class *bb_http_class(void);     /* http_obj.c */
 bb_obj *bb_http_new(void);
+<<<<<<< HEAD
 const bb_class *bb_dict_class(void);    /* dict.c */
 bb_obj *bb_dict_new(void);
 const bb_class *bb_sbuilder_class(void);      /* sbuilder.c */
@@ -36,6 +37,12 @@ const bb_class *bb_csv_class(void);   /* csv.c */
 bb_obj *bb_csv_new(void);
 const bb_class *bb_process_class(void);   /* process.c */
 bb_obj *bb_process_new(void);
+=======
+const bb_class *bb_ini_class(void);   /* ini.c */
+bb_obj *bb_ini_new(void);
+const bb_class *bb_logger_class(void);   /* logger.c */
+bb_obj *bb_logger_new(void);
+>>>>>>> 8a78145 (IniFile, Logger: ini.c Boing.IniFile (sections/keys, defaults, edits that keep comments, layout and CR LF, Sections/Keys/Delete*), logger.c Boing.Logger (levels with logDebug..logOff constants, patterns, append to a file flushed per line, rotation by MaxSize, console); tests/libs (VM, JIT, native), docs/ini.md, docs/logging.md)
 static bb_obj *new_canvas(void) { return bb_canvas_new(320, 200, NULL); }
 
 static void builtins(void)
@@ -46,6 +53,7 @@ static void builtins(void)
     bb_register_class("Engine3D", bb_engine3d_class(), bb_engine3d_new);
     bb_register_class("Audio", bb_audio_class(), bb_audio_new);
     bb_register_class("Http", bb_http_class(), bb_http_new);
+<<<<<<< HEAD
     bb_register_class("Dictionary", bb_dict_class(), bb_dict_new);
     bb_register_class("StringBuilder", bb_sbuilder_class(), bb_sbuilder_new);
     bb_register_class("Socket", bb_socket_class(), bb_socket_new);
@@ -53,6 +61,10 @@ static void builtins(void)
     bb_register_class("RegExp", bb_regexp_class(), bb_regexp_new);
     bb_register_class("Csv", bb_csv_class(), bb_csv_new);
     bb_register_class("Process", bb_process_class(), bb_process_new);
+=======
+    bb_register_class("IniFile", bb_ini_class(), bb_ini_new);
+    bb_register_class("Logger", bb_logger_class(), bb_logger_new);
+>>>>>>> 8a78145 (IniFile, Logger: ini.c Boing.IniFile (sections/keys, defaults, edits that keep comments, layout and CR LF, Sections/Keys/Delete*), logger.c Boing.Logger (levels with logDebug..logOff constants, patterns, append to a file flushed per line, rotation by MaxSize, console); tests/libs (VM, JIT, native), docs/ini.md, docs/logging.md)
 }
 
 static const char *strip(const char *name) { return name && !strncasecmp(name, "Boing.", 6) ? name + 6 : name; }

@@ -1,0 +1,20 @@
+2 640 [480] [  spaced  ]
+[] [8] [def]
+|Video|Sound / Width|height|Mode / -1 
+TrueFalseTrueTrueFalse
+changed:False
+changed:True
+TrueFalse
+; game settings\nversion = 2\nauthor=me\n\n[Video]\nWidth=800\nheight = 480 \n; fullscreen is risky\nMode="  spaced  "\nDepth=24\n\n[Sound]\nVolume=" 70 "\n# a hash comment\n\n[Net]\nHost=amiga.local\n
+TrueFalse
+; game settings\nversion = 2\nauthor=me\n\n[Sound]\nVolume=" 70 "\n# a hash comment\n\n[Net]\nHost=amiga.local\n
+missing:False-1 
+loaded:True1 initest.tmp
+runs:2
+[A]\r\nx=1\r\ny=2\r\n
+bytes: 15 
+cleared:[]-1 
+key: 5 
+value: 5 
+must exist: 53 
+no name: 5 
