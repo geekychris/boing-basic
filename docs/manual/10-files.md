@@ -245,13 +245,39 @@ Grace Hopper is 85 and 1.68 m tall
 
 `Input #` reads a value up to the next comma or line end, removes the spaces round it, and
 converts it to the variable's type (error 13 if it is not a number and the variable is numeric).
-Text in double quotes is taken as it is, commas included. Into a Variant, an unquoted number
-becomes a Double, `#TRUE#`/`#FALSE#` a Boolean, `#NULL#` Null and an empty value Empty.
+Text in double quotes is taken as it is, commas included. `#TRUE#` and `#FALSE#` are read as
+the Booleans True and False, `#NULL#` as Null, and a date between `#` signs as that Date, so
+everything `Write #` writes comes back as it was, into a variable of the right type or into a
+Variant. Into a Variant, an unquoted number becomes a Double and an empty value Empty.
 
-Two limits: a Boolean variable cannot read `#TRUE#` or `#FALSE#` (read into a Variant, or write
-the value as a number with `CInt(flag)`), and a date written by `Write #` comes back as a string
-such as `"#2024-03-09 00:00:00#"`. To store dates, write `Format(d, "yyyy-mm-dd hh:nn:ss")` and
-read them back with `CDate`.
+*Listing 10.7* (`examples/book/ch10-files/listing-10-07.bas`)
+
+<!-- run -->
+```basic
+Dim f As Integer, done As Boolean, born As Date, note As Variant, title As String
+
+f = FreeFile
+Open "record.txt" For Output As #f
+Write #f, "Ada", True, #12/10/1815#, Null
+Close #f
+
+Open "record.txt" For Input As #f
+Print Input(LOF(f), #f);
+Close #f
+
+Open "record.txt" For Input As #f
+Input #f, title, done, born, note
+Close #f
+Print title; " "; done; " "; born; " "; IsNull(note)
+Print TypeName(done); " "; TypeName(born); " "; TypeName(note)
+Kill "record.txt"
+```
+
+```output
+"Ada",#TRUE#,#1815-12-10 00:00:00#,#NULL#
+Ada True 12/10/1815 True
+Boolean Date Null
+```
 
 ### Reading characters: Input()
 
@@ -288,7 +314,7 @@ example `hi * 256 + lo`.
 read or written, from 1). `LOF(n)` is the length of the file in bytes and `Loc(n)` the number of
 bytes before the current position. `EOF(n)` is True when the position is at the end.
 
-*Listing 10.7* (`examples/book/ch10-files/listing-10-07.bas`)
+*Listing 10.8* (`examples/book/ch10-files/listing-10-08.bas`)
 
 <!-- run -->
 ```basic
@@ -328,7 +354,7 @@ bytes). `Put #n, record, variable` writes a record and `Get #n, record, variable
 counting records from 1. A user-defined type with fixed-length fields makes a natural record,
 and `Len(variable)` gives its size:
 
-*Listing 10.8* (`examples/book/ch10-files/listing-10-08.bas`)
+*Listing 10.9* (`examples/book/ch10-files/listing-10-09.bas`)
 
 <!-- run -->
 ```basic
@@ -388,7 +414,7 @@ The common errors when working with files:
 
 A program that opens a file the user chose should be ready for these:
 
-*Listing 10.9* (`examples/book/ch10-files/listing-10-09.bas`)
+*Listing 10.10* (`examples/book/ch10-files/listing-10-10.bas`)
 
 <!-- run -->
 ```basic
@@ -419,7 +445,7 @@ Print ReadFirstLine("no-such-file.txt")
 | `Dir(pattern [, attributes])` | the first file whose name matches `pattern`; `""` if none |
 | `Dir` | the next match of the last pattern; `""` when there are no more |
 | `FileLen(path)` | the size of a file in bytes (error 53 if it does not exist) |
-| `Kill path` | deletes a file; with wildcards, all the matching files (not directories) |
+| `Kill path` | deletes a file; with a pattern (`*`, `?`, `#?`...), all the matching files (not directories) |
 | `Name old As new` | renames or moves a file or directory (error 58 if `new` exists) |
 | `FileCopy source, destination` | copies a file (the destination is replaced if it exists) |
 | `MkDir path` | makes a directory |
@@ -432,16 +458,18 @@ Print ReadFirstLine("no-such-file.txt")
 `Dir(pattern)` starts a search and returns the first name that matches; each `Dir` without an
 argument returns the next one, and `""` means there are no more. The names come without the
 directory part. In the pattern, `*` stands for any characters and `?` for one character; upper
-and lower case are treated as the same, as AmigaOS does. (The AmigaOS pattern `#?` is not
-understood by `Dir`: write `*`.)
+and lower case are treated as the same, as AmigaOS does. The AmigaOS forms work too: `#?` is
+the same as `*`, and `#` before any other character means "that character any number of times,
+or not at all", so `a#2.txt` matches `a.txt`, `a2.txt` and `a22.txt`. (The other AmigaOS pattern
+features, such as `(a|b)`, `~` and `[a-z]`, are not understood.) `Kill` takes the same patterns.
 
 Directories are left out unless the attributes include `vbDirectory` (16); then both files and
-directories are returned. On a host computer the special entries `.` and `..` appear too, so skip
-them. To tell files from directories, try `Dir(path, vbDirectory)` against `Dir(path)`: for a
+directories are returned. The special entries `.` and `..` that host file systems have are
+never returned, as on AmigaOS. To tell files from directories, try `Dir(path, vbDirectory)` against `Dir(path)`: for a
 plain name without wildcards, `Dir` returns the name if it exists, and a directory only with
 `vbDirectory`.
 
-*Listing 10.10* (`examples/book/ch10-files/listing-10-10.bas`)
+*Listing 10.11* (`examples/book/ch10-files/listing-10-11.bas`)
 
 <!-- run -->
 ```basic
@@ -459,9 +487,9 @@ Do While name <> ""
     name = Dir
 Loop
 
-name = Dir("pics/*", vbDirectory)
+name = Dir("pics/#?", vbDirectory)
 Do While name <> ""
-    If name <> "." And name <> ".." Then count = count + 1
+    count = count + 1
     name = Dir
 Loop
 Print count; "entries in pics"
@@ -488,7 +516,7 @@ not available.
 
 ### Working with files and directories
 
-*Listing 10.11* (`examples/book/ch10-files/listing-10-11.bas`)
+*Listing 10.12* (`examples/book/ch10-files/listing-10-12.bas`)
 
 <!-- run -->
 ```basic
@@ -546,7 +574,7 @@ A program usually keeps its data files (pictures, levels, music) in its own dire
 `App.Path` is that directory, as a full path, so `App.Path & "/level1.dat"` finds a file beside
 the program wherever it was installed and whatever the current directory is:
 
-*Listing 10.12* (`examples/book/ch10-files/listing-10-12.bas`)
+*Listing 10.13* (`examples/book/ch10-files/listing-10-13.bas`)
 
 ```basic
 Dim f As Integer, s As String
@@ -587,7 +615,7 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 | `App.FormatDate(d [, format])` | a date in the user's format: `"short"` (the default), `"long"`, `"time"`, `"datetime"`, or a locale.library pattern such as `"%Y-%m-%d"` (AmigaOS; on a host the same as `CStr(d)`) |
 | `App.DecimalPoint`, `App.GroupSeparator` | the user's decimal point and thousands separator, as strings (on a host `.` and `,`) |
 
-*Listing 10.13* (`examples/book/ch10-files/listing-10-13.bas`)
+*Listing 10.14* (`examples/book/ch10-files/listing-10-14.bas`)
 
 <!-- run -->
 ```basic
@@ -612,7 +640,10 @@ Show, Hide and Remove (the Subs `App_Show`, `App_Hide` and `App_Quit`) and the o
 features are in [The AmigaOS 4 desktop](18-desktop.md).
 
 Do not call one of your own modules `App` (for example by naming a program `app.bas`): the
-module's name then hides the `App` object in that program.
+module's name then hides the `App` object in that program, and `App.Title` gives "module 'app'
+has no public member 'Title'". The same goes for the names of the built-in classes `Http`,
+`Canvas`, `Audio` and `Engine3D`: a program `http.bas` that uses `Dim h As Http` is stopped by
+`boing check` with "the module 'http' hides the built-in class Http: rename the module".
 
 ## The command line and the environment
 
@@ -625,7 +656,7 @@ name, joined by single spaces. Quotes round an argument are removed by the Shell
 boing run greet.bas Ada "and Grace"
 ```
 
-*Listing 10.14* (`examples/book/ch10-files/listing-10-14.bas`)
+*Listing 10.15* (`examples/book/ch10-files/listing-10-15.bas`)
 
 ```basic
 If Command = "" Then
@@ -656,7 +687,7 @@ an argument that wasn't). Started from Workbench, the same template reads the ic
 set. On AmigaOS these are the Shell's local variables (`Set`) and the global variables in `ENV:`
 (`SetEnv`):
 
-*Listing 10.15* (`examples/book/ch10-files/listing-10-15.bas`)
+*Listing 10.16* (`examples/book/ch10-files/listing-10-16.bas`)
 
 ```basic
 Print "Language: "; Environ("Language")
@@ -673,7 +704,7 @@ it to finish. It returns the command's return code: 0 for success; on AmigaOS 5 
 `ERROR` and 20 `FAIL` (on a host, any failure is some number other than 0). The command's
 output goes to the program's console:
 
-*Listing 10.16* (`examples/book/ch10-files/listing-10-16.bas`)
+*Listing 10.17* (`examples/book/ch10-files/listing-10-17.bas`)
 
 ```basic
 Dim rc As Long
@@ -696,7 +727,7 @@ an option. `SaveSetting` stores a value under an application name, a section and
 | `GetSetting(app, section, key [, default])` | the stored value, or `default` (`""` if not given) when there is none |
 | `DeleteSetting app [, section [, key]]` | deletes one key, a whole section, or all of an application's settings |
 
-*Listing 10.17* (`examples/book/ch10-files/listing-10-17.bas`)
+*Listing 10.18* (`examples/book/ch10-files/listing-10-18.bas`)
 
 <!-- run -->
 ```basic
@@ -741,7 +772,7 @@ when reading. The application name, section and key must not be empty (error 5).
   (`~/.boing/BoingDemo/Window/Left`). There is only one place there, so `UseSetting` and
   `SaveSetting` do the same.
 
-*Listing 10.18* (`examples/book/ch10-files/listing-10-18.bas`)
+*Listing 10.19* (`examples/book/ch10-files/listing-10-19.bas`)
 
 <!-- run -->
 ```basic

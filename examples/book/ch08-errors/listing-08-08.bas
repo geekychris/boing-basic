@@ -1,6 +1,14 @@
-On Error Resume Next
-Dim x As Integer
-x = 32767 + 1
-Print Err; Erl; Err.Description
-Print Error(53); " / "; Error$(62)
-Print Error(30000)
+Sub Main()
+    On Error GoTo first
+    Err.Raise 5
+    Exit Sub
+first:
+    Print "first"; Err.Number
+    On Error GoTo -1
+    Print "after -1:"; Err.Number
+    On Error GoTo second
+    Err.Raise 9
+    Exit Sub
+second:
+    Print "second"; Err.Number
+End Sub

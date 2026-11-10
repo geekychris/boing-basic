@@ -1,6 +1,5 @@
-Function Check(ByVal name As String, ByVal result As Boolean) As Boolean
-    Print "checking "; name
-    Check = result
-End Function
-
-If Check("first", False) And Check("second", True) Then Print "both"
+Print True And False; True Or False; True Xor True; Not False; False Imp True
+Print 6 And 3; 6 Or 3; 6 Xor 3; Not 0; Not 5
+Dim flags As Long
+flags = 1 Or 4
+Print (flags And 4) <> 0; flags And Not 4

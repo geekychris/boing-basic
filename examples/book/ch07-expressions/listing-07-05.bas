@@ -1,7 +1,5 @@
-Dim v As Variant
-v = 32767
-v = v + 1
-Print v; TypeName(v)
-v = CLng(2147483647)
-v = v + 1
-Print v; TypeName(v)
+Dim d As Double, x As Double
+x = 1E308
+On Error Resume Next
+d = x * 10
+Print "x * 10:"; Err.Number; Err.Description

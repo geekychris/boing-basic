@@ -1,21 +1,15 @@
-Sub Level3()
-    Print "level 3 starts"
-    Err.Raise 1001, "Level3", "deep trouble"
-    Print "level 3 ends"                  ' never runs
+Const ERR_EMPTY_NAME = vbObjectError + 1
+
+Sub SetName(ByVal s As String)
+    If Len(s) = 0 Then Err.Raise ERR_EMPTY_NAME, "SetName", "the name must not be empty"
+    Print "name set to "; s
 End Sub
 
-Sub Level2()
-    Level3
-    Print "level 2 ends"                  ' never runs
-End Sub
-
-Sub Level1()
+Sub Main()
     On Error GoTo h
-    Level2
-    Print "level 1 ends"
+    SetName "Ada"
+    SetName ""
     Exit Sub
 h:
-    Print "level 1 caught"; Err.Number; Err.Source; ": "; Err.Description
+    Print "error"; Err.Number - vbObjectError; "from "; Err.Source; ": "; Err.Description
 End Sub
-
-Level1

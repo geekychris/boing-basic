@@ -69,7 +69,7 @@ Next
 | 20 | Resume without error | `Resume` when no error is being handled, usually by falling into the handler without an `Exit Sub` before it |
 | 28 | Out of stack space | recursion that goes too deep; more than 64 nested `GoSub`s |
 | 35 | Sub or Function not defined | calling a procedure that has no body (rare: most such mistakes are found when compiling) |
-| 48 | Error in loading DLL | a `Declare`d function's library could not be opened; any `Declare` call on a host computer |
+| 48 | Library could not be opened | a `Declare`d function's library could not be opened: a misspelt library name, a library that is not installed, a `Version` that is too high; any `Declare` call on a host computer |
 | 51 | Internal error | a fault inside Boing BASIC itself; please report it with the program |
 | 52 | Bad file name or number | a file number that is not open, or not from 1 to 511 |
 | 53 | File not found | `Open ... For Input` (or `Binary`/`Random` with `Access Read`) of a missing file; `Kill`, `FileLen`, `FileCopy` or `Name` of a missing file; a picture, sound or module file that is not there |
@@ -97,9 +97,9 @@ Next
 | 438 | Object doesn't support this property or method | a late-bound member name (on an `Object` or `Variant`) that the object does not have, often a typing mistake; a Workbench-only `App` member on a host |
 | 449 | Argument not optional | a required argument left out of a late-bound call or a runtime object method |
 | 450 | Wrong number of arguments or invalid property assignment | too many or too few arguments in a late-bound call; `TagList` with an odd number of arguments |
-| 453 | Specified DLL function not found | a `Declare`d function that does not exist in its library (wrong name or `Alias`) |
+| 453 | Library function not found | a `Declare`d function that does not exist in a library that did open (wrong function name or `Alias`) |
 | 457 | This key is already associated with an element of this collection | `Collection.Add` with a key that is already used |
-| 458 | Variable uses an Automation type not supported... | passing or returning a user-defined type through a late-bound call |
+| 458 | Variable uses a type Boing BASIC does not support here | passing or returning a user-defined type through a late-bound call |
 | 481 | Invalid picture | a picture file that cannot be loaded (not a picture, or a format the datatypes cannot read) |
 
 Your own errors (from `Err.Raise` or `Error`) can have any number from 1 to 65535, or
@@ -110,7 +110,7 @@ Your own errors (from `Err.Raise` or `Error`) can have any number from 1 to 6553
 
 `Error(n)` and `Err.Raise n` know the standard messages of these numbers too, although Boing
 BASIC itself does not raise them: 16 Expression too complex, 17 Can't perform requested
-operation, 47 Too many DLL application clients, 49 Bad DLL calling convention, 59 Bad record
+operation, 47 Too many library clients, 49 Bad library calling convention, 59 Bad record
 length, 71 Disk not ready, 74 Can't rename with different drive, 381 Invalid property array
 index, 382 Set not supported at runtime, 385 Need property array index, 387 Set not permitted,
 393 Get not supported at runtime, 394 Get not supported (write-only property), 422 Property not
@@ -337,6 +337,35 @@ Next
 **'Me' is only valid in a class module**, **Event is only allowed in a class module**,
 **WithEvents is only allowed at module level**: class features used in the wrong kind of
 module; see [Classes](11-classes.md).
+
+**overflow (error 6) in a constant expression**: a Single or Double calculation made only of
+constants gives a result too big for its type. Boing BASIC works such calculations out when it
+compiles, so the overflow that would be run-time error 6 with variables is found by `boing
+check` (see [Expressions](07-expressions.md#overflow)).
+
+<!-- error: overflow (error 6) in a constant expression -->
+```basic
+Const HUGE = 1E308 * 10
+```
+
+**ByRef parameter 'x' of Declare F needs a Long variable (or declare it ByVal)**: a numeric
+`ByRef` parameter of a `Declare`d function passes the address of a variable, so the argument
+must be a variable of exactly that type, not a constant, an expression or a variable of another
+type (see [AmigaOS](17-amigaos.md#arguments)).
+
+**the module 'm' hides the built-in class C: rename the module**: one of your modules has the
+name of a built-in class, usually because of its file name (`http.bas` is the module `http`,
+`canvas.bas` the module `canvas`). Module names win over the built-in classes, so `Dim h As
+Http` would mean the module. Rename the file, for example to `webfetch.bas`. The built-in
+classes are `Http`, `Canvas`, `Audio` and `Engine3D`, and the classes of any extensions the
+program uses. A program `http.bas` that starts with `Dim h As Http` gives
+
+```text
+http.bas:1:10: error: the module 'http' hides the built-in class Http: rename the module
+```
+
+(A module named after `Collection`, the other built-in class, gives **duplicate module or class
+name 'collection'** instead.)
 
 ### Warnings
 

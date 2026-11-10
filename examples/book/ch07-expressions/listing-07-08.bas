@@ -1,2 +1,9 @@
-Print "Boing" Like "B*"; "Boing" Like "b*"; "A1200" Like "A####"; "A500" Like "A####"
-Print "cat" Like "c?t"; "cot" Like "c[aeiu]t"; "cot" Like "c[!o]t"; "a*c" Like "a[*]c"
+Dim a As Variant, b As Variant
+Print "abc" < "abd"; "Z" < "a"; "ab" < "abc"; 1 < "2"
+a = 10: b = "9"
+Print a < b; a + b
+a = "10": b = "9"
+Print a < b; a + b
+a = Empty
+Print a = 0; a = ""
+Print IsNull(Null = Null)

@@ -1,7 +1,10 @@
-Print CInt(2.5); CInt(3.5); CInt(-2.5); CLng(1234567.5); CByte(254.4)
-Print CBool(1); CBool(0); CBool("false")
-Print CStr(12) & "|" & CStr(-3.5) & "|" & CStr(True)
-Print CDbl("3.25") * 2; CLng("&HFF"); CInt(" 12 ")
-Print CCur(12.345678); CDate("2026-03-04"); CDbl(#1/1/2000#)
-Print CDec("79228162514264337593543950335")
-Print TypeName(CVar(5)); " "; TypeName(CDec(1)); " "; TypeName(CSng(1))
+Dim i As Integer, s As String, ok As Boolean, d As Double
+i = 2.5: Print i;
+i = 3.5: Print i;
+i = "42": Print i
+s = 3.25: Print s
+ok = "TRUE": Print ok
+d = " 1.5e3 ": Print d
+On Error Resume Next
+i = "abc"
+Print "Error"; Err.Number; Err.Description

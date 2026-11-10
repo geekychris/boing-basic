@@ -391,6 +391,9 @@ Print TypeName(big); VarType(big)
 Decimal 14 
 ```
 
+`VarType` gives 14 for a Decimal, the value of the constant `vbDecimal`, so
+`VarType(big) = vbDecimal` tests for one.
+
 ### Boolean
 
 A `Boolean` is `True` or `False`. Stored as a number, `True` is -1 and `False` is 0. Any

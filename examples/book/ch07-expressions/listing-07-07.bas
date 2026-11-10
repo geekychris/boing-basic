@@ -1,9 +1,7 @@
-Dim a As Variant, b As Variant
-Print "abc" < "abd"; "Z" < "a"; "ab" < "abc"; 1 < "2"
-a = 10: b = "9"
-Print a < b; a + b
-a = "10": b = "9"
-Print a < b; a + b
-a = Empty
-Print a = 0; a = ""
-Print IsNull(Null = Null)
+Dim n As Integer
+n = 5
+Print "n is " & n; " | "; "x" & 0.5; " | "; 1 & 2
+Print "5" + "5"; " | "; "5" + 5; " | "; "5" & 5
+On Error Resume Next
+Print "a" + 1
+Print "Error"; Err.Number; Err.Description

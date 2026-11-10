@@ -1,2 +1,5 @@
-Print "Language: "; Environ("Language")
-Print "Workbench: "; Environ("Workbench")
+If Command = "" Then
+    Print "usage: greet <names>"
+Else
+    Print "Hello, "; Command
+End If

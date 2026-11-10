@@ -245,6 +245,73 @@ errors stop the program again from here
 Each procedure has its own handler. `On Error` in one procedure does not change the handler of
 the procedure that called it, and when a procedure returns, its handler goes with it.
 
+## On Error GoTo -1
+
+While a handler is running, the procedure is "handling an error": a second error in it is not
+caught by any `On Error` of that procedure, even a new `On Error GoTo` written inside the
+handler, and goes to the caller instead. `Resume` ends that state, and so does leaving the
+procedure.
+
+`On Error GoTo -1` ends it without leaving the handler: it clears `Err` and makes the
+procedure's handler catch errors again. Without it, the second `Err.Raise` below would stop the
+program with error 9:
+
+*Listing 8.8* (`examples/book/ch08-errors/listing-08-08.bas`)
+
+<!-- run -->
+```basic
+Sub Main()
+    On Error GoTo first
+    Err.Raise 5
+    Exit Sub
+first:
+    Print "first"; Err.Number
+    On Error GoTo -1
+    Print "after -1:"; Err.Number
+    On Error GoTo second
+    Err.Raise 9
+    Exit Sub
+second:
+    Print "second"; Err.Number
+End Sub
+```
+
+```output
+first 5 
+after -1: 0 
+second 9 
+```
+
+The handler stays switched on after `On Error GoTo -1`, so a handler can also jump back into
+the code with `GoTo` and catch the next error itself:
+
+*Listing 8.9* (`examples/book/ch08-errors/listing-08-09.bas`)
+
+<!-- run -->
+```basic
+Sub Main()
+    Dim tries As Integer
+    On Error GoTo h
+again:
+    tries = tries + 1
+    Err.Raise 5
+    Exit Sub
+h:
+    Print "try"; tries; Err.Number
+    On Error GoTo -1
+    If tries < 3 Then GoTo again
+End Sub
+```
+
+```output
+try 1  5 
+try 2  5 
+try 3  5 
+```
+
+Outside a handler, `On Error GoTo -1` only clears `Err`; the handler that is switched on stays
+as it is.
+
 ## The Err object
 
 `Err` holds the details of the most recent run-time error. Its members:
@@ -260,7 +327,7 @@ the procedure that called it, and when a procedure returns, its handler goes wit
 | `Err.HelpFile`, `Err.HelpContext` | String, Long | always `""` and 0 (accepted, not used) |
 
 `Err` is cleared by `Err.Clear`, by any form of `Resume`, by `On Error GoTo` / `On Error Resume
-Next` and by leaving a procedure through `Exit Sub`, `Exit Function` or `Exit Property` from
+Next` (including `On Error GoTo -1`) and by leaving a procedure through `Exit Sub`, `Exit Function` or `Exit Property` from
 its handler.
 
 Two more built-ins go with it:
@@ -270,7 +337,7 @@ Two more built-ins go with it:
 - `Error(n)` (also `Error$(n)`) gives the standard message of error number `n`; with no
   argument it gives the current `Err.Description`.
 
-*Listing 8.8* (`examples/book/ch08-errors/listing-08-08.bas`)
+*Listing 8.10* (`examples/book/ch08-errors/listing-08-10.bas`)
 
 <!-- run -->
 ```basic
@@ -298,7 +365,7 @@ handle them with `On Error`. `Err.Raise number [, source [, description]]` raise
 `number`; the optional source and description fill in `Err.Source` and `Err.Description` (a
 missing description gives the standard message for the number):
 
-*Listing 8.9* (`examples/book/ch08-errors/listing-08-09.bas`)
+*Listing 8.11* (`examples/book/ch08-errors/listing-08-11.bas`)
 
 <!-- run -->
 ```basic
@@ -329,7 +396,7 @@ constant `vbObjectError` (-2147221504), as above, or use numbers from 1000 to 65
 
 The `Error n` statement is an older, shorter way to raise error `n` with its standard message:
 
-*Listing 8.10* (`examples/book/ch08-errors/listing-08-10.bas`)
+*Listing 8.12* (`examples/book/ch08-errors/listing-08-12.bas`)
 
 <!-- run -->
 ```basic
@@ -348,7 +415,7 @@ When an error happens in a procedure that has no handler of its own, Boing BASIC
 procedure that called it, then at that one's caller, and so on, and jumps to the first handler
 it finds. The procedures in between are left at once, as if they had all returned:
 
-*Listing 8.11* (`examples/book/ch08-errors/listing-08-11.bas`)
+*Listing 8.13* (`examples/book/ch08-errors/listing-08-13.bas`)
 
 <!-- run -->
 ```basic
@@ -385,9 +452,10 @@ Some rules follow from this:
 - A handler that catches an error from a called procedure can still use `Resume Next`: the
   program continues after the call in the handler's own procedure.
 - An error that happens **inside a handler** (while the handler is running, before a `Resume`)
-  is not caught by that same handler. It goes on to the next handler up. That is how a handler
+  is not caught by that same handler. It goes on to the next handler up, with its own number
+  and description, whether it is an `Err.Raise` or a failing statement. That is how a handler
   passes on an error it cannot deal with: it calls `Err.Raise` again, perhaps with a better
-  description.
+  description (see the listing below).
 - The local variables of the procedures that are left are released properly: an object whose
   last reference goes away runs its `Class_Terminate`, and arrays and strings are freed.
 - In a form program, each event procedure (`Command1_Click` and so on) is called by the
@@ -395,6 +463,44 @@ Some rules follow from this:
   Give event procedures that can fail their own `On Error GoTo` handler.
 
 The program stops (with the message above) only when no procedure on the way up has a handler.
+
+Here `LoadSettings` catches the "File not found" from `Open`, and passes it on to its caller
+with a description that names the file. `Main`'s handler receives the number, source and
+description that `LoadSettings` gave:
+
+*Listing 8.14* (`examples/book/ch08-errors/listing-08-14.bas`)
+
+<!-- run -->
+```basic
+Function LoadSettings(ByVal path As String) As String
+    Dim f As Integer
+    On Error GoTo failed
+    f = FreeFile
+    Open path For Input As #f
+    Line Input #f, LoadSettings
+    Close #f
+    Exit Function
+failed:
+    Err.Raise Err.Number, "LoadSettings", "cannot read " & path & ": " & Err.Description
+End Function
+
+Sub Main()
+    On Error GoTo h
+    Print LoadSettings("no-such-settings.txt")
+    Exit Sub
+h:
+    Print "Main caught"; Err.Number; " "; Err.Source
+    Print Err.Description
+End Sub
+```
+
+```output
+Main caught 53  LoadSettings
+cannot read no-such-settings.txt: File not found
+```
+
+The arguments of `Err.Raise` are worked out before the new error is raised, so the handler can
+still use the old `Err.Number` and `Err.Description` in them.
 
 ## Ctrl-C: stopping a running program
 
@@ -415,7 +521,7 @@ opened something the runtime does not know about, for example a window or memory
 through `Declare` calls to the AmigaOS libraries (see [AmigaOS](17-amigaos.md)): the handler can
 close it before the program ends.
 
-*Listing 8.12* (`examples/book/ch08-errors/listing-08-12.bas`)
+*Listing 8.15* (`examples/book/ch08-errors/listing-08-15.bas`)
 
 ```basic
 Sub Main()
@@ -539,7 +645,10 @@ calc.bas:4:9: warning: local 'limit' hides constant 'Limit' (line 2)
 - `Resume`, `Resume Next` and `Resume label` go back into the code; leaving the handler at the
   end of the procedure returns normally.
 - `On Error Resume Next` skips failing statements; test `Err.Number` and use `Err.Clear`.
-  `On Error GoTo 0` turns the handler off.
+  `On Error GoTo 0` turns the handler off; `On Error GoTo -1` ends the handling of an error
+  inside a handler, so that the next error is caught again.
+- An error raised inside a handler goes to the caller's handler with its number and
+  description.
 - `Err.Number`, `Err.Description`, `Err.Source`, `Err.Raise`, `Err.Clear`, `Erl` and `Error(n)`
   tell you about errors and let you raise your own.
 - Ctrl-C is error 18: catch it to clean up, or let it end the program with `***Break`.

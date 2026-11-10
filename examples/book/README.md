@@ -99,18 +99,19 @@ native, and checks the others compile.
 |---|---|---|
 | 6.1 | [ch06-control-flow/listing-06-01.bas](ch06-control-flow/listing-06-01.bas) | Single-line If |
 | 6.2 | [ch06-control-flow/listing-06-02.bas](ch06-control-flow/listing-06-02.bas) | Block If |
-| 6.3 | [ch06-control-flow/listing-06-03.bas](ch06-control-flow/listing-06-03.bas) | Select Case |
+| 6.3 | [ch06-control-flow/listing-06-03.bas](ch06-control-flow/listing-06-03.bas) | Block If |
 | 6.4 | [ch06-control-flow/listing-06-04.bas](ch06-control-flow/listing-06-04.bas) | Select Case |
-| 6.5 | [ch06-control-flow/listing-06-05.bas](ch06-control-flow/listing-06-05.bas) | For ... Next |
+| 6.5 | [ch06-control-flow/listing-06-05.bas](ch06-control-flow/listing-06-05.bas) | Select Case |
 | 6.6 | [ch06-control-flow/listing-06-06.bas](ch06-control-flow/listing-06-06.bas) | For ... Next |
-| 6.7 | [ch06-control-flow/listing-06-07.bas](ch06-control-flow/listing-06-07.bas) | For Each ... Next |
-| 6.8 | [ch06-control-flow/listing-06-08.bas](ch06-control-flow/listing-06-08.bas) | Do ... Loop |
-| 6.9 | [ch06-control-flow/listing-06-09.bas](ch06-control-flow/listing-06-09.bas) | While ... Wend |
-| 6.10 | [ch06-control-flow/listing-06-10.bas](ch06-control-flow/listing-06-10.bas) | Leaving early: Exit |
-| 6.11 | [ch06-control-flow/listing-06-11.bas](ch06-control-flow/listing-06-11.bas) | Labels and GoTo |
-| 6.12 | [ch06-control-flow/listing-06-12.bas](ch06-control-flow/listing-06-12.bas) | GoSub and Return |
-| 6.13 | [ch06-control-flow/listing-06-13.bas](ch06-control-flow/listing-06-13.bas) | On ... GoTo and On ... GoSub |
-| 6.14 | [ch06-control-flow/listing-06-14.bas](ch06-control-flow/listing-06-14.bas) | End and Stop |
+| 6.7 | [ch06-control-flow/listing-06-07.bas](ch06-control-flow/listing-06-07.bas) | For ... Next |
+| 6.8 | [ch06-control-flow/listing-06-08.bas](ch06-control-flow/listing-06-08.bas) | For Each ... Next |
+| 6.9 | [ch06-control-flow/listing-06-09.bas](ch06-control-flow/listing-06-09.bas) | Do ... Loop |
+| 6.10 | [ch06-control-flow/listing-06-10.bas](ch06-control-flow/listing-06-10.bas) | While ... Wend |
+| 6.11 | [ch06-control-flow/listing-06-11.bas](ch06-control-flow/listing-06-11.bas) | Leaving early: Exit |
+| 6.12 | [ch06-control-flow/listing-06-12.bas](ch06-control-flow/listing-06-12.bas) | Labels and GoTo |
+| 6.13 | [ch06-control-flow/listing-06-13.bas](ch06-control-flow/listing-06-13.bas) | GoSub and Return |
+| 6.14 | [ch06-control-flow/listing-06-14.bas](ch06-control-flow/listing-06-14.bas) | On ... GoTo and On ... GoSub |
+| 6.15 | [ch06-control-flow/listing-06-15.bas](ch06-control-flow/listing-06-15.bas) | End and Stop |
 
 ## Expressions, operators and conversions
 
@@ -123,17 +124,18 @@ native, and checks the others compile.
 | 7.3 | [ch07-expressions/listing-07-03.bas](ch07-expressions/listing-07-03.bas) | The type of a result |
 | 7.4 | [ch07-expressions/listing-07-04.bas](ch07-expressions/listing-07-04.bas) | Overflow |
 | 7.5 | [ch07-expressions/listing-07-05.bas](ch07-expressions/listing-07-05.bas) | Overflow |
-| 7.6 | [ch07-expressions/listing-07-06.bas](ch07-expressions/listing-07-06.bas) | Joining strings: & and + |
-| 7.7 | [ch07-expressions/listing-07-07.bas](ch07-expressions/listing-07-07.bas) | Comparison |
-| 7.8 | [ch07-expressions/listing-07-08.bas](ch07-expressions/listing-07-08.bas) | Like |
-| 7.9 | [ch07-expressions/listing-07-09.bas](ch07-expressions/listing-07-09.bas) | Logical and bitwise operators |
+| 7.6 | [ch07-expressions/listing-07-06.bas](ch07-expressions/listing-07-06.bas) | Overflow |
+| 7.7 | [ch07-expressions/listing-07-07.bas](ch07-expressions/listing-07-07.bas) | Joining strings: & and + |
+| 7.8 | [ch07-expressions/listing-07-08.bas](ch07-expressions/listing-07-08.bas) | Comparison |
+| 7.9 | [ch07-expressions/listing-07-09.bas](ch07-expressions/listing-07-09.bas) | Like |
 | 7.10 | [ch07-expressions/listing-07-10.bas](ch07-expressions/listing-07-10.bas) | Logical and bitwise operators |
-| 7.11 | [ch07-expressions/listing-07-11.bas](ch07-expressions/listing-07-11.bas) | Automatic conversion |
-| 7.12 | [ch07-expressions/listing-07-12.bas](ch07-expressions/listing-07-12.bas) | Conversion functions |
+| 7.11 | [ch07-expressions/listing-07-11.bas](ch07-expressions/listing-07-11.bas) | Logical and bitwise operators |
+| 7.12 | [ch07-expressions/listing-07-12.bas](ch07-expressions/listing-07-12.bas) | Automatic conversion |
 | 7.13 | [ch07-expressions/listing-07-13.bas](ch07-expressions/listing-07-13.bas) | Conversion functions |
-| 7.14 | [ch07-expressions/listing-07-14.bas](ch07-expressions/listing-07-14.bas) | Empty, Null and Nothing |
-| 7.15 | [ch07-expressions/listing-07-15.bas](ch07-expressions/listing-07-15.bas) | Finding out types: TypeName and VarType |
-| 7.16 | [ch07-expressions/listing-07-16.bas](ch07-expressions/listing-07-16.bas) | Choosing between values: IIf and Choose |
+| 7.14 | [ch07-expressions/listing-07-14.bas](ch07-expressions/listing-07-14.bas) | Conversion functions |
+| 7.15 | [ch07-expressions/listing-07-15.bas](ch07-expressions/listing-07-15.bas) | Empty, Null and Nothing |
+| 7.16 | [ch07-expressions/listing-07-16.bas](ch07-expressions/listing-07-16.bas) | Finding out types: TypeName and VarType |
+| 7.17 | [ch07-expressions/listing-07-17.bas](ch07-expressions/listing-07-17.bas) | Choosing between values: IIf and Choose |
 
 ## Errors and error handling
 
@@ -148,11 +150,14 @@ native, and checks the others compile.
 | 8.5 | [ch08-errors/listing-08-05.bas](ch08-errors/listing-08-05.bas) | Resume: going back after an error |
 | 8.6 | [ch08-errors/listing-08-06.bas](ch08-errors/listing-08-06.bas) | On Error Resume Next |
 | 8.7 | [ch08-errors/listing-08-07.bas](ch08-errors/listing-08-07.bas) | On Error GoTo 0 |
-| 8.8 | [ch08-errors/listing-08-08.bas](ch08-errors/listing-08-08.bas) | The Err object |
-| 8.9 | [ch08-errors/listing-08-09.bas](ch08-errors/listing-08-09.bas) | Raising your own errors |
-| 8.10 | [ch08-errors/listing-08-10.bas](ch08-errors/listing-08-10.bas) | Raising your own errors |
-| 8.11 | [ch08-errors/listing-08-11.bas](ch08-errors/listing-08-11.bas) | Errors in nested procedures |
-| 8.12 | [ch08-errors/listing-08-12.bas](ch08-errors/listing-08-12.bas) | Ctrl-C: stopping a running program |
+| 8.8 | [ch08-errors/listing-08-08.bas](ch08-errors/listing-08-08.bas) | On Error GoTo -1 |
+| 8.9 | [ch08-errors/listing-08-09.bas](ch08-errors/listing-08-09.bas) | On Error GoTo -1 |
+| 8.10 | [ch08-errors/listing-08-10.bas](ch08-errors/listing-08-10.bas) | The Err object |
+| 8.11 | [ch08-errors/listing-08-11.bas](ch08-errors/listing-08-11.bas) | Raising your own errors |
+| 8.12 | [ch08-errors/listing-08-12.bas](ch08-errors/listing-08-12.bas) | Raising your own errors |
+| 8.13 | [ch08-errors/listing-08-13.bas](ch08-errors/listing-08-13.bas) | Errors in nested procedures |
+| 8.14 | [ch08-errors/listing-08-14.bas](ch08-errors/listing-08-14.bas) | Errors in nested procedures |
+| 8.15 | [ch08-errors/listing-08-15.bas](ch08-errors/listing-08-15.bas) | Ctrl-C: stopping a running program |
 
 ## Built-in functions
 
@@ -200,18 +205,19 @@ native, and checks the others compile.
 | 10.4 | [ch10-files/listing-10-04.bas](ch10-files/listing-10-04.bas) | Input and Line Input |
 | 10.5 | [ch10-files/listing-10-05.bas](ch10-files/listing-10-05.bas) | Writing and reading text |
 | 10.6 | [ch10-files/listing-10-06.bas](ch10-files/listing-10-06.bas) | Data files: Write # and Input # |
-| 10.7 | [ch10-files/listing-10-07.bas](ch10-files/listing-10-07.bas) | Binary files: Get and Put |
-| 10.8 | [ch10-files/listing-10-08.bas](ch10-files/listing-10-08.bas) | Random-access files: records |
-| 10.9 | [ch10-files/listing-10-09.bas](ch10-files/listing-10-09.bas) | Files and errors |
-| 10.10 | [ch10-files/listing-10-10.bas](ch10-files/listing-10-10.bas) | Listing a directory with Dir |
-| 10.11 | [ch10-files/listing-10-11.bas](ch10-files/listing-10-11.bas) | Working with files and directories |
-| 10.12 | [ch10-files/listing-10-12.bas](ch10-files/listing-10-12.bas) | Files beside the program: App.Path |
-| 10.13 | [ch10-files/listing-10-13.bas](ch10-files/listing-10-13.bas) | The App object |
-| 10.14 | [ch10-files/listing-10-14.bas](ch10-files/listing-10-14.bas) | Command |
-| 10.15 | [ch10-files/listing-10-15.bas](ch10-files/listing-10-15.bas) | Environ |
-| 10.16 | [ch10-files/listing-10-16.bas](ch10-files/listing-10-16.bas) | Shell |
-| 10.17 | [ch10-files/listing-10-17.bas](ch10-files/listing-10-17.bas) | Settings: SaveSetting and GetSetting |
+| 10.7 | [ch10-files/listing-10-07.bas](ch10-files/listing-10-07.bas) | Data files: Write # and Input # |
+| 10.8 | [ch10-files/listing-10-08.bas](ch10-files/listing-10-08.bas) | Binary files: Get and Put |
+| 10.9 | [ch10-files/listing-10-09.bas](ch10-files/listing-10-09.bas) | Random-access files: records |
+| 10.10 | [ch10-files/listing-10-10.bas](ch10-files/listing-10-10.bas) | Files and errors |
+| 10.11 | [ch10-files/listing-10-11.bas](ch10-files/listing-10-11.bas) | Listing a directory with Dir |
+| 10.12 | [ch10-files/listing-10-12.bas](ch10-files/listing-10-12.bas) | Working with files and directories |
+| 10.13 | [ch10-files/listing-10-13.bas](ch10-files/listing-10-13.bas) | Files beside the program: App.Path |
+| 10.14 | [ch10-files/listing-10-14.bas](ch10-files/listing-10-14.bas) | The App object |
+| 10.15 | [ch10-files/listing-10-15.bas](ch10-files/listing-10-15.bas) | Command |
+| 10.16 | [ch10-files/listing-10-16.bas](ch10-files/listing-10-16.bas) | Environ |
+| 10.17 | [ch10-files/listing-10-17.bas](ch10-files/listing-10-17.bas) | Shell |
 | 10.18 | [ch10-files/listing-10-18.bas](ch10-files/listing-10-18.bas) | Settings: SaveSetting and GetSetting |
+| 10.19 | [ch10-files/listing-10-19.bas](ch10-files/listing-10-19.bas) | Settings: SaveSetting and GetSetting |
 
 ## Classes and objects
 
@@ -334,12 +340,13 @@ native, and checks the others compile.
 | 17.2 | [ch17-amigaos/listing-17-02.bas](ch17-amigaos/listing-17-02.bas) | Declare on other systems |
 | 17.3 | [ch17-amigaos/listing-17-03.bas](ch17-amigaos/listing-17-03.bas) | The ready-made bindings |
 | 17.4 | [ch17-amigaos/listing-17-04.bas](ch17-amigaos/listing-17-04.bas) | Strings and buffers |
-| 17.5 | [ch17-amigaos/listing-17-05.bas](ch17-amigaos/listing-17-05.bas) | AmigaOS error codes |
-| 17.6 | [ch17-amigaos/listing-17-06.bas](ch17-amigaos/listing-17-06.bas) | Structures |
-| 17.7 | [ch17-amigaos/listing-17-07.bas](ch17-amigaos/listing-17-07.bas) | Buffers for binary data |
-| 17.8 | [ch17-amigaos/declare_gfx/declare_gfx.bbp](ch17-amigaos/declare_gfx/declare_gfx.bbp) | Tag lists |
+| 17.5 | [ch17-amigaos/listing-17-05.bas](ch17-amigaos/listing-17-05.bas) | Results |
+| 17.6 | [ch17-amigaos/listing-17-06.bas](ch17-amigaos/listing-17-06.bas) | AmigaOS error codes |
+| 17.7 | [ch17-amigaos/listing-17-07.bas](ch17-amigaos/listing-17-07.bas) | Structures |
+| 17.8 | [ch17-amigaos/listing-17-08.bas](ch17-amigaos/listing-17-08.bas) | Buffers for binary data |
 | 17.9 | [ch17-amigaos/declare_gfx/declare_gfx.bbp](ch17-amigaos/declare_gfx/declare_gfx.bbp) | Tag lists |
-| 17.10 | [ch17-amigaos/listing-17-10.bas](ch17-amigaos/listing-17-10.bas) | Hooks and callbacks: AddressOf |
+| 17.10 | [ch17-amigaos/declare_gfx/declare_gfx.bbp](ch17-amigaos/declare_gfx/declare_gfx.bbp) | Tag lists |
+| 17.11 | [ch17-amigaos/listing-17-11.bas](ch17-amigaos/listing-17-11.bas) | Hooks and callbacks: AddressOf |
 
 ## The AmigaOS 4 desktop
 

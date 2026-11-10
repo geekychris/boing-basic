@@ -1,5 +1,6 @@
-Print "App.Path is set: "; App.Path <> ""
-Print "title = name: "; App.Title = App.EXEName
-App.Title = "My program"
-Print App.Title
-Print "window width "; App.ToolType("WIDTH", "640")
+Dim f As Integer, s As String
+f = FreeFile
+Open App.Path & "/readme.txt" For Input As #f
+Line Input #f, s
+Close #f
+Print s

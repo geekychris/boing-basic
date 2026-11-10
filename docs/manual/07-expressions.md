@@ -182,12 +182,45 @@ CLng(200) * 200: 40000
 ```
 
 Make one operand a Long (with `&`, `CLng` or a Long variable) and the multiplication is done
-in Long. Single and Double results that would be infinite are error 6 too.
+in Long. Single and Double results that would be infinite are error 6 too:
+
+*Listing 7.5* (`examples/book/ch07-expressions/listing-07-05.bas`)
+
+<!-- run -->
+```basic
+Dim d As Double, x As Double
+x = 1E308
+On Error Resume Next
+d = x * 10
+Print "x * 10:"; Err.Number; Err.Description
+```
+
+```output
+x * 10: 6 Overflow
+```
+
+When every operand of a Single or Double calculation is a constant, Boing BASIC works the
+result out while compiling, so the same overflow is found before the program runs:
+`boing check` reports it as a compile error.
+
+<!-- error: overflow (error 6) in a constant expression -->
+```basic
+Dim d As Double
+d = 1E308 * 10
+```
+
+```text
+huge.bas:2:11: error: overflow (error 6) in a constant expression
+```
+
+This applies to `*`, `/`, `+`, `-` and `^` with Single and Double constants, in a `Const` as
+well as in an ordinary expression. Whole-number constants such as `200 * 200` are still
+checked when the line runs, as in the listing above.
 
 Variants are different: an Integer result in a Variant that does not fit becomes a Long, and
 a Long becomes a Double, so Variant arithmetic does not overflow:
 
-*Listing 7.5* (`examples/book/ch07-expressions/listing-07-05.bas`)
+*Listing 7.6* (`examples/book/ch07-expressions/listing-07-06.bas`)
 
 <!-- run -->
 ```basic
@@ -218,7 +251,7 @@ form, and `Null` or `Empty` become `""`.
 them as numbers, which is error 13, "Type mismatch", if the string is not a number. Use `&`
 for joining text, and `+` only for adding.
 
-*Listing 7.6* (`examples/book/ch07-expressions/listing-07-06.bas`)
+*Listing 7.7* (`examples/book/ch07-expressions/listing-07-07.bas`)
 
 <!-- run -->
 ```basic
@@ -254,7 +287,7 @@ Variants compare by what they hold: two numbers numerically, two strings as stri
 number with a string by putting every number before every string. A comparison with `Null`
 gives `Null`. `Empty` compares as 0 with a number and as `""` with a string.
 
-*Listing 7.7* (`examples/book/ch07-expressions/listing-07-07.bas`)
+*Listing 7.8* (`examples/book/ch07-expressions/listing-07-08.bas`)
 
 <!-- run -->
 ```basic
@@ -296,7 +329,7 @@ Records (user-defined types) and arrays cannot be compared.
 To match `?`, `*`, `#` or `[` literally, put it in brackets: `"a*c" Like "a[*]c"`.
 `Like` is case-sensitive, unless the module has `Option Compare Text`.
 
-*Listing 7.8* (`examples/book/ch07-expressions/listing-07-08.bas`)
+*Listing 7.9* (`examples/book/ch07-expressions/listing-07-09.bas`)
 
 <!-- run -->
 ```basic
@@ -334,7 +367,7 @@ set and clear flags: `flags And 4` tests bit 2, `flags Or 4` sets it, and `flags
 clears it. Because `True` is -1 (all bits set), `Not True` is `False` and comparisons combine
 correctly with `And` and `Or`.
 
-*Listing 7.9* (`examples/book/ch07-expressions/listing-07-09.bas`)
+*Listing 7.10* (`examples/book/ch07-expressions/listing-07-10.bas`)
 
 <!-- run -->
 ```basic
@@ -356,7 +389,7 @@ even when the first already decides the result. If the second operand must not b
 (because it would fail, or because it calls a function with side effects), use nested `If`
 statements:
 
-*Listing 7.10* (`examples/book/ch07-expressions/listing-07-10.bas`)
+*Listing 7.11* (`examples/book/ch07-expressions/listing-07-11.bas`)
 
 <!-- run -->
 ```basic
@@ -400,7 +433,7 @@ type, pass an argument to a parameter of another type, or mix types in an operat
 
 A user-defined type cannot be converted to anything, or stored in a Variant.
 
-*Listing 7.11* (`examples/book/ch07-expressions/listing-07-11.bas`)
+*Listing 7.12* (`examples/book/ch07-expressions/listing-07-12.bas`)
 
 <!-- run -->
 ```basic
@@ -443,7 +476,7 @@ raise error 13 if it cannot be, or error 6 if it is out of range for the result 
 | `CStr(x)` | String | numbers without a leading space; `Empty` -> `""` |
 | `CVar(x)` | Variant | |
 
-*Listing 7.12* (`examples/book/ch07-expressions/listing-07-12.bas`)
+*Listing 7.13* (`examples/book/ch07-expressions/listing-07-13.bas`)
 
 <!-- run -->
 ```basic
@@ -471,7 +504,7 @@ Integer Decimal Single
 decimal places. These, and `Val`, `Str`, `Hex`, `Oct` and `Format`, which turn numbers into
 text and back, are in [chapter 9](09-builtins.md).
 
-*Listing 7.13* (`examples/book/ch07-expressions/listing-07-13.bas`)
+*Listing 7.14* (`examples/book/ch07-expressions/listing-07-14.bas`)
 
 <!-- run -->
 ```basic
@@ -498,7 +531,7 @@ These three special values are easy to confuse:
 | `Null` | Variant | no valid value; spreads through expressions | `IsNull(v)` |
 | `Nothing` | object variables | refers to no object | `obj Is Nothing` |
 
-*Listing 7.14* (`examples/book/ch07-expressions/listing-07-14.bas`)
+*Listing 7.15* (`examples/book/ch07-expressions/listing-07-15.bas`)
 
 <!-- run -->
 ```basic
@@ -549,11 +582,11 @@ argument), `"Nothing"`, a class name such as
 | 10 | `vbError` | an error value (a missing optional argument) |
 | 11 | `vbBoolean` | Boolean |
 | 12 | `vbVariant` | Variant (only inside an array type) |
-| 14 | | Decimal |
+| 14 | `vbDecimal` | Decimal (a Variant made by `CDec`) |
 | 17 | `vbByte` | Byte |
 | 8192 + type | `vbArray` + type | an array: 8194 is an array of Integer, 8204 an array of Variant |
 
-*Listing 7.15* (`examples/book/ch07-expressions/listing-07-15.bas`)
+*Listing 7.16* (`examples/book/ch07-expressions/listing-07-16.bas`)
 
 <!-- run -->
 ```basic
@@ -585,7 +618,7 @@ they are listed in [chapter 9](09-builtins.md).
 function, it works out all its arguments first, so both `a` and `b` are evaluated.
 `Choose(n, a, b, c, ...)` returns its `n`th value after `n`, or `Null` when there is none.
 
-*Listing 7.16* (`examples/book/ch07-expressions/listing-07-16.bas`)
+*Listing 7.17* (`examples/book/ch07-expressions/listing-07-17.bas`)
 
 <!-- run -->
 ```basic

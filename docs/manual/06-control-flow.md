@@ -78,15 +78,45 @@ Grade 95: Grade 80: Grade 60: Grade 10
  10 fail
 ```
 
-Only the first branch whose condition is true runs. `Else If` written as two words on one
-line is taken as `ElseIf`, so it does not need an `End If` of its own.
+Only the first branch whose condition is true runs.
+
+`ElseIf` is one word. Written as two words, `Else If` is an `Else` followed by a new block
+`If` inside it, and that inner `If` needs an `End If` of its own:
+
+*Listing 6.3* (`examples/book/ch06-control-flow/listing-06-03.bas`)
+
+<!-- run -->
+```basic
+Sub Sign(ByVal n As Integer)
+    If n > 0 Then
+        Print n; "positive"
+    Else If n < 0 Then
+        Print n; "negative"
+    Else
+        Print n; "zero"
+    End If
+    End If
+End Sub
+
+Sign 5: Sign -3: Sign 0
+```
+
+```output
+ 5 positive
+-3 negative
+ 0 zero
+```
+
+The first `End If` closes the inner `If`, the second the outer one. If you leave one out,
+`boing check` reports "expected 'End If', found end of file". Write `ElseIf` and you need only
+one.
 
 ## Select Case
 
 `Select Case` compares one value against a list of cases and runs the first case that
 matches. The value is worked out once:
 
-*Listing 6.3* (`examples/book/ch06-control-flow/listing-06-03.bas`)
+*Listing 6.4* (`examples/book/ch06-control-flow/listing-06-04.bas`)
 
 <!-- run -->
 ```basic
@@ -137,7 +167,7 @@ Strings work too, compared as for `=` and `<` (so `Option Compare Text` makes th
 ignore case). `Select Case True` with a condition in each `Case` is a tidy way to write a
 chain of tests:
 
-*Listing 6.4* (`examples/book/ch06-control-flow/listing-06-04.bas`)
+*Listing 6.5* (`examples/book/ch06-control-flow/listing-06-05.bas`)
 
 <!-- run -->
 ```basic
@@ -175,7 +205,7 @@ For counter = start To end [Step step]
 Next [counter]
 ```
 
-*Listing 6.5* (`examples/book/ch06-control-flow/listing-06-05.bas`)
+*Listing 6.6* (`examples/book/ch06-control-flow/listing-06-06.bas`)
 
 <!-- run -->
 ```basic
@@ -218,7 +248,7 @@ How the loop works:
 The name after `Next` is optional, but if you give it, it must match the `For`. One `Next` can
 close several loops: `Next j, i` closes the inner loop `j` and then the outer loop `i`.
 
-*Listing 6.6* (`examples/book/ch06-control-flow/listing-06-06.bas`)
+*Listing 6.7* (`examples/book/ch06-control-flow/listing-06-07.bas`)
 
 <!-- run -->
 ```basic
@@ -249,7 +279,7 @@ Print
 variable must be a Variant (or an object variable, for a collection of objects, or a simple
 type matching the array):
 
-*Listing 6.7* (`examples/book/ch06-control-flow/listing-06-07.bas`)
+*Listing 6.8* (`examples/book/ch06-control-flow/listing-06-08.bas`)
 
 <!-- run -->
 ```basic
@@ -285,7 +315,7 @@ leaves it.
 | `Do ... Loop Until cond` | at least once, then until `cond` is true |
 | `Do ... Loop` | for ever, until something leaves it |
 
-*Listing 6.8* (`examples/book/ch06-control-flow/listing-06-08.bas`)
+*Listing 6.9* (`examples/book/ch06-control-flow/listing-06-09.bas`)
 
 <!-- run -->
 ```basic
@@ -325,7 +355,7 @@ Exit Do: 8
 `While cond ... Wend` is the same as `Do While cond ... Loop`. `Exit Do` also leaves a
 `While` loop.
 
-*Listing 6.9* (`examples/book/ch06-control-flow/listing-06-09.bas`)
+*Listing 6.10* (`examples/book/ch06-control-flow/listing-06-10.bas`)
 
 <!-- run -->
 ```basic
@@ -357,7 +387,7 @@ kind of loop or procedure it names; otherwise it is a compile error. There is no
 that skips to the next pass of a loop: put the rest of the body in an `If`, or jump to a
 label just before `Next`.
 
-*Listing 6.10* (`examples/book/ch06-control-flow/listing-06-10.bas`)
+*Listing 6.11* (`examples/book/ch06-control-flow/listing-06-11.bas`)
 
 <!-- run -->
 ```basic
@@ -386,7 +416,7 @@ module-level statements). A label is a name followed by a colon at the start of 
 line number is a number at the start of a line ([chapter 4](04-data.md#labels-and-line-numbers)).
 You cannot jump into another procedure.
 
-*Listing 6.11* (`examples/book/ch06-control-flow/listing-06-11.bas`)
+*Listing 6.12* (`examples/book/ch06-control-flow/listing-06-12.bas`)
 
 <!-- run -->
 ```basic
@@ -419,7 +449,7 @@ the few places where it is clearly simpler, such as error handling.
 "Return without GoSub". The code reached by `GoSub` is usually placed after an `Exit Sub` so
 that it does not run by itself:
 
-*Listing 6.12* (`examples/book/ch06-control-flow/listing-06-12.bas`)
+*Listing 6.13* (`examples/book/ch06-control-flow/listing-06-13.bas`)
 
 <!-- run -->
 ```basic
@@ -452,7 +482,7 @@ A Sub or Function with parameters is nearly always a better choice than `GoSub`.
 statement. A negative `n`, or one above 255, is error 5. `On n GoSub` works the same way, with
 a `Return` coming back after the `On` statement.
 
-*Listing 6.13* (`examples/book/ch06-control-flow/listing-06-13.bas`)
+*Listing 6.14* (`examples/book/ch06-control-flow/listing-06-14.bas`)
 
 <!-- run -->
 ```basic
@@ -484,7 +514,7 @@ Pick 1: Pick 2: Pick 3: Pick 0
 `End` ends the program at once, wherever it is. Open files are closed and windows are shut,
 but no more of your code runs. `Stop` prints `Stop` and then ends the program in the same way.
 
-*Listing 6.14* (`examples/book/ch06-control-flow/listing-06-14.bas`)
+*Listing 6.15* (`examples/book/ch06-control-flow/listing-06-15.bas`)
 
 <!-- run -->
 ```basic
