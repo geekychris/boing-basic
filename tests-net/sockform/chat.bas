@@ -3,18 +3,22 @@
 Dim WithEvents srv As Socket
 Dim WithEvents cli As Socket
 Dim peer As Socket
-Dim ticks As Long, sendTwo As Boolean
+Dim ticks As Long, sendTwo As Boolean, addr As String
 
 Private Sub Form_Load()
     Set srv = CreateObject("Socket")
-    srv.Listen 0, "127.0.0.1"
+    addr = "127.0.0.1"
+    On Error Resume Next
+    srv.Listen 0, addr
+    If Err.Number Then addr = srv.MachineAddress: Err.Clear: srv.Listen 0, addr     ' no loopback
+    On Error GoTo 0
     Set cli = CreateObject("Socket")
-    cli.Connect "127.0.0.1", srv.LocalPort
+    cli.Connect addr, srv.LocalPort
 End Sub
 
 Private Sub srv_ConnectionRequest()
     Set peer = srv.Accept()
-    Print "server: connection from "; peer.RemoteHost
+    Print "server: connection from us: "; peer.RemoteHost = addr
 End Sub
 
 Private Sub srv_ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)

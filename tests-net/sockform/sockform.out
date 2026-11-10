@@ -1,5 +1,5 @@
 client: connected
-server: connection from 127.0.0.1
+server: connection from us: True
 client: echo one
 client: echo two
 client: echo bye
