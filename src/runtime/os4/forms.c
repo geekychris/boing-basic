@@ -721,6 +721,8 @@ int bbf_vb_shift(uint32 q);
 
 /* statusbar hints=1: the hint of the control under the pointer in the status bar's first panel
    (its own text again when the pointer is over nothing with a hint) */
+int bbf_hint_setting;
+
 static void status_hint(bb_form *f, int x, int y)
 {
     bb_ctl *sb = NULL;
@@ -741,7 +743,9 @@ static void status_hint(bb_form *f, int x, int y)
             sb->extra = xstrdup(cur.s ? cur.s : "");
         }
         bb_fval v = { BB_FV_STR, 0, hint, NULL };
+        bbf_hint_setting = 1;
         bb_ctl_set(sb, "Panel", 0, &v);
+        bbf_hint_setting = 0;
     } else if (sb->extra) {
         bb_fval v = { BB_FV_STR, 0, sb->extra, NULL };
         char *old = sb->extra;
@@ -1242,6 +1246,7 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
     if (IS("Top")) return ret_int(out, w ? w->TopEdge : 0);
     if (IS("ContextMenu")) return ret_str(&f->self, out, f->self.ctxmenu ? f->self.ctxmenu : afg_get(f->afg, "contextmenu"));
     if (IS("ContextMenuKey")) return ret_int(out, f->ctxkey);
+    if (IS("HelpNode")) return ret_str(&f->self, out, afg_get(f->afg, "helpnode"));
     if (IS("ContextQualifier")) { extern int bbf_ctx_lastqual; return ret_int(out, bbf_ctx_lastqual); }   /* diagnostics */
     {
         int e = bbf_screen_get(f, prop, out);
@@ -1284,6 +1289,11 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
         if (IS("Left")) x = n;
         if (IS("Top")) y = n;
         IIntuition->ChangeWindowBox(w, x, y, ww, hh);
+        return 0;
+    }
+    if (IS("HelpNode")) {
+        char hb[16];
+        afg_set(f->afg, "helpnode", vstr(v, hb));
         return 0;
     }
     if (IS("ContextMenu")) {
@@ -2485,7 +2495,11 @@ char *bb_ui_inputbox(const char *prompt, const char *title, const char *def)
         uint32 esig = edit_sigbit >= 0 ? 1u << edit_sigbit : 0;
         while (!box.done && f->loaded && f->win && !ending) {
             uint32 got = IExec->Wait(sig | esig | SIGBREAKF_CTRL_C);
-            if (got & SIGBREAKF_CTRL_C) break;
+            if (got & SIGBREAKF_CTRL_C) {
+                /* the requester goes; the break stays set for the program's own loop (it ends) */
+                IExec->SetSignal(SIGBREAKF_CTRL_C, SIGBREAKF_CTRL_C);
+                break;
+            }
             if (got & esig) check_edits(f);
             bbf_handle_form(f);
         }

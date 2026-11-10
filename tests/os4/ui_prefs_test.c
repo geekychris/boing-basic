@@ -10,7 +10,7 @@
 static const char __attribute__((used)) stack_cookie[] = "$STACK:262144";
 
 static const char *afg =
-    "window name=main title=\"Boing prefs test\" width=360 height=160\n"
+    "window name=main title=\"Boing prefs test\" width=360 height=160 helpnode=mainnode\n"
     "vlayout id=root\n"
     "  button id=save text=\"Save\" hint=\"Saves the file\" helpnode=saving\n"
     "  space\n"
@@ -122,20 +122,29 @@ static void script(void)
         check(!strcmp(gets_(C("save"), "HelpNode", -1), "saving"), "HelpNode from helpnode=");
         sets(C("save"), "HelpNode", "saving2");
         check(!strcmp(gets_(C("save"), "HelpNode", -1), "saving2"), "HelpNode can be set");
+        check(!strcmp(gets_(C("Form"), "HelpNode", -1), "mainnode"), "the form's HelpNode from the window's helpnode=");
+        sets(C("Form"), "HelpNode", "other");
+        check(!strcmp(gets_(C("Form"), "HelpNode", -1), "other"), "the form's HelpNode can be set");
         if (ready_mouse() && w) pointer(w->LeftEdge + geti(C("save"), "Left", -1) + 10, w->TopEdge + geti(C("save"), "Top", -1) + 5);
         break;
     case 1:
-        if (strcmp(gets_(C("sb"), "Panel", 0), "Saves the file") && w)      /* the first move can come before the window is ready */
+        if (strcmp(gets_(C("sb"), "Hint", -1), "Saves the file") && w)      /* the first move can come before the window is ready */
             pointer(w->LeftEdge + geti(C("save"), "Left", -1) + 12, w->TopEdge + geti(C("save"), "Top", -1) + 6);
         break;
     case 2:
-        printf("# panel over the button: \"%s\"\n", gets_(C("sb"), "Panel", 0));
-        check(!strcmp(gets_(C("sb"), "Panel", 0), "Saves the file"), "the button's hint in the status bar while the pointer is over it");
+        {
+            printf("# hint shown: \"%s\"\n", gets_(C("sb"), "Hint", -1));
+            check(!strcmp(gets_(C("sb"), "Hint", -1), "Saves the file"), "the button's hint in the status bar while the pointer is over it");
+            check(!strcmp(gets_(C("sb"), "Panel", 0), "Ready"), "Panel(0) is still the program's text while a hint shows");
+            bb_fval v = { BB_FV_STR, 0, "Saved 3 files", NULL };
+            bb_ctl_set(C("sb"), "Panel", 0, &v);          /* the program writes while the hint shows */
+            check(!strcmp(gets_(C("sb"), "Panel", 0), "Saved 3 files"), "a text written while a hint shows is what Panel(0) gives");
+        }
         if (w) pointer(w->LeftEdge + geti(C("plain"), "Left", -1) + 5, w->TopEdge + geti(C("plain"), "Top", -1) + 3);
         break;
     case 3:
         printf("# panel elsewhere: \"%s\"\n", gets_(C("sb"), "Panel", 0));
-        check(!strcmp(gets_(C("sb"), "Panel", 0), "Ready"), "the program's text again when the pointer leaves");
+        check(!strcmp(gets_(C("sb"), "Panel", 0), "Saved 3 files") && !*gets_(C("sb"), "Hint", -1), "the program's latest text when the pointer leaves");
         break;
     case 4: {
         seti(C("dlg"), "ColorCount", -1, 8);

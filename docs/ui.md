@@ -107,7 +107,9 @@ its `Enabled`.
 `statusbar` is a row of recessed text panels. `widths` are pixel widths, 0 = takes the rest.
 With `hints=1` the status bar shows the `hint=` of the control under the pointer in panel 0
 (the program's own text comes back when the pointer leaves it), the usual place for help
-lines in Amiga programs; the hint is also the control's help bubble (GA_HintInfo).
+lines in Amiga programs; the hint is also the control's help bubble (GA_HintInfo). `Text` /
+`Panel(0)` stay the program's text while a hint shows (what the program writes then appears
+when the hint goes); `sb.Hint` (R/O) is the hint shown, "" if none.
 
 | Property | Type | Notes |
 |---|---|---|
@@ -471,14 +473,17 @@ default. Menus and controls can use `$id:default` texts in the `.afg` (e.g.
 | `App.FormatDate(d [, format])` | a Date in the user's format: `"short"` (default), `"long"`, `"time"`, `"datetime"`, or a locale.library FormatDate template (`"%Y-%m-%d"`, `"%A %e %B"`) |
 | `App.DecimalPoint`, `App.GroupSeparator` | the user's separators (strings) |
 
-On hosts (posix build) they use "." and "," and ISO dates.
+A value that rounds to zero has no minus sign (`FormatNumber(-0.001)` is "0.00", as VB). On hosts
+(posix build) they use "." and ",", ISO dates for "short" (`2026-11-10`) and "datetime", and
+other formats as strftime templates (the same % letters as locale.library's).
 
 ### AmigaGuide help
 
 `App.ShowHelp "PROGDIR:Paint.guide" [, "node"]` opens the help (amigaguide.library,
 asynchronously); `App.HelpFile = "..."` makes the Help key open it at its `main` node.
 Per control: `helpnode=` in the .afg (property `HelpNode`) — the Help key opens the node of
-the control under the pointer, else the window's `helpnode=`, else `main`.
+the control under the pointer, else the window's `helpnode=` (`Me.HelpNode`), else `main`.
+Controls and the toolbar as a whole take `helpnode=`; layouts and single toolbar tools don't.
 
 Status: **done**: the ARexx port and SendARexx/RunARexx, GetSetting/SaveSetting/DeleteSetting
 (tests/runtime/settings.bas on the host; ENV: on the guest in tests-os4/uibas), UseSetting,

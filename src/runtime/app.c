@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
 #include "fpath.h"
 
 void bb_fv_from_value(const bb_value *v, bb_fval *fv, bb_str **hold);   /* forms_rt.c */
@@ -130,40 +131,53 @@ static int app_call(const char *name, int argc, const bb_fval *argv, bb_fval *re
 /* App.FormatNumber(x [, decimals]): grouped digits and the decimal point of the user's locale */
 static bb_value format_number(int argc, bb_value *argv)
 {
-    bb_value t;
+    bb_value t, r;
     double x = bb_v_to_double(bb_v_deref(&argv[0], &t));
     int dec = argc > 1 && !(argv[1].type == BB_ERROR && (argv[1].flags & BB_VF_MISSING)) ? (int)bb_v_to_long(bb_v_deref(&argv[1], &t)) : 2;
-    char raw[64], out[96];
+    char raw[400], *out;
     const char *dp = bb_app_plat_decimal_point(), *gs = bb_app_plat_group_separator();
-    int neg = x < 0, i, n, o = 0, intlen;
+    int neg = x < 0, i, o = 0, intlen, zero = 1;
     if (dec < 0) dec = 0;
     if (dec > 10) dec = 10;
-    snprintf(raw, sizeof raw, "%.*f", dec, neg ? -x : x);
-    n = (int)strlen(raw);
-    intlen = strchr(raw, '.') ? (int)(strchr(raw, '.') - raw) : n;
+    snprintf(raw, sizeof raw, "%.*f", dec, neg ? -x : x);     /* 1E308 has 309 digits: fits */
+    for (i = 0; raw[i]; i++)
+        if (raw[i] >= '1' && raw[i] <= '9') zero = 0;
+    if (zero) neg = 0;                     /* -0.001 to 2 places is "0.00", as VB */
+    intlen = strchr(raw, '.') ? (int)(strchr(raw, '.') - raw) : (int)strlen(raw);
+    out = (char *)malloc(strlen(raw) * (strlen(gs) + 1) + strlen(dp) + 4);
+    if (!out) bb_raise(7, NULL);
     if (neg) out[o++] = '-';
     for (i = 0; i < intlen; i++) {
         out[o++] = raw[i];
         if (*gs && (intlen - i - 1) % 3 == 0 && i < intlen - 1) { strcpy(out + o, gs); o += (int)strlen(gs); }
     }
-    if (dec) { strcpy(out + o, dp); o += (int)strlen(dp); strcpy(out + o, raw + intlen + 1); o += dec; }
+    if (dec && raw[intlen] == '.') { strcpy(out + o, dp); o += (int)strlen(dp); strcpy(out + o, raw + intlen + 1); o += (int)strlen(raw + intlen + 1); }
     out[o] = 0;
-    return bb_v_str(bb_str_from_c(out));
+    r = bb_v_str(bb_str_from_c(out));
+    free(out);
+    return r;
+}
+
+/* hosts (no locale.library): ISO dates, the format names as on the Amiga, and other formats as
+   strftime templates (locale.library's FormatDate templates use the same % letters) */
+static void host_format_date(double d, const char *fmt, char *out, size_t n)
+{
+    double secs = (d - 25569.0) * 86400.0;      /* VB's day 0 is 1899-12-30, 25569 = 1970-01-01 */
+    time_t tt = (time_t)(secs < 0 ? secs - 0.5 : secs + 0.5);
+    struct tm *tm = gmtime(&tt);
+    const char *f = !strcasecmp(fmt, "short") ? "%Y-%m-%d" : !strcasecmp(fmt, "long") ? "%A %d %B %Y"
+                  : !strcasecmp(fmt, "time") ? "%H:%M" : !strcasecmp(fmt, "datetime") ? "%Y-%m-%d %H:%M:%S" : fmt;
+    if (!tm || !strftime(out, n, f, tm)) out[0] = 0;
 }
 
 static bb_value format_date(int argc, bb_value *argv)
 {
     bb_value t;
     double d = bb_v_to_double(bb_v_deref(&argv[0], &t));
-    char out[128];
+    char out[256];
     bb_str *fmt = argc > 1 && !(argv[1].type == BB_ERROR && (argv[1].flags & BB_VF_MISSING)) ? bb_v_to_str(bb_v_deref(&argv[1], &t)) : NULL;
-    if (!bb_app_plat_format_date(d, fmt ? bb_str_ptr(fmt) : "short", out, sizeof out)) {
-        /* hosts: ISO style */
-        bb_value v = bb_v_date(d);
-        bb_str *s = bb_v_to_str(&v);
-        snprintf(out, sizeof out, "%s", bb_str_ptr(s));
-        bb_str_release(s);
-    }
+    const char *f = fmt ? bb_str_ptr(fmt) : "short";
+    if (!bb_app_plat_format_date(d, f, out, sizeof out)) host_format_date(d, f, out, sizeof out);
     bb_str_release(fmt);
     return bb_v_str(bb_str_from_c(out));
 }

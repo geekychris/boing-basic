@@ -365,7 +365,11 @@ static int show_color(bb_ctl *c)
         int was_ending = ending;
         while (!box.done && f->loaded && f->win && !ending) {
             uint32 got = IExec->Wait(sig | SIGBREAKF_CTRL_C);
-            if (got & SIGBREAKF_CTRL_C) break;
+            if (got & SIGBREAKF_CTRL_C) {
+                /* the requester goes; the break stays set for the program's own loop (it ends) */
+                IExec->SetSignal(SIGBREAKF_CTRL_C, SIGBREAKF_CTRL_C);
+                break;
+            }
             bbf_handle_form(f);
         }
         ending = was_ending;
@@ -502,7 +506,11 @@ static int show_palette(bb_ctl *c)
         int was_ending = ending;
         while (!box->done && f->loaded && f->win && !ending) {
             uint32 got = IExec->Wait(sig | SIGBREAKF_CTRL_C);
-            if (got & SIGBREAKF_CTRL_C) break;
+            if (got & SIGBREAKF_CTRL_C) {
+                /* the requester goes; the break stays set for the program's own loop (it ends) */
+                IExec->SetSignal(SIGBREAKF_CTRL_C, SIGBREAKF_CTRL_C);
+                break;
+            }
             bbf_handle_form(f);
         }
         ending = was_ending;
