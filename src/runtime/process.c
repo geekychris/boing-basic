@@ -108,7 +108,7 @@ static bb_array *lines_of(const bb_str *s)
 static void p_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *argv, bb_value *ret)
 {
     proc_obj *p = (proc_obj *)self;
-    if ((kind & (BB_INV_LET | BB_INV_SET)) && id != P_COMMANDLINE) bb_raise(383, NULL);
+    if (kind & (BB_INV_LET | BB_INV_SET)) bb_raise(383, NULL);      /* all read-only */
     switch (id) {
     case M_RUN: {
         bb_str *cmd = arg_str(argc, argv, 0), *in = present(argc, argv, 1) ? arg_str(argc, argv, 1) : NULL;
@@ -176,7 +176,6 @@ static void p_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         *ret = bb_v_long(p->exitcode);
         return;
     case P_COMMANDLINE:
-        if (kind & (BB_INV_LET | BB_INV_SET)) bb_raise(383, NULL);
         *ret = bb_v_str(bb_str_retain(p->cmd));
         return;
     }

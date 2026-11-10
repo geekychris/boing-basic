@@ -310,7 +310,7 @@ static bb_str *do_escape(const bb_str *s)
     sbuf out = {NULL, 0, 0};
     bb_str *r;
     for (i = 0; i < n; i++) {
-        if (strchr("\\^$.|?*+()[]{}/-", p[i]) && p[i]) sb_add(&out, "\\", 1);
+        if (strchr("\\^$.|?*+()[]{}-", p[i]) && p[i]) sb_add(&out, "\\", 1);
         sb_add(&out, p + i, 1);
     }
     r = bb_str_new(out.p ? out.p : "", (int32_t)out.n);

@@ -15,6 +15,7 @@
 #include "bb_sys.h"
 
 #include <stdio.h>
+#include "fpath.h"           /* "DH1:/name" -> "DH1:name" on AmigaOS */
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -132,7 +133,7 @@ static void write_line(log_obj *g, int lv, const char *msg, size_t msglen)
         } else if (TOKEN("message")) {
             sb_add(&b, msg, msglen);
         } else if (TOKEN("line")) {
-            snprintf(tmp, sizeof tmp, "%ld", (long)bb_line);
+            snprintf(tmp, sizeof tmp, "%ld", (long)bb_current_line());
             sb_add(&b, tmp, strlen(tmp));
         } else
             sb_add(&b, br, (size_t)(end - br + 1));
@@ -159,8 +160,8 @@ static void write_line(log_obj *g, int lv, const char *msg, size_t msglen)
             char *old = malloc(strlen(g->file) + 5);
             sprintf(old, "%s.old", g->file);
             close_file(g);
-            remove(old);
-            rename(g->file, old);
+            bb_plat_remove(old);
+            bb_plat_rename(g->file, old);
             free(old);
             g->f = fopen(g->file, "ab");
             if (!g->f) {

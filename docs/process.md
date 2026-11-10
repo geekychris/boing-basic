@@ -57,6 +57,7 @@ p.Run "Echo ?", "hello" & vbLf
 ## Errors
 
 31201: the command couldn't be started at all (no shell, or `T:` not writable on AmigaOS).
+5: `SetEnv` with an empty name or one containing `=`. 383: assigning to a read-only property.
 A command that starts but fails is not an error: check the exit code.
 
 ## Tests

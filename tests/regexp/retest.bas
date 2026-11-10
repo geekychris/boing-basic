@@ -75,7 +75,7 @@ re.Pattern = "(-)"
 Print Join(re.Split("1-2-3"), "|")
 re.Pattern = "x*"
 Print Join(re.Split("abc"), "|")
-Print re.Escape("1+1=2? (yes) [a] $5.00")
+Print re.Escape("1+1=2? (yes) [a] $5.00 a/b-c")
 re.Pattern = re.Escape("1+1=2?"): Print re.Test("is 1+1=2?"); re.Test("11=2")
 ' binary data and big input
 re.Pattern = "\x00+"

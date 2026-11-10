@@ -26,7 +26,7 @@ If re.Test(line) Then Print "has a date"
 | `Replace(text, replacement)` | text with the match (or with `Global` every match) replaced |
 | `Split(text)` | an array of the pieces between matches (text of groups in the pattern is included) |
 | `FirstMatch(text)` | the text of the first match, "" if none |
-| `Escape(text)` | text with every special character escaped, so it matches literally: `re.Pattern = re.Escape(userInput)` |
+| `Escape(text)` | text with every special character (`\ ^ $ . \| ? * + ( ) [ ] { } -`) escaped, so it matches literally: `re.Pattern = re.Escape(userInput)` |
 
 The pattern is compiled once and kept until `Pattern`, `IgnoreCase` or `MultiLine` changes, so
 using one `RegExp` in a loop is fast.
