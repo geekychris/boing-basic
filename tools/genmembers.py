@@ -7,7 +7,7 @@ import os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = {"Canvas": ["src/runtime/canvas.c", "src/runtime/canvas_paint_impl.h"],
        "Engine3D": ["src/runtime/engine3d.c"], "Audio": ["src/runtime/audio.c"],
-       "Http": ["src/runtime/http_obj.c"]}
+       "Http": ["src/runtime/http_obj.c"], "Dictionary": ["src/runtime/dict.c"]}
 OUT = os.path.join(ROOT, "src/compiler/rtmembers.h")
 
 def members(path):

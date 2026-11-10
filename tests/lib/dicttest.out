@@ -1,0 +1,20 @@
+Dictionary     0 
+ 3             4             5             7 
+True          False         False
+True           3 
+apple=4 pear=5 plum=7 
+ 0             2            apple         plum
+ 16 
+apple plum  2 
+ 3            uno           uno           two and a half              string one
+first         second         5 
+ 42           Dictionary
+ 20 
+ 1200         True           1 
+APPLE=4 plum=7 
+Add existing: 457 
+Remove missing: 5 
+CompareMode when not empty: 5 
+Null key: 5 
+ 15000        True           212512500    False         True
+ 0            False

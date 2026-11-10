@@ -14,6 +14,9 @@ amiga_mcp devbench MCP server, holding the emulator lock and the "CLAUDE IS TEST
     tools/os4guest.py bas PROJECT.bbp|PROG.bas [vm|jit|native|both|all]
                                                       run a BASIC test with build/os4/boing (VM)
                                                       and/or natively built; exit 1 unless PASS
+    tools/os4guest.py outtest PROG.bas [vm|native|both] run a test whose expected output is PROG.out
+                                                      (VM with build/os4/boing, native built
+                                                      for OS4) and compare; exit 1 on a difference
     tools/os4guest.py tool NAME '{json args}'          any devbench MCP tool
     tools/os4guest.py setup                            once per guest disk: build DH1:bbtools/bbfetch
                                                       (on the guest, SDK GCC) and copy ptr there
@@ -615,6 +618,66 @@ def _self_test(m):
     os.unlink(tmp.name)
 
 
+def run_script(m, cmd, outf, limit=300):
+    """Run cmd in the background with its output in outf, followed by an end marker; return the
+    output (without the marker) once the marker is there."""
+    import time
+    script = outf + ".script"
+    tmp = tempfile.NamedTemporaryFile("w", delete=False, suffix=".script")
+    tmp.write("%s >%s *>%s.err\necho \"__BB_DONE__\" >>%s\n" % (cmd, outf, outf, outf))
+    tmp.close()
+    try:
+        bridge_push(m, tmp.name, script)
+    finally:
+        os.unlink(tmp.name)
+    m.tool("amiga_dos_command", command="delete %s QUIET" % outf)
+    m.tool("amiga_dos_command", command="run >NIL: execute %s" % script)
+    t0, out = time.time(), ""
+    while time.time() - t0 < limit:
+        time.sleep(2)
+        out = m.tool("amiga_dos_command", command="type %s" % outf)
+        if "__BB_DONE__" in out:
+            err = m.tool("amiga_dos_command", command="type %s.err" % outf)
+            body = out.split("__BB_DONE__")[0].replace("\r", "")
+            if err.strip() and "[OK]" not in err:
+                body += err.replace("\r", "")
+            return body
+    return out + "\n(timed out after %ds)" % limit
+
+
+def outtest(m, src, mode):
+    import subprocess
+    src = os.path.abspath(src)
+    expected = open(os.path.splitext(src)[0] + ".out").read()
+    base = os.path.splitext(os.path.basename(src))[0]
+    d = "RAM:bbt/" + base
+    push(m, src, d + "/" + base + ".bas")
+    for extra in (".in",):
+        if os.path.exists(os.path.splitext(src)[0] + extra):
+            push(m, os.path.splitext(src)[0] + extra, d + "/" + base + extra)
+    ok = True
+    runs = []
+    if mode in ("vm", "both"):
+        push(m, os.path.join(ROOT, "build/os4/boing"), "RAM:bbt/boing")
+        runs.append(("vm", "RAM:bbt/boing run %s/%s.bas" % (d, base)))
+    if mode in ("native", "both"):
+        exe = os.path.join(ROOT, "build/os4", base + ".exe")
+        subprocess.check_call([os.path.join(ROOT, "build/boing"), "build", src, "--target", "os4", "-o", exe])
+        push(m, exe, d + "/" + base)
+        runs.append(("native", "%s/%s" % (d, base)))
+    for label, cmd in runs:
+        got = run_script(m, cmd, "%s/%s.%s.out" % (d, base, label))
+        g2 = "\n".join(l.rstrip() for l in got.strip("\n").split("\n"))
+        e2 = "\n".join(l.rstrip() for l in expected.strip("\n").split("\n"))
+        same = g2 == e2
+        ok &= same
+        print("== %s %s: %s" % (base, label, "PASS (== %s.out)" % base if same else "FAIL"))
+        if not same:
+            import difflib
+            print("\n".join(difflib.unified_diff(e2.split("\n"), g2.split("\n"), "expected", "guest", lineterm="", n=1)))
+    return ok
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -640,6 +703,13 @@ def main():
             n = reapers(m, kill="--kill" in args)
             print("%d Grim Reaper requester(s)%s" % (n, " closed" if n and "--kill" in args else ""))
             return 1 if n else 0
+        elif cmd == "outtest":
+            ok = outtest(m, args[0], args[1] if len(args) > 1 else "both")
+            n = reapers(m, kill=os.environ.get("BB_KILL_REAPERS") == "1")
+            if n:
+                print("GRIM REAPER: %d crashed task(s) on the guest" % n)
+                return 1
+            return 0 if ok else 1
         elif cmd == "bas":
             ok = bas(m, args[0], args[1] if len(args) > 1 else "both")
             n = reapers(m, kill=os.environ.get("BB_KILL_REAPERS") == "1")
