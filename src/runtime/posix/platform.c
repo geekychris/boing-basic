@@ -117,6 +117,44 @@ int bb_plat_is_dir(const char *path)
     return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
 }
 
+static void tm_of(time_t s, bb_tm *tm)
+{
+    struct tm t;
+    localtime_r(&s, &t);
+    tm->year = t.tm_year + 1900;
+    tm->month = t.tm_mon + 1;
+    tm->day = t.tm_mday;
+    tm->hour = t.tm_hour;
+    tm->minute = t.tm_min;
+    tm->second = t.tm_sec;
+    tm->msec = 0;
+}
+
+int bb_plat_get_attr(const char *path, long *attr, bb_tm *mtime)
+{
+    struct stat st;
+    const char *b = strrchr(path, '/');
+    b = b ? b + 1 : path;
+    if (stat(path, &st) != 0) return 53;
+    *attr = 0;
+    if (!(st.st_mode & S_IWUSR)) *attr |= 1;
+    if (b[0] == '.' && strcmp(b, ".") && strcmp(b, "..")) *attr |= 2;     /* dot files */
+    if (S_ISDIR(st.st_mode)) *attr |= 16;
+    if (mtime) tm_of(st.st_mtime, mtime);
+    return 0;
+}
+
+int bb_plat_set_attr(const char *path, long attr)
+{
+    struct stat st;
+    mode_t m;
+    if (stat(path, &st) != 0) return 53;
+    m = st.st_mode & 07777;
+    if (attr & 1) m &= (mode_t)~(S_IWUSR | S_IWGRP | S_IWOTH);
+    else m |= S_IWUSR;
+    return chmod(path, m) == 0 ? 0 : 75;
+}
+
 typedef struct pdir { DIR *d; char path[1024]; } pdir;
 
 void *bb_plat_dir_open(const char *dir)

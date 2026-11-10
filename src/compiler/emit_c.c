@@ -932,6 +932,7 @@ static R builtin(EC *e, Node *n)
         }
         if (name_eq(nm, "TagList")) return mkr(xsprintf("bb_taglist(%d, %s)", cnt, arr), 0);
         if (name_eq(nm, "Choose")) return mkr(xsprintf("bb_choose(%s, %d, %s)", val(e, n->list.v[0]), cnt, arr), 1);
+        if (name_eq(nm, "Switch")) return mkr(xsprintf("bb_switch(%d, %s)", cnt, arr), 1);
         return mkr(xsprintf("bb_array_fn(%d, %s)", cnt, arr), 1);
     }
     for (i = 0; i < n->list.n; i++) {

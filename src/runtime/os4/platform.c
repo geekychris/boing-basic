@@ -209,6 +209,56 @@ int bb_plat_is_dir(const char *path)
     return stat(path, &st) == 0 && S_ISDIR(st.st_mode);
 }
 
+static void tm_of(time_t s, bb_tm *tm)
+{
+    struct tm t;
+    localtime_r(&s, &t);
+    tm->year = t.tm_year + 1900;
+    tm->month = t.tm_mon + 1;
+    tm->day = t.tm_mday;
+    tm->hour = t.tm_hour;
+    tm->minute = t.tm_min;
+    tm->second = t.tm_sec;
+    tm->msec = 0;
+}
+
+/* AmigaOS protection bits: R W E D are set when the action is NOT allowed; A (archive) is set
+   when the file has been backed up, the opposite of VB's vbArchive ("changed since backup") */
+int bb_plat_get_attr(const char *path, long *attr, bb_tm *mtime)
+{
+    struct stat st;
+    struct ExamineData *ed;
+    char nb[1024];
+    path = bb_os4_path(path, nb, sizeof nb);
+    if (stat(path, &st) != 0) return 53;
+    *attr = S_ISDIR(st.st_mode) ? 16 : 0;
+    ed = IDOS->ExamineObjectTags(EX_StringNameInput, path, TAG_END);
+    if (ed) {
+        if (ed->Protection & EXDF_NO_WRITE) *attr |= 1;
+        if (!(ed->Protection & EXDF_ARCHIVE) && !S_ISDIR(st.st_mode)) *attr |= 32;
+        IDOS->FreeDosObject(DOS_EXAMINEDATA, ed);
+    }
+    if (mtime) tm_of(st.st_mtime, mtime);
+    return 0;
+}
+
+int bb_plat_set_attr(const char *path, long attr)
+{
+    struct ExamineData *ed;
+    uint32 prot;
+    char nb[1024];
+    path = bb_os4_path(path, nb, sizeof nb);
+    ed = IDOS->ExamineObjectTags(EX_StringNameInput, path, TAG_END);
+    if (!ed) return 53;
+    prot = ed->Protection;
+    IDOS->FreeDosObject(DOS_EXAMINEDATA, ed);
+    if (attr & 1) prot |= EXDF_NO_WRITE | EXDF_NO_DELETE;
+    else prot &= ~(uint32)(EXDF_NO_WRITE | EXDF_NO_DELETE);
+    if (attr & 32) prot &= ~(uint32)EXDF_ARCHIVE;
+    else prot |= EXDF_ARCHIVE;
+    return IDOS->SetProtection(path, prot) ? 0 : 75;
+}
+
 typedef struct pdir { DIR *d; char path[1024]; } pdir;
 
 void *bb_plat_dir_open(const char *dir)

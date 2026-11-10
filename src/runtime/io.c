@@ -15,6 +15,7 @@ typedef struct bfile {
     int mode;
     int32_t reclen;
     int32_t col;
+    int32_t width;          /* Width #: wrap output lines at this column (0 = no limit) */
     char *path;
 } bfile;
 
@@ -60,8 +61,36 @@ static void out(int fn, const char *p, size_t n)
     if (fn <= 0) { con_write(p, n); return; }
     f = getfile(fn);
     if (!(f->mode & (BB_FM_OUTPUT | BB_FM_APPEND))) bb_raise(54, NULL);
+    if (f->width > 0) {
+        /* Width #: a new line before a character past the width */
+        for (i = 0; i < n; i++) {
+            if (p[i] != '\n' && p[i] != '\r' && f->col >= f->width) {
+                if (putc('\n', f->fp) == EOF) bb_raise(57, NULL);
+                f->col = 0;
+            }
+            if (putc((unsigned char)p[i], f->fp) == EOF) bb_raise(57, NULL);
+            if (p[i] == '\n') f->col = 0; else f->col++;
+        }
+        return;
+    }
     if (n && fwrite(p, 1, n, f->fp) != n) bb_raise(57, NULL);
     for (i = 0; i < n; i++) { if (p[i] == '\n') f->col = 0; else f->col++; }
+}
+
+/* Width #f, n: 0 = no limit (VB: 0 to 255) */
+void bb_width(bb_long fn, bb_long w)
+{
+    bfile *f = getfile(fn);
+    if (w < 0 || w > 255) bb_raise(5, NULL);
+    f->width = (int32_t)w;
+}
+
+/* Lock / Unlock #f [, rec [To rec]]: one program has a file open at a time on the
+   platforms Boing BASIC runs on, so this checks the file number and the range only */
+void bb_lock(bb_long fn, bb_long from, bb_long to)
+{
+    (void)getfile(fn);
+    if ((from != 0 && from < 1) || (to != 0 && to < from)) bb_raise(5, NULL);
 }
 
 static int32_t col_of(int fn) { return fn <= 0 ? concol : getfile(fn)->col; }
@@ -369,6 +398,7 @@ void bb_open(bb_str *path, int mode, int access, bb_long fn, bb_long reclen)
     files[fn].mode = mode;
     files[fn].reclen = reclen > 0 ? reclen : (mode == BB_FM_RANDOM ? 128 : 1);
     files[fn].col = 0;
+    files[fn].width = 0;
     files[fn].path = strdup(bb_str_ptr(path));
 }
 
@@ -721,6 +751,29 @@ bb_str *bb_curdir(void)
     char buf[1024];
     if (bb_plat_getcwd(buf, sizeof buf)) bb_raise(76, NULL);
     return bb_str_from_c(buf);
+}
+
+/* GetAttr / SetAttr: vbReadOnly 1, vbHidden 2, vbSystem 4, vbDirectory 16, vbArchive 32 */
+bb_int bb_getattr(bb_str *path)
+{
+    long attr;
+    fs_check(bb_plat_get_attr(bb_str_ptr(path), &attr, NULL));
+    return (bb_int)attr;
+}
+
+void bb_setattr(bb_str *path, bb_long attr)
+{
+    if (attr & 16) bb_raise(5, NULL);
+    fs_check(bb_plat_set_attr(bb_str_ptr(path), (long)attr));
+}
+
+/* FileDateTime: the file's last modification, local time */
+bb_date bb_filedatetime(bb_str *path)
+{
+    long attr;
+    bb_tm t;
+    fs_check(bb_plat_get_attr(bb_str_ptr(path), &attr, &t));
+    return bb_dateserial(t.year, t.month, t.day) + bb_timeserial(t.hour, t.minute, t.second);
 }
 
 bb_long bb_filelen(bb_str *path)

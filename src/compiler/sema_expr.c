@@ -1188,6 +1188,8 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
         if (handled) return r;
     }
     bi = builtin_find(e->name);
+    if (e->suffix == '$' && (name_eq(e->name, "Date") || name_eq(e->name, "Time")))
+        bi = builtin_find(name_eq(e->name, "Date") ? "__Date$" : "__Time$");     /* "mm-dd-yyyy", "hh:mm:ss" */
     if (bi >= 0) {
         Node *n = make_builtin(c, e, bi, args, mode, e->suffix);
         Node *str, *idx;

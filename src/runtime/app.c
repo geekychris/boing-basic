@@ -5,6 +5,7 @@
 #include "boing.h"
 #include "bb_app.h"
 #include "bb_sys.h"
+#include "platform.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -357,6 +358,54 @@ bb_str *bb_getsetting(bb_str *app, bb_str *section, bb_str *key, bb_str *def)
         }
     }
     return bb_str_retain(def);
+}
+
+/* GetAllSettings(app, section): a Variant holding a 2-D array (0 To n-1, 0 To 1) of key and
+   value, sorted by key; Empty if the section has none */
+static int cmp_key(const void *a, const void *b) { return strcasecmp(*(char *const *)a, *(char *const *)b); }
+
+bb_value bb_getallsettings(bb_str *app, bb_str *section)
+{
+    char **keys = NULL;
+    int n = 0, cap = 0, arch, i;
+    bb_array *a;
+    int32_t lb[2] = {0, 0}, ub[2];
+    if (!bb_str_ptr(section)[0]) bb_raise(5, NULL);
+    for (arch = 0; arch < 2; arch++) {
+        char *dir = setting_path(bb_app_settings_dir(arch), app, section, NULL);
+        void *h = bb_plat_dir_open(dir);
+        const char *nm;
+        int isdir;
+        free(dir);
+        if (!h) continue;
+        while ((nm = bb_plat_dir_next(h, &isdir)) != NULL) {
+            int dup = 0;
+            if (isdir || nm[0] == '.') continue;
+            for (i = 0; i < n; i++) if (!strcasecmp(keys[i], nm)) dup = 1;
+            if (dup) continue;
+            if (n == cap) { cap = cap ? cap * 2 : 16; keys = (char **)realloc(keys, sizeof(char *) * (size_t)cap); }
+            keys[n++] = strdup(nm);
+        }
+        bb_plat_dir_close(h);
+        if (!strcmp(bb_app_settings_dir(0), bb_app_settings_dir(1))) break;    /* hosts: one directory */
+    }
+    if (!n) { free(keys); return bb_v_empty(); }
+    qsort(keys, (size_t)n, sizeof(char *), cmp_key);
+    ub[0] = n - 1; ub[1] = 1;
+    a = bb_arr_new(BB_VARIANT, NULL, 2, lb, ub);
+    for (i = 0; i < n; i++) {
+        bb_str *k = bb_str_from_c(keys[i]), *empty = bb_str_from_c("");
+        int32_t idx[2];
+        idx[0] = i; idx[1] = 0;
+        *(bb_value *)bb_arr_elem(a, 2, idx) = bb_v_str(bb_str_retain(k));
+        idx[1] = 1;
+        *(bb_value *)bb_arr_elem(a, 2, idx) = bb_v_str(bb_getsetting(app, section, k, empty));
+        bb_str_release(k);
+        bb_str_release(empty);
+        free(keys[i]);
+    }
+    free(keys);
+    return bb_v_arr(a);
 }
 
 static void mkdirs(char *path)

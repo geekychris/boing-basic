@@ -42,6 +42,10 @@ int bb_plat_chdir(const char *path);
 int bb_plat_getcwd(char *buf, size_t n);
 int bb_plat_file_size(const char *path, long *size);    /* also: exists */
 int bb_plat_is_dir(const char *path);
+/* GetAttr/FileDateTime: VB attribute bits (1 read-only, 2 hidden, 16 directory, 32 archive) and
+   the modification time (mtime may be NULL); SetAttr: 1 read-only, 32 archive (others ignored) */
+int bb_plat_get_attr(const char *path, long *attr, bb_tm *mtime);
+int bb_plat_set_attr(const char *path, long attr);
 /* directory scan for Dir(): returns handle or NULL */
 void *bb_plat_dir_open(const char *dir);
 const char *bb_plat_dir_next(void *h, int *is_dir);      /* NULL = end */

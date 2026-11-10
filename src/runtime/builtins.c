@@ -246,6 +246,47 @@ bb_value bb_iif(const bb_value *c, const bb_value *a, const bb_value *b)
     return bb_v_dup(bb_v_deref(bb_v_truth(c) ? a : b, &t));
 }
 
+/* Switch(expr1, value1, expr2, value2, ...): the value after the first True expression; Null
+   if none (all arguments are evaluated, as in VB) */
+bb_value bb_switch(int argc, const bb_value *argv)
+{
+    int i;
+    bb_value t;
+    if (argc < 2 || (argc & 1)) bb_raise(5, NULL);
+    for (i = 0; i < argc; i += 2)
+        if (bb_v_truth(&argv[i])) return bb_v_dup(bb_v_deref(&argv[i + 1], &t));
+    return bb_v_null();
+}
+
+/* QBColor(0..15): the QuickBASIC palette as an RGB() value */
+bb_long bb_qbcolor(bb_long n)
+{
+    static const int32_t pal[16] = {
+        0x000000, 0x800000, 0x008000, 0x808000, 0x000080, 0x800080, 0x008080, 0xC0C0C0,
+        0x808080, 0xFF0000, 0x00FF00, 0xFFFF00, 0x0000FF, 0xFF00FF, 0x00FFFF, 0xFFFFFF };
+    if (n < 0 || n > 15) bb_raise(5, NULL);
+    return pal[n];
+}
+
+/* Date$ "mm-dd-yyyy", Time$ "hh:mm:ss" */
+bb_str *bb_date_str(void)
+{
+    bb_tm t;
+    char b[16];
+    bb_plat_localtime(&t);
+    snprintf(b, sizeof b, "%02d-%02d-%04d", (int)t.month, (int)t.day, (int)t.year);
+    return bb_str_from_c(b);
+}
+
+bb_str *bb_time_str(void)
+{
+    bb_tm t;
+    char b[16];
+    bb_plat_localtime(&t);
+    snprintf(b, sizeof b, "%02d:%02d:%02d", (int)t.hour, (int)t.minute, (int)t.second);
+    return bb_str_from_c(b);
+}
+
 bb_value bb_choose(bb_long n, int argc, const bb_value *argv)
 {
     bb_value t;
