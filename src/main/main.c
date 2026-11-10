@@ -181,11 +181,11 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
            only the 440/460 has (real X5000, A1222 and G3/G4 machines crash); see docs/os4.md.
            AmigaDOS only strips quotes that open an argument: quote the whole "-I..." / "-L..." */
 #ifdef __amigaos4__
-        cmd = xsprintf("%s %s%s %s %s%s%s %s\"%s\"%s%s -o \"%s\" \"-L%s\" -lboing -lauto -lm %s", cxx ? cxxc : cc, fl, cxx ? CXX_THREADS : "", o2, q1, inc, q2,
-                       cxx ? "-x c " : "", cpath, cxx ? " -x none" : "", objs.p, outp, lib, extra ? extra : "");
+        cmd = xsprintf("%s %s%s %s %s%s%s %s\"%s\"%s%s -o \"%s\" \"-L%s\" -lboing%s -lauto -lm %s", cxx ? cxxc : cc, fl, cxx ? CXX_THREADS : "", o2, q1, inc, q2,
+                       cxx ? "-x c " : "", cpath, cxx ? " -x none" : "", objs.p, outp, lib, bbx_link_flags(p, 1), extra ? extra : "");
 #else
-        cmd = xsprintf("%s %s %s%s%s %s\"%s\"%s%s -o \"%s\" -L\"%s\" -lboing -lm %s", cxx ? cxxc : cc, o2, q1, inc, q2,
-                       cxx ? "-x c " : "", cpath, cxx ? " -x none" : "", objs.p, outp, lib, extra ? extra : "");
+        cmd = xsprintf("%s %s %s%s%s %s\"%s\"%s%s -o \"%s\" -L\"%s\" -lboing%s -lm %s", cxx ? cxxc : cc, o2, q1, inc, q2,
+                       cxx ? "-x c " : "", cpath, cxx ? " -x none" : "", objs.p, outp, lib, bbx_link_flags(p, 0), extra ? extra : "");
         (void)fl;
 #endif
     }
@@ -266,6 +266,16 @@ static int cmd_vm(const char *argv0, int argc, char **argv)
     {
         char **src = NULL, **names = NULL;
         int ns = 0, nn = 0;
+        Program *xp = prog_new();       /* the --ext descriptors: their link lines */
+        char *links_os4, *links_host;
+        for (k = 0; k < nexts; k++) {
+            char *bx = xsprintf("%s.bbx", exts[k]);
+            const char *sl = strrchr(exts[k], '/');
+            if (file_exists(bx)) bbx_load(xp, bx, sl ? sl + 1 : exts[k]);
+        }
+        links_os4 = xsprintf("%s%s", p ? bbx_link_flags(p, 1) : "", bbx_link_flags(xp, 1));
+        links_host = xsprintf("%s%s", p ? bbx_link_flags(p, 0) : "", bbx_link_flags(xp, 0));
+        (void)links_os4; (void)links_host;
         for (k = 0; k < nexts; k++) {
             const char *b = exts[k], *sl = strrchr(b, '/');
             char *c1 = xsprintf("%s.c", b);
@@ -332,7 +342,7 @@ static int cmd_vm(const char *argv0, int argc, char **argv)
             char *script = xsprintf("%s/../tools/boing-vm-os4.sh", dir);
             int rc;
             if (!file_exists(script)) { fprintf(stderr, "boing vm: %s not found\n", script); return 10; }
-            buf_printf(&c2, "sh \"%s\" \"%s\" \"%s\"", script, out, gpath);
+            buf_printf(&c2, "sh \"%s\" \"%s\" \"%s\"%s", script, out, gpath, links_os4);    /* -lX: link libraries */
             for (k = 0; k < ns; k++) buf_printf(&c2, " \"%s\"", src[k]);
             rc = system(c2.p);
             remove(gpath);
@@ -367,9 +377,9 @@ static int cmd_vm(const char *argv0, int argc, char **argv)
             if (isx) cxx = 1;
         }
 #ifdef __amigaos4__
-        cmd = xsprintf("%s -mcrt=newlib -mcpu=powerpc%s%s -o \"%s\" \"-L%s\" -lboingvm -lboing -lauto -lm", cxx ? cxxc : cc, cxx ? CXX_THREADS : "", objs.p, out, lib);
+        cmd = xsprintf("%s -mcrt=newlib -mcpu=powerpc%s%s -o \"%s\" \"-L%s\" -lboingvm -lboing%s -lauto -lm", cxx ? cxxc : cc, cxx ? CXX_THREADS : "", objs.p, out, lib, links_os4);
 #else
-        cmd = xsprintf("%s%s -o \"%s\" -L\"%s\" -lboingvm -lboing -lm", cxx ? cxxc : cc, objs.p, out, lib);
+        cmd = xsprintf("%s%s -o \"%s\" -L\"%s\" -lboingvm -lboing%s -lm", cxx ? cxxc : cc, objs.p, out, lib, links_host);
 #endif
         if (system(cmd) != 0) { fprintf(stderr, "boing vm: link failed: %s\n", cmd); return 1; }
         if (!getenv("BOING_KEEP_GLUE")) {
@@ -403,6 +413,13 @@ int main(int argc, char **argv)
         if (p->nerrors) return 1;
         for (k = 0; k < p->nexts; k++) printf("%s\n", p->exts[k].src);
         for (k = 0; k < p->ncsources; k++) printf("%s\n", p->csources[k]);
+        return 0;
+    }
+    if (!strcmp(cmd, "links")) {
+        /* boing links PROG.bbp [os4|host]: the extensions' link flags (-lsqlite3 ...) for a target */
+        Program *p = load(argv[2]);
+        if (p->nerrors) return 1;
+        printf("%s\n", bbx_link_flags(p, argc > 3 && !strcmp(argv[3], "os4")) + (p->nlinks ? 1 : 0));
         return 0;
     }
     if (!strcmp(cmd, "members")) {

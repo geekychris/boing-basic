@@ -407,6 +407,7 @@ struct Program {
     ExtClass **xclasses; int nxclasses;
     ExtFunc **xfuncs; int nxfuncs;
     char **csources; int ncsources;
+    char **links; int nlinks;           /* .bbx 'link' lines: "lib", "os4:lib" or "host:lib" */
 };
 #define IS_REGCLS(c) ((c)->rtcls || (c)->xcls)   /* a registered (runtime or extension) class */
 int bbx_load(Program *p, const char *path, const char *ext);   /* parse name.bbx into p; 0 on error */
@@ -415,6 +416,7 @@ ExtMember *ext_member_find(ExtClass *c, const char *name);
 ExtFunc *ext_func_find(Program *p, const char *name);
 
 Program *prog_new(void);
+char *bbx_link_flags(Program *p, int os4);   /* " -lA -lB": the extensions' link libraries for a target */
 extern char *(*bbc_home)(void);   /* the installation directory, for #Include/Uses= bindings (main.c) */
 char *read_file(const char *path, long *len);   /* malloc'ed, NUL terminated; NULL if unreadable */
 Module *prog_add_source(Program *p, const char *path, const char *src, int is_class);

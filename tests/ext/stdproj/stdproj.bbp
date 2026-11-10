@@ -1,0 +1,5 @@
+# Extension=stdhello: found in $BOING_EXT (a standard extension), linked into the interpreter
+Name=StdProj
+Startup=Sub Main
+Module=stdproj.bas
+Extension=stdhello

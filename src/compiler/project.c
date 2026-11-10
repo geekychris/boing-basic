@@ -103,6 +103,34 @@ static char *find_include(Program *p, const char *from_dir, const char *name)
     return NULL;
 }
 
+/* Extension=NAME: dir/NAME, else a standard extension NAME/NAME in $BOING_EXT, the
+   installation's ext/ (and, on hosts, the repo's: build/boing -> ext/) */
+static char *ext_base(Program *p, const char *dir, const char *val, int lineno)
+{
+    char *b = join_dir(dir, val), *c;
+    const char *env = getenv("BOING_EXT");
+    char *home;
+    if (strchr(val, '/') || strchr(val, ':') || readable(c = xsprintf("%s.bbx", b))) return b;
+    if (env && *env) {
+        size_t n = strlen(env);
+        c = xsprintf("%s%s%s/%s", env, env[n - 1] == '/' || env[n - 1] == ':' ? "" : "/", val, val);
+        if (readable(xsprintf("%s.bbx", c))) return c;
+    }
+    home = bbc_home ? bbc_home() : NULL;
+    if (home && *home) {
+        size_t n = strlen(home);
+        const char *sep = home[n - 1] == '/' || home[n - 1] == ':' ? "" : "/";
+        c = xsprintf("%s%sext/%s/%s", home, sep, val, val);
+        if (readable(xsprintf("%s.bbx", c))) return c;
+#ifndef __amigaos4__
+        c = xsprintf("%s%s../ext/%s/%s", home, sep, val, val);
+        if (readable(xsprintf("%s.bbx", c))) return c;
+#endif
+    }
+    diag(p, 0, lineno, 1, "extension '%s' not found: no %s.bbx beside the project, in $BOING_EXT or in the ext directory of the installation", val, val);
+    return b;
+}
+
 /* add an included file to the program as its own module, once per program */
 static void include_file(Program *p, Module *from, int line, int col, const char *dir, const char *name)
 {
@@ -288,7 +316,7 @@ static int load_project(Program *p, const char *path)
         }
         else if (name_eq(key, "Extension")) {
             /* Extension=dir/name: dir/name.c (or .cpp) and its descriptor dir/name.bbx */
-            char *base = join_dir(dir, val), *slash = strrchr(base, '/'), *colon = strrchr(base, ':');
+            char *base = ext_base(p, dir, val, lineno), *slash = strrchr(base, '/'), *colon = strrchr(base, ':');
             const char *nm = slash ? slash + 1 : colon ? colon + 1 : base;
             ExtInfo *x;
             long n2;
@@ -302,7 +330,7 @@ static int load_project(Program *p, const char *path)
             probe = read_file(x->src, &n2);
             if (!probe) { free(x->src); x->src = xsprintf("%s.cpp", base); probe = read_file(x->src, &n2); }
             free(probe);
-            bbx_load(p, x->bbx, x->name);
+            if (strchr(val, '/') || strchr(val, ':') || readable(x->bbx)) bbx_load(p, x->bbx, x->name);
         } else if (name_eq(key, "CSource")) {
             p->csources = (char **)xrealloc(p->csources, sizeof(char *) * (size_t)(p->ncsources + 1));
             p->csources[p->ncsources++] = join_dir(dir, val);

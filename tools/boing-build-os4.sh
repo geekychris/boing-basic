@@ -55,11 +55,12 @@ case $src in *.bbp)
   done ;;
 esac
 [ -n "$progx" ] && xobjs="-x none$xobjs"
+xlibs=; case $src in *.bbp) xlibs=$("$boing" links "$src" os4) ;; esac     # .bbx 'link' lines
 # never -mcpu=440/440fp (dlmzb crashes real X5000/A1222/G4 machines)
 docker run --rm -v "$root":/src -w /src "${PPC_IMAGE:-$img}" sh -c "
   $cmds
   $link -mcrt=newlib -mcpu=powerpc $opt -Wall -Wno-unused -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 \
-    -Isrc/runtime ${BOING_CFLAGS:-} -o build/os4-apps/$base.exe $progx build/os4-apps/$base.c $xobjs build/os4/libboing.a -lauto -lm &&
+    -Isrc/runtime ${BOING_CFLAGS:-} -o build/os4-apps/$base.exe $progx build/os4-apps/$base.c $xobjs build/os4/libboing.a $xlibs -lauto -lm &&
   n=\$(ppc-amigaos-objdump -d build/os4-apps/$base.exe | grep -c dlmzb || true); test \"\$n\" = 0 ||
   { echo 'boing-build-os4: dlmzb instructions found (440-only)' >&2; exit 20; }"
 mv "$work/$base.exe" "$out"

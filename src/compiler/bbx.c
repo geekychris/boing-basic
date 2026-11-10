@@ -91,6 +91,28 @@ int bbx_load(Program *p, const char *path, const char *ext)
         while (*rest && !isspace((unsigned char)*rest)) rest++;
         if (*rest) *rest++ = 0;
         rest = trim(rest);
+        if (!strcasecmp(s, "link")) {
+            /* link LIB | link os4 LIB | link host LIB: -lLIB for native builds and `boing vm` */
+            char *w2 = rest, *lib, *e2;
+            const char *only = NULL;
+            while (*w2 && !isspace((unsigned char)*w2)) w2++;
+            if (*w2) { *w2++ = 0; w2 = trim(w2); }
+            if (*w2 && (!strcasecmp(rest, "os4") || !strcasecmp(rest, "host"))) { only = !strcasecmp(rest, "os4") ? "os4" : "host"; lib = w2; }
+            else if (!*w2) lib = rest;
+            else goto bad;
+            for (e2 = lib; *e2; e2++) if (!isalnum((unsigned char)*e2) && *e2 != '_' && *e2 != '-' && *e2 != '+' && *e2 != '.') goto bad;
+            if (!*lib) goto bad;
+            {
+                char *ent = only ? xsprintf("%s:%s", only, lib) : xstrdup(lib);
+                int k, dup = 0;
+                for (k = 0; k < p->nlinks; k++) if (!strcmp(p->links[k], ent)) dup = 1;
+                if (!dup) {
+                    p->links = (char **)xrealloc(p->links, sizeof(char *) * (size_t)(p->nlinks + 1));
+                    p->links[p->nlinks++] = ent;
+                }
+            }
+            continue;
+        }
         if (!strcasecmp(s, "class")) {
             if (!*rest) goto bad;
             cur = (ExtClass *)xcalloc(1, sizeof(ExtClass));
@@ -137,12 +159,27 @@ int bbx_load(Program *p, const char *path, const char *ext)
         } else goto bad;
         continue;
     bad:
-        fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: expected 'class', 'method', 'property', 'function' or 'sub'\n", path, lineno);
+        fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: expected 'class', 'method', 'property', 'function', 'sub' or 'link'\n", path, lineno);
         p->nerrors++;
         ok = 0;
     }
     free(src);
     return ok;
+}
+
+char *bbx_link_flags(Program *p, int os4)
+{
+    Buf b = {0, 0, 0};
+    int k;
+    buf_puts(&b, "");
+    for (k = 0; k < p->nlinks; k++) {
+        const char *l = p->links[k];
+        if (!strncmp(l, "os4:", 4)) { if (!os4) continue; l += 4; }
+        else if (!strncmp(l, "host:", 5)) { if (os4) continue; l += 5; }
+        if (!strcmp(l, "m") || (os4 && !strcmp(l, "auto"))) continue;     /* always linked */
+        buf_printf(&b, " -l%s", l);
+    }
+    return b.p;
 }
 
 ExtClass *ext_class_find(Program *p, const char *name)

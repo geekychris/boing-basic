@@ -65,8 +65,33 @@ $(OUT)/libboing.a: $(RT_OBJS)
 	rm -f $@
 	$(AR) rcs $@ $^
 
-$(OUT)/boing: $(TOOL_OBJS) $(OUT)/libboing.a
-	$(CC) $(LDFLAGS) -o $@ $(TOOL_OBJS) $(OUT)/libboing.a $(LIBS)
+# standard extensions in the stock interpreter (docs/extensions.md): tools/build-os4.sh STD_EXTS=sqlite
+STD_EXTS    ?=
+STD_EXT_DIR ?= ext
+CXX         ?= ppc-amigaos-g++
+ifeq ($(origin CXX),default)
+CXX = ppc-amigaos-g++
+endif
+STDX_SRCS = $(foreach e,$(STD_EXTS),$(firstword $(wildcard $(STD_EXT_DIR)/$(e)/$(e).c $(STD_EXT_DIR)/$(e)/$(e).cpp)))
+STDX_OBJS = $(patsubst %,$(OUT)/obj/stdext/%.o,$(notdir $(STDX_SRCS)))
+STDX_LIBS = $(if $(strip $(STD_EXTS)),$(shell sh tools/stdext.sh libs os4 $(STD_EXT_DIR) $(STD_EXTS)))
+STDX_LD   = $(if $(filter %.cpp,$(STDX_SRCS)),$(CXX) -athread=native,$(CC))
+BOING_OBJS = $(if $(strip $(STD_EXTS)),$(filter-out $(OUT)/obj/main/vmext_default.o,$(TOOL_OBJS)) $(OUT)/obj/stdext/glue.o $(STDX_OBJS),$(TOOL_OBJS))
+
+$(OUT)/boing: $(BOING_OBJS) $(OUT)/libboing.a
+	$(if $(strip $(STD_EXTS)),$(STDX_LD),$(CC)) $(LDFLAGS) -o $@ $(BOING_OBJS) $(OUT)/libboing.a $(STDX_LIBS) $(LIBS)
+
+$(OUT)/obj/stdext/glue.c: FORCE
+	@mkdir -p $(dir $@)
+	@sh tools/stdext.sh glue $(STD_EXTS) | cmp -s - $@ || sh tools/stdext.sh glue $(STD_EXTS) > $@
+$(OUT)/obj/stdext/glue.o: $(OUT)/obj/stdext/glue.c
+	$(CC) $(CFLAGS) -c $< -o $@
+define stdext_rule
+$(OUT)/obj/stdext/$(notdir $(1)).o: $(1) $(OUT)/flags.stamp
+	@mkdir -p $(OUT)/obj/stdext
+	$(if $(filter %.cpp,$(1)),$(CXX) -athread=native $(filter-out -std=gnu99 -Werror=implicit-function-declaration,$(CFLAGS)),$(CC) $(CFLAGS)) -c $(1) -o $$@
+endef
+$(foreach s,$(STDX_SRCS),$(eval $(call stdext_rule,$(s))))
 
 # the interpreter as a library for `boing vm` (an interpreter with linked extensions)
 $(OUT)/libboingvm.a: $(TOOL_OBJS)
