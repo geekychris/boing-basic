@@ -79,6 +79,9 @@ void bb_net_addr(bb_net *n, int peer, char *host, int hostlen, int *port);
  * is), at most timeout_ms (-1 = no limit, 0 = just look). On AmigaOS also until one of the
  * signals in *sigs arrives (WaitSelect); *sigs receives the signals that did. sigs may be NULL.
  * Returns the number of ready sockets, 0 (timeout or a signal), or -1 on an error. */
+/* this machine's IPv4 address on the network (the interface of the default route); 0 and
+   "127.0.0.1" when there is none */
+int bb_net_machine_addr(char *host, int hostlen);
 int bb_net_wait(bb_net **ns, const int *want, int *got, int count, int timeout_ms, uint32_t *sigs);
 
 #endif

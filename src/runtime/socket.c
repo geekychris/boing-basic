@@ -40,7 +40,7 @@ enum {
     M_CONNECT = 1, M_LISTEN, M_ACCEPT, M_BIND, M_SEND, M_SENDLINE, M_SENDTO, M_RECEIVE, M_READ, M_RECEIVELINE,
     M_RECEIVEFROM, M_CLOSE, M_WAITEVENTS, M_PEEK,
     P_STATE, P_REMOTEHOST, P_REMOTEPORT, P_LOCALPORT, P_LOCALHOST, P_TIMEOUT, P_BYTESAVAILABLE, P_ATEND,
-    P_CONNECTED, P_TAG, P_PROTOCOL,
+    P_CONNECTED, P_TAG, P_PROTOCOL, P_MACHINEADDRESS,
 };
 
 static const struct { const char *name; int id; } members[] = {
@@ -51,6 +51,7 @@ static const struct { const char *name; int id; } members[] = {
     {"State", P_STATE}, {"RemoteHost", P_REMOTEHOST}, {"RemotePort", P_REMOTEPORT}, {"LocalPort", P_LOCALPORT},
     {"LocalHost", P_LOCALHOST}, {"Timeout", P_TIMEOUT}, {"BytesAvailable", P_BYTESAVAILABLE},
     {"AtEnd", P_ATEND}, {"Connected", P_CONNECTED}, {"Tag", P_TAG}, {"Protocol", P_PROTOCOL},
+    {"MachineAddress", P_MACHINEADDRESS},
 };
 
 typedef struct dgram { struct dgram *next; int len, port; char host[48]; char data[]; } dgram;
@@ -595,6 +596,12 @@ static void s_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         } else
             bb_v_copy(ret, &s->tag);
         return;
+    case P_MACHINEADDRESS: {
+        char h[64];
+        bb_net_machine_addr(h, sizeof h);
+        *ret = bb_v_str(bb_str_from_c(h));
+        return;
+    }
     case P_PROTOCOL:
         *ret = bb_v_str(bb_str_from_c(s->udp ? "UDP" : "TCP"));
         return;

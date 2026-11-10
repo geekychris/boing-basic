@@ -334,11 +334,13 @@ int bb_net_open(const char *host, int port, int tls, const bb_tls_opts *opts, in
 int bb_net_write(bb_net *n, const void *p, int len, int timeout_ms, char *err, int errlen)
 {
     const char *c = p;
+    double deadline = bb_plat_seconds() + timeout_ms / 1000.0;
     set_timeouts(n->fd, timeout_ms);
     while (len > 0) {
         int w = n->ssl ? ISSL->SSL_write(n->ssl, c, len) : (int)ISock->send(n->fd, (APTR)c, len, 0);
         if (w < 0 && !n->ssl && n->nonblock && ISock->Errno() == EWOULDBLOCK) {
-            int r = wait_fd(n->fd, 1, timeout_ms);
+            double left = deadline - bb_plat_seconds();
+            int r = left > 0 ? wait_fd(n->fd, 1, (int)(left * 1000) + 1) : 0;
             if (r > 0) continue;
             if (r < 0) {
                 snprintf(err, errlen, "interrupted (Ctrl-C)");
@@ -397,12 +399,14 @@ int bb_net_read(bb_net *n, void *p, int len, int timeout_ms, char *err, int errl
 void bb_net_close(bb_net *n)
 {
     if (!n) return;
-    if (n->ssl) {
+    if (n->ssl && ISSL) {
         ISSL->SSL_shutdown(n->ssl);
         ISSL->SSL_free(n->ssl);
     }
-    if (n->ctx) ISSL->SSL_CTX_free(n->ctx);
-    if (n->fd >= 0) ISock->CloseSocket(n->fd);
+    if (n->ctx && ISSL) ISSL->SSL_CTX_free(n->ctx);
+    /* at program end net_cleanup (atexit) may have closed bsdsocket.library before the runtime
+       releases the last Socket objects: closing the library closed the sockets already */
+    if (n->fd >= 0 && ISock) ISock->CloseSocket(n->fd);
     free(n);
 }
 
@@ -675,4 +679,28 @@ int bb_net_wait(bb_net **ns, const int *want, int *got, int count, int timeout_m
         if (g) nready++;
     }
     return r < 0 ? -1 : nready;
+}
+
+int bb_net_machine_addr(char *host, int hostlen)
+{
+    struct sockaddr_in sa;
+    socklen_t sl = sizeof sa;
+    char e[100];
+    int fd, ok = 0;
+    snprintf(host, hostlen, "127.0.0.1");
+    if (!sock_open(e, sizeof e)) return 0;
+    fd = ISock->socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) return 0;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_len = sizeof sa;
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(53);
+    sa.sin_addr.s_addr = htonl(0x08080808);         /* any outside address: no packet is sent */
+    if (ISock->connect(fd, (struct sockaddr *)&sa, sizeof sa) == 0 &&
+        ISock->getsockname(fd, (struct sockaddr *)&sa, &sl) == 0 && sa.sin_addr.s_addr) {
+        ntoa(sa.sin_addr, host, hostlen);
+        ok = 1;
+    }
+    ISock->CloseSocket(fd);
+    return ok;
 }

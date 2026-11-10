@@ -245,13 +245,18 @@ int bb_net_open(const char *host, int port, int tls, const bb_tls_opts *opts, in
 int bb_net_write(bb_net *n, const void *p, int len, int timeout_ms, char *err, int errlen)
 {
     const char *c = p;
+    struct timeval t0, t1;
+    gettimeofday(&t0, NULL);
     set_timeouts(n->fd, timeout_ms);
     while (len > 0) {
         int w = n->ssl ? ossl.SSL_write(n->ssl, c, len) : (int)send(n->fd, c, len, SEND_FLAGS);
         if (w < 0 && !n->ssl && errno == EINTR) continue;
         if (w < 0 && !n->ssl && n->nonblock && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             struct pollfd pf = { n->fd, POLLOUT, 0 };
-            if (poll(&pf, 1, timeout_ms) > 0) continue;
+            long used;
+            gettimeofday(&t1, NULL);
+            used = (t1.tv_sec - t0.tv_sec) * 1000L + (t1.tv_usec - t0.tv_usec) / 1000L;
+            if (used < timeout_ms && poll(&pf, 1, (int)(timeout_ms - used)) > 0) continue;
             snprintf(err, errlen, "sending timed out");
             return BB_E_NET_TIMEOUT;
         }
@@ -555,4 +560,24 @@ int bb_net_wait(bb_net **ns, const int *want, int *got, int count, int timeout_m
     }
     if (pf != fixed) free(pf);
     return r < 0 ? -1 : nready;
+}
+
+int bb_net_machine_addr(char *host, int hostlen)
+{
+    struct sockaddr_in sa;
+    socklen_t sl = sizeof sa;
+    int fd = socket(AF_INET, SOCK_DGRAM, 0), ok = 0;
+    snprintf(host, hostlen, "127.0.0.1");
+    if (fd < 0) return 0;
+    memset(&sa, 0, sizeof sa);
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(53);
+    sa.sin_addr.s_addr = htonl(0x08080808);         /* any outside address: no packet is sent */
+    if (connect(fd, (struct sockaddr *)&sa, sizeof sa) == 0 && getsockname(fd, (struct sockaddr *)&sa, &sl) == 0 &&
+        sa.sin_addr.s_addr) {
+        snprintf(host, hostlen, "%s", inet_ntoa(sa.sin_addr));
+        ok = 1;
+    }
+    close(fd);
+    return ok;
 }

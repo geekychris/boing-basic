@@ -16,4 +16,6 @@ if "$BOING" build "$d/sockform.bbp" -o "$work/sockform" > "$work/build.txt" 2>&1
 else
     echo "FAIL net/sockform (native build)"; cat "$work/build.txt"; rc=1
 fi
+got=$("$BOING" run "$root/tests-net/sockresolve.bas" 2>&1)
+if [ "$got" = "$(cat "$root/tests-net/sockresolve.out")" ]; then echo "PASS net/sockresolve (vm)"; else echo "FAIL net/sockresolve: $got"; rc=1; fi
 exit $rc

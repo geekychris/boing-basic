@@ -1,0 +1,4 @@
+# Boing BASIC project: a chat between Amigas (and anything else that speaks lines over TCP)
+Name=Chat
+Startup=Form chat
+Form=chat.afg

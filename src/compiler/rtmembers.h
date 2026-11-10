@@ -350,6 +350,7 @@ static const struct { const char *cls, *name, *kind; } bb_rtmembers[] = {
     {"Socket", "Listen", "method"},
     {"Socket", "LocalHost", "property"},
     {"Socket", "LocalPort", "property"},
+    {"Socket", "MachineAddress", "property"},
     {"Socket", "Peek", "method"},
     {"Socket", "Protocol", "property"},
     {"Socket", "Read", "method"},
