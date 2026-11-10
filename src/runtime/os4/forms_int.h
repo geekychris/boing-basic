@@ -143,6 +143,7 @@ struct bb_form {
     struct Screen *pubscr;   /* pubscreen=: locked from load until the window is open */
     struct TextAttr *tattr;  /* the window's font (font= / Me.FontName), NULL = the screen's */
     char *scrtitle;          /* Me.ScreenTitle set at run time */
+    int bare;                /* full-screen or borderless: no title bar (Caption is kept, not shown) */
     int ctxkey;              /* context menus: 1 = only with Shift/Ctrl + RMB (default), 0 = any RMB */
     volatile uint16 qualstate; /* the qualifiers of the last key / mouse message of the window */
     unsigned char keyswallow[16];   /* raw keys whose down a shortcut / Help took: no KeyUp for them */

@@ -277,7 +277,9 @@ Object *bbf_build(bb_form *f, afg_node *n)
             }
         }
         tg(&t, LAYOUT_Orientation, n->kind == AFG_VLAYOUT ? LAYOUT_ORIENT_VERT : LAYOUT_ORIENT_HORIZ);
-        tg(&t, LAYOUT_SpaceOuter, n->parent && n->parent->kind == AFG_WINDOW);
+        /* the window's root layout keeps a margin, except in a full-screen window (games: the
+           picture starts at the screen's corner) */
+        tg(&t, LAYOUT_SpaceOuter, n->parent && n->parent->kind == AFG_WINDOW && !afg_get_bool(n->parent, "fullscreen"));
         const char *frame = afg_get(n, "frame");
         /* a tabs page: its title is the tab's label, not a frame title inside the page */
         int page = n->parent && n->parent->kind == AFG_TABS;
@@ -981,13 +983,16 @@ bb_form *bb_form_load(const char *afg_text, const char *file, bb_form_event_fn f
     }
     int w = afg_get_int(a, "width"), h = afg_get_int(a, "height");
     tags t = { 0 };
-    tg(&t, WA_Title, (uint32)afg_get(a, "title"));
     int box[4], remembered = afg_get_bool(a, "remember") && box_load(f, box);
     int tool = afg_get_bool(a, "toolwindow");
     int placed = 0;       /* full-screen windows get their box from the screen */
     f->ctxkey = strcasecmp(afg_get(a, "contextmenukey"), "always") != 0;
     bbf_screen_tags(f, &t, &placed);
     int bare = placed || afg_get_bool(a, "borderless");
+    f->bare = bare;
+    /* a full-screen or borderless window has no title bar: with a title Intuition draws one even
+       on a borderless window (it clipped the top 30 rows of a full-screen game) */
+    if (!bare) tg(&t, WA_Title, (uint32)afg_get(a, "title"));
     tg(&t, WA_DragBar, !bare);
     tg(&t, WA_CloseGadget, !bare);
     tg(&t, WA_DepthGadget, !tool && !bare);
@@ -1235,7 +1240,11 @@ static int form_get(bb_form *f, const char *prop, bb_fval *out)
 {
     struct Window *w = f->win;
     if (IS("Name")) return ret_str(&f->self, out, bb_form_name(f));
-    if (IS("Caption")) return ret_str(&f->self, out, (const char *)get_attr(&f->self, WA_Title));
+    if (IS("Caption")) {
+        /* a bare window has no title: its caption is the one set (or the form's title=) */
+        if (f->bare) return ret_str(&f->self, out, f->self.text ? f->self.text : afg_get(f->afg, "title"));
+        return ret_str(&f->self, out, (const char *)get_attr(&f->self, WA_Title));
+    }
     if (IS("Visible")) return ret_int(out, vb_bool(w != NULL));
     if (IS("Enabled")) return ret_int(out, vb_bool(f->enabled));
     if (IS("Tag")) return ret_str(&f->self, out, f->self.tagstr);
@@ -1267,7 +1276,7 @@ static int form_set(bb_form *f, const char *prop, const bb_fval *v)
         /* window.class keeps the pointer: keep our own copy */
         free(f->self.text);
         f->self.text = xstrdup(vstr(v, buf));
-        set_attr(&f->self, WA_Title, (uint32)f->self.text);
+        if (!f->bare) set_attr(&f->self, WA_Title, (uint32)f->self.text);     /* a bare window has no title bar */
         return 0;
     }
     if (IS("Visible")) return vint(v) ? bb_form_show(f) : bb_form_hide(f);
