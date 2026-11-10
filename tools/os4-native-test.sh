@@ -7,6 +7,9 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 G="$root/tools/os4guest.py"
 [ -f "$root/build/os4/libboing.a" ] || "$root/tools/build-os4.sh" build/os4/libboing.a >/dev/null
 export BB_BANNER=${BB_BANNER:-1}
+# compiling on the guest is this script's job: os4guest.py allows it only when asked for, with a
+# hard limit per build (GCC there ignores Ctrl-C)
+export BB_GUEST_BUILD=1 BB_GUEST_BUILD_LIMIT=${BB_GUEST_BUILD_LIMIT:-600}
 "$G" dos 'makedir RAM:boing RAM:boing/include RAM:boing/lib RAM:boing/t' >/dev/null 2>&1 || true
 set -- "$@"
 args="$root/build/os4/libboing.a RAM:boing/lib/libboing.a"
