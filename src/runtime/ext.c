@@ -25,6 +25,8 @@ const bb_class *bb_http_class(void);     /* http_obj.c */
 bb_obj *bb_http_new(void);
 const bb_class *bb_dict_class(void);    /* dict.c */
 bb_obj *bb_dict_new(void);
+const bb_class *bb_sbuilder_class(void);      /* sbuilder.c */
+bb_obj *bb_sbuilder_new(void);
 static bb_obj *new_canvas(void) { return bb_canvas_new(320, 200, NULL); }
 
 static void builtins(void)
@@ -36,6 +38,7 @@ static void builtins(void)
     bb_register_class("Audio", bb_audio_class(), bb_audio_new);
     bb_register_class("Http", bb_http_class(), bb_http_new);
     bb_register_class("Dictionary", bb_dict_class(), bb_dict_new);
+    bb_register_class("StringBuilder", bb_sbuilder_class(), bb_sbuilder_new);
 }
 
 static const char *strip(const char *name) { return name && !strncasecmp(name, "Boing.", 6) ? name + 6 : name; }
