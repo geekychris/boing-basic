@@ -1,0 +1,11 @@
+ 31601 UNIQUE constraint failed: player.name (code 2067 )
+ 31601 near "SELEKT": syntax error
+ 31601 no such table: nowhere
+ 450 the statement has 1 parameter(s) (?) but 2 value(s) were given
+ 5 no column named age
+ 9 Subscript out of range
+ 31601 MoveNext past the last row (check AtEnd)
+ 13 a query parameter must be a number, a String, a Date, Null or Empty
+ 380 Invalid property value
+ 31601 the database isn't open (Open)
+ 31601 can't open no-such-drawer/x.db: unable to open database file

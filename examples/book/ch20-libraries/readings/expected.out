@@ -1,0 +1,5 @@
+parameters: 2 
+rows: 1000  last id: 1000 
+deleted: 333 True
+after rollback: 1000 False
+average: 50.05 

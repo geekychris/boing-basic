@@ -1,0 +1,5 @@
+# Boing BASIC project: an address book kept in an SQLite database (manual chapter 20)
+Name=AddressBook
+Startup=Form contacts
+Form=contacts.afg
+Extension=sqlite

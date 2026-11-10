@@ -1,0 +1,4 @@
+# Records: an SQLite database file that keeps its data between runs (manual chapter 20)
+Name=Records
+Module=records.bas
+Extension=sqlite

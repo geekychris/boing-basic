@@ -29,7 +29,10 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 BOING = os.environ.get("BOING", os.path.join(ROOT, "build", "boing"))
 NATIVE = os.environ.get("NATIVE", "1") != "0"
 VERBOSE = "--verbose" in sys.argv
-ENV = dict(os.environ, BOING_SETTINGS=os.path.join(ROOT, "build", "manual-settings"))
+# BOING_EXT: the interpreters `boing vm` makes live in the temp directory, away from the
+# installation, so they find standard extensions (Extension=sqlite) through it
+ENV = dict(os.environ, BOING_SETTINGS=os.path.join(ROOT, "build", "manual-settings"),
+           BOING_EXT=os.environ.get("BOING_EXT") or os.path.join(ROOT, "ext"))
 
 DIRECTIVE = re.compile(r"<!--\s*(run|fragment|project|error)\b:?\s*(.*?)\s*-->")
 FENCE = re.compile(r"^```(\w*)\s*$")

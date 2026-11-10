@@ -1,0 +1,9 @@
+ 2 columns: player, total
+ 1 . Ann 8200 
+ 2 . Bob 4100 
+ 3 . Cy 900 
+Ann reached level 7 
+Bob reached level 5 
+Cy= 900  Ann= 3000  Bob= 4100  Ann= 5200  
+best:  5200 
+nobody: True

@@ -22,6 +22,10 @@ the interpreter and in native programs, on AmigaOS 4 and on macOS and Linux:
 | [Logging](#logger-logging) | log messages with levels, to the console or rotating files |
 | [XML](#xmldocument-reading-and-writing-xml) | reading, changing and writing XML documents |
 | [Compression and Zip archives](#compression-and-zip-archives) | gzip/zlib compression and .zip archives |
+| [SQL databases](#sql-databases-sqlite) | tables, queries and transactions in a database file (SQLite) |
+
+SQLite is the one exception to "part of the runtime": it is a standard extension, which a
+project asks for with `Extension=sqlite` (see [SQL databases](#sql-databases-sqlite)).
 
 Each library's classes are created with `New` or `CreateObject` like the runtime's other
 objects; its functions are called like built-in functions. One rule applies to all of them:
@@ -3436,6 +3440,681 @@ bad name: 5 a bad name for an entry (empty, absolute or with ..)
 level: 380 
 ```
 
+## SQL databases: SQLite
+
+`SQLite` gives your program a complete SQL database in a single file: tables, indexes,
+queries that search, sort, count and combine data, and transactions that keep the data whole
+when something goes wrong. Use it for anything bigger than a settings file: an address book, a
+record collection, a game's high scores and save slots, a log you want to search.
+
+SQL is the language you talk to the database in. This section shows the SQL it uses as it goes
+(`CREATE TABLE`, `INSERT`, `SELECT`, `UPDATE`, `DELETE`); SQLite understands standard SQL, and
+its own documentation (sqlite.org) describes all of it.
+
+### Asking for SQLite: Extension=sqlite
+
+Unlike the other libraries in this chapter, SQLite isn't part of every program. It is a
+**standard extension**: a program that uses it says so in its project file with one line,
+
+```ini
+Extension=sqlite
+```
+
+and the classes `SQLite`, `SqlRecordset` and `SqlStatement` are then there. A single `.bas` file
+can't name an extension, so a program that uses SQLite is always a project (a `.bbp` file, see
+[Projects](02-shell.md#projects)). Without the line, the program doesn't compile:
+
+<!-- error: type 'SQLite' is not defined -->
+```basic
+Option Explicit
+Dim db As SQLite
+Set db = CreateObject("SQLite")
+```
+
+How the extension gets into the program depends on how you run it:
+
+- **`boing run` and AmiForge's Run.** The interpreter in the Boing BASIC kit has SQLite built
+  in, so `boing run Records.bbp` (and Run in AmiForge, which uses it) just works.
+- **An interpreter without it.** A `boing` you built yourself without SQLite stops with "this
+  program needs the extension 'sqlite', which is not linked into this interpreter". Make an
+  interpreter that has it with `boing vm`, and run the program with that:
+
+  ```sh
+  boing vm --project Records.bbp -o myboing
+  myboing run Records.bbp
+  ```
+
+  `myboing` looks for the extension's description (`ext/sqlite/sqlite.bbx`) in the `ext`
+  drawer beside itself, as `boing` does, so keep it in the same drawer as `boing`, or set the
+  environment variable `BOING_EXT` to the `ext` drawer of your Boing BASIC installation.
+- **Native programs.** `boing build Records.bbp` (and AmiForge's Build) reads the `Extension=`
+  line and links SQLite into the program. On AmigaOS 4 the SQLite engine from the AmigaOS SDK
+  is built into the executable, so nothing needs to be installed on the Amiga that runs it; it
+  adds about 900 KB, which is why only the programs that ask for it get it. On macOS and Linux
+  the system's SQLite library is used (on Linux, install its development package to build).
+
+[Standard extensions](21-extending.md#standard-extensions) in chapter 21 says more about how
+they are found and built in.
+
+Every example in this section is a small project in `examples/book/ch20-libraries/`. Here is
+the first, `albums`: its project file and its program.
+
+```ini
+# Albums: a first SQLite database, in memory (manual chapter 20)
+Name=Albums
+Startup=Sub Main
+Module=albums.bas
+Extension=sqlite
+```
+
+*Listing 20.77* (`examples/book/ch20-libraries/albums/albums.bbp`)
+
+<!-- project: examples/book/ch20-libraries/albums/albums.bbp -->
+```basic
+' albums.bas - a table, three rows, a query (Extension=sqlite in albums.bbp)
+Option Explicit
+
+Sub Main()
+    Dim db As SQLite, rs As SqlRecordset
+
+    Set db = CreateObject("SQLite")
+    db.Open ":memory:"
+    db.Execute "CREATE TABLE album (id INTEGER PRIMARY KEY, artist TEXT, title TEXT, year INTEGER)"
+    db.Execute "INSERT INTO album (artist, title, year) VALUES (?, ?, ?)", "Kraftwerk", "Computer World", 1981
+    db.Execute "INSERT INTO album (artist, title, year) VALUES (?, ?, ?)", "Jean-Michel Jarre", "Oxygene", 1976
+    db.Execute "INSERT INTO album (artist, title, year) VALUES (?, ?, ?)", "Daft Punk", "Discovery", 2001
+    Set rs = db.Query("SELECT artist, title, year FROM album WHERE year < ? ORDER BY year", 1990)
+    Do Until rs.AtEnd
+        Print rs("year"); rs("artist"); " - "; rs("title")
+        rs.MoveNext
+    Loop
+    rs.Close
+    Print db.QueryValue("SELECT COUNT(*) FROM album"); "albums"
+    db.Close
+End Sub
+```
+
+```output
+ 1976 Jean-Michel Jarre - Oxygene
+ 1981 Kraftwerk - Computer World
+ 3 albums
+```
+
+`":memory:"` is a database that lives in memory and goes away when it is closed: handy for
+trying things out, and for most examples here. A real program gives a file name, and the data
+is there again the next time it runs. `records` writes a row, closes the database, and opens
+it again (read-only this time) to find the row still there:
+
+*Listing 20.78* (`examples/book/ch20-libraries/records/records.bbp`)
+
+<!-- project: examples/book/ch20-libraries/records/records.bbp -->
+```basic
+' records.bas - a database file: the rows are still there when it is opened again
+Option Explicit
+Dim db As SQLite
+
+Set db = CreateObject("SQLite")
+db.Open "records.db"
+db.Execute "CREATE TABLE IF NOT EXISTS album (id INTEGER PRIMARY KEY, artist TEXT, title TEXT, year INTEGER)"
+db.Execute "INSERT INTO album (artist, title, year) VALUES (?, ?, ?)", "Kraftwerk", "Computer World", 1981
+Print "open:"; db.IsOpen; " file: "; db.Path
+db.Close
+Print "open:"; db.IsOpen
+
+' the next run of a program, or another program
+db.Open "records.db", True              ' True: read-only
+Print db.QueryValue("SELECT COUNT(*) FROM album"); "album: "; db.QueryValue("SELECT title FROM album")
+db.Close
+Kill "records.db"                       ' only for this example: a real program keeps its file
+```
+
+```output
+open:True file: records.db
+open:False
+ 1 album: Computer World
+```
+
+SQLite takes the file name exactly as you give it. A name without a drawer, as here, is in the
+current drawer; a program that keeps its database beside itself puts `App.Path` in front of the
+name (the address book below shows how).
+
+### The SQLite object (the database)
+
+| Member | What it does |
+|---|---|
+| `Open path [, readOnly]` | opens a database file, creating it if it isn't there (unless `readOnly` is True). `":memory:"` opens a new, empty database in memory. Opening while a database is open closes that one first. |
+| `Close` | closes the database |
+| `Execute(sql, values...)` | runs a statement (`CREATE`, `INSERT`, `UPDATE`, `DELETE`, ...) and returns the number of rows it changed. Without values, the text may hold several statements separated by `;`. |
+| `Query(sql, values...)` | runs a `SELECT` and returns an `SqlRecordset` on its first row |
+| `QueryValue(sql, values...)` | the first column of the first row, or Empty if there is no row: `n = db.QueryValue("SELECT COUNT(*) FROM album")` |
+| `QueryAll(sql, values...)` | every row, as a two-dimensional array `a(row, column)`, both counted from 0; Empty if there are no rows |
+| `Prepare(sql)` | an `SqlStatement`: a statement to run many times with different values |
+| `BeginTransaction` | starts a transaction (see below) |
+| `Commit` | ends it, keeping the changes |
+| `Rollback` | ends it, undoing every change since `BeginTransaction` |
+| `InTransaction` | True between `BeginTransaction` and `Commit` or `Rollback` |
+| `LastInsertId` | the id (the `INTEGER PRIMARY KEY`) of the last row inserted |
+| `Changes` | the number of rows changed by the last statement |
+| `IsOpen` | True while a database is open |
+| `Path` | the file name given to `Open` |
+| `ErrorCode` | SQLite's own number for the last error, for example 2067 for a value that must be unique and isn't |
+| `Timeout` | how long, in milliseconds, to wait for a database that another program is writing to; default 5000 |
+| `Version` | the version of SQLite, such as `3.34.0` (the one in AmigaOS programs) |
+| `Available` | True when SQLite can be used: always, in a program that has the extension |
+
+### Parameters: always use `?`
+
+The values after the SQL text fill the `?` marks in it, in order:
+
+<!-- fragment -->
+```basic
+db.Execute "INSERT INTO contact (name, phone) VALUES (?, ?)", nameField.Text, phoneField.Text
+Set rs = db.Query("SELECT * FROM contact WHERE name LIKE ?", search & "%")
+```
+
+You could also paste the values into the SQL text yourself, but don't. A text value has to be
+written in quotes in SQL, so a name with a quote in it, such as `O'Brien`, breaks the statement:
+
+```text
+INSERT INTO contact (name) VALUES ('O'Brien')          -> syntax error
+```
+
+Worse, a value that someone else typed (in a form, a file or a web page) can *change* the
+statement: a "name" like `x'); DELETE FROM contact; --` would delete every contact. This is
+called SQL injection, and it is one of the most common security holes in programs. With `?`
+the value is never read as SQL: whatever it contains, it is stored as it is. Parameters also
+keep numbers and dates in their types, and save you converting them to text.
+
+*Listing 20.79* (`examples/book/ch20-libraries/injection/injection.bbp`)
+
+<!-- project: examples/book/ch20-libraries/injection/injection.bbp -->
+```basic
+' injection.bas - a value full of quotes and SQL is stored as it is
+Option Explicit
+Dim db As SQLite, nasty As String
+
+Set db = CreateObject("SQLite")
+db.Open ":memory:"
+db.Execute "CREATE TABLE contact (id INTEGER PRIMARY KEY, name TEXT)"
+nasty = "O'Brien'); DELETE FROM contact; --"
+db.Execute "INSERT INTO contact (name) VALUES (?)", "Ann"
+db.Execute "INSERT INTO contact (name) VALUES (?)", nasty
+db.Execute "INSERT INTO contact (name) VALUES (?)", Array("Bob")
+Print db.QueryValue("SELECT COUNT(*) FROM contact"); "contacts"
+Print db.QueryValue("SELECT name FROM contact WHERE id = ?", 2)
+Print db.QueryValue("SELECT id FROM contact WHERE name LIKE ?", "b%")
+```
+
+```output
+ 3 contacts
+O'Brien'); DELETE FROM contact; --
+ 3 
+```
+
+The number of values must match the number of `?` marks (error 450 if not). You can also pass
+the values as one array, as the third `INSERT` does: `db.Execute sql, Array(a, b, c)`.
+Parameters can't be used in a text with several statements (error 450).
+
+Parameters stand for *values* only. Table and column names can't be parameters: if a program
+must choose a column at run time, pick its name from a fixed list in your code, never from
+what a user typed.
+
+### SqlRecordset: the rows of a query
+
+`Query` returns an `SqlRecordset`, which stands on one row of the result at a time.
+
+| Member | What it does |
+|---|---|
+| `AtEnd` | True when there are no (more) rows. `EOF` is the same. |
+| `MoveNext` | moves to the next row (error 31601 after the last one: check `AtEnd`) |
+| `Field(column)` | a value of the current row. `column` is a column name (in any case) or a position counted from 0. The default member: `rs("title")`, `rs(0)`. |
+| `Fields` | the current row, as an array of Variants |
+| `FieldCount` | the number of columns |
+| `FieldName(i)` | the name of column `i` |
+| `RowNumber` | 1 on the first row, 2 on the second, ...; 0 after the end |
+| `Close` | finishes the query (it also happens when the recordset goes away) |
+
+The usual loop is `Do Until rs.AtEnd ... rs.MoveNext ... Loop`. `For Each` is shorter: it gives
+each row as an array. For a small result, `QueryAll` gives all of it at once, and `QueryValue`
+a single value. `scores` reads one table all four ways:
+
+*Listing 20.80* (`examples/book/ch20-libraries/scores/scores.bbp`)
+
+<!-- project: examples/book/ch20-libraries/scores/scores.bbp -->
+```basic
+' scores.bas - a recordset loop, For Each, QueryAll and QueryValue
+Option Explicit
+Dim db As SQLite, rs As SqlRecordset, row As Variant, a As Variant, i As Long
+
+Set db = CreateObject("SQLite")
+db.Open ":memory:"
+db.Execute "CREATE TABLE score (player TEXT, points INTEGER, level INTEGER);" & _
+           "INSERT INTO score VALUES ('Ann', 5200, 7), ('Bob', 4100, 5), ('Cy', 900, 2), ('Ann', 3000, 4)"
+
+Set rs = db.Query("SELECT player, SUM(points) AS total FROM score GROUP BY player ORDER BY total DESC")
+Print rs.FieldCount; "columns: "; rs.FieldName(0); ", "; rs.FieldName(1)
+Do Until rs.AtEnd
+    Print rs.RowNumber; ". "; rs("player"); rs("total")
+    rs.MoveNext
+Loop
+rs.Close
+
+For Each row In db.Query("SELECT player, level FROM score WHERE level > ?", 4)
+    Print row(0); " reached level"; row(1)
+Next
+
+a = db.QueryAll("SELECT player, points FROM score ORDER BY points")
+For i = 0 To UBound(a, 1)
+    Print a(i, 0); "="; a(i, 1); " ";
+Next
+Print
+Print "best: "; db.QueryValue("SELECT MAX(points) FROM score")
+Print "nobody: "; IsEmpty(db.QueryValue("SELECT player FROM score WHERE points > 99999"))
+```
+
+```output
+ 2 columns: player, total
+ 1 . Ann 8200 
+ 2 . Bob 4100 
+ 3 . Cy 900 
+Ann reached level 7 
+Bob reached level 5 
+Cy= 900  Ann= 3000  Bob= 4100  Ann= 5200  
+best:  5200 
+nobody: True
+```
+
+A column made from an expression, such as `SUM(points)`, is named after it; `AS total` gives it
+a shorter name to use in `rs("total")`.
+
+### Types
+
+Each value in SQLite has one of five types. They map onto Boing BASIC's types like this:
+
+| SQLite | Read as | Written from |
+|---|---|---|
+| INTEGER | Long (Double beyond +-2147483647) | Byte, Integer, Long, Boolean (True is stored as 1, False as 0), Currency without a fraction |
+| REAL | Double | Single, Double, Currency with a fraction |
+| TEXT | String | String; a Date is stored as text `yyyy-mm-dd hh:nn:ss`, which SQLite's date functions understand |
+| BLOB | String (its bytes) | (a String is stored as TEXT, but every byte is kept, zero bytes too) |
+| NULL | Null | Null or Empty |
+
+`sqltypes` stores one value of each kind and asks SQLite (with its `typeof` function) how it
+was stored:
+
+*Listing 20.81* (`examples/book/ch20-libraries/sqltypes/sqltypes.bbp`)
+
+<!-- project: examples/book/ch20-libraries/sqltypes/sqltypes.bbp -->
+```basic
+' sqltypes.bas - each kind of value in, and what comes back out
+Option Explicit
+Dim db As SQLite, rs As SqlRecordset
+
+Set db = CreateObject("SQLite")
+db.Open ":memory:"
+db.Execute "CREATE TABLE t (what TEXT, v)"
+db.Execute "INSERT INTO t VALUES (?, ?)", "Long", 42
+db.Execute "INSERT INTO t VALUES ('big integer', 3000000000)"
+db.Execute "INSERT INTO t VALUES (?, ?)", "Double", 2.5
+db.Execute "INSERT INTO t VALUES (?, ?)", "Currency", CCur(19.99)
+db.Execute "INSERT INTO t VALUES (?, ?)", "whole Currency", CCur(20)
+db.Execute "INSERT INTO t VALUES (?, ?)", "Boolean", True
+db.Execute "INSERT INTO t VALUES (?, ?)", "Date", DateSerial(2026, 11, 10) + TimeSerial(14, 30, 0)
+db.Execute "INSERT INTO t VALUES (?, ?)", "bytes", "A" & Chr(0) & "B"
+db.Execute "INSERT INTO t VALUES (?, ?)", "Null", Null
+db.Execute "INSERT INTO t VALUES (?, ?)", "Empty", Empty
+db.Execute "INSERT INTO t (what) VALUES ('no value')"
+
+Set rs = db.Query("SELECT what, v, typeof(v) FROM t")
+Do Until rs.AtEnd
+    Print rs(0); ": stored as "; rs(2); ", read as "; TypeName(rs(1))
+    rs.MoveNext
+Loop
+Print Len(db.QueryValue("SELECT v FROM t WHERE what = 'bytes'")); "bytes"
+Print db.QueryValue("SELECT v FROM t WHERE what = 'Date'")
+Print Year(CDate(db.QueryValue("SELECT v FROM t WHERE what = 'Date'")))
+Print db.QueryValue("SELECT date(v, '+1 month') FROM t WHERE what = 'Date'")
+Print "["; db.QueryValue("SELECT IFNULL(v, '') FROM t WHERE what = 'no value'"); "]"
+```
+
+```output
+Long: stored as integer, read as Long
+big integer: stored as integer, read as Double
+Double: stored as real, read as Double
+Currency: stored as real, read as Double
+whole Currency: stored as integer, read as Long
+Boolean: stored as integer, read as Long
+Date: stored as text, read as String
+bytes: stored as text, read as String
+Null: stored as null, read as Null
+Empty: stored as null, read as Null
+no value: stored as null, read as Null
+ 3 bytes
+2026-11-10 14:30:00
+ 2026 
+2026-12-10
+[]
+```
+
+Columns that hold nothing are Null when you read them: test with `IsNull`, or write
+`SELECT IFNULL(phone, '') ...` to get an empty text instead. Dates come back as text; turn
+them into a Date with `CDate`, or let SQLite work with them (`date(v, '+1 month')`). A value
+can't be an object or an array (error 13).
+
+### SqlStatement: prepared statements
+
+`Prepare` reads and checks a statement once; you then run it as often as you like with new
+values. In a loop this is much faster than calling `db.Execute` with the same SQL each time.
+
+| Member | What it does |
+|---|---|
+| `Execute(values...)` | runs the statement with these values; returns the number of rows changed |
+| `Query(values...)` | runs a `SELECT` with these values and returns an `SqlRecordset`. Close the recordset before you use the statement again. |
+| `ParameterCount` | the number of `?` marks in the statement |
+| `Close` | frees the statement |
+
+### Transactions
+
+Normally each statement is saved to the disk on its own. Between `BeginTransaction` and
+`Commit`, the changes are kept together: they are saved all at once at `Commit`, and
+`Rollback` undoes all of them. This has two uses:
+
+- **Speed.** Saving each statement to the disk takes time, on the Amiga especially. A thousand
+  inserts in one transaction are many times faster than a thousand on their own.
+- **All or nothing.** Moving money from one account to another is two `UPDATE`s; if the
+  program fails between them, `Rollback` (or a crash: SQLite then rolls back by itself) leaves
+  the data as it was before.
+
+`readings` uses one prepared statement for a thousand inserts in one transaction, then
+deletes a third of them and changes its mind:
+
+*Listing 20.82* (`examples/book/ch20-libraries/readings/readings.bbp`)
+
+<!-- project: examples/book/ch20-libraries/readings/readings.bbp -->
+```basic
+' readings.bas - a thousand inserts in one transaction, and a rollback
+Option Explicit
+Dim db As SQLite, ins As SqlStatement, i As Long
+
+Set db = CreateObject("SQLite")
+db.Open ":memory:"
+db.Execute "CREATE TABLE reading (id INTEGER PRIMARY KEY, sensor TEXT, value REAL)"
+
+Set ins = db.Prepare("INSERT INTO reading (sensor, value) VALUES (?, ?)")
+Print "parameters:"; ins.ParameterCount
+db.BeginTransaction
+For i = 1 To 1000
+    ins.Execute "temp" & (i Mod 3), i / 10
+Next
+db.Commit
+ins.Close
+Print "rows:"; db.QueryValue("SELECT COUNT(*) FROM reading"); " last id:"; db.LastInsertId
+
+db.BeginTransaction
+Print "deleted:"; db.Execute("DELETE FROM reading WHERE sensor = ?", "temp0"); db.InTransaction
+db.Rollback
+Print "after rollback:"; db.QueryValue("SELECT COUNT(*) FROM reading"); db.InTransaction
+Print "average:"; db.QueryValue("SELECT ROUND(AVG(value), 2) FROM reading WHERE sensor = 'temp1'")
+```
+
+```output
+parameters: 2 
+rows: 1000  last id: 1000 
+deleted: 333 True
+after rollback: 1000 False
+average: 50.05 
+```
+
+When an error can happen inside a transaction, roll it back in your error handler. In
+`transfer`, the table won't let a balance go below zero (`CHECK (balance >= 0)`). The second
+transfer adds 500 to Ann's account, then fails taking it from Bob's; `Rollback` takes the 500
+back off Ann's account, so no money appears from nowhere:
+
+*Listing 20.83* (`examples/book/ch20-libraries/transfer/transfer.bbp`)
+
+<!-- project: examples/book/ch20-libraries/transfer/transfer.bbp -->
+```basic
+' transfer.bas - two UPDATEs that happen together or not at all
+Option Explicit
+Dim db As SQLite
+
+Sub Transfer(ByVal amount As Long, ByVal fromId As Long, ByVal toId As Long)
+    On Error GoTo Failed
+    db.BeginTransaction
+    db.Execute "UPDATE account SET balance = balance + ? WHERE id = ?", amount, toId
+    db.Execute "UPDATE account SET balance = balance - ? WHERE id = ?", amount, fromId
+    db.Commit
+    Print "moved"; amount
+    Exit Sub
+Failed:
+    If db.InTransaction Then db.Rollback
+    Print "the transfer of"; amount; "failed: "; Err.Description
+End Sub
+
+Sub Balances()
+    Dim row As Variant
+    For Each row In db.Query("SELECT name, balance FROM account ORDER BY id")
+        Print "  "; row(0); row(1)
+    Next
+End Sub
+
+Set db = CreateObject("SQLite")
+db.Open ":memory:"
+db.Execute "CREATE TABLE account (id INTEGER PRIMARY KEY, name TEXT, balance INTEGER CHECK (balance >= 0));" & _
+           "INSERT INTO account (name, balance) VALUES ('Ann', 100), ('Bob', 20)"
+Transfer 30, 1, 2
+Transfer 500, 2, 1
+Balances
+```
+
+```output
+moved 30 
+the transfer of 500 failed: CHECK constraint failed: balance >= 0
+  Ann 70 
+  Bob 50 
+```
+
+### Example: an address book
+
+`examples/book/ch20-libraries/addressbook` is a small form program: a list of contacts, fields
+to edit the selected one, and buttons to add, save and delete. The contacts are kept in an
+SQLite file next to the program. Each row of the list keeps its contact's id in `ItemData`, so
+the program always knows which row of the table belongs to which row of the list. Its project
+file names the form and asks for SQLite:
+
+```ini
+# Boing BASIC project: an address book kept in an SQLite database (manual chapter 20)
+Name=AddressBook
+Startup=Form contacts
+Form=contacts.afg
+Extension=sqlite
+```
+
+```text
+# contacts.afg
+window name=contacts title="Address Book" width=560 height=320 resizable=1
+hlayout id=root splitter=1
+  listbrowser id=people columns="Name|Phone" widths="60|40" weight=45
+  vlayout weight=55
+    string id=nameField label="_Name" maxchars=80
+    string id=phoneField label="_Phone" maxchars=40
+    string id=emailField label="_E-mail" maxchars=80
+    string id=notesField label="N_otes" maxchars=200
+    hlayout weight=0
+      button id=addButton text="_Add"
+      button id=saveButton text="_Save"
+      button id=deleteButton text="_Delete"
+    space
+    label id=status text=" "
+```
+
+Opening the database and creating the table the first time:
+
+*Listing 20.84* (`examples/book/ch20-libraries/addressbook/addressbook.bbp`)
+
+<!-- project: examples/book/ch20-libraries/addressbook/addressbook.bbp -->
+```basic
+Private Function DataFile(ByVal name As String) As String
+    Dim p As String
+    p = App.Path
+    If p = "" Or Right(p, 1) = ":" Or Right(p, 1) = "/" Then DataFile = p & name Else DataFile = p & "/" & name
+End Function
+
+Private Sub Form_Load()
+    Set db = CreateObject("SQLite")
+    db.Open DataFile("AddressBook.db")
+    db.Execute "CREATE TABLE IF NOT EXISTS contact (" & _
+               "id INTEGER PRIMARY KEY, name TEXT NOT NULL, phone TEXT, email TEXT, notes TEXT)"
+    If db.QueryValue("SELECT COUNT(*) FROM contact") = 0 Then AddSamples
+    LoadList 0
+End Sub
+```
+
+`DataFile` puts the program's drawer, `App.Path`, in front of the file name, with a `/` only
+when the drawer isn't a volume such as `DH1:`, so the database is found wherever the program
+is started from. `CREATE TABLE IF NOT EXISTS` makes the table the first time and does nothing
+after that.
+
+Filling the list from the table, and showing the selected contact:
+
+*Listing 20.85* (`examples/book/ch20-libraries/addressbook/addressbook.bbp`)
+
+<!-- project: examples/book/ch20-libraries/addressbook/addressbook.bbp -->
+```basic
+Private Sub LoadList(ByVal selectId As Long)
+    Dim rs As SqlRecordset, n As Long
+    people.Clear
+    Set rs = db.Query("SELECT id, name, IFNULL(phone, '') FROM contact ORDER BY name COLLATE NOCASE")
+    Do Until rs.AtEnd
+        people.AddItem rs(1) & vbTab & rs(2)
+        people.ItemData(people.ListCount - 1) = rs(0)
+        If rs(0) = selectId Then n = people.ListCount - 1
+        rs.MoveNext
+    Loop
+    rs.Close
+    If people.ListCount > 0 Then people.ListIndex = n Else ShowContact 0
+End Sub
+
+Private Sub people_Click()
+    If people.ListIndex >= 0 Then ShowContact people.ItemData(people.ListIndex)
+End Sub
+```
+
+Saving: a new contact is an `INSERT`, a changed one an `UPDATE`, always with `?` parameters, so
+that whatever the user typed is stored as it is:
+
+*Listing 20.86* (`examples/book/ch20-libraries/addressbook/addressbook.bbp`)
+
+<!-- project: examples/book/ch20-libraries/addressbook/addressbook.bbp -->
+```basic
+Private Sub saveButton_Click()
+    If Trim(nameField.Text) = "" Then
+        status.Caption = "A contact needs a name"
+        Exit Sub
+    End If
+    If currentId = 0 Then
+        db.Execute "INSERT INTO contact (name, phone, email, notes) VALUES (?, ?, ?, ?)", _
+                   Trim(nameField.Text), phoneField.Text, emailField.Text, notesField.Text
+        currentId = db.LastInsertId
+        status.Caption = "Added " & Trim(nameField.Text)
+    Else
+        db.Execute "UPDATE contact SET name = ?, phone = ?, email = ?, notes = ? WHERE id = ?", _
+                   Trim(nameField.Text), phoneField.Text, emailField.Text, notesField.Text, currentId
+        status.Caption = "Saved " & Trim(nameField.Text)
+    End If
+    LoadList currentId
+End Sub
+```
+
+### Errors
+
+| Error | When |
+|---|---|
+| 31601 | SQLite reported an error. `Err.Description` has its message (`UNIQUE constraint failed: player.name`, `near "SELEKT": syntax error`, `no such table: x`) and `ErrorCode` its number. Also: a closed database, a read-only one, a file that can't be opened, `MoveNext` past the end. |
+| 450 | the number of values doesn't match the number of `?` marks, or parameters in a text with several statements |
+| 5 | an unknown column name in `rs(...)` |
+| 9 | a column position out of range |
+| 13 | a value that can't be stored, such as an object |
+| 380 | a negative `Timeout` |
+
+*Listing 20.87* (`examples/book/ch20-libraries/sqlerrors/sqlerrors.bbp`)
+
+<!-- project: examples/book/ch20-libraries/sqlerrors/sqlerrors.bbp -->
+```basic
+' sqlerrors.bas - SQLite's own errors (31601) and the others
+Option Explicit
+Dim db As SQLite, rs As SqlRecordset, v As Variant
+
+Set db = CreateObject("SQLite")
+db.Open ":memory:"
+db.Execute "CREATE TABLE player (name TEXT UNIQUE)"
+db.Execute "INSERT INTO player VALUES (?)", "Ann"
+On Error Resume Next
+db.Execute "INSERT INTO player VALUES (?)", "Ann"
+Print Err.Number; Err.Description; " (code"; db.ErrorCode; ")"
+Err.Clear
+db.Execute "SELEKT * FROM player"
+Print Err.Number; Err.Description
+Err.Clear
+v = db.QueryValue("SELECT * FROM nowhere")
+Print Err.Number; Err.Description
+Err.Clear
+db.Execute "INSERT INTO player VALUES (?)", "Bob", "Cy"
+Print Err.Number; Err.Description
+Err.Clear
+Set rs = db.Query("SELECT name FROM player")
+v = rs("age")
+Print Err.Number; Err.Description
+Err.Clear
+v = rs(3)
+Print Err.Number; Err.Description
+Err.Clear
+rs.MoveNext
+rs.MoveNext
+Print Err.Number; Err.Description
+Err.Clear
+rs.Close
+db.Execute "INSERT INTO player VALUES (?)", db
+Print Err.Number; Err.Description
+Err.Clear
+db.Timeout = -1
+Print Err.Number; Err.Description
+Err.Clear
+db.Close
+v = db.QueryValue("SELECT 1")
+Print Err.Number; Err.Description
+Err.Clear
+db.Open "no-such-drawer/x.db"
+Print Err.Number; Err.Description
+```
+
+```output
+ 31601 UNIQUE constraint failed: player.name (code 2067 )
+ 31601 near "SELEKT": syntax error
+ 31601 no such table: nowhere
+ 450 the statement has 1 parameter(s) (?) but 2 value(s) were given
+ 5 no column named age
+ 9 Subscript out of range
+ 31601 MoveNext past the last row (check AtEnd)
+ 13 a query parameter must be a number, a String, a Date, Null or Empty
+ 380 Invalid property value
+ 31601 the database isn't open (Open)
+ 31601 can't open no-such-drawer/x.db: unable to open database file
+```
+
+### Limits and gotchas
+
+- Only one program can write to a database at a time. Another program that tries waits for
+  `Timeout` milliseconds, then gets error 31601 ("database is locked").
+- Close a recordset (or let it go) before you run its prepared statement again, and before you
+  close the database: an open recordset keeps the file in use.
+- A Boing BASIC String is bytes: text is stored as it is, Latin-1 on the Amiga. A database made
+  on another computer usually holds UTF-8 text: convert it with `Utf8Decode` (see
+  [Text encodings](#text-encodings)).
+- `LIKE` ignores case only for the letters A-Z, not for accented letters.
+- The database files are the same everywhere: copy one between the Amiga and another computer
+  and open it there, with the `sqlite3` command-line tool, DB Browser for SQLite, or Python.
+
 ## Summary
 
 - `Dictionary` maps keys to values; `JsonParse` turns JSON text into Dictionaries and arrays,
@@ -3451,6 +4130,9 @@ level: 380
 - `IniFile` reads and writes settings files; `Logger` writes leveled log messages.
 - `XmlDocument` reads, changes and writes XML; `Compress`/`Decompress` and `Zip` handle
   compressed data and archives.
+- `SQLite` keeps data in an SQL database file: `Execute`, `Query` and prepared statements with
+  `?` parameters, and transactions. It is a standard extension: the project needs
+  `Extension=sqlite`.
 
 See also: [Networking](19-networking.md) for fetching the data, [Built-in functions](09-builtins.md)
 and [Files](10-files.md).

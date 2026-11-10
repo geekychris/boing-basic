@@ -1,0 +1,5 @@
+# Albums: a first SQLite database, in memory (manual chapter 20)
+Name=Albums
+Startup=Sub Main
+Module=albums.bas
+Extension=sqlite

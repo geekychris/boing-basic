@@ -1,0 +1,4 @@
+# SqlErrors: what goes wrong, and the error numbers (manual chapter 20)
+Name=SqlErrors
+Module=sqlerrors.bas
+Extension=sqlite
