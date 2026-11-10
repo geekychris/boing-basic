@@ -1,0 +1,7 @@
+# modules named like runtime classes (dictionary.bas, stringbuilder.bas): As and New still mean
+# the class, Module.Name the module
+Name=classmodule
+Startup=Sub Main
+Module=main.bas
+Module=dictionary.bas
+Module=stringbuilder.bas

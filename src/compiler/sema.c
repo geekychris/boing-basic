@@ -107,11 +107,7 @@ static Type *resolve_type_n(Ctx *c, Node *tn, char suffix, int *fixlen, const ch
     if (s && s->kind == SK_UDT) return type_udt(s->udt);
     if (s && s->kind == SK_CLASS) return type_object(s->cls);
     if (s && s->kind == SK_ENUM) return &ty_long;
-    if (s && s->kind == SK_MODULE && bb_runtime_class(n)) {
-        /* a module named like a built-in class (http.bas and Http) takes its name */
-        ERR(c, tn, "the module '%s' hides the built-in class %s: rename the module", s->name, n);
-        return &ty_variant;
-    }
+    if (s && s->kind == SK_MODULE && s->cls) return type_object(s->cls);    /* dictionary.bas: As Dictionary */
     ERR(c, tn, "type '%s' is not defined", n);
     return &ty_variant;
 }
@@ -687,6 +683,40 @@ static Node *assign_to_prop(Ctx *c, Node *s, Node *t, Node *val, int is_set)
     return NULL;
 }
 
+/* obj(k)(i) = v, d("a")(1) = v: the inner value is an array (or another indexable Variant) that
+   obj(k) returns as a copy; store into it and put it back: t = obj(k): t(i) = v: obj(k) = t
+   (deeper chains go through the same steps) */
+static void late_let(Ctx *c, Node *s, Node *t, Node *v, NodeList *out)
+{
+    Node *inner = t->a;
+    if (t->kind == E_LATE && !t->name[0] && inner && inner->kind == E_LATE && inner->list.n > 0 &&
+        inner->ty->kind == T_VARIANT) {
+        Sym *tmp = new_temp(c, &ty_variant, s);
+        Node *st1 = mk_stmt(S_LET, s), *l = node_new(E_LATE, s->file, s->line, s->col), *back;
+        Node *st;
+        int i;
+        st1->a = mk_var(s, tmp);
+        st1->b = inner;
+        nl_push(out, st1);
+        l->a = mk_var(s, tmp);
+        l->name = xstrdup("");
+        l->ty = &ty_variant;
+        for (i = 0; i < t->list.n; i++) nl_push(&l->list, t->list.v[i]);
+        st = assign_to_prop(c, s, l, v, 0);
+        if (st) nl_push(out, st);
+        back = node_new(E_LATE, s->file, s->line, s->col);
+        *back = *inner;
+        memset(&back->list, 0, sizeof back->list);
+        for (i = 0; i < inner->list.n; i++) nl_push(&back->list, inner->list.v[i]);
+        late_let(c, s, back, mk_var(s, tmp), out);
+        return;
+    }
+    {
+        Node *st = assign_to_prop(c, s, t, v, 0);
+        if (st) nl_push(out, st);
+    }
+}
+
 static void check_let(Ctx *c, Node *s, NodeList *out)
 {
     Node *t, *v;
@@ -712,6 +742,7 @@ static void check_let(Ctx *c, Node *s, NodeList *out)
             ERR(c, s, "use Set to assign an object to property '%s'", t->sym->name);
             return;
         }
+        if (t->kind == E_LATE) { late_let(c, s, t, v, out); return; }
         st = assign_to_prop(c, s, t, v, 0);
         if (st) nl_push(out, st);
         return;
@@ -1510,7 +1541,8 @@ int sema_program(Program *p)
             const char *rn = bb_ext_class_name(k);
             ClassInfo *rc;
             Sym *s;
-            if (scope_find_local(p->global, rn) || !bb_runtime_class(rn)) continue;
+            Sym *taken = scope_find_local(p->global, rn);
+            if ((taken && taken->kind != SK_MODULE) || !bb_runtime_class(rn)) continue;
             rc = (ClassInfo *)xcalloc(1, sizeof(ClassInfo));
             rc->name = xstrdup(rn);
             rc->rtcls = bb_runtime_class(rn);
@@ -1518,6 +1550,12 @@ int sema_program(Program *p)
             {
                 const char *const *ev = bb_runtime_class_events(rn);
                 for (; ev && *ev; ev++) add_reg_event(rc, *ev, -1);
+            }
+            if (taken) {
+                /* a module with the class's name (dictionary.bas): the name means the module, but
+                   after As and New, where a module can't be meant, the built-in class */
+                taken->cls = rc;
+                continue;
             }
             s = new_sym(SK_CLASS, rc->name, NULL);
             s->cls = rc;
