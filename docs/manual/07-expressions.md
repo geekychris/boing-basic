@@ -214,8 +214,9 @@ huge.bas:2:11: error: overflow (error 6) in a constant expression
 ```
 
 This applies to `*`, `/`, `+`, `-` and `^` with Single and Double constants, in a `Const` as
-well as in an ordinary expression. Whole-number constants such as `200 * 200` are still
-checked when the line runs, as in the listing above.
+well as in an ordinary expression. Whole-number constants such as `200 * 200` are
+deliberately still checked when the line runs, as in the listing above, so a program can
+catch that overflow with `On Error`.
 
 Variants are different: an Integer result in a Variant that does not fit becomes a Long, and
 a Long becomes a Double, so Variant arithmetic does not overflow:

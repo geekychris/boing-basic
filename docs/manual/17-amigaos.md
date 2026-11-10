@@ -230,7 +230,8 @@ depends on how the parameter is declared:
 **Write `ByVal` for everything** unless you mean to pass a pointer to a variable. The
 generated bindings do. A numeric `ByRef` parameter needs a variable of exactly the parameter's
 type, because the function is given the variable's address. Anything else (a constant, an
-expression, a variable of another type) is a compile error:
+expression, a variable in parentheses such as `(n)`, a variable of another type) is a compile
+error, and so is a literal string for a `ByRef ... As String` parameter:
 
 <!-- error: ByRef parameter 'result' of Declare GetValue needs a Long variable -->
 ```basic

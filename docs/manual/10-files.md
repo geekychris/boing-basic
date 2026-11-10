@@ -505,7 +505,9 @@ argument returns the next one, and `""` means there are no more. The names come 
 directory part. In the pattern, `*` stands for any characters and `?` for one character; upper
 and lower case are treated as the same, as AmigaOS does. The AmigaOS forms work too: `#?` is
 the same as `*`, and `#` before any other character means "that character any number of times,
-or not at all", so `a#2.txt` matches `a.txt`, `a2.txt` and `a22.txt`. (The other AmigaOS pattern
+or not at all", so `a#2.txt` matches `a.txt`, `a2.txt` and `a22.txt`. A name whose only
+special character is `#` and that is the name of an existing file means that file, so
+`Kill "track#1.mod"` deletes `track#1.mod`; with `*` or `?` in it, it is always a pattern. (The other AmigaOS pattern
 features, such as `(a|b)`, `~` and `[a-z]`, are not understood.) `Kill` takes the same patterns.
 
 Directories are left out unless the attributes include `vbDirectory` (16); then both files and
@@ -738,10 +740,10 @@ catalogs...): see [Menus and dialogs](13-menus-dialogs.md). Notifications, hotke
 Show, Hide and Remove (the Subs `App_Show`, `App_Hide` and `App_Quit`) and the other desktop
 features are in [The AmigaOS 4 desktop](18-desktop.md).
 
-Do not call one of your own modules `App` (for example by naming a program `app.bas`): the
-module's name then hides the `App` object in that program, and `App.Title` gives "module 'app'
-has no public member 'Title'". The same goes for the names of the built-in classes `Http`,
-`Canvas`, `Audio` and `Engine3D`: a program `http.bas` that uses `Dim h As Http` is stopped by
+A module of your own may be called `App` (for example a program `app.bas`): `App.Path`,
+`App.Title` and the other members still reach the `App` object, unless your module has a
+public member of the same name. The names of the built-in classes (`Http`, `Canvas`, `Audio`,
+`Engine3D`, `Collection`) are different: a program `http.bas` that uses `Http` is stopped by
 `boing check` with "the module 'http' hides the built-in class Http: rename the module".
 
 ## The command line and the environment

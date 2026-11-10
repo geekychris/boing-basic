@@ -380,16 +380,16 @@ type (see [AmigaOS](17-amigaos.md#arguments)).
 **the module 'm' hides the built-in class C: rename the module**: one of your modules has the
 name of a built-in class, usually because of its file name (`http.bas` is the module `http`,
 `canvas.bas` the module `canvas`). Module names win over the built-in classes, so `Dim h As
-Http` would mean the module. Rename the file, for example to `webfetch.bas`. The built-in
-classes are `Http`, `Canvas`, `Audio` and `Engine3D`, and the classes of any extensions the
-program uses. A program `http.bas` that starts with `Dim h As Http` gives
+Http` or `New Http` would mean the module. Rename the file, for example to `webfetch.bas`. The
+built-in classes are `Http`, `Canvas`, `Audio`, `Engine3D` and `Collection`, and the classes of
+any extensions the program uses. A program `http.bas` that starts with `Dim h As Http` gives
 
 ```text
 http.bas:1:10: error: the module 'http' hides the built-in class Http: rename the module
 ```
 
-(A module named after `Collection`, the other built-in class, gives **duplicate module or class
-name 'collection'** instead.)
+A module called `app`, `clipboard`, `printer` or `err` is allowed: the built-in object of that
+name is still used for the members your module doesn't have.
 
 ### Warnings
 
