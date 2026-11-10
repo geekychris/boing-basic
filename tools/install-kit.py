@@ -46,6 +46,9 @@ for a in sys.argv[1:]:
 if "BB_GUEST" not in os.environ:
     sys.exit("install-kit: say which guest: BB_GUEST=m1 (or local, m1b, spark)")
 os.environ.setdefault("BB_SESSION_TIMEOUT", "300")
+# a guest script may take what the session allows, less a margin for the rest of the session
+# (a slow guest needs BB_SESSION_TIMEOUT=900: unpacking alone took over 4 minutes on m1b)
+SCRIPT_MAX = max(240, int(float(os.environ["BB_SESSION_TIMEOUT"])) - 90)
 sys.path.insert(0, HERE)
 import os4guest as g  # noqa: E402
 
@@ -383,7 +386,7 @@ def install(m, phase):
     out = script(m, "leftovers", ['If EXISTS DH1:BoingBASIC-previous', '  Delete DH1:BoingBASIC-previous ALL QUIET FORCE',
                                   '  Echo "LEFTOVER BoingBASIC-previous"', 'EndIf',
                                   'If EXISTS DH1:BBkit-new', '  Delete DH1:BBkit-new ALL QUIET FORCE',
-                                  '  Echo "LEFTOVER BBkit-new"', 'EndIf'], limit=270)   # a slow guest: 3 min
+                                  '  Echo "LEFTOVER BBkit-new"', 'EndIf'], limit=SCRIPT_MAX)   # a slow guest: 3 min
     if "LEFTOVER" in out:
         log("leftovers of an earlier install: %s%s" % (" ".join(out.split())[:160],
             " (still locked: Workbench lets go at its next start; the next install deletes it)" if "in use" in out else ""))
@@ -440,7 +443,7 @@ def swap(m):
         'If EXISTS DH1:BBkit-old', '  Delete DH1:BBkit-old ALL QUIET FORCE', 'EndIf',
         'Delete RAM:bbkit/BoingBASIC.lha QUIET', 'Echo "INSTALL-OK"']
     t0 = time.time()
-    out = script(m, "install", lines, limit=260)
+    out = script(m, "install", lines, limit=SCRIPT_MAX)
     log("unpacked and swapped in %.0f s: %s" % (time.time() - t0, " ".join(out.split())[-300:]))
     if "INSTALL-OK" not in out:
         raise RuntimeError("install failed: %s" % out[-500:])
@@ -481,7 +484,7 @@ def verify(m):
             lines += ['CD %s/Examples/%s' % (DEST, e["dir"]), '%s/boing check %s' % (DEST, e["bbp"]),
                       'If WARN', '  Echo "ALLCHECK-FAIL %s"' % e["dir"], 'Else', '  Echo "ALLCHECK-OK %s"' % e["dir"], 'EndIf']
         lines += ['CD RAM:']
-    out = script(m, "verify", lines, limit=250 if "--check-all" in args else 180)
+    out = script(m, "verify", lines, limit=SCRIPT_MAX)
     log("boing: %s" % " ".join(out.split())[:300])
     ok &= bool(re.search(r"boing|Boing", out))
     if ex:
