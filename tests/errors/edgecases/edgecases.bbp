@@ -1,0 +1,8 @@
+# modules named like built-in classes and objects; Declare ByRef checks (bb-docs edge cases)
+# app.bas: App.Title still reaches the built-in App object (no error)
+Name=edgecases
+Startup=Sub Main
+Module=main.bas
+Module=http.bas
+Module=collection.bas
+Module=app.bas

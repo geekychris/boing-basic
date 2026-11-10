@@ -1,0 +1,7 @@
+# a module named app: App.Title / App.Major still reach the built-in App object
+Name=appmodule
+Title=Edge Test
+Version=2.5
+Startup=Sub Main
+Module=main.bas
+Module=app.bas
