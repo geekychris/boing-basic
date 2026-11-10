@@ -1176,13 +1176,17 @@ The chat can also be started from the Shell, with what to do on its command line
 chat host 7000                              ; host a chat on port 7000 straight away
 chat join self 7000 Ann Hello from Boing!   ; join this machine's chat as Ann and say hello
 chat join 192.168.1.20 7000 Bob             ; join another machine's chat as Bob
-chat join self 7000 Bob Hi @640,0           ; ...with the window at x 640, y 0
 ```
 
 `self` stands for this machine's own address (`MachineAddress`), and the words after the name
 are said once the connection is made. A last word `@X,Y` places the window at that position on
-the screen (the program calls `Me.Move x, y` in `Form_Load`). The three windows in the picture
-were started this way, side by side.
+the screen (the program calls `Me.Move x, y` in `Form_Load`). The windows in the screenshot above
+were placed side by side that way, for example:
+
+```sh
+chat host 7000 @10,150
+chat join self 7000 Ann Hello @430,150
+```
 
 ```text
 # chat.afg
