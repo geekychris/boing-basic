@@ -1,0 +1,15 @@
+2026-11-10 09:14:02 [Main] INFO: program started, version 1.4
+2026-11-10 09:14:02 [Prefs] DEBUG: read ENVARC:boingpad.prefs (412 bytes)
+2026-11-10 09:14:05 [Http] INFO: GET https://www.example.com/news.json
+2026-11-10 09:14:35 [Http] ERROR: timeout after 30000 ms (www.example.com)
+2026-11-10 09:14:35 [Main] WARN: no news, using the cached copy
+2026-11-10 09:20:11 [Disk] Error: can't write RAM:cache/news.json (disk full)
+   at SaveCache (cache.bas line 88)
+   at Main (main.bas line 31)
+2026-11-10 09:20:12 [Disk] INFO: freed 3 old cache files
+
+2026-11-10 09:31:40 [Http] INFO: GET https://feeds.amiga.org/rss
+2026-11-10 09:32:10 [Http] error: timeout after 30000 ms (feeds.amiga.org)
+2026-11-10 09:45:00 [Audio] WARN: AHI unit 0 busy, trying unit 1
+2026-11-10 10:02:59 [Http] ERROR: timeout after 30000 ms (www.example.com)
+2026-11-10 10:03:00 [Main] INFO: program ended

@@ -1,0 +1,5 @@
+GetEnv: hello from Boing
+Environ: hello from Boing
+in Environment():True
+the command printed: hello from Boing
+removed: []

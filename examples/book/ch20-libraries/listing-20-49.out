@@ -1,0 +1,6 @@
+( ->  5017  bad regular expression: missing )
+[a ->  5017  bad regular expression: missing ] in a character class
+*a ->  5017  bad regular expression: nothing to repeat before *, + or ?
+a{3,2} ->  5017  bad regular expression: {n,m} with m < n
+\2(a) ->  5017  bad regular expression: a backreference to a group that doesn't exist
+(x+x+)+y ->  5019  the regular expression takes too long on this text (too much backtracking)

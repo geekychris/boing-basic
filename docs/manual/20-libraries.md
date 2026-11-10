@@ -2,7 +2,8 @@
 
 Programs today juggle data that comes from the internet and goes back to it: lookups by name,
 JSON documents, text in UTF-8, checksums and signatures, dates in UTC. This chapter describes
-the libraries Boing BASIC has for them. They are part of the runtime, so they work the same in
+the libraries Boing BASIC has for them, and for everyday jobs such as pattern matching, CSV
+files and running other programs. They are part of the runtime, so they work the same in
 the interpreter and in native programs, on AmigaOS 4 and on macOS and Linux:
 
 | Library | What it is for |
@@ -13,6 +14,10 @@ the interpreter and in native programs, on AmigaOS 4 and on macOS and Linux:
 | [Checksums and hashes](#checksums-and-hashes) | CRC32, MD5, SHA-1, SHA-256 and HMAC signatures |
 | [Dates and times in UTC](#dates-and-times-in-utc) | UTC, Unix time and ISO 8601 dates |
 | [StringBuilder](#stringbuilder) | building long strings quickly |
+| [Regular expressions](#regular-expressions-regexp) | matching and replacing text by patterns |
+| [CSV files](#csv-files-csv) | reading and writing comma-separated files |
+| [Unique identifiers](#unique-identifiers-createuuid) | random unique IDs |
+| [Running commands](#running-commands-process) | running Shell commands and capturing their output |
 
 Each library's classes are created with `New` or `CreateObject` like the runtime's other
 objects; its functions are called like built-in functions. One rule applies to all of them:
@@ -1610,6 +1615,924 @@ and `boing run wordfreq.bbp RAM:words.json` saves the whole document, laid out w
   ends (some Internet protocols, files for Windows), use `sb.Append x, vbCrLf`.
 - `Replace` and `Char` work on bytes and are case-sensitive.
 
+## Regular expressions: RegExp
+
+A *regular expression* is a pattern that describes text: "four digits, a dash, two digits, a
+dash, two digits" is `\d{4}-\d\d-\d\d`. With the `RegExp` class you can check whether text
+fits a pattern (is this an e-mail address?), find every piece of text that does (the dates in a
+log), take those pieces apart (year, month, day) and replace them (turn `2026-11-10` into
+`10.11.2026`). Boing BASIC has its own pattern engine, which works the same on AmigaOS 4 and on
+the host.
+
+*Listing 20.42* (`examples/book/ch20-libraries/listing-20-42.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim re As RegExp
+Set re = CreateObject("RegExp")
+re.Pattern = "(\d{4})-(\d\d)-(\d\d)"
+re.Global = True
+Print re.Replace("from 2026-11-10 to 2026-12-24", "$3.$2.$1")
+Print re.Test("no dates here"); re.Test("due 2027-01-31")
+```
+
+```output
+from 10.11.2026 to 24.12.2026
+FalseTrue
+```
+
+`CreateObject("RegExp")` makes a new object. Declare the variable `As RegExp`, so that the
+compiler checks the member names.
+
+### The RegExp object
+
+| Member | What it does |
+|---|---|
+| `Pattern` | the regular expression, a String (the default member) |
+| `Global` | False (the default): `Execute` and `Replace` stop after the first match. True: they take every match. |
+| `IgnoreCase` | True: letters match in either case (A-Z and the accented Latin-1 letters). False at first. |
+| `MultiLine` | True: `^` and `$` also match at the start and end of every line, not only of the whole text. False at first. |
+| `Test(text)` | True if the pattern matches somewhere in text |
+| `Execute(text)` | the matches, as a `Matches` collection (at most one unless `Global` is True) |
+| `Replace(text, replacement)` | text with the first match (with `Global`, every match) replaced by replacement, which can contain `$1` and the other forms below |
+| `Split(text)` | an array (from 0) of the pieces of text between the matches; the text of any groups in the pattern is included as pieces of its own |
+| `FirstMatch(text)` | the text of the first match, `""` if there is none |
+| `Escape(text)` | text with a `\` put before every special character (`` \ ^ $ . \| ? * + ( ) [ ] { } / - ``), so that it matches literally |
+
+The pattern is translated into the engine's own form once, and kept until `Pattern`,
+`IgnoreCase` or `MultiLine` changes. Using one `RegExp` for every line of a big file is
+therefore fast; don't make a new one per line.
+
+### Matches, Match and SubMatches
+
+`Execute` returns a `Matches` collection. Each item is a `Match`, and each `Match` has the texts
+of the pattern's groups as its `SubMatches`. All three are read-only, and all count from **0**:
+
+| `Matches` member | |
+|---|---|
+| `Count` | how many matches |
+| `Item(i)` | match number i, from 0. The default member, so `ms(0)` is the first match. |
+| `For Each m In ms` | goes through the matches |
+
+| `Match` member | |
+|---|---|
+| `Value` | the text that matched (the default member, so `Print m` prints it) |
+| `FirstIndex` | where it starts in the text, counting from **0**: add 1 for `Mid` |
+| `Length` | how long it is |
+| `SubMatches` | the texts of the groups: `m.SubMatches(0)` is group 1, `m.SubMatches.Count` how many groups there are; `For Each` works too. A group that took no part in the match is Empty. |
+| `SubMatchIndex(i)` | where group i+1 starts (from 0), -1 if it took no part |
+
+Positions from 0 are the one thing to watch: Boing BASIC's string functions (`Mid`, `InStr`)
+count from 1.
+
+*Listing 20.43* (`examples/book/ch20-libraries/listing-20-43.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim re As RegExp, m As Variant, ms As Variant, text As String
+Set re = CreateObject("RegExp")
+re.Pattern = "(\w+)@([\w.]+)"
+re.Global = True
+text = "write to ann@boing.org or bob@amiga.net"
+Set ms = re.Execute(text)
+Print ms.Count; " addresses"
+For Each m In ms
+    Print m.SubMatches(0); " at "; m.SubMatches(1); ", position"; m.FirstIndex; ", length"; m.Length
+    Print "  Mid gives: "; Mid(text, m.FirstIndex + 1, m.Length)
+Next
+Print "the first: "; ms(0); ", its domain from"; ms(0).SubMatchIndex(1)
+```
+
+```output
+ 2  addresses
+ann at boing.org, position 9 , length 13 
+  Mid gives: ann@boing.org
+bob at amiga.net, position 26 , length 13 
+  Mid gives: bob@amiga.net
+the first: ann@boing.org, its domain from 13 
+```
+
+A group that doesn't take part (here, the first alternative when the text is "b") is Empty:
+
+*Listing 20.44* (`examples/book/ch20-libraries/listing-20-44.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim re As RegExp, m As Variant
+Set re = CreateObject("RegExp")
+re.Pattern = "(a)|(b)"
+Set m = re.Execute("b")(0)
+Print IsEmpty(m.SubMatches(0)); " ["; m.SubMatches(1); "]"; m.SubMatchIndex(0); m.SubMatchIndex(1)
+```
+
+```output
+True [b]-1  0 
+```
+
+### Pattern syntax
+
+| Pattern | Matches |
+|---|---|
+| `abc` | the characters themselves |
+| `.` | any one character except a line feed |
+| `[abc]` `[a-z]` `[^0-9]` | one of the listed characters / one in a range / one that is *not* listed. `\d`, `\w` and `\s` work inside the brackets; a `]` straight after `[` or `[^`, or a `-` at the end, is an ordinary character. |
+| `\d` `\w` `\s` | a digit / a word character (a letter, a digit or `_`) / white space (space, tab, CR, LF, form feed, vertical tab) |
+| `\D` `\W` `\S` | anything but a digit / a word character / white space |
+| `^` `$` | the start / the end of the text (with `MultiLine`: of each line) |
+| `\b` `\B` | a word boundary / anywhere but a word boundary |
+| `x*` `x+` `x?` | x 0 or more times / 1 or more times / 0 or 1 time, as many as possible ("greedy") |
+| `x{n}` `x{n,}` `x{n,m}` | x exactly n times / at least n times / n to m times |
+| `x*?` `x+?` `x??` `x{n,m}?` | the same, but as few as possible ("lazy") |
+| `a\|b` | a or b |
+| `(x)` | a group: repeat it as a whole (`(ab)+`), and remember the text it matched (`$1`, `SubMatches`, `\1`) |
+| `(?:x)` | a group that isn't remembered |
+| `x(?=y)` `x(?!y)` | x, but only if y follows / doesn't follow (y isn't part of the match) |
+| `\1` ... `\9` | the text that group 1 to 9 matched (`(\w)\1` finds a doubled letter) |
+| `\n` `\t` `\r` `\f` `\v` `\0` | line feed, tab, carriage return, form feed, vertical tab, the NUL character |
+| `\xHH` `\uHHHH` | a character by its code in hexadecimal (up to 255) |
+| `\.` `\*` `\\` ... | a special character itself: put `\` before any of `. * + ? ( ) [ ] { } \| ^ $ \` |
+
+A `{` that doesn't start a valid repetition (`a{,2}`, `{x}`) is an ordinary character.
+
+Strings in Boing BASIC are bytes, so a pattern can search binary data too (`\x00+` finds runs of
+NUL bytes). Text in Latin-1, as on the Amiga, works with `IgnoreCase` for the accented letters
+as well.
+
+Greedy and lazy repetition, a lookahead and a backreference:
+
+*Listing 20.45* (`examples/book/ch20-libraries/listing-20-45.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim re As RegExp
+Set re = CreateObject("RegExp")
+re.Pattern = "<.+>":  Print re.FirstMatch("<b>bold</b>")    ' greedy: as much as possible
+re.Pattern = "<.+?>": Print re.FirstMatch("<b>bold</b>")    ' lazy: as little as possible
+re.Pattern = "\w+(?=!)": Print re.FirstMatch("hello there!")
+re.Pattern = "\b(\w+) \1\b": Print re.FirstMatch("this is is a typo")
+re.Pattern = "^\d{3}-\d{4}$": Print re.Test("555-1234"); re.Test("555-12345")
+```
+
+```output
+<b>bold</b>
+<b>
+there
+is is
+TrueFalse
+```
+
+### Options: IgnoreCase and MultiLine
+
+*Listing 20.46* (`examples/book/ch20-libraries/listing-20-46.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim re As RegExp, text As String
+Set re = CreateObject("RegExp")
+re.Pattern = "amiga"
+Print re.Test("AMIGA forever");
+re.IgnoreCase = True
+Print re.Test("AMIGA forever")
+
+text = "one" & vbLf & "two" & vbLf & "three"
+re.Pattern = "^\w+$"
+re.Global = True
+Print re.Execute(text).Count;          ' the whole text isn't one word
+re.MultiLine = True
+Print re.Execute(text).Count           ' but each line is
+Print re.Replace(text, "* $&")
+```
+
+```output
+FalseTrue
+ 0  3 
+* one
+* two
+* three
+```
+
+### Replacement text
+
+In the replacement of `Replace`, these forms insert parts of the match:
+
+| Form | Inserts |
+|---|---|
+| `$1` ... `$99` | the text of that group (`""` if it took no part) |
+| `$&` | the whole match |
+| ``$` `` | the text before the match |
+| `$'` | the text after the match |
+| `$$` | a `$` sign |
+
+A `$` followed by anything else, or by the number of a group the pattern doesn't have, is
+copied as it is.
+
+*Listing 20.47* (`examples/book/ch20-libraries/listing-20-47.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim re As RegExp
+Set re = CreateObject("RegExp")
+re.Pattern = "(\w+)@(\w+)"
+re.Global = True
+Print re.Replace("ann@boing bob@amiga", "$2:$1")
+Print re.Replace("ann@boing", "[$$][$&][$`][$'][$3]")
+re.Pattern = "\d"
+Print re.Replace("a1b2c3", "#")
+re.Global = False
+Print re.Replace("a1b2c3", "#")         ' only the first
+re.Global = True
+re.Pattern = "\s+"
+Print re.Replace("too    many     spaces", " ")
+```
+
+```output
+boing:ann amiga:bob
+[$][ann@boing][][][$3]
+a#b#c#
+a#b2c3
+too many spaces
+```
+
+### Split and Escape
+
+`Split` cuts the text at every match of the pattern, which here is "a comma or semicolon, with
+any spaces around it". `Escape` makes a pattern out of text that should be found literally, for
+example something the user typed into a search field:
+
+*Listing 20.48* (`examples/book/ch20-libraries/listing-20-48.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim re As RegExp, parts As Variant
+Set re = CreateObject("RegExp")
+re.Pattern = "\s*[,;]\s*"
+parts = re.Split("apples, pears;plums ,  cherries")
+Print UBound(parts) + 1; " pieces: "; Join(parts, "|")
+re.Pattern = "(-)"                      ' a group: the dashes are pieces too
+Print Join(re.Split("1-2-3"), "|")
+
+Print re.Escape("1+1=2? (yes) $5.00")
+re.Pattern = re.Escape("1+1=2?")
+Print re.Test("is 1+1=2?"); re.Test("11=2")
+```
+
+```output
+ 4  pieces: apples|pears|plums|cherries
+1|-|2|-|3
+1\+1=2\? \(yes\) \$5\.00
+TrueFalse
+```
+
+### Errors
+
+| `Err.Number` | Meaning |
+|---|---|
+| 5017 | the pattern is wrong; `Err.Description` says what is wrong ("missing )", "nothing to repeat before *, + or ?"...) |
+| 5019 | the pattern needs too much backtracking on this text: the engine gives up after 50 million steps instead of running practically for ever |
+| 9 | an `Item` or `SubMatches` index out of range |
+| 383 | assigning to a member of `Matches`, `Match` or `SubMatches` (they are read-only) |
+
+The pattern is checked when it is first used (`Test`, `Execute`...), not when `Pattern` is set.
+
+*Listing 20.49* (`examples/book/ch20-libraries/listing-20-49.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim re As RegExp, bad As Variant, ok As Boolean
+Set re = CreateObject("RegExp")
+On Error Resume Next
+For Each bad In Array("(", "[a", "*a", "a{3,2}", "\2(a)")
+    re.Pattern = bad
+    ok = re.Test("x")
+    Print bad; " -> "; Err.Number; " "; Err.Description
+    Err.Clear
+Next
+re.Pattern = "(x+x+)+y"
+ok = re.Test(String(40, "x"))
+Print "(x+x+)+y -> "; Err.Number; " "; Err.Description
+```
+
+```output
+( ->  5017  bad regular expression: missing )
+[a ->  5017  bad regular expression: missing ] in a character class
+*a ->  5017  bad regular expression: nothing to repeat before *, + or ?
+a{3,2} ->  5017  bad regular expression: {n,m} with m < n
+\2(a) ->  5017  bad regular expression: a backreference to a group that doesn't exist
+(x+x+)+y ->  5019  the regular expression takes too long on this text (too much backtracking)
+```
+
+A pattern such as `(x+x+)+y` has a vast number of ways to try to match a long run of `x` with
+no `y` after it, and tries all of them before it fails. Write patterns where each part of the
+text can be matched in only one way (`x+y` here), and error 5019 never comes up.
+
+### Example: a log analyser
+
+The book example `examples/book/ch20-libraries/loganalyser` reads a program's log file, with
+lines like
+
+```text
+2026-11-10 12:01:33 [Http] ERROR: timeout after 30000 ms (www.example.com)
+```
+
+and reports how many lines of each level it has, which modules reported errors, the time span
+and the hosts that timed out. One pattern takes every line apart; its groups are the date, the
+time, the module, the level and the message:
+
+*Listing 20.50* (`examples/book/ch20-libraries/loganalyser/loganalyser.bbp`)
+
+<!-- project: examples/book/ch20-libraries/loganalyser/loganalyser.bbp -->
+```basic
+' loganalyser.bas - a summary of a log file, with regular expressions
+Option Explicit
+
+Dim lineRe As RegExp, hostRe As RegExp
+Dim levels(1 To 4) As String, counts(1 To 4) As Long
+Dim modules As String, hosts As String, first As String, last As String
+Dim f As Integer, text As String, total As Long, skipped As Long
+
+' a list in a String: "|Http|Disk|"; add a name once
+Sub AddOnce(list As String, ByVal name As String)
+    If list = "" Then list = "|"
+    If InStr(list, "|" & name & "|") = 0 Then list = list & name & "|"
+End Sub
+
+Function ListText(ByVal list As String) As String
+    If list = "" Then ListText = "(none)" Else ListText = Replace(Mid(list, 2, Len(list) - 2), "|", ", ")
+End Function
+
+Sub Tally(ByVal level As String)
+    Dim i As Long
+    For i = 1 To 4
+        If levels(i) = UCase(level) Then counts(i) = counts(i) + 1: Exit Sub
+    Next
+End Sub
+
+Sub Main()
+    Dim m As Variant, i As Long
+    levels(1) = "DEBUG": levels(2) = "INFO": levels(3) = "WARN": levels(4) = "ERROR"
+
+    Set lineRe = CreateObject("RegExp")
+    lineRe.Pattern = "^(\d{4}-\d\d-\d\d) (\d\d:\d\d:\d\d) \[(\w+)\] (DEBUG|INFO|WARN|ERROR): (.*)$"
+    lineRe.IgnoreCase = True                ' "error:" and "Error:" too
+    Set hostRe = CreateObject("RegExp")
+    hostRe.Pattern = "timeout .*\(([\w.-]+)\)"
+
+    f = FreeFile
+    Open "app.log" For Input As #f
+    Do Until EOF(f)
+        Line Input #f, text
+        If lineRe.Test(text) Then
+            Set m = lineRe.Execute(text)(0)
+            total = total + 1
+            If first = "" Then first = m.SubMatches(0) & " " & m.SubMatches(1)
+            last = m.SubMatches(0) & " " & m.SubMatches(1)
+            Tally m.SubMatches(3)
+            If UCase(m.SubMatches(3)) = "ERROR" Then
+                AddOnce modules, m.SubMatches(2)
+                If hostRe.Test(m.SubMatches(4)) Then AddOnce hosts, hostRe.Execute(m.SubMatches(4))(0).SubMatches(0)
+            End If
+        ElseIf Trim(text) <> "" Then
+            skipped = skipped + 1           ' a line in another format (a stack dump...)
+        End If
+    Loop
+    Close #f
+
+    Print total & " log lines from " & first & " to " & last & ", " & skipped & " other lines"
+    For i = 1 To 4
+        Print "  " & levels(i) & ": " & counts(i)
+    Next
+    Print "errors from: "; ListText(modules)
+    Print "timeouts at: "; ListText(hosts)
+End Sub
+```
+
+With the sample `app.log` from the example's drawer, it prints:
+
+```output
+12 log lines from 2026-11-10 09:14:02 to 2026-11-10 10:03:00, 2 other lines
+  DEBUG: 1
+  INFO: 5
+  WARN: 2
+  ERROR: 4
+errors from: Http, Disk
+timeouts at: www.example.com, feeds.amiga.org
+```
+
+### Limits
+
+Not supported: lookbehind (`(?<=...)`, `(?<!...)`), named groups, and Unicode character
+classes (strings are bytes; text in UTF-8 can be searched, but `.` and `\w` see bytes, not
+characters).
+
+The engine is a backtracking matcher. Its stack is on the heap, so a deep pattern can't
+overflow the AmigaOS stack of your program, and the step limit (error 5019) stops a pattern
+that would otherwise hang. A pattern that starts with a plain character jumps from one
+occurrence of that character to the next, so searching a long text for `needle\d+` is quick.
+
+## CSV files: Csv
+
+CSV ("comma-separated values") is the plain-text table format that spreadsheets, databases and
+many web services use to exchange data: one record per line, fields separated by commas, and
+usually a first line with the column names.
+
+```text
+name,age,city
+Ann,34,"Bonn, Germany"
+"Bob ""B"" Smith",41,
+```
+
+Splitting each line at the commas works until the data has a comma, a quote or a line break
+inside a field, and real data always does. The `Csv` class handles all of that: fields in
+quotes, `""` for a quote inside them, line breaks inside quoted fields, other separators (`;`,
+tab), header rows, and Windows, Unix and old Mac line ends. It reads and writes.
+
+*Listing 20.51* (`examples/book/ch20-libraries/listing-20-51.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim table As Csv
+Set table = CreateObject("Csv")
+table.HasHeader = True
+table.LoadText "name,age,city" & vbLf & _
+               "Ann,34,""Bonn, Germany""" & vbLf & _
+               """Bob """"B"""" Smith"",41,"
+Do While table.ReadRecord()
+    Print table.Field("name"); " is "; table.Field("age"); " ["; table.Field("city"); "]"
+Loop
+```
+
+```output
+Ann is 34 [Bonn, Germany]
+Bob "B" Smith is 41 []
+```
+
+Give the variable a name other than `csv`. Names in Boing BASIC aren't case-sensitive, so
+`Dim csv As Csv` would make the variable hide the type `Csv`. `table`, `reader` or `out` are
+good names.
+
+### Reading
+
+Open a file with `Open` (or give the text itself to `LoadText`), then call `ReadRecord` until
+it returns False. After each `ReadRecord`, the current record's fields are there to read.
+
+| Member | What it does |
+|---|---|
+| `Open path` | reads a file (all of it, into memory) for `ReadRecord`. Error 53 if it isn't there. |
+| `LoadText text` | the same, from a String |
+| `ReadRecord()` | moves to the next record; returns False at the end. Empty lines are skipped. |
+| `Field(index)`, `Field(name)` | a field of the current record: by its position, counting from **0**, or by its column name (needs `HasHeader`; the case of the name doesn't matter). `Field` is the default member, so `table("name")` works too. A field the record doesn't have is `""`. |
+| `Fields` | the current record as an array of Strings, from 0 |
+| `FieldCount` | how many fields the current record has |
+| `Headers` | the column names (the first record) as an array, with `HasHeader` |
+| `ColumnIndex(name)` | the position of a column (from 0), -1 if there is none |
+| `ReadAll()` | all the remaining records as a two-dimensional array `a(record, field)`, both from 0. Records with fewer fields are padded with `""`. |
+| `RecordNumber` | the current record's number: 1 for the first record after the header |
+| `LineNumber` | the line of the text where the current record starts (a quoted field can span lines, so this can differ from `RecordNumber`) |
+| `AtEnd` | True when no records are left |
+| `ParseLine(text)` | the fields of one record, given as text, as an array (no file needed) |
+
+All fields are Strings, as they are in the file. Convert numbers and dates with `Val`, `CLng`,
+`CDbl` or `CDate` where you need them.
+
+*Listing 20.52* (`examples/book/ch20-libraries/listing-20-52.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim table As Csv, h As Variant, total As Double
+Set table = CreateObject("Csv")
+table.HasHeader = True
+table.LoadText "Item,Price,Note" & vbCrLf & _
+               "Disk box,4.50,""holds 50""" & vbCrLf & _
+               "Mouse mat,3.25,""blue," & vbLf & "with Boing ball""" & vbCrLf & _
+               vbCrLf & _
+               "Joystick,19.99"
+For Each h In table.Headers
+    Print "["; h; "]";
+Next
+Print "  price is column"; table.ColumnIndex("PRICE")
+Do While table.ReadRecord()
+    Print table.RecordNumber; table.LineNumber; table.FieldCount; " "; table(0); ": "; _
+          Replace(table.Field("Note"), vbLf, " / ")
+    total = total + Val(table.Field("Price"))
+Loop
+Print "total"; total; " at end: "; table.AtEnd
+```
+
+```output
+[Item][Price][Note]  price is column 1 
+ 1  2  3  Disk box: holds 50
+ 2  3  3  Mouse mat: blue, / with Boing ball
+ 3  6  2  Joystick: 
+total 27.74  at end: True
+```
+
+`ReadAll` takes the rest of the records in one go. Here the first line isn't a header, so it
+comes back as record 0:
+
+*Listing 20.53* (`examples/book/ch20-libraries/listing-20-53.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim table As Csv, a As Variant, r As Long, c As Long
+Set table = CreateObject("Csv")
+table.LoadText "a,b,c" & vbLf & "1,2" & vbLf & "x,y,z"
+a = table.ReadAll()
+Print UBound(a, 1) + 1; " records of"; UBound(a, 2) + 1; " fields"
+For r = 0 To UBound(a, 1)
+    For c = 0 To UBound(a, 2)
+        Print "["; a(r, c); "]";
+    Next
+    Print
+Next
+```
+
+```output
+ 3  records of 3  fields
+[a][b][c]
+[1][2][]
+[x][y][z]
+```
+
+`ParseLine` is handy for one line of CSV that comes from somewhere else, a network message for
+example:
+
+*Listing 20.54* (`examples/book/ch20-libraries/listing-20-54.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim table As Csv, f As Variant
+Set table = CreateObject("Csv")
+f = table.ParseLine("42,""Smith, John"",""said """"hi""""""")
+Print UBound(f) + 1; " fields: "; Join(f, " | ")
+```
+
+```output
+ 3  fields: 42 | Smith, John | said "hi"
+```
+
+### Writing
+
+| Member | What it does |
+|---|---|
+| `Create path [, append]` | opens a file for writing; with append True, records are added to the end of an existing file |
+| `WriteRecord value, value, ...` | writes one record: each argument is a field, or give one array whose elements are the fields. With no file open, the record is added to `Text` instead. |
+| `FormatRecord(value, ...)` | the record as a String (without a line end), written nowhere |
+| `Text` | what `WriteRecord` wrote while no file was open; `Text = ""` empties it |
+| `Close` | closes the file (the one from `Create`, or the input of `Open`) |
+
+Numbers, dates and Booleans are written the way `CStr` writes them (`3.5`, `True`); Empty and
+Null become empty fields. A field is put in quotes only when it has to be: when it contains the
+delimiter, a quote or a line break, or starts or ends with a space. A quote inside it is
+written as `""`.
+
+*Listing 20.55* (`examples/book/ch20-libraries/listing-20-55.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim out As Csv
+Set out = CreateObject("Csv")
+Print out.FormatRecord("plain", "with,comma", "with ""quote""", " space", 3.5, True, Null)
+out.WriteRecord "id", "text"
+out.WriteRecord 1, "a, b"
+out.WriteRecord Array(2, "c")
+Print out.Text;
+out.QuoteAll = True
+Print out.FormatRecord(Array("a", 1, Empty))
+```
+
+```output
+plain,"with,comma","with ""quote"""," space",3.5,True,
+id,text
+1,"a, b"
+2,c
+"a","1",""
+```
+
+Writing a file and reading it back. Note that a field with a line break in it survives the trip
+intact:
+
+*Listing 20.56* (`examples/book/ch20-libraries/listing-20-56.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim out As Csv, table As Csv, i As Long
+Set out = CreateObject("Csv")
+out.Create "scores.csv"
+out.WriteRecord "Player", "Score", "Comment"
+out.WriteRecord "Ann", 1200, "first place"
+out.WriteRecord "Bob", 950, "lost a life on" & vbLf & "level 3"
+out.Close
+out.Create "scores.csv", True           ' append
+out.WriteRecord "Cy", 700, ""
+out.Close
+
+Set table = CreateObject("Csv")
+table.HasHeader = True
+table.Open "scores.csv"
+Do While table.ReadRecord()
+    Print table("Player"); CLng(table("Score")) * 2; " "; Replace(table("Comment"), vbLf, "\n")
+Loop
+table.Close
+Kill "scores.csv"
+```
+
+```output
+Ann 2400  first place
+Bob 1900  lost a life on\nlevel 3
+Cy 1400  
+```
+
+### Settings
+
+| Property | Default | What it sets |
+|---|---|---|
+| `Delimiter` | `","` | the field separator, one character: `";"` (common in Germany and France, where the comma is the decimal point), `vbTab` |
+| `Quote` | `""""` (a `"`) | the quote character; `""` for none, and quotes are then ordinary characters |
+| `HasHeader` | False | the first record holds the column names (`Headers`, `Field(name)`) |
+| `TrimFields` | False | remove spaces and tabs around fields when reading |
+| `QuoteAll` | False | put every field in quotes when writing |
+| `LineEnding` | `vbLf` | what is written after each record; `vbCrLf` for programs on other systems that want it |
+
+When reading, LF, CR LF and CR line ends are all understood, and a UTF-8 byte order mark at the
+start of the text is skipped. The text isn't converted: a file in UTF-8 gives UTF-8 Strings.
+
+*Listing 20.57* (`examples/book/ch20-libraries/listing-20-57.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim table As Csv
+Set table = CreateObject("Csv")
+table.Delimiter = ";"
+table.LoadText "1; 2 ;3" & vbLf & "a;""b;c"";d"
+table.ReadRecord: Print Join(table.Fields, "|")
+table.ReadRecord: Print Join(table.Fields, "|")
+table.TrimFields = True
+table.LoadText "1; 2 ;3"
+table.ReadRecord: Print Join(table.Fields, "|")
+```
+
+```output
+1| 2 |3
+a|b;c|d
+1|2|3
+```
+
+### Errors
+
+| `Err.Number` | Meaning |
+|---|---|
+| 53 | `Open`: the file isn't there |
+| 57 | the file can't be read |
+| 75 | `Create`: the file can't be created |
+| 61 | writing failed (the disk is full) |
+| 380 | a bad `Delimiter` or `Quote`: more than one character, or both the same |
+| 5 | `Field` with a column name that doesn't exist (`Err.Description` names it) |
+| 9 | a negative field index |
+
+*Listing 20.58* (`examples/book/ch20-libraries/listing-20-58.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim table As Csv, s As String
+Set table = CreateObject("Csv")
+On Error Resume Next
+table.Delimiter = ",,"
+Print "delimiter:"; Err.Number: Err.Clear
+table.Open "no such file.csv"
+Print "open:"; Err.Number: Err.Clear
+table.HasHeader = True
+table.LoadText "a,b" & vbLf & "1,2"
+table.ReadRecord
+s = table.Field("c")
+Print "column:"; Err.Number; " "; Err.Description: Err.Clear
+Print "missing field: ["; table.Field(5); "]"; Err.Number
+```
+
+```output
+delimiter: 380 
+open: 53 
+column: 5  no column named c
+missing field: [] 0 
+```
+
+## Unique identifiers: CreateUUID
+
+`CreateUUID()` returns a new, random UUID ("universally unique identifier"): 36 characters of
+hexadecimal digits in lower case, with dashes, such as `3f2b8c1e-9d4a-4e7b-a5c2-0d8e6f1b2a93`.
+
+| Function | Returns |
+|---|---|
+| `CreateUUID()` | a new random UUID (version 4), as a String of 36 characters |
+
+Use one when a record, a file or a message needs a name that nobody else will ever pick: keys
+for database records made on several machines, names for temporary files, session numbers
+for a network protocol. Each call gives a different value; the chance of two UUIDs ever being
+the same is negligible (122 of their 128 bits are random).
+
+The form is always `xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`: the `4` marks a random UUID
+(version 4), and `y` is one of `8`, `9`, `a` or `b` (the standard variant, RFC 4122). So a
+program can check that a String looks like one of its UUIDs:
+
+*Listing 20.59* (`examples/book/ch20-libraries/listing-20-59.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim id As String, other As String
+id = CreateUUID()
+other = CreateUUID()
+Print Len(id); id Like "????????-????-4???-????-????????????"; InStr("89ab", Mid(id, 20, 1)) > 0
+Print "different:"; id <> other
+```
+
+```output
+ 36 TrueTrue
+different:True
+```
+
+Where the random numbers come from: on AmigaOS the generator is seeded from the EClock, the
+time and memory addresses, and stirred again from the clock on every call; on the host it uses
+the system's random source (`/dev/urandom`). That is good for identifiers. For passwords and
+encryption keys, use a cryptographic random source instead.
+
+## Running commands: Process
+
+`Process` runs a Shell command, waits until it has finished, and gives you what it printed and
+its return code. It also reads and sets environment variables. With it, a program can use the
+commands AmigaOS already has (`List`, `Search`, `Version`, `LhA`, ...) and work with their
+results.
+
+*Listing 20.60* (`examples/book/ch20-libraries/listing-20-60.bas`)
+
+```basic
+Option Explicit
+Dim p As Process
+Set p = CreateObject("Process")
+If p.Run("Version") = 0 Then Print "This is "; p.Output
+```
+
+`Shell` ([chapter 10](10-files.md)) runs a command and waits for it too, but gives you only its
+return code: what the command prints goes to the console. Use `Process` when you need the
+output.
+
+### Running a command
+
+| Member | What it does |
+|---|---|
+| `Run(command [, input])` | runs the command line and waits until it has finished. input, if you give it, is what the command reads as its input. Returns the exit code. |
+| `Output` | what the command wrote to its standard output (the default member) |
+| `ErrorOutput` | what it wrote to its error output |
+| `OutputLines()` | `Output` split into lines, as an array from 0 (LF or CR LF line ends; no empty last element for the final line end) |
+| `ExitCode` | the last command's exit code |
+| `CommandLine` | the last command line |
+
+`Output`, `ErrorOutput`, `ExitCode` and `CommandLine` are read-only (error 383), and keep their
+values until the next `Run`. `Run` can also be used as a statement when you don't need the exit
+code at once: `p.Run "Delete T:old#?"`.
+
+The command goes to the system's shell. On AmigaOS that is the user shell, so aliases, the
+`Path`, `$variables`, redirection and several commands in one String, separated by line feeds,
+all work. On the host it is `/bin/sh -c`.
+
+*Listing 20.61* (`examples/book/ch20-libraries/listing-20-61.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim p As Process, rc As Long
+Set p = CreateObject("Process")
+rc = p.Run("echo hello world")
+Print "exit code"; rc; ", output ["; Replace(p.Output, vbLf, "\n"); "]"
+Print "the command was: "; p.CommandLine
+```
+
+```output
+exit code 0 , output [hello world\n]
+the command was: echo hello world
+```
+
+**Exit codes.** On AmigaOS the exit code is the command's return code: 0 for OK, 5 WARN, 10
+ERROR, 20 FAIL. `Search`, for example, returns 5 when it finds nothing. On the host it is the program's exit status (127: the command
+wasn't found).
+
+A command that starts but fails is not a run-time error: check the exit code, and look at
+`ErrorOutput` for the message.
+
+*Listing 20.62* (`examples/book/ch20-libraries/listing-20-62.bas`)
+
+```basic
+Option Explicit
+Dim p As Process
+Set p = CreateObject("Process")
+If p.Run("Search S: Boing QUIET") = 5 Then
+    Print "No file in S: mentions Boing"
+End If
+If p.Run("Type nonexistent-file") <> 0 Then
+    Print "Type failed with"; p.ExitCode; ": "; p.Output; p.ErrorOutput
+End If
+```
+
+**Output line by line.** `OutputLines` gives an array to go through with `For Each`:
+
+*Listing 20.63* (`examples/book/ch20-libraries/listing-20-63.bas`)
+
+```basic
+Option Explicit
+Dim p As Process, f As Variant
+Set p = CreateObject("Process")
+p.Run "List RAM: FILES LFORMAT %N"          ' the names of the files in RAM:, one per line
+For Each f In p.OutputLines()
+    Print "file: "; f
+Next
+```
+
+**Input.** The second argument of `Run` is what the command reads as its input. On AmigaOS
+that is the command's `Input()` stream: what a command reads when it asks for its arguments
+with `?`, or when it reads from its standard input. `Echo ?` asks for Echo's arguments, so it
+echoes the input back:
+
+*Listing 20.64* (`examples/book/ch20-libraries/listing-20-64.bas`)
+
+```basic
+Option Explicit
+Dim p As Process
+Set p = CreateObject("Process")
+p.Run "Echo ?", "hello" & vbLf
+Print p.Output
+```
+
+Give each line of input its line end (`vbLf`), as if someone typed it. Some commands read the
+console window directly instead of their input, and don't see this text.
+
+**How the output is collected.** On AmigaOS the output is written to files in `T:` while the
+command runs, and read when it has finished; on the host it comes through pipes. Either way the
+whole output is kept in memory, so a command that prints megabytes needs megabytes of memory.
+The program waits while the command runs; in a form program, the window doesn't respond
+meanwhile, so run long commands with care.
+
+### Environment variables
+
+| Member | What it does |
+|---|---|
+| `GetEnv(name)` | the value of a variable, `""` if it isn't set (the same as `Environ(name)`) |
+| `SetEnv name, value` | sets a variable for this program and the commands it runs. `SetEnv name` with no value, or with `""`, removes it. On AmigaOS this is a *local* variable (one of the program's shell, as the `Set` command makes), never a global one in `ENV:`. Error 5 for a name that can't be used. |
+| `Environment()` | all the variables, as an array of `"NAME=value"` Strings from 0. On AmigaOS: the local variables first, then the global ones in `ENV:` (only the top level, not the drawers inside it). |
+
+`Environ(n)` ([chapter 10](10-files.md)), with n counting from 1, gives the same list one
+entry at a time.
+
+*Listing 20.65* (`examples/book/ch20-libraries/listing-20-65.bas`)
+
+<!-- run -->
+```basic
+Option Explicit
+Dim p As Process, v As Variant, found As Boolean
+Set p = CreateObject("Process")
+p.SetEnv "BOING_GREETING", "hello from Boing"
+Print "GetEnv: "; p.GetEnv("BOING_GREETING")
+Print "Environ: "; Environ("BOING_GREETING")
+For Each v In p.Environment()
+    If v = "BOING_GREETING=hello from Boing" Then found = True
+Next
+Print "in Environment():"; found
+p.Run "echo $BOING_GREETING"                ' the command sees it too
+Print "the command printed: "; p.OutputLines()(0)
+p.SetEnv "BOING_GREETING"                   ' removed
+Print "removed: ["; p.GetEnv("BOING_GREETING"); "]"
+```
+
+```output
+GetEnv: hello from Boing
+Environ: hello from Boing
+in Environment():True
+the command printed: hello from Boing
+removed: []
+```
+
+### Errors
+
+| `Err.Number` | Meaning |
+|---|---|
+| 31201 | the command couldn't be started at all (no shell, or on AmigaOS `T:` isn't writable) |
+| 5 | `SetEnv` with a name that can't be used |
+| 383 | assigning to `Output`, `ErrorOutput`, `ExitCode` or `CommandLine` |
+
 ## Summary
 
 - `Dictionary` maps keys to values; `JsonParse` turns JSON text into Dictionaries and arrays,
@@ -1619,6 +2542,9 @@ and `boing run wordfreq.bbp RAM:words.json` saves the whole document, laid out w
 - `Crc32`, `Md5`, `Sha1`, `Sha256` and the HMAC functions check and sign data.
 - `NowUtc`, `UnixTime`, `FormatIso8601` and friends handle times the way web services expect.
 - Build long strings with a `StringBuilder`.
+- `RegExp` matches, extracts and replaces text by patterns.
+- `Csv` reads and writes CSV files; `CreateUUID` makes unique IDs; `Process` runs Shell commands
+  and captures their output.
 
 See also: [Networking](19-networking.md) for fetching the data, [Built-in functions](09-builtins.md)
 and [Files](10-files.md).
