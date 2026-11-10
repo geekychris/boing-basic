@@ -1,0 +1,6 @@
+# Boing BASIC project: exercise 9, counting primes in BASIC, in C and with a C extension
+Name=Sieve
+Startup=Sub Main
+Module=sieve.bas
+CSource=primes.c
+Extension=bits

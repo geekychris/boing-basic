@@ -378,6 +378,16 @@ native, and checks the others compile.
 | 19.8 | [ch19-networking/webfetch/webfetch.bbp](ch19-networking/webfetch/webfetch.bbp) | A web page in a form |
 | 19.9 | [ch19-networking/repoinfo/repoinfo.bbp](ch19-networking/repoinfo/repoinfo.bbp) | A web page in a form |
 
+## Extending Boing BASIC
+
+[20-extending.md](../../docs/manual/20-extending.md), drawer `ch20-extending/`
+
+| Listing | File | Section |
+|---|---|---|
+| 20.1 | [ch20-extending/cfuncs/cfuncs.bbp](ch20-extending/cfuncs/cfuncs.bbp) | Calling your own C functions: Declare Lib "C" |
+| 20.2 | [ch20-extending/mathx/demo.bbp](ch20-extending/mathx/demo.bbp) | Extensions: new objects and functions |
+| 20.3 | [ch20-extending/textutil/demo.bbp](ch20-extending/textutil/demo.bbp) | An extension in C++ |
+
 ## Exercises
 
 | Exercise | Drawer |
@@ -390,3 +400,4 @@ native, and checks the others compile.
 | ex06-canvas-game | [ex06-canvas-game/Squash.bbp](ex06-canvas-game/Squash.bbp) |
 | ex07-3d-scene | [ex07-3d-scene/Scene3D.bbp](ex07-3d-scene/Scene3D.bbp) |
 | ex08-sound | [ex08-sound/PlayMod.bas](ex08-sound/PlayMod.bas) |
+| ex09-extending | [ex09-extending/Sieve.bbp](ex09-extending/Sieve.bbp) |

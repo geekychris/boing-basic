@@ -29,7 +29,7 @@ console programs are run and their output compared with the text shown here.
 | 6 | [A Canvas game](06-canvas-game.md) | "Boing Squash", a bat-and-ball game | the Canvas, a Timer game loop, the keyboard, game states, frame timing |
 | 7 | [A 3D scene](07-3d-scene.md) | spinning models on a chequered floor | Engine3D: models, a floor grid, the camera, lighting, fog |
 | 8 | [Sound](08-sound.md) | a sound board | the Audio object: modules, synthesised sound effects, samples, sliders |
-| 9 | [Extending Boing BASIC](09-extending.md) | your own C code called from BASIC | calling C, writing an extension |
+| 9 | [Faster with C](09-extending.md) | a prime sieve sped up with a C function and a C extension class | Declare Lib "C", writing an extension, the cost of calls |
 
 ## What you need
 

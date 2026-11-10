@@ -1,0 +1,9 @@
+# bits.bbx - step 3: a BitSet class written in C
+class BitSet
+  method Resize(ByVal size As Long)
+  method SetBit(ByVal i As Long)
+  method TestBit(ByVal i As Long) As Boolean
+  method SetEvery(ByVal start As Long, ByVal stepBy As Long)
+  method NextClear(ByVal from As Long) As Long
+  property-ro Size As Long
+  property-ro Count As Long
