@@ -29,8 +29,9 @@ project asks for with `Extension=sqlite` (see [SQL databases](#sql-databases-sql
 
 Each library's classes are created with `New` or `CreateObject` like the runtime's other
 objects; its functions are called like built-in functions. One rule applies to all of them:
-names in Boing BASIC aren't case-sensitive, so a module or variable named like a class hides it.
-Don't call a program `dictionary.bas`, or a variable `stringbuilder`.
+names in Boing BASIC aren't case-sensitive, so a variable named like a class hides it: don't call
+a variable `stringbuilder` or `csv`. (A module named like a class, such as a program
+`dictionary.bas`, is fine: after `As` and `New` the name still means the class.)
 
 ## Dictionary
 
@@ -256,9 +257,9 @@ C             Dictionary
 first         second         2 
 ```
 
-Arrays are values, objects are references. You can't change one element of an array inside a
-Dictionary in place (`user("langs")(1) = "Pascal"` is error 424): read the array into a
-variable, change it, and store it back with `user("langs") = langs`.
+Arrays are values, objects are references. You can still change one element of an array held
+in a Dictionary in place: `user("langs")(1) = "Pascal"` updates the stored array (so do deeper chains, such
+as `d("rows")(1)(0) = 30` for an array of arrays).
 
 ### Errors
 
@@ -297,10 +298,8 @@ Print Err.Number; Err.Description
 
 ### Gotchas
 
-- **Don't call a module `dictionary.bas`.** A module takes its name from its file, and a
-  module named `Dictionary` hides the class: `Dim d As Dictionary` then stops with "type
-  'Dictionary' is not defined". The same goes for `stringbuilder.bas` and `http.bas`. Call
-  the file `wordcount.bas`, `stock.bas` or similar.
+- **A module may be called `dictionary.bas`**: `Dim d As New Dictionary` still means the
+  class there. Only a variable or parameter named `dictionary` would hide it.
 - `d(key)` for a missing key gives `Empty`, which prints as nothing and compares equal to 0
   and to `""`. Use `Exists` when "not there" and "0" must be told apart.
 - Keys from text are Strings: `d("1")` and `d(1)` are different entries.
@@ -1616,7 +1615,6 @@ and `boing run wordfreq.bbp RAM:words.json` saves the whole document, laid out w
 
 ### Gotchas
 
-- Don't call a module `stringbuilder.bas`: it hides the class (see [Dictionary](#dictionary)).
 - `Append` and `AppendLine` return the StringBuilder. Called as a statement
   (`sb.Append "x"`) the result is simply dropped; that is fine.
 - `AppendLine` adds a line feed only, the Amiga's line end. For text that must have CR LF line

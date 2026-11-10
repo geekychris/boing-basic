@@ -742,9 +742,9 @@ features are in [The AmigaOS 4 desktop](18-desktop.md).
 
 A module of your own may be called `App` (for example a program `app.bas`): `App.Path`,
 `App.Title` and the other members still reach the `App` object, unless your module has a
-public member of the same name. The names of the built-in classes (`Http`, `Canvas`, `Audio`,
-`Engine3D`, `Collection`) are different: a program `http.bas` that uses `Http` is stopped by
-`boing check` with "the module 'http' hides the built-in class Http: rename the module".
+public member of the same name. The same goes for the runtime's classes: in a program
+`http.bas`, `Dim h As Http` and `New Http` still mean the class (only `http.Something` means
+your module). The one exception is `Collection`: a module `collection.bas` is an error.
 
 ## The command line and the environment
 

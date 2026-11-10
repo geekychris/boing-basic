@@ -27,9 +27,8 @@ End If
 Declaring the variable `As Http` lets the compiler check the names you use (`web.Gte` is an
 error when you compile, not when the program runs), and lets AmiForge complete them.
 
-Don't name your program or one of its modules `http.bas`: the module `http` would take the
-class's name, and `boing check` stops with "the module 'http' hides the built-in class Http:
-rename the module". Call it `webfetch.bas` or similar.
+A program or module may be called `http.bas`: after `As` and `New`, `Http` still means the
+class. A clearer name such as `webfetch.bas` avoids confusing a reader, though.
 
 ### What AmigaOS needs
 
@@ -846,9 +845,8 @@ closed when the last reference to it goes away (the last variable that holds it 
 Declare the variable `As Socket`: then the compiler checks the member names you use, and
 AmiForge can complete them.
 
-Don't name your program or one of its modules `socket.bas`. The module `socket` would take the
-class's name, and `boing check` stops with "the module 'socket' hides the built-in class
-Socket: rename the module".
+A module named `socket.bas` doesn't get in the way of the class: after `As` and `New`, `Socket`
+means the class.
 
 ### A server and a client with waiting calls
 
