@@ -1,4 +1,4 @@
-# Networking and modern libraries
+# Networking
 
 This chapter shows how a Boing BASIC program talks to the internet: fetching web pages,
 calling web services that answer in JSON, posting data and downloading files, over HTTP and

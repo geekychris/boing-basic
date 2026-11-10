@@ -390,7 +390,7 @@ native, and checks the others compile.
 | 18.25 | [ch18-desktop/game/Game.bbp](ch18-desktop/game/Game.bbp) | Games on the desktop |
 | 18.26 | [ch18-desktop/fullscreen/FullScreen.bbp](ch18-desktop/fullscreen/FullScreen.bbp) | A full-screen game on its own screen |
 
-## Networking and modern libraries
+## Networking
 
 [19-networking.md](../../docs/manual/19-networking.md), drawer `ch19-networking/`
 

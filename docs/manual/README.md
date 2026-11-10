@@ -63,3 +63,5 @@ provide.
 - Every code example is tested: `tools/manual-check.py` compiles each one with `boing check`,
   and runs those that print, comparing their output with the manual (`make manual-test` in the
   Boing BASIC sources).
+- The manual is also available as a PDF book: `make manual-pdf` (in the Boing BASIC sources)
+  writes `build/BoingBASIC-Manual.pdf`; the kit has it in its `Docs` drawer.

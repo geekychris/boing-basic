@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import struct
+import subprocess
 import sys
 import time
 
@@ -569,6 +570,18 @@ def assemble(o):
             shutil.copy(os.path.join(icons, "doc.info"), os.path.join(mdir, name + ".info"))
         open(os.path.join(docs, "BoingBASIC-Manual.guide"), "wb").write(md2guide(mf, "Boing BASIC user manual"))
         shutil.copy(os.path.join(icons, "doc.info"), os.path.join(docs, "BoingBASIC-Manual.guide.info"))
+        # the manual as a PDF (for TrapezePDF / AmiPDF), when pandoc and asciidoctor-pdf are here
+        pdf = os.path.join(docs, "BoingBASIC-Manual.pdf")
+        tool = os.path.join(bb, "tools", "manual-pdf.py")
+        if os.path.exists(tool) and shutil.which("pandoc") and shutil.which("asciidoctor-pdf"):
+            env = dict(os.environ, MANUAL_VERSION=str(o.get("bb-rev", ""))[:10])
+            r = subprocess.run([sys.executable, tool, "--out", pdf], capture_output=True, text=True, env=env)
+            if r.returncode == 0 and os.path.exists(pdf):
+                shutil.copy(os.path.join(icons, "doc.info"), pdf + ".info")
+            else:
+                print("kit: the manual's PDF wasn't built:", r.stderr.strip()[-300:])
+        else:
+            print("kit: no PDF of the manual (pandoc or asciidoctor-pdf missing)")
     # the examples
     exs = examples(bb)
     os.makedirs(os.path.join(top, "Examples"))

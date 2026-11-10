@@ -92,13 +92,19 @@ test: all
 	@for t in examples/*/tests/host-test.sh; do sh $$t || exit 1; done
 	@python3 tools/manual-check.py
 
+manual-pdf:
+	sh tools/manual-pdf.sh $(PDF_ARGS)
+
+manual-pdf-test:
+	python3 tools/manual-pdf-test.py
+
 manual-test: all
 	python3 tools/manual-check.py --verbose
 
 clean:
 	rm -rf $(B)
 
-.PHONY: all test clean FORCE manual-test
+.PHONY: all test clean FORCE manual-test manual-pdf manual-pdf-test
 
 bench: all
 	python3 tools/bench.py $(BENCH_ARGS)
