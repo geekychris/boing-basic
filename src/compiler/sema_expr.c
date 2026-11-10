@@ -117,6 +117,7 @@ ClassInfo *find_class(Ctx *c, const char *name)
 {
     Sym *s = scope_find(c->scope, name);
     if (s && s->kind == SK_CLASS) return s->cls;
+    if (s && s->kind == SK_MODULE && s->cls) return s->cls;     /* New Dictionary in dictionary.bas */
     return NULL;
 }
 

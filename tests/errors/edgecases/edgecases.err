@@ -2,4 +2,3 @@ collection.bas:1:1: error: the module 'collection' hides the built-in class Coll
 main.bas:7:13: error: ByRef parameter 'n' of Declare Foo needs a Long variable, not a value in parentheses (or declare it ByVal)
 main.bas:8:13: error: ByRef parameter 's' of Declare Bar needs a String variable (or declare it ByVal)
 main.bas:9:13: error: ByRef parameter 'i' of Declare Baz needs an Integer variable (or declare it ByVal)
-main.bas:11:13: error: the module 'http' hides the built-in class Http: rename the module
