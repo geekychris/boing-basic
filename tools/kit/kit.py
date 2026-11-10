@@ -474,6 +474,25 @@ def getting_started(exs, bb_rev, af_rev):
     return latin1("\n".join(L) + "\n")
 
 
+def book_icons(book, top, mi, icons):
+    """Workbench icons in Examples/Book (an icons-only drawer shows nothing without them): a drawer
+    icon per chapter/exercise drawer, and a project icon (default tool AmiForge, as many levels up
+    as the file is deep) on each .bbp project and each listing-*.bas."""
+    made = {}
+    for dirpath, dirnames, filenames in os.walk(book):
+        for d in dirnames:
+            shutil.copy(os.path.join(icons, "drawer.info"), os.path.join(dirpath, d + ".info"))
+        up = len(os.path.relpath(dirpath, top).split(os.sep))
+        for f in filenames:
+            if f.endswith(".bbp") or (f.startswith("listing-") and f.endswith(".bas")):
+                kind = "bbp" if f.endswith(".bbp") else "bas"
+                key = (kind, up)
+                if key not in made:
+                    img = mi.icon_project() if kind == "bbp" else mi.icon_doc()
+                    made[key] = mi.disk_object(mi.WBPROJECT, img, default_tool="/" * up + "AmiForge", stack=524288)
+                open(os.path.join(dirpath, f + ".info"), "wb").write(made[key])
+
+
 def assemble(o):
     bb, af, icons = o["bb"], o["af"], o["icons"]
     mi = make_icons_module(af)
@@ -489,6 +508,16 @@ def assemble(o):
     shutil.copy2(os.path.join(bb, "build", "os4", "boing"), os.path.join(top, "boing"))
     os.makedirs(os.path.join(top, "lib"))
     shutil.copy2(os.path.join(bb, "build", "os4", "libboing.a"), os.path.join(top, "lib", "libboing.a"))
+    # libboingvm.a: main.o, the compiler and the VM, for `boing vm` on the Amiga (an interpreter
+    # with a project's extensions; AmiForge's Run uses it for projects with Extension=)
+    vm = os.path.join(bb, "build", "os4", "libboingvm.a")
+    if os.path.exists(vm):
+        shutil.copy2(vm, os.path.join(top, "lib", "libboingvm.a"))
+    # the standard extensions (Extension=NAME without a directory): PROGDIR:ext/ beside boing
+    if os.path.isdir(os.path.join(bb, "ext")):
+        shutil.copytree(os.path.join(bb, "ext"), os.path.join(top, "ext"),
+                        ignore=shutil.ignore_patterns(".*", "*.o", "tests", "build"))
+        drawer("ext")
     rt = os.path.join(bb, "src", "runtime")
     for dirpath, _, filenames in os.walk(rt):
         for f in filenames:
@@ -539,6 +568,7 @@ def assemble(o):
         shutil.copytree(os.path.join(bb, "examples", "book"), os.path.join(top, "Examples", "Book"),
                         ignore=shutil.ignore_patterns(".*", "shots"))
         drawer("Examples/Book")
+        book_icons(os.path.join(top, "Examples", "Book"), top, mi, icons)
     for e in exs:
         dest = os.path.join(top, "Examples", e["dir"])
         e["staged"] = stage_example(e, bb, dest, mi, icons, o["native"])
