@@ -941,6 +941,7 @@ static void vm_exec(VM *vm, int entry)
                 while (vm->nframes - 1 > i) {
                     Frame *t = &vm->frames[vm->nframes - 1];
                     while (vm->sp > t->base + t->proc->nlocals) release_slot(--vm->sp);
+                    t->in_handler = 0;          /* the error passes on: pop_frame must not clear Err */
                     pop_frame(vm);
                 }
                 while (vm->sp > f->base + f->proc->nlocals) release_slot(--vm->sp);
@@ -961,6 +962,7 @@ static void vm_exec(VM *vm, int entry)
             while (vm->nframes > entry) {
                 Frame *t = &vm->frames[vm->nframes - 1];
                 while (vm->sp > t->base + t->proc->nlocals) release_slot(--vm->sp);
+                t->in_handler = 0;              /* the error passes on: pop_frame must not clear Err */
                 pop_frame(vm);
             }
             bb_frame_pop(&ef);
@@ -1952,6 +1954,13 @@ static void vm_exec(VM *vm, int entry)
             case I_STOP: bb_frame_pop(&ef); bb_console_flush(); bb_print_cstr(0, "Stop\n"); bb_exit(0); break;
 
             case I_ONERR:
+                if (pc[1] == OE_CLEAREX) {
+                    /* On Error GoTo -1: leave the handler (a new error is handled again), Err cleared */
+                    fr->in_handler = 0;
+                    bb_err_clear();
+                    pc += 3;
+                    break;
+                }
                 fr->handler_mode = pc[1];
                 fr->handler_pc = pc[2];
                 if (!fr->in_handler) bb_err_clear();

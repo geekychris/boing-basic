@@ -111,8 +111,14 @@ int bb_decl_resolve(const char *lib, const char *iface, int version, const char 
     int slot = -1;
     if (alias && alias[0] == '#') slot = atoi(alias + 1);
     else slot = find_slot(lib, iface, alias && *alias ? alias : name);
-    if (slot < 4) return 453;       /* not found, or Obtain/Release/Expunge/Clone */
-    struct opened *o = open_interface(lib, iface, version);
+    struct opened *o;
+    if (slot < 4) {
+        /* not found, or Obtain/Release/Expunge/Clone: 48 if the library itself does not open (a
+           misspelt name), else 453 (no such function in it) */
+        o = open_interface(lib, iface, version);
+        return o ? 453 : 48;
+    }
+    o = open_interface(lib, iface, version);
     if (!o) return 48;
     /* Data.PositiveSize: InterfaceData + the function vector */
     uint32 size = o->ifc->Data.PositiveSize;

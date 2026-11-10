@@ -106,6 +106,11 @@ static Type *resolve_type_n(Ctx *c, Node *tn, char suffix, int *fixlen, const ch
     if (s && s->kind == SK_UDT) return type_udt(s->udt);
     if (s && s->kind == SK_CLASS) return type_object(s->cls);
     if (s && s->kind == SK_ENUM) return &ty_long;
+    if (s && s->kind == SK_MODULE && bb_runtime_class(n)) {
+        /* a module named like a built-in class (http.bas and Http) takes its name */
+        ERR(c, tn, "the module '%s' hides the built-in class %s: rename the module", s->name, n);
+        return &ty_variant;
+    }
     ERR(c, tn, "type '%s' is not defined", n);
     return &ty_variant;
 }
@@ -1279,7 +1284,7 @@ static void add_vb_constants(Program *p)
         {"vbEmpty", T_LONG, 0, 0}, {"vbNull", T_LONG, 1, 0}, {"vbInteger", T_LONG, 2, 0}, {"vbLong", T_LONG, 3, 0},
         {"vbSingle", T_LONG, 4, 0}, {"vbDouble", T_LONG, 5, 0}, {"vbCurrency", T_LONG, 6, 0}, {"vbDate", T_LONG, 7, 0},
         {"vbString", T_LONG, 8, 0}, {"vbObject", T_LONG, 9, 0}, {"vbError", T_LONG, 10, 0}, {"vbBoolean", T_LONG, 11, 0},
-        {"vbVariant", T_LONG, 12, 0}, {"vbByte", T_LONG, 17, 0}, {"vbUserDefinedType", T_LONG, 36, 0},
+        {"vbVariant", T_LONG, 12, 0}, {"vbDecimal", T_LONG, 14, 0}, {"vbByte", T_LONG, 17, 0}, {"vbUserDefinedType", T_LONG, 36, 0},
         {"vbArray", T_LONG, 8192, 0},
         {"vbSunday", T_LONG, 1, 0}, {"vbMonday", T_LONG, 2, 0}, {"vbTuesday", T_LONG, 3, 0},
         {"vbWednesday", T_LONG, 4, 0}, {"vbThursday", T_LONG, 5, 0}, {"vbFriday", T_LONG, 6, 0},

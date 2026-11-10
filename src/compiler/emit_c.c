@@ -748,6 +748,8 @@ static R call(EC *e, Node *n)
             else if (a->ty->kind == T_STRING) s = xsprintf("(uint32_t)(uintptr_t)bb_str_ptr(%s)", val(e, a));
             else if (a->ty->kind == T_OBJECT) s = xsprintf("(uint32_t)(uintptr_t)%s", val(e, a));
             else if (a->ty->kind == T_VARIANT || a->ty->kind == T_ANY) s = xsprintf("(uint32_t)bb_v_to_long(%s)", val(e, a));
+            else if (a->ty->kind == T_SINGLE || a->ty->kind == T_DOUBLE)
+                s = xsprintf("(uint32_t)bb_clng((double)(%s))", val(e, a));      /* rounded, as the VM does */
             else if (is_scalar(a->ty)) s = xsprintf("(uint32_t)(int32_t)(%s)", val(e, a));
             else s = xsprintf("(uint32_t)(uintptr_t)%s", addr(e, a));
             buf_printf(&b, "%s%s", i ? ", " : "", s);
@@ -1437,6 +1439,7 @@ static void stmt(EC *e, Node *s)
     case S_ONERROR:
         if (s->op == ONERR_GOTO) out(e, "bb_mode = 1; bb_hlabel = %d; if (!bb_inh) bb_err_clear();", s->sym ? s->sym->label_id : 0);
         else if (s->op == ONERR_RESUMENEXT) out(e, "bb_mode = 2; if (!bb_inh) bb_err_clear();");
+        else if (s->op == ONERR_GOTOM1) out(e, "bb_inh = 0; bb_err_clear();");     /* GoTo -1: out of the handler, its handler stays */
         else out(e, "bb_mode = 0; if (!bb_inh) bb_err_clear();");
         return;
     case S_RESUME:

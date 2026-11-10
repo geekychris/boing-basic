@@ -1765,7 +1765,7 @@ static void stmt1(E *e, Node *s)
     case S_ONERROR:
         emit_w(e, I_ONERR);
         if (s->op == ONERR_GOTO) { emit_w(e, OE_GOTO); label_ref(e, s->sym, emit_w(e, 0)); }
-        else { emit_w(e, s->op == ONERR_RESUMENEXT ? OE_RESUMENEXT : OE_NONE); emit_w(e, 0); }
+        else { emit_w(e, s->op == ONERR_RESUMENEXT ? OE_RESUMENEXT : s->op == ONERR_GOTOM1 ? OE_CLEAREX : OE_NONE); emit_w(e, 0); }
         return;
     case S_RESUME:
         emit_w(e, I_RESUME);
