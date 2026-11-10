@@ -183,6 +183,7 @@ struct bb_net {
     SSL *ssl;
     int nonblock;               /* made by the socket functions below */
     int udp;
+    void *owner;                /* the netctx of the task that opened it */
 };
 
 static void set_timeouts(int fd, int ms)
@@ -285,6 +286,7 @@ int bb_net_open(const char *host, int port, int tls, const bb_tls_opts *opts, in
     if (rc) return rc;
     bb_net *n = calloc(1, sizeof *n);
     n->fd = fd;
+    n->owner = net_ctx();
     if (tls) {
         int verify = !opts || opts->verify;
         n->ctx = ISSL->SSL_CTX_new(ISSL->TLS_client_method());
@@ -417,6 +419,7 @@ static bb_net *wrap(int fd, int udp)
     bb_net *n = calloc(1, sizeof *n);
     LONG one = 1;
     n->fd = fd;
+    n->owner = net_ctx();
     n->nonblock = 1;
     n->udp = udp;
     ISock->IoctlSocket(fd, FIONBIO, (APTR)&one);
@@ -704,3 +707,5 @@ int bb_net_machine_addr(char *host, int hostlen)
     ISock->CloseSocket(fd);
     return ok;
 }
+/* a socket belongs to the task whose bsdsocket base opened it */
+int bb_net_owned(bb_net *n) { return n && n->owner == (void *)net_ctx(); }

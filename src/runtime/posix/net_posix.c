@@ -581,3 +581,5 @@ int bb_net_machine_addr(char *host, int hostlen)
     close(fd);
     return ok;
 }
+
+int bb_net_owned(bb_net *n) { return n != NULL; }   /* threads share sockets */

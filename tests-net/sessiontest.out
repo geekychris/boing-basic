@@ -1,0 +1,32 @@
+ok 1 - KeepAlive and UseCookies are on by default
+ok 2 - the first request opens a connection
+ok 3 - the second one reuses it
+ok 4 - a POST over the kept connection
+ok 5 - the server's Connection: close...
+ok 6 - ...means a new connection next time
+ok 7 - KeepAlive = False: a connection per request
+ok 8 - a chunked answer after a big one, kept
+ok 9 - a kept connection the server dropped: a new one, silently
+ok 10 - HTTPS keeps its connection too
+ok 11 - Set-Cookie is stored
+ok 12 - and sent back where its Path matches
+ok 13 - longer paths first
+ok 14 - the same name replaces it
+ok 15 - Max-Age=0 deletes it
+ok 16 - an Expires in the past isn't stored
+ok 17 - an Expires in the future is
+ok 18 - a cookie for another domain is refused
+ok 19 - a Secure cookie isn't sent over http
+ok 20 - a cookie set by a redirect is sent to its target
+ok 21 - SetCookie
+ok 22 - Cookies as text
+ok 23 - ClearCookies
+ok 24 - Cookies = text loads them
+ok 25 - UseCookies = False: none sent
+ok 26 - a Cookie header of your own wins
+ok 27 - SetCookie with a bad name: error 5
+ok 28 - an async request stores cookies
+ok 29 - and sends them
+ok 30 - the jar is busy while a request runs
+ok 31 - keep-alive after async requests
+PASS 31
