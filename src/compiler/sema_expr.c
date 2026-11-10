@@ -196,6 +196,16 @@ int fold_const(Ctx *c, Node *e, CVal *out)
     return 0;
 }
 
+/* a folded Double/Single constant that overflowed (1E308 * 10) is VB's error 6, when compiling */
+static Node *const_fold_check(Ctx *c, Node *e, CVal *r)
+{
+    if (r->d - r->d != 0 || (r->type == T_SINGLE && (r->d > 3.402823466e38 || r->d < -3.402823466e38))) {
+        ERR(c, e, "overflow (error 6) in a constant expression");
+        return e;
+    }
+    return mk_const_node(e, r);
+}
+
 static Node *fold_binop(Ctx *c, Node *e)
 {
     CVal *a = &e->a->cv, *b = &e->b->cv, r;
@@ -261,7 +271,7 @@ static Node *fold_binop(Ctx *c, Node *e)
             r.type = e->ty->kind;
             r.d = op == OP_ADD ? x + y : op == OP_SUB ? x - y : x * y;
             if (r.type == T_SINGLE) r.d = (float)r.d;
-            return mk_const_node(e, &r);
+            return const_fold_check(c, e, &r);
         }
         return e;
     case OP_DIV: {
@@ -270,13 +280,13 @@ static Node *fold_binop(Ctx *c, Node *e)
         r.type = e->ty->kind == T_SINGLE ? T_SINGLE : T_DOUBLE;
         r.d = x / y;
         if (r.type == T_SINGLE) r.d = (float)r.d;
-        return mk_const_node(e, &r);
+        return const_fold_check(c, e, &r);
     }
     case OP_POW:
         r.type = T_DOUBLE;
         if (cv_num(a) < 0 && cv_num(b) != floor(cv_num(b))) return e;
         r.d = pow(cv_num(a), cv_num(b));
-        return mk_const_node(e, &r);
+        return const_fold_check(c, e, &r);
     case OP_IDIV: case OP_MOD: {
         CVal x, y;
         int t = int_result_type(cv_is_int(a) ? a : &(CVal){T_LONG, 0, 0, 0, 0, 0, 0, 0},
@@ -751,6 +761,12 @@ static Node *byref_arg(Ctx *c, Node *arg, Param *pa, Proc *pr)
     }
     if (pa->ty->kind == T_UDT) {
         if (!type_eq(a->ty, pa->ty)) ERR(c, arg, "type mismatch: %s passed for %s", type_name(a->ty), type_name(pa->ty));
+        return a;
+    }
+    if (pr->kind == PK_DECLARE && type_is_numeric(pa->ty)) {
+        /* the OS function gets a pointer: a constant or another type would pass a number */
+        ERR(c, arg, "ByRef parameter '%s' of Declare %s needs a %s variable (or declare it ByVal)",
+            pa->name, pr->name, type_name(pa->ty));
         return a;
     }
     return coerce(c, a, pa->ty);

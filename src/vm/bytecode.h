@@ -80,7 +80,7 @@ enum {
 /* ERROP sub-operations */
 enum { EO_NUMBER, EO_DESC, EO_SOURCE, EO_SETNUMBER, EO_SETDESC, EO_SETSOURCE, EO_CLEAR, EO_RAISE, EO_ERROR };
 /* ONERR modes */
-enum { OE_NONE, OE_GOTO, OE_RESUMENEXT };
+enum { OE_NONE, OE_GOTO, OE_RESUMENEXT, OE_CLEAREX };   /* OE_CLEAREX: On Error GoTo -1 */
 /* RESUME modes */
 enum { RS_PLAIN, RS_NEXT, RS_LABEL };
 /* VARITH ops */

@@ -947,6 +947,7 @@ static void vm_exec(VM *vm, int entry)
                 while (vm->nframes - 1 > i) {
                     Frame *t = &vm->frames[vm->nframes - 1];
                     while (vm->sp > t->base + t->proc->nlocals) release_slot(--vm->sp);
+                    t->in_handler = 0;          /* the error passes on: pop_frame must not clear Err */
                     pop_frame(vm);
                 }
                 while (vm->sp > f->base + f->proc->nlocals) release_slot(--vm->sp);
@@ -967,6 +968,7 @@ static void vm_exec(VM *vm, int entry)
             while (vm->nframes > entry) {
                 Frame *t = &vm->frames[vm->nframes - 1];
                 while (vm->sp > t->base + t->proc->nlocals) release_slot(--vm->sp);
+                t->in_handler = 0;              /* the error passes on: pop_frame must not clear Err */
                 pop_frame(vm);
             }
             bb_frame_pop(&ef);
@@ -1864,7 +1866,7 @@ static void vm_exec(VM *vm, int entry)
                 break;
             }
             case I_CALLD: {
-                int argc = pc[2] & 0xffff, hasret = (pc[2] >> 16) != 0, i;
+                int argc = pc[2] & 0xffff, hasret = (pc[2] >> 16) != 0, retstr = (pc[2] & 0x20000) != 0, i;
                 bb_value *args = sp - argc;
                 uint32_t w[16];
                 uint32_t r;
@@ -1878,7 +1880,7 @@ static void vm_exec(VM *vm, int entry)
                 r = bb_declare_call(&img->decls[pc[1]], argc, w);
                 for (i = 0; i < argc; i++) release_slot(&args[i]);
                 sp = args;
-                if (hasret) PUSH(bb_v_long((bb_long)r));
+                if (hasret) PUSH(retstr ? bb_v_str(r ? bb_peeks((bb_long)r, -1) : NULL) : bb_v_long((bb_long)r));   /* As String: a C string */
                 pc += 3;
                 break;
             }
@@ -1969,6 +1971,13 @@ static void vm_exec(VM *vm, int entry)
             case I_STOP: bb_frame_pop(&ef); bb_console_flush(); bb_print_cstr(0, "Stop\n"); bb_exit(0); break;
 
             case I_ONERR:
+                if (pc[1] == OE_CLEAREX) {
+                    /* On Error GoTo -1: leave the handler (a new error is handled again), Err cleared */
+                    fr->in_handler = 0;
+                    bb_err_clear();
+                    pc += 3;
+                    break;
+                }
                 fr->handler_mode = pc[1];
                 fr->handler_pc = pc[2];
                 if (!fr->in_handler) bb_err_clear();

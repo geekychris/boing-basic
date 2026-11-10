@@ -725,17 +725,9 @@ static Node *parse_if(P *p, Token *t)
             end_stmt(p);
             parse_block(p, &br->list);
             nl_push(&n->list, br);
-        } else if (iskw(p, KW_ELSE) && tkn(p, 1)->kind == TK_KW && tkn(p, 1)->kw == KW_IF) {
-            /* "Else If" on one line: treat as ElseIf */
-            Token *u = adv(p);
-            adv(p);
-            br = mk(p, S_ELSEIF, u);
-            br->a = expr(p);
-            expect_kw(p, KW_THEN);
-            end_stmt(p);
-            parse_block(p, &br->list);
-            nl_push(&n->list, br);
         } else if (iskw(p, KW_ELSE)) {
+            /* "Else If c Then" on one line is Else followed by a nested If (with its own End If),
+               as in VB; ElseIf is one word */
             adv(p);
             accept(p, TK_COLON);
             if (is(p, TK_NL)) adv(p);

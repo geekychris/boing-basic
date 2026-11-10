@@ -788,6 +788,8 @@ static R call(EC *e, Node *n)
             else if (a->ty->kind == T_STRING) s = xsprintf("(uint32_t)(uintptr_t)bb_str_ptr(%s)", val(e, a));
             else if (a->ty->kind == T_OBJECT) s = xsprintf("(uint32_t)(uintptr_t)%s", val(e, a));
             else if (a->ty->kind == T_VARIANT || a->ty->kind == T_ANY) s = xsprintf("(uint32_t)bb_v_to_long(%s)", val(e, a));
+            else if (a->ty->kind == T_SINGLE || a->ty->kind == T_DOUBLE)
+                s = xsprintf("(uint32_t)bb_clng((double)(%s))", val(e, a));      /* rounded, as the VM does */
             else if (is_scalar(a->ty)) s = xsprintf("(uint32_t)(int32_t)(%s)", val(e, a));
             else s = xsprintf("(uint32_t)(uintptr_t)%s", addr(e, a));
             buf_printf(&b, "%s%s", i ? ", " : "", s);
@@ -797,6 +799,12 @@ static R call(EC *e, Node *n)
                                    b.p ? b.p : "", n->list.n ? "" : "0");
             if (!pr->ret) return mkr(callx, 0);
             if (pr->ret->kind == T_VARIANT) return mkr(xsprintf("bb_v_long((bb_long)%s)", callx), 1);
+            if (pr->ret->kind == T_STRING) {
+                /* As String: the function returns a C string; copied (0 = "") */
+                char *rv = new_temp(e, &ty_long, 0);
+                pre(e, "%s = (bb_long)%s;", rv, callx);
+                return mkr(xsprintf("(%s ? bb_peeks(%s, -1) : NULL)", rv, rv), 1);
+            }
             {
                 char *tn = new_temp(e, pr->ret, 0);
                 pre(e, "%s = (%s)(int32_t)%s;", tn, ctype(pr->ret), callx);
@@ -1258,6 +1266,7 @@ static void foreach_stmt(EC *e, Node *s)
     int id = e->nlabel++, k;
     char *fe = xsprintf("fe%d", id), *fv = xsprintf("fv%d", id), *src;
     Buf saved_rel;
+    size_t stemp_n = e->stemp.n;
     buf_printf(&e->decl, "    bb_foreach %s; bb_value %s = {0, 0, 0, {0}};\n", fe, fv);
     if (s->b->ty->kind == T_ARRAY) {
         char *a = val(e, s->b);
@@ -1274,6 +1283,9 @@ static void foreach_stmt(EC *e, Node *s)
     } else src = val(e, s->b);
     flush_pre(e);
     out(e, "bb_foreach_begin(&%s, %s);", fe, src);
+    /* an error caught inside the loop (Resume Next) must not free the collection's temporaries:
+       they stay in the procedure's cleanup (unwinding) and are released when the loop ends */
+    e->stemp.n = stemp_n;
     /* the collection's temporaries live until the loop ends */
     saved_rel = e->rel;
     memset(&e->rel, 0, sizeof e->rel);
@@ -1485,6 +1497,7 @@ static void stmt(EC *e, Node *s)
     case S_ONERROR:
         if (s->op == ONERR_GOTO) out(e, "bb_mode = 1; bb_hlabel = %d; if (!bb_inh) bb_err_clear();", s->sym ? s->sym->label_id : 0);
         else if (s->op == ONERR_RESUMENEXT) out(e, "bb_mode = 2; if (!bb_inh) bb_err_clear();");
+        else if (s->op == ONERR_GOTOM1) out(e, "bb_inh = 0; bb_err_clear();");     /* GoTo -1: out of the handler, its handler stays */
         else out(e, "bb_mode = 0; if (!bb_inh) bb_err_clear();");
         return;
     case S_RESUME:

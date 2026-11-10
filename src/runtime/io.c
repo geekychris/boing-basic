@@ -285,13 +285,21 @@ bb_value bb_input_field(int fn, int variant)
     if (fn <= 0 && c == '\n' && conline) { free(conline); conline = NULL; }
     b[n] = 0;
     r = bb_v_str(bb_str_new(b, (int32_t)n));
-    if (variant && !quoted) {
+    if (!quoted) {
+        /* what Write # writes: #TRUE#, #FALSE#, #NULL#, #date# (for typed targets too) */
         double d;
-        if (n == 0) { bb_v_release(&r); r = bb_v_empty(); }
-        else if (bb_parse_number(b, (int32_t)n, &d)) { bb_v_release(&r); r = bb_v_double(d); }
-        else if (strcasecmp(b, "#TRUE#") == 0) { bb_v_release(&r); r = bb_v_bool(1); }
+        if (strcasecmp(b, "#TRUE#") == 0) { bb_v_release(&r); r = bb_v_bool(1); }
         else if (strcasecmp(b, "#FALSE#") == 0) { bb_v_release(&r); r = bb_v_bool(0); }
         else if (strcasecmp(b, "#NULL#") == 0) { bb_v_release(&r); r = bb_v_null(); }
+        else if (n > 2 && b[0] == '#' && b[n - 1] == '#') {
+            bb_str *ds = bb_str_new(b + 1, (int32_t)n - 2);
+            bb_v_release(&r);
+            r = bb_v_date(bb_str_to_date(ds));
+            bb_str_release(ds);
+        } else if (variant) {
+            if (n == 0) { bb_v_release(&r); r = bb_v_empty(); }
+            else if (bb_parse_number(b, (int32_t)n, &d)) { bb_v_release(&r); r = bb_v_double(d); }
+        }
     }
     free(b);
     return r;
@@ -630,12 +638,23 @@ bb_str *bb_input_chars(bb_long n, bb_long fn)
 
 static void fs_check(int err) { if (err) bb_raise(err, NULL); }
 
+/* * and ? (VB), and AmigaDOS's #? (any run) and #c (zero or more c); case-insensitive */
 static int wild_match(const char *p, const char *s)
 {
     for (; *p; p++, s++) {
-        if (*p == '*') {
-            for (; *s; s++) if (wild_match(p + 1, s)) return 1;
-            return wild_match(p + 1, s);
+        if (*p == '*' || (p[0] == '#' && p[1] == '?')) {
+            const char *rest = p + (*p == '*' ? 1 : 2);
+            for (; *s; s++) if (wild_match(rest, s)) return 1;
+            return wild_match(rest, s);
+        }
+        if (p[0] == '#' && p[1]) {
+            /* #c: zero or more c */
+            const char *rest = p + 2;
+            for (;;) {
+                if (wild_match(rest, s)) return 1;
+                if (!*s || tolower((unsigned char)*s) != tolower((unsigned char)p[1])) return 0;
+                s++;
+            }
         }
         if (!*s) return 0;
         if (*p == '?') continue;
@@ -644,7 +663,7 @@ static int wild_match(const char *p, const char *s)
     return *s == 0;
 }
 
-static int has_wild(const char *s) { return strpbrk(s, "*?") != NULL; }
+static int has_wild(const char *s) { return strpbrk(s, "*?#") != NULL; }
 
 /* split "dir/pat" */
 static void split_path(const char *path, char *dir, size_t dn, const char **pat)
@@ -763,9 +782,7 @@ bb_str *bb_dir(const bb_value *pattern, bb_long attr)
     } else if (!dir_h) bb_raise(5, NULL);
     while ((name = bb_plat_dir_next(dir_h, &isdir)) != NULL) {
         if (isdir && !(dir_attr & 16)) continue;
-        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
-            if (!(dir_attr & 16)) continue;
-        }
+        if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) continue;     /* as on AmigaDOS */
         if (wild_match(dir_pat, name)) return bb_str_from_c(name);
     }
     bb_plat_dir_close(dir_h);

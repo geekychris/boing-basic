@@ -1,0 +1,2 @@
+declbyref.bas:5:13: error: ByRef parameter 'x' of Declare Foo needs a Long variable (or declare it ByVal)
+declbyref.bas:6:13: error: ByRef parameter 'x' of Declare Foo needs a Long variable (or declare it ByVal)

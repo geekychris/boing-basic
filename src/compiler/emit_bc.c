@@ -443,8 +443,9 @@ static void call(E *e, Node *n)
             else if (decl_strvar(a)) { addr(e, a); op0(e, I_STRBUF); }
             else expr(e, a);
         }
-        op2(e, I_CALLD, pr->index, n->list.n | (pr->ret ? 0x10000 : 0));
-        if (pr->ret && pr->ret->kind != T_LONG && pr->ret->kind != T_VARIANT) op1(e, I_CVT, vt_of(pr->ret));
+        /* As String: the result is a C string (0x20000), copied into a String */
+        op2(e, I_CALLD, pr->index, n->list.n | (pr->ret ? 0x10000 : 0) | (pr->ret && pr->ret->kind == T_STRING ? 0x20000 : 0));
+        if (pr->ret && pr->ret->kind != T_LONG && pr->ret->kind != T_VARIANT && pr->ret->kind != T_STRING) op1(e, I_CVT, vt_of(pr->ret));
         return;
     }
     if (pr->cls) op1(e, I_LDLV, 0);       /* Me */
@@ -1798,7 +1799,7 @@ static void stmt1(E *e, Node *s)
     case S_ONERROR:
         emit_w(e, I_ONERR);
         if (s->op == ONERR_GOTO) { emit_w(e, OE_GOTO); label_ref(e, s->sym, emit_w(e, 0)); }
-        else { emit_w(e, s->op == ONERR_RESUMENEXT ? OE_RESUMENEXT : OE_NONE); emit_w(e, 0); }
+        else { emit_w(e, s->op == ONERR_RESUMENEXT ? OE_RESUMENEXT : s->op == ONERR_GOTOM1 ? OE_CLEAREX : OE_NONE); emit_w(e, 0); }
         return;
     case S_RESUME:
         emit_w(e, I_RESUME);
