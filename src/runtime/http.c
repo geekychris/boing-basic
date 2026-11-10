@@ -2,6 +2,7 @@
  * Content-Length, chunked and until-close bodies, redirects 301/302/303/307/308. */
 #include "http.h"
 #include "net.h"
+#include "zio.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -274,6 +275,32 @@ static int read_chunked(rd *r, sink *s)
 
 /* --- one request -------------------------------------------------------------------------- */
 
+/* Content-Encoding gzip / deflate: replace the body with its unpacked bytes */
+static int unpack(bb_http_resp *resp, char *err, int errlen)
+{
+    char *ce = bb_http_header(resp->headers, "Content-Encoding");
+    if (!ce) return 0;
+    int fmt = icontains(ce, "gzip") ? BB_Z_GZIP : icontains(ce, "deflate") ? BB_Z_ZLIB : -1;
+    free(ce);
+    if (fmt < 0) return 0;                          /* identity, or one we didn't ask for */
+    char *out = NULL;
+    long outlen = 0;
+    char zerr[200];
+    int rc = bb_z_decompress(resp->body, resp->body_len, fmt, 0, &out, &outlen, NULL, zerr, sizeof zerr);
+    if (rc && fmt == BB_Z_ZLIB)                     /* "deflate" sent as raw deflate (old IIS) */
+        rc = bb_z_decompress(resp->body, resp->body_len, BB_Z_RAW, 0, &out, &outlen, NULL, zerr, sizeof zerr);
+    if (rc) {
+        snprintf(err, errlen, "the compressed answer can't be unpacked: %s", zerr);
+        return BB_E_NET_PROTOCOL;
+    }
+    out = realloc(out, (size_t)outlen + 1);         /* NUL-terminated like every body */
+    out[outlen] = 0;
+    free(resp->body);
+    resp->body = out;
+    resp->body_len = outlen;
+    return 0;
+}
+
 static int once(const bb_http_req *req, const char *url, const char *method, int send_body, bb_http_resp *resp,
                 char **location, char *err, int errlen)
 {
@@ -329,6 +356,10 @@ retry:
         ql += snprintf(q + ql, cap - ql, "User-Agent: %s\r\n", req->user_agent);
     if (!has_header(req->headers, "Accept"))
         ql += snprintf(q + ql, cap - ql, "Accept: */*\r\n");
+    /* compressed answers: only into memory (GetToFile streams), and not when the program asks
+       for an encoding itself (then it gets the bytes as sent) */
+    int gz = req->decompress && !req->out && !has_header(req->headers, "Accept-Encoding") && bb_z_available(NULL, 0);
+    if (gz) ql += snprintf(q + ql, cap - ql, "Accept-Encoding: gzip, deflate\r\n");
     if (send_body && req->body)
         ql += snprintf(q + ql, cap - ql, "Content-Length: %ld\r\n", req->body_len);
     else if (send_body && (!strcasecmp(method, "POST") || !strcasecmp(method, "PUT")))
@@ -441,6 +472,8 @@ retry:
         delimited = nobody || (te && icontains(te, "chunked")) || cl;
         free(te);
         free(cl);
+        resp->wire_len = resp->body_len;
+        if (!rc && gz && resp->body && resp->body_len) rc = unpack(resp, err, errlen);
     }
     /* keep the connection: HTTP/1.1, the body's end known and read, no "Connection: close",
        and nothing more already received */

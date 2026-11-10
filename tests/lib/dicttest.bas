@@ -95,3 +95,16 @@ Print e.Count, okay, sum, e.Exists("k1"), e.Exists("k25000")
 
 d.RemoveAll
 Print d.Count, d.Exists("plum")
+
+' text keys fold Latin-1 letters the same way for hashing and comparing
+Dim t As Dictionary, allOk As Boolean
+Set t = CreateObject("Dictionary")
+t.CompareMode = 1
+allOk = True
+For i = 192 To 222
+    If i <> 215 Then
+        t(Chr(i) & "key" & i) = i
+        If Not t.Exists(Chr(i + 32) & "KEY" & i) Then allOk = False
+    End If
+Next
+Print "Latin-1 folding:"; allOk; t.Count

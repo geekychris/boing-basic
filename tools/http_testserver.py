@@ -18,6 +18,7 @@ with the openssl command) on free ports, and writes "http_port https_port ca_fil
   /see-other             303 to /echo (a POST continues as GET without body)
   /chunked               a chunked body (5 chunks)
   /conn                  the client's port (keep-alive tests); /close the same, then closes
+  /gzip, /deflate, /deflate-raw, /gzip-bad   compressed when accepted (body: the Accept-Encoding sent)
   /drop                  the client's port, then closes without saying so
   /setcookie?c=V&c=V     answers with a Set-Cookie header for each V
   /cookies[/...]         the request's Cookie header
@@ -97,6 +98,24 @@ class H(http.server.BaseHTTPRequestHandler):
         if p == "/login":
             # a cookie set on a redirect
             return self.send(302, "", extra={"Location": "/cookies/after-login", "Set-Cookie": ["session=abc123; Path=/"]})
+        if p.startswith("/gzip") or p.startswith("/deflate"):
+            # /gzip, /deflate (zlib), /deflate-raw: compressed when the client accepts it; the body
+            # tells what the client sent
+            import zlib
+            body = ("Accept-Encoding=%s\n" % self.headers.get("Accept-Encoding", "")) + "Boing! " * 2000
+            raw = body.encode("latin-1")
+            ae = self.headers.get("Accept-Encoding", "")
+            if p == "/gzip" and "gzip" in ae:
+                import gzip
+                return self.send(200, gzip.compress(raw), extra={"Content-Encoding": "gzip"})
+            if p == "/gzip-bad" and "gzip" in ae:
+                return self.send(200, b"\x1f\x8b\x08\x00broken", extra={"Content-Encoding": "gzip"})
+            if p == "/deflate" and "deflate" in ae:
+                return self.send(200, zlib.compress(raw), extra={"Content-Encoding": "deflate"})
+            if p == "/deflate-raw" and "deflate" in ae:
+                c = zlib.compressobj(wbits=-15)
+                return self.send(200, c.compress(raw) + c.flush(), extra={"Content-Encoding": "deflate"})
+            return self.send(200, raw)
         if p == "/hello":
             return self.send(200, "Hello, Boing!")
         if p == "/echo":

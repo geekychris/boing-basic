@@ -18,3 +18,4 @@ CompareMode when not empty: 5
 Null key: 5 
  15000        True           212512500    False         True
  0            False
+Latin-1 folding:True 30 

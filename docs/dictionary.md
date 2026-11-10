@@ -42,7 +42,7 @@ Values can be anything: numbers, strings, arrays, objects, other Dictionaries.
 | `Keys()` | the keys as an array (0 to Count - 1), in insertion order |
 | `Items()` | the values as an array, in the same order |
 | `Key(old) = new` | renames a key, keeping its value and its place |
-| `CompareMode` | 0 (default): string keys are case-sensitive; 1: they aren't. Can only be changed while the Dictionary is empty |
+| `CompareMode` | 0 (default): string keys are case-sensitive; 1: they aren't (Latin-1 letters too: `"Ä"` and `"ä"` are one key). Can only be changed while the Dictionary is empty |
 
 `For Each k In d` goes through the keys in insertion order. Don't add or remove entries inside
 such a loop; loop over `d.Keys` instead when you need to.

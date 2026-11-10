@@ -166,9 +166,9 @@ static void sb_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *ar
         if (a < 1 || a > b->n) bb_raise(5, "the position is outside the text");
         if (set) {
             s = arg_str(argc, argv, argc - 1);
-            if (bb_str_len(s) < 1) {
+            if (bb_str_len(s) != 1) {
                 bb_str_release(s);
-                bb_raise(5, NULL);
+                bb_raise(5, "Char(pos) = takes one character");
             }
             b->p[a - 1] = bb_str_ptr(s)[0];
             bb_str_release(s);

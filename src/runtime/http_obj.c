@@ -13,6 +13,7 @@
 #include "http.h"
 #include "net.h"
 #include "platform.h"
+#include "zio.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +26,7 @@ enum {
     P_STATUS, P_STATUSTEXT, P_RESPONSETEXT, P_RESPONSEHEADERS, P_URL, P_CONTENTTYPE, P_TIMEOUT,
     P_FOLLOWREDIRECTS, P_MAXREDIRECTS, P_VERIFYCERTIFICATE, P_CACERTFILE, P_USERAGENT, P_BYTESRECEIVED,
     P_REDIRECTS, P_BUSY, P_ONDONE, P_ONPROGRESS, P_ERRORNUMBER, P_ERRORTEXT,
-    P_KEEPALIVE, P_USECOOKIES, P_COOKIES, M_GETCOOKIE, M_SETCOOKIE, M_CLEARCOOKIES, P_COOKIECOUNT, P_REUSED,
+    P_AUTODECOMPRESS, P_KEEPALIVE, P_USECOOKIES, P_COOKIES, M_GETCOOKIE, M_SETCOOKIE, M_CLEARCOOKIES, P_COOKIECOUNT, P_REUSED,
 };
 
 static const struct { const char *name; int id; } members[] = {
@@ -40,7 +41,7 @@ static const struct { const char *name; int id; } members[] = {
     {"SendAsync", M_SENDASYNC}, {"GetAsync", M_GETASYNC}, {"Cancel", M_CANCEL}, {"Wait", M_WAIT},
     {"Busy", P_BUSY}, {"OnDone", P_ONDONE}, {"OnProgress", P_ONPROGRESS}, {"ErrorNumber", P_ERRORNUMBER},
     {"ErrorText", P_ERRORTEXT},
-    {"KeepAlive", P_KEEPALIVE}, {"UseCookies", P_USECOOKIES}, {"Cookies", P_COOKIES}, {"GetCookie", M_GETCOOKIE},
+    {"AutoDecompress", P_AUTODECOMPRESS}, {"KeepAlive", P_KEEPALIVE}, {"UseCookies", P_USECOOKIES}, {"Cookies", P_COOKIES}, {"GetCookie", M_GETCOOKIE},
     {"SetCookie", M_SETCOOKIE}, {"ClearCookies", M_CLEARCOOKIES}, {"CookieCount", P_COOKIECOUNT},
     {"ConnectionReused", P_REUSED},
 };
@@ -62,7 +63,7 @@ typedef struct http_obj {
     bb_obj hdr;
     char *headers;              /* request headers, "Name: value\r\n" lines */
     char *ca_file, *user_agent;
-    int timeout_ms, follow, max_redirects, verify;
+    int timeout_ms, follow, max_redirects, verify, decompress;
     bb_http_resp resp;
     int have_resp;
     /* async */
@@ -176,6 +177,7 @@ static void request(http_obj *h, const char *method, const char *url, const char
     rq.ca_file = h->ca_file && *h->ca_file ? h->ca_file : NULL;
     rq.out = out;
     rq.session = &h->session;
+    rq.decompress = h->decompress;
     if (h->have_resp) bb_http_resp_free(&h->resp);
     int rc = bb_http_do(&rq, &h->resp, err, sizeof err);
     h->have_resp = 1;
@@ -371,6 +373,8 @@ static void start_async(http_obj *h, const char *method, const char *url, const 
     j->req.progress = job_progress;
     j->req.progress_ud = j;
     j->req.session = &h->session;
+    j->req.decompress = h->decompress;
+    if (h->decompress) bb_z_available(NULL, 0);    /* open zlib here, not in the worker */
     j->total = -1;
     h->err_number = 0;
     free(h->err_text);
@@ -560,7 +564,7 @@ static void h_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
         free(v);
         return;
     }
-    case P_BYTESRECEIVED: *ret = bb_v_long(h->have_resp ? (bb_long)h->resp.body_len : 0); return;
+    case P_BYTESRECEIVED: *ret = bb_v_long(h->have_resp ? (bb_long)h->resp.wire_len : 0); return;
     case P_REDIRECTS: *ret = bb_v_long(h->have_resp ? h->resp.redirects : 0); return;
     case P_TIMEOUT:
         if (set) {
@@ -589,6 +593,10 @@ static void h_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
             free(h->ca_file);
             h->ca_file = arg_str(argc, argv, argc - 1, NULL);
         } else *ret = bb_v_str(bb_str_from_c(h->ca_file ? h->ca_file : ""));
+        return;
+    case P_AUTODECOMPRESS:
+        if (set) h->decompress = arg_long(argc, argv, argc - 1) != 0;
+        else *ret = bb_v_bool(h->decompress);
         return;
     case P_KEEPALIVE:
         if (set) {
@@ -674,6 +682,7 @@ bb_obj *bb_http_new(void)
     h->verify = 1;
     h->user_agent = dupstr("BoingBASIC/1.0");
     h->session.keep_alive = 1;
+    h->decompress = 1;
     h->session.use_cookies = 1;
     return &h->hdr;
 }

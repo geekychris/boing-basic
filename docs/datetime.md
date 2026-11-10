@@ -11,7 +11,7 @@ computers and log formats use UTC and ISO 8601 text; these functions convert bet
 | `UnixTime(d)` | seconds since 1970-01-01 00:00 UTC of a UTC Date (a Double; milliseconds kept) |
 | `FromUnixTime(seconds)` | the UTC Date of a Unix time |
 | `FormatIso8601(d [, offset])` | `"2026-11-10T08:45:00"`; milliseconds are added when there are any; `offset` 0 adds `Z`, other values (minutes ahead of UTC) add `+01:00` / `-05:30`; without it no zone is written |
-| `ParseIso8601(s)` | reads `2026-11-10`, `2026-11-10T08:45`, `2026-11-10T08:45:00.250Z`, `20261110T084500Z`, `2026-11-10 08:45:00+01:00`...; with a zone (`Z` or an offset) the result is UTC, without it the Date is as written |
+| `ParseIso8601(s)` | reads `2026-11-10`, `2026-11-10T08:45`, `2026-11-10T08:45:00.250Z`, `20261110T084500Z`, `2026-11-10 08:45:00+01:00`...; with a zone (`Z` or an offset) the result is UTC, without it the Date is as written. Dates that don't exist (`2026-02-31`, 29 February outside leap years) and times past `24:00:00` raise error 31401; `24:00:00` is midnight at the end of the day |
 
 ```basic
 ' a timestamp for a JSON API

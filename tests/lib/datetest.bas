@@ -46,3 +46,15 @@ Print Err.Number; Err.Description
 Err.Clear
 d = ParseIso8601("2026-11-10T08:45:00 extra")
 Print Err.Number; Err.Description
+Err.Clear
+d = ParseIso8601("2026-02-31T10:00:00Z")
+Print Err.Number; Err.Description
+Err.Clear
+d = ParseIso8601("2025-02-29")
+Print Err.Number; Err.Description
+Err.Clear
+Print FormatIso8601(ParseIso8601("2024-02-29T12:00:00Z"), 0)
+d = ParseIso8601("2026-01-01T24:30:00Z")
+Print Err.Number; Err.Description
+Err.Clear
+Print FormatIso8601(ParseIso8601("2026-01-01T24:00:00Z"), 0)

@@ -2,7 +2,7 @@
 
 | Function | Result |
 |---|---|
-| `Crc32(s)` | the CRC-32 checksum (as used by Zip, PNG, gzip) as a Long; `Hex(Crc32(s))` gives the usual 8 hex digits |
+| `Crc32(s)` | the CRC-32 checksum (as used by Zip, PNG, gzip) as a Long; for the usual 8 hex digits write `Right("0000000" & Hex(Crc32(s)), 8)` (`Hex` drops leading zeros: `Hex(Crc32(""))` is `"0"`) |
 | `Md5(s [, raw])` | MD5, 32 hex digits |
 | `Sha1(s [, raw])` | SHA-1, 40 hex digits |
 | `Sha256(s [, raw])` | SHA-256, 64 hex digits |

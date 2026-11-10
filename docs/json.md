@@ -46,7 +46,7 @@ levels is an error too.
 
 | value | JSON |
 |---|---|
-| `Dictionary` | an object (number keys are written as strings) |
+| `Dictionary` | an object (number keys are written as strings; a Boolean key is the same entry as its number, `d(True)` is `d(-1)`, and is written `"-1"` or `"0"`) |
 | one-dimensional array, `Collection` | an array |
 | numbers | numbers (`NaN`/infinity as `null`) |
 | String | a string (`"`, `\`, control characters escaped; other bytes as they are) |

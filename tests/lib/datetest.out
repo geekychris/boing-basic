@@ -21,3 +21,8 @@ True          True
  31401 ISO 8601: the year is missing in "yesterday"
  31401 ISO 8601: the time is out of range in "2026-11-10T25:00"
  31401 ISO 8601: unexpected text at the end in "2026-11-10T08:45:00 extra"
+ 31401 ISO 8601: that day isn't in the month in "2026-02-31T10:00:00Z"
+ 31401 ISO 8601: that day isn't in the month in "2025-02-29"
+2024-02-29T12:00:00Z
+ 31401 ISO 8601: the time is out of range in "2026-01-01T24:30:00Z"
+2026-01-02T00:00:00Z

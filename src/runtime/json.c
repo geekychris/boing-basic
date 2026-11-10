@@ -487,7 +487,10 @@ static void val_json(buf *b, const bb_value *v0, int indent, int depth)
                 if (k->type == BB_STRING) str_json(b, bb_str_ptr(k->u.s), bb_str_len(k->u.s));
                 else if (k->type == BB_OBJECT) bb_raise(E_VALUE, "JSON: object keys can't be written");
                 else {
-                    bb_str *ks = bb_v_to_str(k);    /* numbers become string keys */
+                    /* numbers become string keys; a Boolean key is the same entry as its number
+                       (d(True) is d(-1)), so it is written as that number */
+                    bb_value nk = k->type == BB_BOOLEAN ? bb_v_long(k->u.b ? -1 : 0) : *k;
+                    bb_str *ks = bb_v_to_str(&nk);
                     str_json(b, bb_str_ptr(ks), bb_str_len(ks));
                     bb_str_release(ks);
                 }

@@ -49,6 +49,21 @@ the list of coming libraries).
 A 303 answer (and, as browsers do, a 301/302 after a POST) continues with a GET without body;
 307 and 308 repeat the request as it was.
 
+## Compressed answers
+
+When compression is available (z.library on AmigaOS 4, zlib on the host; see `Compress` in the
+manual), requests ask for compressed answers (`Accept-Encoding: gzip, deflate`) and unpack them,
+so `ResponseText` is always the real body. Text compresses well, so pages and JSON arrive much
+faster over a slow link. Without z.library nothing is asked for and everything works as before.
+
+| | |
+|---|---|
+| `AutoDecompress` | ask for and unpack compressed answers (default True) |
+
+`GetToFile` writes the bytes as they come and never asks for compression. A program that sets
+its own `Accept-Encoding` header gets the body exactly as sent. A compressed answer that can't
+be unpacked raises error 31109.
+
 ## The answer
 
 | Property / method | |
@@ -61,7 +76,7 @@ A 303 answer (and, as browsers do, a 301/302 after a POST) continues with a GET 
 | `ContentType` | the `Content-Type` header |
 | `Url` | the URL the answer came from (after redirects) |
 | `Redirects` | how many redirects were followed |
-| `BytesReceived` | body length |
+| `BytesReceived` | the body's bytes as they came over the network (fewer than `Len(ResponseText)` when the answer was compressed) |
 | `TlsAvailable()` | True if HTTPS can be used here |
 
 ## Errors
@@ -309,4 +324,4 @@ default certificate store is Homebrew's.
 
 ## Not yet
 
-`Content-Encoding: gzip`, proxies, IPv6 on AmigaOS.
+Proxies, IPv6 on AmigaOS, Brotli and zstd encodings.

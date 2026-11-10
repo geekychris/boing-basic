@@ -33,3 +33,4 @@ True           12            .1            1E+20        True          True      
  31202 JSON: only one-dimensional arrays can be written
  31202 JSON: nested too deeply (or a 
  5 
+ 2  {"-1":"same","0":"zero"}

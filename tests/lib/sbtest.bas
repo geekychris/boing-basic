@@ -57,3 +57,9 @@ Print Err.Number
 Err.Clear
 Print sb.Char(0)
 Print Err.Number
+Err.Clear
+sb.Clear
+sb.Append "abc"
+sb.Char(2) = "xyz"
+Print Err.Number; Err.Description; " "; sb.ToString
+Err.Clear
