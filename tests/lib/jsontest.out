@@ -1,0 +1,35 @@
+Long           42           -7 
+Double         2147483648 
+Double         3.5           1000         -.025 
+True          False         True
+plain          0 
+tab<TAB>here "q" back\slash / nl<LF>end
+C3 A9 E2 82 AC F0 9F 98 80 
+Dictionary     4             1             2             3            d
+Dictionary     0            -1 
+abef
+{"a":1,"b":[1,[2,3],{"c":"d"}],"e":{},"f":[]}
+{"text":"line1\nsay \"hi\" \\ \u0001","int":12,"dbl":0.1,"big":1e+20,"neg":-3.75,"t":true,"n":null,"e":null,"arr":[1,"two",3.5],"7":"numeric key","date":"1985-07-23T10:30:05","coll":["x",2]}
+True           12            .1            1E+20        True          True          True          two           numeric key   1985-07-23T10:30:05         x
+[]            {}
+[
+ 1,
+ {
+  "a": [
+   true,
+   false
+  ]
+ }
+]
+ 499          item 500      True          True
+ 31201 JSON: a key (a string) was expected at line 1, column 9 (found '}')
+ 31201 JSON: ',' or ']' was expected at line 1, column 6 (found the end of the text)
+ 31201 JSON: a value was expected at line 1, column 7 (found 't')
+ 31201 JSON: text after the value at line 1, column 3 (found '2')
+ 31201 JSON: unterminated string at line 1, column 5 (found the end of the text)
+ 31201 JSON: ',' or '}' was expected at line 2, column 9 (found '1')
+ 31201 JSON: a value is missing at line 1, column 1 (found the end of the text)
+ 31202 JSON: a value of type Http can't be written
+ 31202 JSON: only one-dimensional arrays can be written
+ 31202 JSON: nested too deeply (or a 
+ 5 

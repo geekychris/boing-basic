@@ -9,6 +9,7 @@ with the openssl command) on free ports, and writes "http_port https_port ca_fil
 --ports-file once it listens. Endpoints:
 
   /hello                 text "Hello, Boing!"
+  /json                  a small JSON document
   /page                  a small HTML page (for screenshots of the examples)
   /echo                  method, path, X-Test header, Content-Type and the body, one per line
   /status/N              status N, body "status N"
@@ -63,6 +64,10 @@ class H(http.server.BaseHTTPRequestHandler):
                                   "<body>\n<h1>Hello from the Mac</h1>\n<p>This page came over the network\n"
                                   "fetched by a Boing BASIC program\nwith its Http class.</p>\n</body>\n</html>\n",
                              "text/html; charset=iso-8859-1")
+        if p == "/json":
+            return self.send(200, '{"name": "Boing BASIC", "platform": {"os": "AmigaOS 4.1", "cpu": "PowerPC"}, '
+                                  '"libraries": ["Http", "Dictionary", "JSON"], "year": 2026, "stable": false, '
+                                  '"maintainer": null}', "application/json")
         if p == "/hello":
             return self.send(200, "Hello, Boing!")
         if p == "/echo":
