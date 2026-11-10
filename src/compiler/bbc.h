@@ -136,6 +136,7 @@ enum {
     /* expressions (after sema) */
     E_VAR, E_CONST, E_FIELD, E_INDEX, E_CALL, E_BUILTIN, E_LATE, E_MCALL, E_MFIELD,
     E_CONV, E_WITHVAR, E_ERRPROP, E_CASEIS, E_CASERANGE, E_ARRAYLIT, E_DEFPROP,
+    E_EXTCALL,              /* a linked extension's function (name; list = Variant arguments) */
 
     /* statements */
     S_EXPR = 100, S_LET, S_SET, S_DIM, S_IF, S_ELSEIF, S_SELECT, S_CASE, S_FOR, S_FOREACH,
@@ -296,6 +297,7 @@ struct Proc {
     char *lib, *alias, *iface;  /* Declare */
     int version;
     int is_func_declare;
+    int clib;               /* Declare ... Lib "C": a C function of a CSource= file (docs/extensions.md) */
     int line, file;
     char *cname;
     int is_handler;
@@ -311,6 +313,7 @@ struct ClassInfo {
     Module *mod;
     int builtin;            /* runtime class (Collection) */
     const char *rt_new;     /* builtin: C constructor */
+    struct ExtClass *xcls;  /* a linked extension's class (its .bbx): members checked, called by name */
     const void *rtcls;      /* a built-in runtime class (Engine3D, Canvas, Audio: its bb_class): members resolved at compile time */
     Sym **fields; int nfields;
     Proc **methods; int nmethods;
@@ -364,6 +367,13 @@ struct Module {
     int index;
 };
 
+/* linked extensions (docs/extensions.md): what a descriptor name.bbx declares */
+typedef struct ExtParam { char *name; char *type; } ExtParam;
+typedef struct ExtMember { char *name; int kind; char *sig; char *type; } ExtMember;  /* kind: 0 method, 1 property, 2 property-ro */
+typedef struct ExtClass { char *name; char *ext; ExtMember *m; int nm; } ExtClass;
+typedef struct ExtFunc { char *name; char *ext; ExtParam *p; int np; char *ret; char *sig; int line, file; } ExtFunc;
+typedef struct ExtInfo { char *name; char *dir; char *src; char *bbx; } ExtInfo;   /* Extension=dir/name */
+
 struct Program {
     Module **mods; int nmods;
     Scope *global;
@@ -387,7 +397,17 @@ struct Program {
     /* compile for: */
     int target_vm;
     Buf *diag_buf;
+    /* Extension= / CSource= (docs/extensions.md) */
+    ExtInfo *exts; int nexts;
+    ExtClass **xclasses; int nxclasses;
+    ExtFunc **xfuncs; int nxfuncs;
+    char **csources; int ncsources;
 };
+#define IS_REGCLS(c) ((c)->rtcls || (c)->xcls)   /* a registered (runtime or extension) class */
+int bbx_load(Program *p, const char *path, const char *ext);   /* parse name.bbx into p; 0 on error */
+ExtClass *ext_class_find(Program *p, const char *name);
+ExtMember *ext_member_find(ExtClass *c, const char *name);
+ExtFunc *ext_func_find(Program *p, const char *name);
 
 Program *prog_new(void);
 char *read_file(const char *path, long *len);   /* malloc'ed, NUL terminated; NULL if unreadable */

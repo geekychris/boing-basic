@@ -297,6 +297,12 @@ def _remote_serve():
     return d
 
 
+def _fetch_timeout(data):
+    """Seconds to let bbfetch run: amiga_dos_command's 30 s default cut a 24 MB kit push short, and
+    the retry on the next gateway then found the first fetch's .part file still open."""
+    return max(30.0, 60.0 + len(data) / 100000.0)
+
+
 def http_push(m, local, dest):
     import zlib
     if SSH:
@@ -310,7 +316,7 @@ def http_push(m, local, dest):
             out = ""
             for gw in GATEWAYS:
                 out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' %
-                             (FETCH, gw, REMOTE_PORT, name, dest, crc))
+                             (FETCH, gw, REMOTE_PORT, name, dest, crc), timeout=_fetch_timeout(data))
                 if "OK %d" % len(data) in out:
                     return "pushed %s (%d bytes, HTTP via %s, crc %s)" % (dest, len(data), SSH, crc)
             raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))
@@ -325,7 +331,8 @@ def http_push(m, local, dest):
     try:
         out = ""
         for gw in GATEWAYS:
-            out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' % (FETCH, gw, port, name, dest, crc))
+            out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' % (FETCH, gw, port, name, dest, crc),
+                         timeout=_fetch_timeout(data))
             if "OK %d" % len(data) in out:
                 return "pushed %s (%d bytes, HTTP, crc %s)" % (dest, len(data), crc)
         raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))

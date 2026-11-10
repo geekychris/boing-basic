@@ -1,0 +1,5 @@
+# Boing BASIC project: the counter extension's demo (a class and a function in C)
+Name=CounterDemo
+Startup=Sub Main
+Module=demo.bas
+Extension=counter

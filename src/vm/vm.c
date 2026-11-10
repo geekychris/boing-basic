@@ -1,6 +1,7 @@
 /* vm.c - the Boing BASIC bytecode interpreter */
 #include "bytecode.h"
 #include "jit.h"
+#include "../runtime/boing_ext.h"
 #include "../compiler/bbc.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -816,7 +817,12 @@ static void vm_poll(VM *vm)
    bytecode offset to continue at. Out of line: inlined into every branch op it made the register
    ops ~3x bigger, more code pages per loop iteration (TLB refills under QEMU) */
 static uint32_t *jit_stats;          /* BOING_JIT_STATS (below) */
-static __attribute__((noinline)) int32_t jit_go(VMImage *img, Frame *fr, bb_jitctx *jc, bb_value *L, int32_t bt, bb_jitfn jf)
+#if defined(__amigaos4__)
+#define BB_JITGO_ATTR __attribute__((noinline))            /* fewer code pages (QEMU's TLB) */
+#else
+#define BB_JITGO_ATTR inline __attribute__((always_inline)) /* out of line cost 38% on nbody (arm64) */
+#endif
+static BB_JITGO_ATTR int32_t jit_go(VMImage *img, Frame *fr, bb_jitctx *jc, bb_value *L, int32_t bt, bb_jitfn jf)
 {
     if (!jf) {
         jf = img->jitcode[bt];
@@ -1420,7 +1426,7 @@ static void vm_exec(VM *vm, int entry)
                 if (v->type != BB_OBJECT || !v->u.o) {
                     bb_obj *o;
                     SYNC();
-                    o = nc < 0 ? bb_collection_new() : new_object(vm, nc - 1);
+                    o = nc == -1 ? bb_collection_new() : nc < -1 ? bb_autonew_named(NULL, bb_str_ptr(img->consts[-2 - nc].u.s)) : new_object(vm, nc - 1);
                     if (v->type == BB_OBJECT && v->u.o) bb_obj_release(o);     /* created meanwhile */
                     else { v->type = BB_OBJECT; v->u.o = o; }
                 }
@@ -1449,7 +1455,7 @@ static void vm_exec(VM *vm, int entry)
                     if (v->type != BB_OBJECT || !v->u.o) {
                         bb_obj *o;
                         SYNC();
-                        o = pc[2] < 0 ? bb_collection_new() : new_object(vm, pc[2] - 1);
+                        o = pc[2] == -1 ? bb_collection_new() : pc[2] < -1 ? bb_autonew_named(NULL, bb_str_ptr(img->consts[-2 - pc[2]].u.s)) : new_object(vm, pc[2] - 1);
                         v = &((VMObj *)TOP.u.o)->f[pc[1]];
                         if (v->type == BB_OBJECT && v->u.o) bb_obj_release(o);
                         else { v->type = BB_OBJECT; v->u.o = o; }
@@ -1753,9 +1759,8 @@ static void vm_exec(VM *vm, int entry)
             }
             case I_CHKCLS: {
                 bb_value *a = &TOP;
-                if (pc[1] < 0) {        /* As Engine3D / Canvas / Audio (the runtime's classes) */
-                    static const char *const rtn_[] = {"Engine3D", "Canvas", "Audio", "Http"};
-                    if (a->type == BB_OBJECT && a->u.o && a->u.o->cls != bb_runtime_class(rtn_[-2 - pc[1]])) bb_raise(13, NULL);
+                if (pc[1] < 0) {        /* a registered class (Engine3D, Canvas, Audio, extensions): by name */
+                    if (a->type == BB_OBJECT && a->u.o && a->u.o->cls != bb_runtime_class(bb_str_ptr(img->consts[-1 - pc[1]].u.s))) bb_raise(13, NULL);
                 } else if (a->type == BB_OBJECT && a->u.o && !bb_obj_is(a->u.o, &img->classes[pc[1]].rt)) bb_raise(13, NULL);
                 pc += 2;
                 break;
@@ -1840,6 +1845,18 @@ static void vm_exec(VM *vm, int entry)
                 int argc = pc[2], i;
                 bb_value *args = sp - argc, r = bb_v_empty();
                 call_builtin(pc[1], argc, args, &r);
+                for (i = 0; i < argc; i++) release_slot(&args[i]);
+                sp = args;
+                if (pc[3]) PUSH(r); else bb_v_release(&r);
+                pc += 4;
+                break;
+            }
+            case I_CALLX: {
+                /* a function of a linked extension or Declare ... Lib "C" (registry: boing_ext.h) */
+                int argc = pc[2], i;
+                bb_value *args = sp - argc, r;
+                SYNC();
+                r = bb_ext_call(bb_str_ptr(img->consts[pc[1]].u.s), argc, args);
                 for (i = 0; i < argc; i++) release_slot(&args[i]);
                 sp = args;
                 if (pc[3]) PUSH(r); else bb_v_release(&r);
@@ -2317,6 +2334,14 @@ int vm_run(VMImage *img, int argc, char **argv)
     vm_pairs = (unsigned long long *)xcalloc((size_t)I__COUNT * I__COUNT, sizeof(unsigned long long));
 #endif
     bb_rt_init(argc, argv);
+    for (i = 0; i < img->nexts; i++)
+        if (!bb_ext_linked(img->ext_names[i])) {
+            /* the program uses an extension this interpreter was not built with */
+            fprintf(stderr, "boing: this program needs the extension '%s', which is not linked into this interpreter\n"
+                            "       (build one with: boing vm --ext DIR/%s -o myboing, then run the program with it)\n",
+                    img->ext_names[i], img->ext_names[i]);
+            return 20;
+        }
     jit_init();
     if (!img->jitno) img->jitno = (unsigned char *)xcalloc((size_t)img->ncode + 1, 1);
     if (!img->jitcode) img->jitcode = (bb_jitfn *)xcalloc((size_t)img->ncode + 1, sizeof(bb_jitfn));

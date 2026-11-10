@@ -1,0 +1,4 @@
+Name=CLib
+Startup=Sub Main
+Module=prog.bas
+CSource=mathc.c

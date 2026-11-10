@@ -80,6 +80,14 @@ static int str_const(E *e, const char *s, int len)
     return add_const(e, bb_v_str(bb_str_lit(s, len)));
 }
 
+/* CHKCLS operand: a program class's index, or -1 - (constant holding the name) for a registered
+   class (Engine3D, Canvas, Audio, an extension's), looked up by name when the VM runs it */
+static int32_t chkcls_opnd(E *e, ClassInfo *c)
+{
+    if (IS_REGCLS(c)) return -1 - str_const(e, c->name, (int)strlen(c->name));
+    return c->index;
+}
+
 static void line(E *e, Node *s)
 {
     if (e->nlines && e->lines[e->nlines - 1].pc == here(e)) { e->lines[e->nlines - 1].line = s->line; return; }
@@ -142,6 +150,15 @@ static void expr(E *e, Node *n);
 static void addr(E *e, Node *n);
 static void stmt(E *e, Node *s);
 
+/* the class operand of AUTONEW/AUTONEWM: -1 Collection, n+1 user class n, -2-k a registered
+   class whose name is string constant k */
+static int autonew_cls(E *e, ClassInfo *c)
+{
+    if (c->builtin) return -1;
+    if (IS_REGCLS(c)) return -2 - str_const(e, c->name, (int)strlen(c->name));
+    return c->index + 1;
+}
+
 static void autonew(E *e, Sym *s);
 static void load_var(E *e, Sym *s)
 {
@@ -194,7 +211,7 @@ static void autonew(E *e, Sym *s)
     if (s->is_new && t->kind == T_OBJECT && t->cls) {
         int where = (s->storage == ST_LOCAL || s->storage == ST_PARAM) ? 0 : s->storage == ST_FIELD ? 2 : 1;
         int idx = where == 0 ? slot_of(e, s) : s->index;
-        emit_w(e, I_AUTONEW); emit_w(e, where); emit_w(e, idx << 16); emit_w(e, t->cls->builtin ? -1 : t->cls->index + 1);
+        emit_w(e, I_AUTONEW); emit_w(e, where); emit_w(e, idx << 16); emit_w(e, autonew_cls(e, t->cls));
     }
 }
 
@@ -386,7 +403,7 @@ static void conv(E *e, Node *n)
     if (to->kind == T_ARRAY) { op1(e, I_CVTARR, vt_of(to->elem)); return; }
     if (to->kind == T_OBJECT) {
         if (from->kind != T_OBJECT) op1(e, I_CVT, BB_OBJECT);
-        if (to->cls && !to->cls->builtin) op1(e, I_CHKCLS, to->cls->index);
+        if (to->cls && !to->cls->builtin) op1(e, I_CHKCLS, chkcls_opnd(e, to->cls));
         return;
     }
     if (type_eq(from, to) && !(to->kind == T_STRING && to->fixlen)) return;
@@ -408,6 +425,15 @@ static void args_for_params(E *e, Node *n, Proc *pr)
 static void call(E *e, Node *n)
 {
     Proc *pr = n->proc;
+    if (pr->clib) {
+        /* Declare ... Lib "C": through the function registry (boing vm --project links the C
+           and its glue; otherwise error 453 when called) */
+        int i;
+        for (i = 0; i < n->list.n; i++) expr(e, n->list.v[i]);
+        op3(e, I_CALLX, str_const(e, pr->name, (int)strlen(pr->name)), n->list.n, pr->ret != NULL);
+        if (pr->ret) op1(e, I_CVT, vt_of(pr->ret));
+        return;
+    }
     if (pr->kind == PK_DECLARE) {
         int i;
         for (i = 0; i < n->list.n; i++) {
@@ -487,7 +513,7 @@ static void expr(E *e, Node *n)
             /* As New field of another object: created on first use */
             e->used_keep = 1;
             expr(e, n->a);
-            op2(e, I_AUTONEWM, n->sym->index, n->ty->cls->builtin ? -1 : n->ty->cls->index + 1);
+            op2(e, I_AUTONEWM, n->sym->index, autonew_cls(e, n->ty->cls));
             op3(e, I_MFIELD, n->cls->index, n->sym->index, vt_of(n->ty));
             op1(e, I_LDIND, vt_of(n->ty));
             return;
@@ -501,6 +527,12 @@ static void expr(E *e, Node *n)
     case E_CALL: call(e, n); return;
     case E_MCALL: mcall(e, n); return;
     case E_BUILTIN: builtin(e, n); return;
+    case E_EXTCALL: {
+        int i;
+        for (i = 0; i < n->list.n; i++) expr(e, n->list.v[i]);
+        op3(e, I_CALLX, str_const(e, n->name, (int)strlen(n->name)), n->list.n, n->ty->kind != T_VOID);
+        return;
+    }
     case E_LATE: late_call(e, n); return;
     case E_ADDROF:
         op3(e, I_ADDROF, str_const(e, n->proc->mod->name, (int)strlen(n->proc->mod->name)),
@@ -549,6 +581,7 @@ static int has_value(Node *n)
     switch (n->kind) {
     case E_CALL: case E_MCALL: return n->proc->ret != NULL && n->proc->kind != PK_SUB;
     case E_BUILTIN: return builtins[n->bi].ret != T_VOID;
+    case E_EXTCALL: return n->ty->kind != T_VOID;
     case E_LATE: return 1;
     case E_ERRPROP: return n->op != 4 && n->op != 5;
     default: return 1;
@@ -1617,7 +1650,7 @@ static void foreach_stmt(E *e, Node *s)
     if (s->a->ty->kind != T_VARIANT) {
         if (s->a->ty->kind == T_OBJECT) {
             op1(e, I_CVT, BB_OBJECT);
-            if (s->a->ty->cls && !s->a->ty->cls->builtin) op1(e, I_CHKCLS, s->a->ty->cls->index);
+            if (s->a->ty->cls && !s->a->ty->cls->builtin) op1(e, I_CHKCLS, chkcls_opnd(e, s->a->ty->cls));
         } else op1(e, I_CVT, vt_of(s->a->ty));
     }
     store_top(e, s->a);
@@ -2197,5 +2230,8 @@ VMImage *emit_bytecode(Program *p)
         g->nforms++;
     }
     g->title = p->title ? p->title : p->name;
+    g->nexts = p->nexts;
+    g->ext_names = (char **)xcalloc((size_t)p->nexts + 1, sizeof(char *));
+    for (i = 0; i < p->nexts; i++) g->ext_names[i] = p->exts[i].name;
     return p->nerrors ? NULL : g;
 }

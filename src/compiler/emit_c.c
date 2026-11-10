@@ -136,7 +136,7 @@ static char *cls_cname(ClassInfo *c) { return xsprintf("C%d_%s", c->index, ciden
 /* the bb_class of a program's class, or of a runtime class (As Engine3D / Canvas / Audio) */
 static char *cls_ref(ClassInfo *c)
 {
-    if (c->rtcls) return xsprintf("bb_runtime_class(\"%s\")", c->name);
+    if (IS_REGCLS(c)) return xsprintf("bb_runtime_class(\"%s\")", c->name);
     return xsprintf("&%s_class", cls_cname(c));
 }
 
@@ -370,13 +370,20 @@ static char *lval(EC *e, Node *n)
     }
 }
 
+/* As New: the object is created on first use (a registered class by name, through the registry) */
+static char *autonew_c(const char *lv, ClassInfo *c)
+{
+    if (IS_REGCLS(c)) return xsprintf("bb_autonew_named((bb_obj **)&%s, %s)", lv, cstrlit(c->name, (int)strlen(c->name)));
+    return xsprintf("bb_autonew((bb_obj **)&%s, %s)", lv, c->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(c)));
+}
+
 static char *addr(EC *e, Node *n)
 {
     Type *t = n->ty;
     const char *ct = t->kind == T_UDT ? udt_cname(t->udt) : ctype(t);
     if (n->kind == E_VAR && n->sym->is_new && t->kind == T_OBJECT && t->cls)
         /* passing an As New variable creates its object too */
-        pre(e, "(void)bb_autonew((bb_obj **)&%s, %s);", lval(e, n), t->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(t->cls)));
+        pre(e, "(void)%s;", autonew_c(lval(e, n), t->cls));
     if (n->kind == E_VAR && sym_is_ref(n->sym)) return sym_cname(e, n->sym);
     if (is_lvalue(n)) return xsprintf("((%s *)&%s)", ct, lval(e, n));
     /* rvalue: through a temporary */
@@ -732,10 +739,43 @@ static char *call_args(EC *e, Proc *pr, Node *n, const char *self)
     return b.p ? b.p : xstrdup("");
 }
 
+/* the C type of a Lib "C" parameter or result */
+static const char *clib_ctype(Type *t)
+{
+    switch (t->kind) {
+    case T_INTEGER: return "int16_t";
+    case T_BYTE: return "uint8_t";
+    case T_BOOLEAN: return "int";
+    case T_SINGLE: return "float";
+    case T_DOUBLE: return "double";
+    case T_STRING: return "const char *";
+    default: return "int32_t";
+    }
+}
+
 static R call(EC *e, Node *n)
 {
     Proc *pr = n->proc;
     char *args;
+    if (pr->clib) {
+        /* Declare ... Lib "C": a direct call of the C function (CSource=) */
+        Buf b = {0, 0, 0};
+        int i;
+        char *callx;
+        for (i = 0; i < n->list.n; i++) {
+            Node *a = n->list.v[i];
+            if (a->ty->kind == T_STRING) buf_printf(&b, "%sbb_str_ptr(%s)", i ? ", " : "", val(e, a));
+            else buf_printf(&b, "%s(%s)(%s)", i ? ", " : "", clib_ctype(a->ty), val(e, a));
+        }
+        callx = xsprintf("%s(%s)", pr->alias, b.p ? b.p : "");
+        if (!pr->ret) return mkr(callx, 0);
+        if (pr->ret->kind == T_STRING) return mkr(xsprintf("bb_str_from_c(%s)", callx), 1);
+        {
+            char *tn = new_temp(e, pr->ret, 0);
+            pre(e, "%s = (%s)%s;", tn, ctype(pr->ret), callx);
+            return mkr(tn, 0);
+        }
+    }
     if (pr->kind == PK_DECLARE) {
         Buf b = {0, 0, 0};
         int i;
@@ -910,8 +950,7 @@ static R prod(EC *e, Node *n)
     case E_VAR:
         if (n->sym->is_new && n->ty->kind == T_OBJECT && n->ty->cls)
             /* As New: created on first use */
-            return mkr(xsprintf("bb_autonew((bb_obj **)&%s, %s)", lval(e, n),
-                                n->ty->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(n->ty->cls))), 0);
+            return mkr(autonew_c(lval(e, n), n->ty->cls), 0);
         if (n->ty->kind == T_VARIANT) {
             if (sym_is_ref(n->sym)) return mkr(sym_cname(e, n->sym), 0);
             return mkr(xsprintf("((bb_value *)&%s)", lval(e, n)), 0);
@@ -919,8 +958,7 @@ static R prod(EC *e, Node *n)
         return mkr(lval(e, n), 0);
     case E_INDEX: case E_FIELD: case E_MFIELD:
         if (n->kind == E_MFIELD && n->sym->is_new && n->ty->kind == T_OBJECT && n->ty->cls)
-            return mkr(xsprintf("bb_autonew((bb_obj **)&%s, %s)", lval(e, n),
-                                n->ty->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(n->ty->cls))), 0);
+            return mkr(autonew_c(lval(e, n), n->ty->cls), 0);
         if (n->ty->kind == T_VARIANT) return mkr(xsprintf("(&%s)", lval(e, n)), 0);
         return mkr(lval(e, n), 0);
     case E_CONV: {
@@ -951,6 +989,16 @@ static R prod(EC *e, Node *n)
     case E_CALL: return call(e, n);
     case E_MCALL: return mcall(e, n);
     case E_BUILTIN: return builtin(e, n);
+    case E_EXTCALL: {
+        /* a linked extension's function (or Lib "C" through the registry): Variant arguments */
+        int i, cnt = n->list.n;
+        char *arr = varr_temp(e, cnt);
+        for (i = 0; i < cnt; i++) {
+            pre(e, "%s[%d] = %s;", arr, i, own(e, n->list.v[i]));
+            rel(e, xsprintf("bb_v_release(&%s[%d]);", arr, i));
+        }
+        return mkr(xsprintf("bb_ext_call(%s, %d, %s)", cstrlit(n->name, (int)strlen(n->name)), cnt, arr), n->ty->kind != T_VOID);
+    }
     case E_LATE: return late(e, n);
     case E_NEW:
         if (n->cls->builtin) return mkr(xstrdup("bb_collection_new()"), 1);
@@ -2199,10 +2247,18 @@ int emit_c(Program *p, Buf *outb, int debug)
                    t->kind == T_VARIANT ? " = {0, 0, 0, {0}}" : "");
         if (s->withevents) buf_printf(outb, "static bb_wevconn wevg%d;\n", s->index);
     }
-    /* declares */
+    /* declares (Lib "C": a prototype of the C function, called directly) */
     for (i = 0; i < p->nprocs; i++) {
         Proc *pr = p->procs[i];
-        if (pr->kind != PK_DECLARE) continue;
+        int k;
+        if (pr->kind != PK_DECLARE || !pr->clib) continue;
+        buf_printf(outb, "%s %s(", pr->ret ? clib_ctype(pr->ret) : "void", pr->alias);
+        for (k = 0; k < pr->nparams; k++) buf_printf(outb, "%s%s", k ? ", " : "", clib_ctype(pr->params[k].ty));
+        buf_printf(outb, "%s);\n", pr->nparams ? "" : "void");
+    }
+    for (i = 0; i < p->nprocs; i++) {
+        Proc *pr = p->procs[i];
+        if (pr->kind != PK_DECLARE || pr->clib) continue;
         buf_printf(outb, "static bb_declare bb_decl%d = {\"%s\", %s, %s, %s, %d, %d, NULL};\n", pr->index, pr->name,
                    cstrlit(pr->lib, (int)strlen(pr->lib)), cstrlit(pr->alias, (int)strlen(pr->alias)),
                    cstrlit(pr->iface, (int)strlen(pr->iface)), pr->version, pr->nparams);
@@ -2277,8 +2333,10 @@ int emit_c(Program *p, Buf *outb, int debug)
             char *v = xsprintf("$VER: %s %s (%02d.%02d.%04d)", t, p->version, tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900);
             buf_printf(outb, "\nstatic const char __attribute__((used)) bb_version_[] = %s;\n", cstrlit(v, (int)strlen(v)));
         }
+        for (i = 0; i < p->nexts; i++) buf_printf(outb, "void bb_ext_init_%s(void);\n", p->exts[i].name);
         buf_puts(outb, "\nint main(int argc, char **argv)\n{\n    int i;\n    bb_rt_init(argc, argv);\n    bb_set_program(&bb_ops);\n");
         if (t) buf_printf(outb, "    bb_set_app_title(%s);\n", cstrlit(t, (int)strlen(t)));
+        for (i = 0; i < p->nexts; i++) buf_printf(outb, "    bb_ext_init_%s();\n", p->exts[i].name);
     }
     buf_puts(outb, "    bb_vk_null.type = BB_NULL;\n    bb_vk_missing = bb_v_missing();\n");
     buf_printf(outb, "    for (i = 0; i < %d; i++) bb_k[i] = bb_str_lit(bb_klit[i], bb_klen[i]);\n", nlits);
