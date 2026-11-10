@@ -364,6 +364,23 @@ A form is loaded the first time you use it: `hello.Caption = "x"` loads `hello` 
 `Form_Load`) without showing it. The program ends when the last loaded form is unloaded.
 Closing a window with its close gadget is the same as `Unload`, with `UnloadMode` 0.
 
+**Placing the window: a gotcha.** On AmigaOS, `Left` and `Top` (and `Width` and `Height`)
+only change a window that is open. Set in `Form_Load`, before the window opens, they are
+ignored. And Intuition moves a window a moment after it is asked to, so setting `Left` and then
+`Top` straight after each other loses the `Left`: the second change starts from where the
+window still was. `Move` sets its values one after the other in the same way, so it doesn't
+help. Until this is fixed, call `Me.Show` first, and set one coordinate at a time: move the
+window along one direction only, or set the second coordinate later, in another event (a
+`Timer` tick, for example).
+
+<!-- fragment -->
+```basic
+Private Sub Form_Load()
+    Me.Show                 ' open the window first: it can only be moved once it is open
+    Me.Left = 20
+End Sub
+```
+
 ### Events
 
 | Event | Sub | When |

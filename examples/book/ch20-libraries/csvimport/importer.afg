@@ -1,0 +1,12 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=importer title="CSV to SQLite" width=480 height=200
+vlayout id=root
+  getfile id=src label="CSV file" pattern="#?.csv" title="CSV file to import"
+  getfile id=dst label="Database" pattern="#?.db" title="SQLite database" save=1
+  string id=tbl label="Table" text="data" maxchars=64
+  fuelgauge id=progress min=0 max=100
+  hlayout weight=0
+    button id=importbtn text="_Import"
+    button id=cancelbtn text="_Cancel" disabled=1
+  label id=status text="Choose a CSV file and a database"
+  timer id=tick interval=10 enabled=0

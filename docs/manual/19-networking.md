@@ -1076,14 +1076,14 @@ Sub server_ConnectionRequest()
     conns.Add server.Accept()
 End Sub
 
-Sub server_ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)
-    Do While InStr(Client.Peek(), vbLf) > 0
-        Client.SendLine UCase(Client.ReceiveLine())
+Sub server_ClientDataArrival(ByVal conn As Socket, ByVal Bytes As Long)
+    Do While InStr(conn.Peek(), vbLf) > 0
+        conn.SendLine UCase(conn.ReceiveLine())
     Loop
 End Sub
 
-Sub server_ClientClose(ByVal Client As Socket)
-    Client.Close
+Sub server_ClientClose(ByVal conn As Socket)
+    conn.Close
 End Sub
 
 Sub link_Connect()
@@ -1140,8 +1140,9 @@ Two things in this program are worth copying every time:
   Collection or an array. A socket that no variable refers to is closed, so a connection
   accepted into a local variable would end as soon as the handler returns.
 
-Names in Boing BASIC aren't case-sensitive, so a parameter called `Client` hides a module
-variable called `client`. That is why the client socket here is called `link`.
+You choose the name of the handlers' parameter. Here (and in the chat below) it is `conn`:
+names aren't case-sensitive, so a parameter called `Client` would hide a module variable
+called `client`.
 
 ### A chat room in a form
 
@@ -1151,9 +1152,26 @@ connects to a host. The protocol is plain text lines (`name: text`), so a `telne
 client can join in too. To try it on one machine, start it twice: host in one window and join
 `127.0.0.1` (or the address the host shows) in the other.
 
+![Three Boing Chat windows on AmigaOS 4](images/chat.png)
+
+*Three chat windows on AmigaOS 4: the host (top) with the whole conversation, then Ann and
+Bob, who joined it.*
+
+The chat can also be started from the Shell, with what to do on its command line (built with
+`boing build`, or with `boing run chat.bbp` and the same arguments):
+
+```sh
+chat host 7000                              ; host a chat on port 7000 straight away
+chat join self 7000 Ann Hello from Boing!   ; join this machine's chat as Ann and say hello
+chat join 192.168.1.20 7000 Bob             ; join another machine's chat as Bob
+```
+
+`self` stands for this machine's own address (`MachineAddress`), and the words after the name
+are said once the connection is made. The three windows in the picture were started this way.
+
 ```text
 # chat.afg
-window name=chat title="Boing Chat" width=520 height=380 resizable=1
+window name=chat title="Boing Chat" width=420 height=260 resizable=1
 vlayout id=root
   hlayout weight=0
     string id=host label="Host" text="127.0.0.1" maxchars=128
@@ -1167,7 +1185,7 @@ vlayout id=root
   hlayout weight=0
     string id=msg label="Say" maxchars=400
     button id=sendbtn text="_Send" weight=0 disabled=1
-  label id=status text="Host a chat, or join one at Host:Port"
+  label id=status text="Host a chat, or join one at Host:Port" weight=0
 ```
 
 The hosting half: the listening socket accepts every client into a Collection, and its
@@ -1204,18 +1222,18 @@ Private Sub server_ConnectionRequest()
     status.Caption = "Hosting - " & clients.Count & " people joined"
 End Sub
 
-Private Sub server_ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)
-    Do While InStr(Client.Peek(), vbLf) > 0
-        Relay Client, Client.ReceiveLine()
+Private Sub server_ClientDataArrival(ByVal conn As Socket, ByVal Bytes As Long)
+    Do While InStr(conn.Peek(), vbLf) > 0
+        Relay conn, conn.ReceiveLine()
     Loop
 End Sub
 
-Private Sub server_ClientClose(ByVal Client As Socket)
+Private Sub server_ClientClose(ByVal conn As Socket)
     Dim i As Long
     For i = clients.Count To 1 Step -1
-        If clients(i) Is Client Then clients.Remove i
+        If clients(i) Is conn Then clients.Remove i
     Next
-    Client.Close
+    conn.Close
     Relay Nothing, "* someone left"
     status.Caption = "Hosting - " & clients.Count & " people joined"
 End Sub
@@ -1482,12 +1500,50 @@ while the job runs, so that a second click can't start a second job on top of th
 
 ### The same pattern for other jobs
 
-Any job that can be done a piece at a time fits this shape. Importing a big CSV file into an
-SQLite database, for example, opens the `Csv` reader and the database and starts a transaction
-in the Start button's `Click`; each tick reads 200 records with `ReadRecord` and inserts them,
-and sets the progress bar from the record number; at the end the tick commits the transaction,
-and after a Cancel it rolls the transaction back, so the database is left as it was. (The `Csv` reader and `SQLite` are
-described in [Modern libraries](20-libraries.md).)
+Any job that can be done a piece at a time fits this shape. The book example
+`examples/book/ch20-libraries/csvimport` imports a CSV file into an SQLite database with a fuel
+gauge and a Cancel button. Its Import button opens the `Csv` reader and the database, prepares
+an `INSERT` and starts a transaction; then each tick reads and inserts at most 200 records and
+moves the gauge. At the end the tick commits the transaction, and after a Cancel or an error it
+rolls the transaction back, so the database is left as it was:
+
+*Listing 19.28* (`examples/book/ch20-libraries/csvimport/csvimport.bbp`)
+
+<!-- project: examples/book/ch20-libraries/csvimport/csvimport.bbp -->
+```basic
+Private Sub tick_Timer()
+    Dim i As Long, f, n As Long, k As Long
+    On Error GoTo Failed
+    For i = 1 To SLICE
+        If cancelled Then
+            db.Rollback
+            Finish "Cancelled: nothing was imported"
+            Exit Sub
+        End If
+        If Not table.ReadRecord() Then
+            db.Commit
+            Finish "Imported " & table.RecordNumber & " records into " & Ident(tbl.Text), _
+                   " in " & Format(Timer - t0, "0.0") & " s"
+            Exit Sub
+        End If
+        f = table.Fields
+        n = ins.ParameterCount
+        If UBound(f) + 1 <> n Then ReDim Preserve f(n - 1)      ' short or long records fit the table
+        ins.Execute f
+    Next
+    progress.Value = IIf(table.RecordNumber > progress.Max, progress.Max, table.RecordNumber)
+    status.Caption = "Importing ... " & table.RecordNumber & " of " & total
+    Exit Sub
+Failed:
+    If db.InTransaction Then db.Rollback
+    Finish "Error at record " & table.RecordNumber & ": " & Err.Description
+End Sub
+```
+
+`Finish` stops the timer, enables the buttons again and closes the file and the database. The
+`Csv` reader and `SQLite` are described in [Modern libraries](20-libraries.md); the rest of the
+importer is in [Example: importing a CSV file](20-libraries.md#example-importing-a-csv-file)
+there.
 
 ### Slices or DoEvents?
 

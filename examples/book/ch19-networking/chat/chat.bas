@@ -7,9 +7,38 @@ Option Explicit
 Private WithEvents server As Socket     ' when hosting: the listening socket
 Private WithEvents link As Socket       ' when joined: the connection to the host
 Private clients As Collection           ' when hosting: the connected clients
+Private greeting As String              ' chat join ...: a line to say once connected
 
 Private Sub Form_Load()
+    Dim a, i As Long
     log.Locked = True
+    ' from a shell:  chat host [PORT]   or   chat join HOST|self PORT NAME [message ...]
+    a = Split(Trim(Command()), " ")
+    If UBound(a) < 0 Then Exit Sub
+    If Left(a(UBound(a)), 1) = "@" Then          ' ... @X,Y places the window
+        Dim xy
+        xy = Split(Mid(a(UBound(a)), 2), ",")
+        If UBound(xy) = 1 Then
+            Me.Show                 ' open the window first: it can only be moved once it is open
+            Me.Left = CLng(xy(0))
+            Me.Top = CLng(xy(1))
+        End If
+        If UBound(a) = 0 Then Exit Sub
+        ReDim Preserve a(UBound(a) - 1)
+    End If
+    Select Case LCase(a(0))
+    Case "host"
+        If UBound(a) >= 1 Then port.Text = a(1)
+        hostbtn_Click
+    Case "join"
+        If UBound(a) >= 3 Then
+            host.Text = IIf(LCase(a(1)) = "self", CreateObject("Socket").MachineAddress, a(1))
+            port.Text = a(2)
+            nick.Text = a(3)
+            For i = 4 To UBound(a): greeting = greeting & IIf(i > 4, " ", "") & a(i): Next
+            joinbtn_Click
+        End If
+    End Select
 End Sub
 
 Private Sub Show(ByVal text As String)
@@ -49,18 +78,18 @@ Private Sub server_ConnectionRequest()
     status.Caption = "Hosting - " & clients.Count & " people joined"
 End Sub
 
-Private Sub server_ClientDataArrival(ByVal Client As Socket, ByVal Bytes As Long)
-    Do While InStr(Client.Peek(), vbLf) > 0
-        Relay Client, Client.ReceiveLine()
+Private Sub server_ClientDataArrival(ByVal conn As Socket, ByVal Bytes As Long)
+    Do While InStr(conn.Peek(), vbLf) > 0
+        Relay conn, conn.ReceiveLine()
     Loop
 End Sub
 
-Private Sub server_ClientClose(ByVal Client As Socket)
+Private Sub server_ClientClose(ByVal conn As Socket)
     Dim i As Long
     For i = clients.Count To 1 Step -1
-        If clients(i) Is Client Then clients.Remove i
+        If clients(i) Is conn Then clients.Remove i
     Next
-    Client.Close
+    conn.Close
     Relay Nothing, "* someone left"
     status.Caption = "Hosting - " & clients.Count & " people joined"
 End Sub
@@ -93,6 +122,11 @@ End Sub
 Private Sub link_Connect()
     SetConnected True, "Connected to " & link.RemoteHost & ":" & link.RemotePort
     link.SendLine "* " & nick.Text & " is here"
+    If greeting <> "" Then
+        link.SendLine nick.Text & ": " & greeting
+        Show nick.Text & ": " & greeting
+        greeting = ""
+    End If
 End Sub
 
 Private Sub link_Error(ByVal Number As Long, ByVal Description As String)
