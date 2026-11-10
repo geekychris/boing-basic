@@ -499,6 +499,12 @@ native, and checks the others compile.
 | 20.68 | [ch20-libraries/listing-20-68.bas](ch20-libraries/listing-20-68.bas) | Example: levels and a log file |
 | 20.69 | [ch20-libraries/listing-20-69.bas](ch20-libraries/listing-20-69.bas) | Example: a log that doesn't grow for ever |
 | 20.70 | [ch20-libraries/listing-20-70.bas](ch20-libraries/listing-20-70.bas) | Debug messages in a finished program |
+| 20.71 | [ch20-libraries/listing-20-71.bas](ch20-libraries/listing-20-71.bas) | Example: reading a feed |
+| 20.72 | [ch20-libraries/listing-20-72.bas](ch20-libraries/listing-20-72.bas) | Example: building and changing a document |
+| 20.73 | [ch20-libraries/listing-20-73.bas](ch20-libraries/listing-20-73.bas) | Errors |
+| 20.74 | [ch20-libraries/listing-20-74.bas](ch20-libraries/listing-20-74.bas) | Compress and Decompress |
+| 20.75 | [ch20-libraries/listing-20-75.bas](ch20-libraries/listing-20-75.bas) | The Zip class: writing an archive |
+| 20.76 | [ch20-libraries/listing-20-76.bas](ch20-libraries/listing-20-76.bas) | Errors |
 
 ## Extending Boing BASIC
 

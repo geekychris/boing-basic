@@ -381,6 +381,46 @@ The request takes the object's settings (`Timeout`, `SetHeader` headers, `UserAg
 `CACertFile`, `VerifyCertificate`, `FollowRedirects`, `MaxRedirects`) at the moment it starts:
 changing them later affects only the next request.
 
+### Events: Done, Failed and Progress
+
+Instead of naming Subs in `OnDone` and `OnProgress`, declare the variable `WithEvents`: the
+`Http` object then raises events, handled by Subs named after the variable and the event, like
+a form's controls:
+
+| Event | When |
+|---|---|
+| `Done()` | the request ended with an answer (any HTTP status: check `Status`) |
+| `Failed(number As Long, text As String)` | it ended without an answer: `number` is the `ErrorNumber` (31101 to 31110, or 18 after `Cancel`) |
+| `Progress(got As Long, total As Long)` | data arrived (`total` is -1 when the server didn't say how much is coming) |
+
+<!-- fragment -->
+```basic
+Private WithEvents web As Http
+
+Private Sub fetch_Click()
+    Set web = CreateObject("Http")
+    web.GetAsync url.Text
+    fetch.Enabled = False
+End Sub
+
+Private Sub web_Done()
+    fetch.Enabled = True
+    page.Text = Utf8Decode(web.ResponseText)
+End Sub
+
+Private Sub web_Failed(number As Long, text As String)
+    fetch.Enabled = True
+    MsgBox text, vbExclamation
+End Sub
+
+Private Sub web_Progress(got As Long, total As Long)
+    If total > 0 Then status.Caption = (got * 100 \ total) & "%"
+End Sub
+```
+
+Events and `OnDone`/`OnProgress` can be used together; both run on the program's own task, so
+they can change the form freely.
+
 ### Errors are not raised
 
 A `Get` that can't reach the server raises a run-time error. An asynchronous request has no

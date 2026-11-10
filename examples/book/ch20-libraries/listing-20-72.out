@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<highscores game="Boing &amp; Bounce">
+  <score player="Ann">5200</score>
+  <score player="Bob">4100</score>
+  <score player="Cy">900</score>
+</highscores>
+
+<highscores game="Boing &amp; Bounce"><score name="Dee">6000</score><score name="Ann">5200</score><score name="Bob">4100</score></highscores>
+<score name="Dee">6000</score><score name="Ann">5200</score><score name="Bob">4100</score>
