@@ -1,0 +1,4 @@
+window name=formpos title="Boing BASIC form position test" width=320 height=120
+vlayout id=root
+  label id=info text="Moves itself around: please leave it be"
+  timer id=tick interval=1500 enabled=1

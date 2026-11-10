@@ -43,8 +43,8 @@ Private Sub tick_Timer()
         Check formbas.ok.Caption = "_OK", "formbas.ok.Caption (form.control)"
     Case 2
         Print "CLICK"; Me.Left + ok.Left + ok.Width \ 2; Me.Top + ok.Top + ok.Height \ 2
-    Case 12
-        Check False, "ok_Click within 4 seconds"
+    Case 77                                  ' 30 s: the runner polls the output over the bridge
+        Check False, "ok_Click within 30 seconds"
         Finish
     End Select
 End Sub

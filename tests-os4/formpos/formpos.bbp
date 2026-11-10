@@ -1,0 +1,5 @@
+# Left/Top/Width set in Form_Load (before the window opens) and set twice in a row / by Move
+# (ChangeWindowBox acts later); the window moves itself, no input is injected
+Name=FormPosTest
+Startup=Form formpos
+Form=formpos.afg
