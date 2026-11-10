@@ -240,4 +240,54 @@ check(ssh_of("m1c").startswith("EXIT:") and "BB_SSH_M1C" in ssh_of("m1c"), "a re
 check(ssh_of("local") == "None", "the local guest needs no ssh login")
 src = open(os.path.join(root, "tools", "os4guest.py")).read()
 check(not re.search(r'"ssh":\s*"[^"]*@', src), "no ssh logins in os4guest.py")
+# native builds on the guest: recognised, refused without BB_GUEST_BUILD=1, limited, a timeout reported
+cases = {"SDK:gcc/bin/gcc -O2 -o x x.c": True, "DH1:BoingBASIC/boing build arith.bas -o x": True,
+         "boing vm --project P.bbp -o y": True, "run >NIL: SDK:gcc/bin/gcc x.c": True,
+         "list SDK:gcc/bin": False, "DH1:BoingBASIC/boing run hello.bas": False, "type RAM:gcc.log": False}
+check(all(g.is_guest_build(c) == want for c, want in cases.items()),
+      "guest build: recognised by the command's program (%s)" % {c: g.is_guest_build(c) for c in cases})
+os.environ.pop("BB_GUEST_BUILD", None)
+try:
+    g.guest_build(None, "SDK:gcc/bin/gcc x.c")
+    refused = False
+except RuntimeError as e:
+    refused = "BB_GUEST_BUILD=1" in str(e)
+check(refused, "guest build: refused without BB_GUEST_BUILD=1")
+
+
+class BuildGuest(ProcGuest):
+    def __init__(self, finishes):
+        ProcGuest.__init__(self)
+        self.finishes = finishes
+
+    def tool(self, name, **a):
+        c = a.get("command", "")
+        if c.startswith("type RAM:bbbuild"):
+            return "ld: ok\n__BB_BUILD_DONE__\n" if self.finishes else "compiling..."
+        return ProcGuest.tool(self, name, **a)
+
+
+real_push = g.bridge_push
+g.bridge_push = lambda m, local, dest: "pushed"
+os.environ["BB_GUEST_BUILD"] = "1"
+bg = BuildGuest(True)
+g.SESSION["procs"] = {}
+out = g.guest_build(bg, "SDK:gcc/bin/gcc x.c", limit=30)
+check(out.strip() == "ld: ok" and g.SESSION["procs"] == {}, "guest build: a finished build returns its output and leaves nothing for the session to stop")
+bg = BuildGuest(False)
+err, sys.stderr = sys.stderr, io.StringIO()
+real_time = _time.time
+clock = [1000.0]
+_time.time = lambda: clock.__setitem__(0, clock[0] + 20) or clock[0]
+try:
+    g.guest_build(bg, "SDK:gcc/bin/gcc x.c", limit=60)
+    timed_out = False
+except RuntimeError as e:
+    timed_out = "timed out" in str(e)
+warned, sys.stderr = sys.stderr.getvalue(), err
+_time.time = real_time
+g.bridge_push = real_push
+os.environ.pop("BB_GUEST_BUILD", None)
+check(timed_out and "KEEPS RUNNING" in warned and "ignores Ctrl-C" in warned,
+      "guest build: a timeout is reported loudly (GCC keeps running, ignores Ctrl-C)")
 sys.exit(0 if ok else 1)

@@ -297,6 +297,56 @@ def end_session(m):
     return alive
 
 
+# --- native builds ON the guest (SDK GCC, `boing build` / `boing vm` there) ----------------------
+# GCC on the QEMU guest takes minutes per program, starves the bridge, and ignores Ctrl-C and
+# break: a build that outlives its session can't be stopped and has wedged a shared guest for
+# 45 minutes. So a guest-side build runs only when asked for (BB_GUEST_BUILD=1), in the
+# background with a hard limit (BB_GUEST_BUILD_LIMIT, default 600 s), and a timeout is reported
+# loudly. Cross builds on the Mac (`boing build --target os4`) are not affected.
+def is_guest_build(cmd):
+    """The command runs GCC or `boing build`/`boing vm` (judged by its first word)."""
+    w = re.sub(r"^\s*run\s+(>\S+\s+)?", "", cmd, flags=re.I).split()
+    if not w:
+        return False
+    prog = w[0].strip('"').lower().rsplit("/", 1)[-1].rsplit(":", 1)[-1]
+    return prog in ("gcc", "g++", "ppc-amigaos-gcc", "c++") or (prog == "boing" and len(w) > 1 and w[1].lower() in ("build", "vm"))
+
+
+def guest_build(m, cmd, limit=None):
+    """Run a native build command on the guest; returns its output. Refuses unless
+    BB_GUEST_BUILD=1; waits at most `limit` s (BB_GUEST_BUILD_LIMIT, 600)."""
+    import time
+    if os.environ.get("BB_GUEST_BUILD") != "1":
+        raise RuntimeError("a native build on the guest (%s) needs BB_GUEST_BUILD=1: GCC on the guest takes "
+                           "minutes, starves the bridge and ignores Ctrl-C (build on the Mac with "
+                           "`boing build --target os4` instead)" % cmd[:60])
+    limit = float(limit or os.environ.get("BB_GUEST_BUILD_LIMIT", "600"))
+    out = "RAM:bbbuild-%d.log" % os.getpid()
+    m.tool("amiga_dos_command", command="delete %s QUIET" % out)
+    tmp = tempfile.NamedTemporaryFile("w", delete=False, suffix=".script")
+    tmp.write("FailAt 21\nStack 262144\n%s >>%s *>>%s\necho >>%s \"__BB_BUILD_DONE__\"\n" % (cmd, out, out, out))
+    tmp.close()
+    try:
+        bridge_push(m, tmp.name, out + ".script")
+    finally:
+        os.unlink(tmp.name)
+    before = dict(SESSION["procs"])
+    run_bg_cmd(m, "execute %s.script" % out)
+    started = {n: v for n, v in SESSION["procs"].items() if n not in before}
+    t0, text = time.time(), ""
+    while time.time() - t0 < limit:
+        time.sleep(5)
+        text = m.tool("amiga_dos_command", command="type %s" % out)
+        if "__BB_BUILD_DONE__" in text:
+            for n in started:               # finished: nothing for the session's end to stop
+                SESSION["procs"].pop(n, None)
+            return text.split("__BB_BUILD_DONE__")[0]
+    sys.stderr.write("os4guest: WARNING: the guest build didn't finish within %d s and KEEPS RUNNING on the guest "
+                     "(GCC ignores Ctrl-C and break): %s; CLIs %s. It may need a guest restart (ask the lead).\n"
+                     % (limit, cmd[:80], ", ".join(str(n) for n in started) or "?"))
+    raise RuntimeError("guest build timed out after %d s: %s" % (limit, cmd[:80]))
+
+
 # ready tasks other than these, at priority >= 0, at the start of a session are suspect
 # (infra-m1b's tasklist; an idle guest shows about 3-7 READY)
 TASKS_OK = ("dos_signal_server", "dos_appdir_server", "idle.task", "AmiDock", "amiga-bridge",
@@ -806,21 +856,13 @@ def setup(m):
     bridge_push(m, src, "DH1:bbtools/bbfetch.c")
     bridge_push(m, os.path.join(ROOT, "tools/os4/ptr.c"), "DH1:bbtools/ptr.c")
     bridge_push(m, os.path.join(ROOT, "tools/os4/tasklist.c"), "DH1:bbtools/tasklist.c")
-    # compile in the background (GCC takes longer than the bridge's 30 s command timeout)
-    import time
+    os.environ["BB_GUEST_BUILD"] = "1"      # setup without the cross-built tools: building them IS the job
     for tool in ("bbfetch", "ptr", "tasklist"):
         m.tool("amiga_dos_command", command="delete DH1:bbtools/%s QUIET" % tool)
-        run_bg_cmd(m, "SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 "
-               "-o DH1:bbtools/%s DH1:bbtools/%s.c -lauto >RAM:%s.log" % (tool, tool, tool))
-        t0 = time.time()
-        while time.time() - t0 < 900:       # GCC on the guest: 15 s to several minutes
-            time.sleep(10)
-            out = m.tool("amiga_dos_command", command="list DH1:bbtools/%s LFORMAT %%n" % tool)
-            if out.strip().endswith(tool):
-                time.sleep(3)           # let the linker close the file
-                break
-        else:
-            print(m.tool("amiga_dos_command", command="type RAM:%s.log" % tool))
+        out = guest_build(m, "SDK:gcc/bin/gcc -mcrt=newlib -mcpu=powerpc -O2 -o DH1:bbtools/%s DH1:bbtools/%s.c -lauto"
+                          % (tool, tool))
+        if not m.tool("amiga_dos_command", command="list DH1:bbtools/%s LFORMAT %%n" % tool).strip().endswith(tool):
+            print(out)
             raise RuntimeError("building %s on the guest failed" % tool)
     print(m.tool("amiga_dos_command", command="list DH1:bbtools"))
     _self_test(m)
@@ -914,7 +956,10 @@ def main():
             for i in range(0, len(args), 2):
                 print(push(m, args[i], args[i + 1]))
         elif cmd == "dos":
-            print(m.tool("amiga_dos_command", command=args[0]))
+            if is_guest_build(args[0]):
+                print(guest_build(m, args[0]))          # needs BB_GUEST_BUILD=1, has a hard limit
+            else:
+                print(m.tool("amiga_dos_command", command=args[0]))
         elif cmd == "shot":
             print("screenshot", shot(m, args[0]))
         elif cmd == "mouse":
