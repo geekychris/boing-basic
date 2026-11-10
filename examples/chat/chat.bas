@@ -18,11 +18,7 @@ Private Sub Form_Load()
     If Left(a(UBound(a)), 1) = "@" Then          ' ... @X,Y places the window
         Dim xy
         xy = Split(Mid(a(UBound(a)), 2), ",")
-        If UBound(xy) = 1 Then
-            Me.Show                 ' open the window first: it can only be moved once it is open
-            Me.Left = CLng(xy(0))
-            Me.Top = CLng(xy(1))
-        End If
+        If UBound(xy) = 1 Then Me.Move CLng(xy(0)), CLng(xy(1))
         If UBound(a) = 0 Then Exit Sub
         ReDim Preserve a(UBound(a) - 1)
     End If
