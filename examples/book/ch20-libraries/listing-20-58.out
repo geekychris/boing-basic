@@ -1,0 +1,4 @@
+delimiter: 380 
+open: 53 
+column: 5  no column named c
+missing field: [] 0 

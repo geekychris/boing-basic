@@ -470,6 +470,30 @@ native, and checks the others compile.
 | 20.39 | [ch20-libraries/listing-20-39.bas](ch20-libraries/listing-20-39.bas) | Errors |
 | 20.40 | [ch20-libraries/wordfreq/wordfreq.bbp](ch20-libraries/wordfreq/wordfreq.bbp) | Example: a word count report |
 | 20.41 | [ch20-libraries/wordfreq/wordfreq.bbp](ch20-libraries/wordfreq/wordfreq.bbp) | Example: a word count report |
+| 20.42 | [ch20-libraries/listing-20-42.bas](ch20-libraries/listing-20-42.bas) | Regular expressions: RegExp |
+| 20.43 | [ch20-libraries/listing-20-43.bas](ch20-libraries/listing-20-43.bas) | Matches, Match and SubMatches |
+| 20.44 | [ch20-libraries/listing-20-44.bas](ch20-libraries/listing-20-44.bas) | Matches, Match and SubMatches |
+| 20.45 | [ch20-libraries/listing-20-45.bas](ch20-libraries/listing-20-45.bas) | Pattern syntax |
+| 20.46 | [ch20-libraries/listing-20-46.bas](ch20-libraries/listing-20-46.bas) | Options: IgnoreCase and MultiLine |
+| 20.47 | [ch20-libraries/listing-20-47.bas](ch20-libraries/listing-20-47.bas) | Replacement text |
+| 20.48 | [ch20-libraries/listing-20-48.bas](ch20-libraries/listing-20-48.bas) | Split and Escape |
+| 20.49 | [ch20-libraries/listing-20-49.bas](ch20-libraries/listing-20-49.bas) | Errors |
+| 20.50 | [ch20-libraries/loganalyser/loganalyser.bbp](ch20-libraries/loganalyser/loganalyser.bbp) | Example: a log analyser |
+| 20.51 | [ch20-libraries/listing-20-51.bas](ch20-libraries/listing-20-51.bas) | CSV files: Csv |
+| 20.52 | [ch20-libraries/listing-20-52.bas](ch20-libraries/listing-20-52.bas) | Reading |
+| 20.53 | [ch20-libraries/listing-20-53.bas](ch20-libraries/listing-20-53.bas) | Reading |
+| 20.54 | [ch20-libraries/listing-20-54.bas](ch20-libraries/listing-20-54.bas) | Reading |
+| 20.55 | [ch20-libraries/listing-20-55.bas](ch20-libraries/listing-20-55.bas) | Writing |
+| 20.56 | [ch20-libraries/listing-20-56.bas](ch20-libraries/listing-20-56.bas) | Writing |
+| 20.57 | [ch20-libraries/listing-20-57.bas](ch20-libraries/listing-20-57.bas) | Settings |
+| 20.58 | [ch20-libraries/listing-20-58.bas](ch20-libraries/listing-20-58.bas) | Errors |
+| 20.59 | [ch20-libraries/listing-20-59.bas](ch20-libraries/listing-20-59.bas) | Unique identifiers: CreateUUID |
+| 20.60 | [ch20-libraries/listing-20-60.bas](ch20-libraries/listing-20-60.bas) | Running commands: Process |
+| 20.61 | [ch20-libraries/listing-20-61.bas](ch20-libraries/listing-20-61.bas) | Running a command |
+| 20.62 | [ch20-libraries/listing-20-62.bas](ch20-libraries/listing-20-62.bas) | Running a command |
+| 20.63 | [ch20-libraries/listing-20-63.bas](ch20-libraries/listing-20-63.bas) | Running a command |
+| 20.64 | [ch20-libraries/listing-20-64.bas](ch20-libraries/listing-20-64.bas) | Running a command |
+| 20.65 | [ch20-libraries/listing-20-65.bas](ch20-libraries/listing-20-65.bas) | Environment variables |
 
 ## Extending Boing BASIC
 

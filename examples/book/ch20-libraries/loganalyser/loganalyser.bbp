@@ -1,0 +1,4 @@
+# Log analyser: a summary of a log file with regular expressions (manual chapter 20)
+Name=LogAnalyser
+Startup=Sub Main
+Module=loganalyser.bas
