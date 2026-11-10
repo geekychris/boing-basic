@@ -95,14 +95,31 @@ void bb_freemem(bb_long p) { if (p) free_tracked(addr_of(p)); }
 bb_long bb_taglist(int argc, const bb_value *argv)
 {
     uint32_t *t;
+    char *sp;
+    size_t sbytes = 0, tbytes;
     int i, n = argc / 2;
     if (argc % 2) bb_raise(450, NULL);
-    t = (uint32_t *)alloc_tracked(sizeof(uint32_t) * 2 * (size_t)(n + 1), 1);
+    /* strings are copied into the tag list's own block (after the tags), so a temporary
+       ("Title " & n) stays valid until FreeTagList */
+    for (i = 0; i < n; i++) {
+        bb_value tmp;
+        const bb_value *v = bb_v_deref(&argv[2 * i + 1], &tmp);
+        if (v->type == BB_STRING) sbytes += (size_t)bb_str_len(v->u.s) + 1;
+    }
+    tbytes = sizeof(uint32_t) * 2 * (size_t)(n + 1);
+    t = (uint32_t *)alloc_tracked(tbytes + sbytes, 1);
+    sp = (char *)t + tbytes;
     for (i = 0; i < n; i++) {
         bb_value tmp;
         const bb_value *v = bb_v_deref(&argv[2 * i + 1], &tmp);
         t[2 * i] = (uint32_t)bb_v_to_long(&argv[2 * i]);
-        if (v->type == BB_STRING) t[2 * i + 1] = (uint32_t)bb_strptr(v->u.s);      /* the string must outlive the call */
+        if (v->type == BB_STRING) {
+            size_t l = (size_t)bb_str_len(v->u.s);
+            memcpy(sp, bb_str_ptr(v->u.s), l);
+            sp[l] = 0;
+            t[2 * i + 1] = (uint32_t)bb_ptr32(sp);
+            sp += l + 1;
+        }
         else if (v->type == BB_OBJECT) t[2 * i + 1] = (uint32_t)bb_objptr(v);
         else t[2 * i + 1] = (uint32_t)bb_v_to_long(v);
     }

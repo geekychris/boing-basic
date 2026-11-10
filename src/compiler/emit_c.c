@@ -759,6 +759,12 @@ static R call(EC *e, Node *n)
                                    b.p ? b.p : "", n->list.n ? "" : "0");
             if (!pr->ret) return mkr(callx, 0);
             if (pr->ret->kind == T_VARIANT) return mkr(xsprintf("bb_v_long((bb_long)%s)", callx), 1);
+            if (pr->ret->kind == T_STRING) {
+                /* As String: the function returns a C string; copied (0 = "") */
+                char *rv = new_temp(e, &ty_long, 0);
+                pre(e, "%s = (bb_long)%s;", rv, callx);
+                return mkr(xsprintf("(%s ? bb_peeks(%s, -1) : NULL)", rv, rv), 1);
+            }
             {
                 char *tn = new_temp(e, pr->ret, 0);
                 pre(e, "%s = (%s)(int32_t)%s;", tn, ctype(pr->ret), callx);

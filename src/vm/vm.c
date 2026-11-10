@@ -1849,7 +1849,7 @@ static void vm_exec(VM *vm, int entry)
                 break;
             }
             case I_CALLD: {
-                int argc = pc[2] & 0xffff, hasret = (pc[2] >> 16) != 0, i;
+                int argc = pc[2] & 0xffff, hasret = (pc[2] >> 16) != 0, retstr = (pc[2] & 0x20000) != 0, i;
                 bb_value *args = sp - argc;
                 uint32_t w[16];
                 uint32_t r;
@@ -1863,7 +1863,7 @@ static void vm_exec(VM *vm, int entry)
                 r = bb_declare_call(&img->decls[pc[1]], argc, w);
                 for (i = 0; i < argc; i++) release_slot(&args[i]);
                 sp = args;
-                if (hasret) PUSH(bb_v_long((bb_long)r));
+                if (hasret) PUSH(retstr ? bb_v_str(r ? bb_peeks((bb_long)r, -1) : NULL) : bb_v_long((bb_long)r));   /* As String: a C string */
                 pc += 3;
                 break;
             }

@@ -763,6 +763,12 @@ static Node *byref_arg(Ctx *c, Node *arg, Param *pa, Proc *pr)
         if (!type_eq(a->ty, pa->ty)) ERR(c, arg, "type mismatch: %s passed for %s", type_name(a->ty), type_name(pa->ty));
         return a;
     }
+    if (pr->kind == PK_DECLARE && type_is_numeric(pa->ty)) {
+        /* the OS function gets a pointer: a constant or another type would pass a number */
+        ERR(c, arg, "ByRef parameter '%s' of Declare %s needs a %s variable (or declare it ByVal)",
+            pa->name, pr->name, type_name(pa->ty));
+        return a;
+    }
     return coerce(c, a, pa->ty);
 }
 
