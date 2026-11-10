@@ -103,9 +103,9 @@ footer:
     right:
       content: '{page-number}'
     left:
-      content: 'Boing BASIC'
+      content: '{manual-name}'
   verso:
     left:
       content: '{page-number}'
     right:
-      content: 'Boing BASIC'
+      content: '{manual-name}'

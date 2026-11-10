@@ -128,6 +128,8 @@ def convert(stem, known):
     lines = adoc.split("\n")
     out, seen, first = [], {}, True
     for line in lines:
+        if re.match(r"^\[\[[^\]]+\]\]$", line):
+            continue          # pandoc's own anchor (asciidoctor rejects ids that start with a digit); ours follow
         m = re.match(r"^(=+) (.*)$", line)
         if m:
             title = m.group(2)
@@ -240,6 +242,7 @@ def master(letter):
     import datetime
     L = ["= Boing BASIC: A structured BASIC for AmigaOS 4",
          ":doctype: book",
+         ":manual-name: Boing BASIC",
          ":revnumber: " + version(),
          ":version-label: " + ("Version" if re.match(r"^v?\d+\.\d+", version()) else "Revision"),
          ":revdate: " + datetime.date.today().isoformat(),
