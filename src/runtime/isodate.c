@@ -112,6 +112,11 @@ bb_date bb_parseiso8601(bb_str *str)
         if (*p && *p != 'T' && *p != ' ' && !digits(&p, 2, &d)) bad(s, "a bad day");
     }
     if (mo < 1 || mo > 12 || d < 1 || d > 31) bad(s, "the month or day is out of range");
+    {
+        static const int mdays[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+        int leap = (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
+        if (d > mdays[mo - 1] || (mo == 2 && d == 29 && !leap)) bad(s, "that day isn't in the month");
+    }
     int zone = 0;
     long zmin = 0;
     if (*p == 'T' || *p == 't' || (*p == ' ' && p[1] >= '0' && p[1] <= '9')) {
@@ -135,7 +140,8 @@ bb_date bb_parseiso8601(bb_str *str)
                 }
             }
         }
-        if (h > 24 || mi > 59 || se > 60) bad(s, "the time is out of range");
+        /* 24:00:00 is the end of the day (the next day's midnight); 60 seconds a leap second */
+        if (h > 24 || mi > 59 || se > 60 || (h == 24 && (mi || se || frac > 0))) bad(s, "the time is out of range");
         if (*p == 'Z' || *p == 'z') {
             zone = 1;
             p++;

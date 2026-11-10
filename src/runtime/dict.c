@@ -53,7 +53,8 @@ static uint32_t fnv(const unsigned char *p, size_t n, int fold)
     uint32_t h = 2166136261u;
     while (n--) {
         unsigned char c = *p++;
-        if (fold) c = (unsigned char)tolower(c);
+        if (fold && ((c >= 'A' && c <= 'Z') || (c >= 0xC0 && c <= 0xDE && c != 0xD7)))
+            c = (unsigned char)(c + 32);        /* Latin-1, as bb_str_cmp compares */
         h = (h ^ c) * 16777619u;
     }
     return h;

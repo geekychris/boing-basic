@@ -46,6 +46,7 @@ typedef struct bb_http_req {
     int (*progress)(void *ud, long got, long total);
     void *progress_ud;
     bb_http_session *session;   /* cookies and keep-alive, or NULL for neither */
+    int decompress;             /* ask for gzip/deflate (when zlib is there) and unpack the answer */
 } bb_http_req;
 
 typedef struct bb_http_resp {
@@ -56,6 +57,7 @@ typedef struct bb_http_resp {
     long body_len;              /* bytes received (also when sent to a file) */
     char *final_url;            /* the URL after redirects */
     int redirects;
+    long wire_len;              /* body bytes as received (compressed, if it was) */
 } bb_http_resp;
 
 /* Do the request (following redirects as asked). 0, or an error number (net.h) with err set.

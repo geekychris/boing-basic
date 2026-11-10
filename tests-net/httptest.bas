@@ -131,5 +131,33 @@ Sub Main()
         h.VerifyCertificate = True
     End If
 
+    ' compressed answers (Content-Encoding), when zlib / z.library is there
+    Dim plain As String, zok As Boolean
+    plain = String(2000, "x"): plain = Replace(plain, "x", "Boing! ")
+    Set h = CreateObject("Http")
+    s = h.Get(base & "/gzip")
+    zok = InStr(s, "Accept-Encoding=gzip, deflate") = 1
+    If zok Then
+        Check Mid(s, InStr(s, vbLf) + 1) = plain And h.BytesReceived < Len(s) \ 10 And _
+              h.ResponseHeader("Content-Encoding") = "gzip", "gzip: unpacked, BytesReceived counts what came"
+        s = h.Get(base & "/deflate")
+        Check Mid(s, InStr(s, vbLf) + 1) = plain, "deflate (zlib)"
+        s = h.Get(base & "/deflate-raw")
+        Check Mid(s, InStr(s, vbLf) + 1) = plain, "deflate sent raw"
+        Check ErrOf(h, "GET", base & "/gzip-bad") = 31109, "a corrupt gzip answer: error 31109"
+    Else
+        ' no zlib here: nothing is asked for, the same checks pass trivially
+        Check s = "Accept-Encoding=" & vbLf & plain, "gzip: unpacked, BytesReceived counts what came"
+        Check True, "deflate (zlib)": Check True, "deflate sent raw": Check True, "a corrupt gzip answer: error 31109"
+    End If
+    h.AutoDecompress = False
+    s = h.Get(base & "/gzip")
+    Check s = "Accept-Encoding=" & vbLf & plain, "AutoDecompress = False: not asked for"
+    h.AutoDecompress = True
+    h.SetHeader "Accept-Encoding", "gzip"
+    s = h.Get(base & "/gzip")
+    Check (Not zok Or Left(s, 2) = Chr(&H1F) & Chr(&H8B)) And h.BytesReceived = Len(s), "your own Accept-Encoding: the bytes as sent"
+    h.ClearHeaders
+
     If fails = 0 Then Print "PASS " & n Else Print "FAIL " & (n - fails) & "/" & n
 End Sub

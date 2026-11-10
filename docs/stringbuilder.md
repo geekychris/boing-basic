@@ -26,8 +26,8 @@ on QEMU); 200,000 appends on the host: 1.4 s against 0.005 s.
 | `Clear` | empties it (keeps the memory) |
 | `ToString` | the text (default member) |
 | `Length` | the number of characters; setting it shortens the text or pads it with spaces |
-| `Capacity` | the buffer size; setting it reserves room in advance |
-| `Char(pos)` | one character; `sb.Char(pos) = "x"` changes it |
+| `Capacity` | the buffer size; setting it reserves at least that much room in advance (it is rounded up, so reading it back can give more) |
+| `Char(pos)` | one character; `sb.Char(pos) = "x"` changes it (exactly one character: anything else is error 5) |
 
 Positions out of range raise error 5. Like Strings, a StringBuilder holds bytes, so binary data
 is fine.

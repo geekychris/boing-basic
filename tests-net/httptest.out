@@ -36,4 +36,10 @@ ok 35 - HTTPS POST
 ok 36 - HTTPS chunked
 ok 37 - an untrusted certificate: error 31106
 ok 38 - VerifyCertificate = False
-PASS 38
+ok 39 - gzip: unpacked, BytesReceived counts what came
+ok 40 - deflate (zlib)
+ok 41 - deflate sent raw
+ok 42 - a corrupt gzip answer: error 31109
+ok 43 - AutoDecompress = False: not asked for
+ok 44 - your own Accept-Encoding: the bytes as sent
+PASS 44

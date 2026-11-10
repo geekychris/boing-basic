@@ -330,6 +330,7 @@ static const struct { const char *cls, *name, *kind; } bb_rtmembers[] = {
     {"Engine3D", "Visible", "method"},
     {"Engine3D", "Xform", "method"},
     {"Engine3D", "XformMany", "method"},
+    {"Http", "AutoDecompress", "property"},
     {"Http", "Busy", "property"},
     {"Http", "BytesReceived", "property"},
     {"Http", "CACertFile", "property"},

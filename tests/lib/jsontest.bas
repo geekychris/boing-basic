@@ -100,3 +100,9 @@ d.RemoveAll
 Err.Clear
 s = JsonStringify(1, 99)
 Print Err.Number
+Err.Clear
+Set d = CreateObject("Dictionary")
+d(True) = "t"
+d(-1) = "same"
+d(0) = "zero"
+Print d.Count; " "; JsonStringify(d)
