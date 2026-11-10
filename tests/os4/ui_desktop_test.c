@@ -13,7 +13,9 @@ static const char *afg =
     "vlayout id=root\n"
     "  button id=go text=\"_Go\"\n"
     "  checkbox id=fast text=\"_Fast\"\n"
-    "  string id=name label=\"_Name\"\n"
+    "  string id=name label=\"_Name\" text=\"a_b\"\n"
+    "  label text=\"_Port\"\n"
+    "  string id=port\n"
     "  hlayout\n"
     "    button id=ok text=\"OK\" default=1\n"
     "    button id=cancel text=\"Cancel\" cancel=1\n"
@@ -26,7 +28,7 @@ static const char *afg_screen =
     "  label text=\"On the program's own screen\"\n";
 
 static bb_form *form;
-static int step, c_go, c_fast, c_ok, c_cancel;
+static int step, c_go, c_fast, c_ok, c_cancel, keyup_g, keyup_x;
 
 static bb_ctl *C(const char *n) { return strcasecmp(n, "Form") ? bb_form_ctl(form, n) : bb_form_self(form); }
 static int geti(bb_ctl *c, const char *p) { bb_fval v; return bb_ctl_get(c, p, -1, &v) ? -9999 : v.i; }
@@ -55,6 +57,10 @@ static int ev(void *ud, bb_form *f, const char *ctl, const char *e, int argc, in
         if (!strcasecmp(ctl, "ok")) c_ok++;
         if (!strcasecmp(ctl, "cancel")) c_cancel++;
     }
+    if (!strcasecmp(ctl, "Form") && !strcasecmp(e, "KeyUp") && argc > 0) {
+        if (args[0] == 'G') keyup_g++;
+        if (args[0] == 'X') keyup_x++;
+    }
     if (!strcasecmp(ctl, "tick") && !strcasecmp(e, "Timer")) script();
     return 0;
 }
@@ -77,6 +83,40 @@ static void script(void)
         break;
     case 4:
         check(c_cancel == 1, "Esc clicks the cancel=1 button");
+        check(keyup_g == 0, "no KeyUp for a key a shortcut took");
+        key(0x32);                                    /* x: an ordinary key */
+        step = 40;
+        break;
+    case 40:
+        check(keyup_x == 1, "an ordinary key still gets its KeyUp");
+        key(0x35);                                    /* b: in the field's text "a_b", not a shortcut */
+        break;
+    case 41:
+        check(c_go == 1 && c_fast == 1 && c_ok == 1 && c_cancel == 1, "a `_` in a field's text makes no shortcut");
+        key(0x36);                                    /* n: the field's label=_Name */
+        break;
+    case 42:
+        key(0x32);                                    /* x typed into the field */
+        break;
+    case 43:
+        printf("# name after n, x: \"%s\"\n", gets_(C("name"), "Text"));
+        check(strchr(gets_(C("name"), "Text"), 'x') != NULL, "label=_Name: the N shortcut activates the field");
+        key(0x44);                                    /* Return ends the edit */
+        break;
+    case 44:
+        key(0x19);                                    /* p: the label _Port before the integer field */
+        break;
+    case 45:
+        key(0x05);                                    /* 5 */
+        break;
+    case 46:
+        key(0x44);                                    /* Return ends the edit */
+        break;
+    case 47:
+        printf("# port after p, 5: \"%s\"\n", gets_(C("port"), "Text"));
+        check(!strcmp(gets_(C("port"), "Text"), "5"), "a label's _P shortcut activates the control after it");
+        check(c_ok == 1, "Return in a field doesn't click the default button");
+        step = 5;
         break;
     case 5: {
         char err[200];

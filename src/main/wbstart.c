@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 static char *wb_args[4];
+void bb_sys_set_wbproject(void *wbs);      /* runtime/os4/sys.c */
 
 int bb_wb_start(int *argc, char ***argv)
 {
@@ -29,6 +30,7 @@ int bb_wb_start(int *argc, char ***argv)
         freopen("*", "w", stderr);
         freopen("*", "r", stdin);
     }
+    bb_sys_set_wbproject(wbs);    /* the project's icon (tooltypes) and the other selected icons (App.Arg) */
     wb_args[0] = "boing";
     wb_args[1] = "run";
     wb_args[2] = path;

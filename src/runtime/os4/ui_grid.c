@@ -441,9 +441,9 @@ Object *bbf_grid_build(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
     g->col = g->fcols;
     resize_grid(g, afg_get_int(n, "rows"), afg_get_int(n, "cols"));
     /* row height from the screen's font */
-    struct Screen *scr = IIntuition->LockPubScreen(NULL);
-    g->rowh = (scr && scr->Font ? scr->Font->ta_YSize : 13) + 5;
-    if (scr) IIntuition->UnlockPubScreen(NULL, scr);
+    struct Screen *scr = bbf_lock_form_screen(f);
+    g->rowh = (f->tattr ? f->tattr->ta_YSize : scr && scr->Font ? scr->Font->ta_YSize : 13) + 5;
+    bbf_unlock_form_screen(f, scr);
     /* fixed row/column titles as VB shows them: A, B, C... and 1, 2, 3... when asked */
     if (afg_get_bool(n, "headers")) {
         for (int k = g->fcols; k < g->cols; k++) {

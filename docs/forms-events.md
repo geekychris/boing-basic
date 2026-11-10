@@ -98,7 +98,7 @@ Closing the window with its close gadget is `Unload Me` (the program can refuse 
 | `KeyDown` | `Form_KeyDown(KeyCode As Integer, Shift As Integer)` | a key is pressed while the window is active and no text gadget has the input |
 | `KeyUp` | `Form_KeyUp(KeyCode As Integer, Shift As Integer)` | the key is released |
 | `KeyPress` | `Form_KeyPress(KeyAscii As Integer)` | a key with a character (Latin-1) is typed |
-| `QueryUnload` | `Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)` | before `Unload`; UnloadMode 0 = close gadget, 1 = code |
+| `QueryUnload` | `Form_QueryUnload(Cancel As Integer, UnloadMode As Integer)` | before `Unload`; UnloadMode 0 = close gadget (`vbFormControlMenu`), 1 = code (`vbFormCode`), 3 = the program is asked to quit by Exchange or application.library (`vbAppTaskManager`) |
 | `Unload` | `Form_Unload(Cancel As Integer)` | the form is being unloaded; set `Cancel = True` to keep it |
 
 `KeyCode` uses VB's `vbKey*` values for letters, digits, F1-F10, cursor keys, Return (13),

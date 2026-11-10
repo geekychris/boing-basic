@@ -1,0 +1,8 @@
+ReadArgs True Boolean
+FILE=a.txt SIZE=5 QUIET=1 VERBOSE=1 NUMS=1,2,3
+33 items: error 5 
+ReadArgs False Boolean
+33 items: error 5 
+ReadArgs True Boolean
+FILE=b SIZE= QUIET= VERBOSE=0 NUMS=
+33 items: error 5 

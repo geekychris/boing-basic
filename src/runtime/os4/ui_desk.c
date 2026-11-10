@@ -44,9 +44,13 @@ static int app_register(void)
 }
 
 /* App.Notify title, text [, imagefile]: a Ringhio notification; 0 or a VB error */
+const char *bb_os4_path(const char *p, char *buf, size_t n);   /* platform.c */
+
 static int app_notify(const char *title, const char *text, const char *image)
 {
+    char ib[1024];
     if (!app_register()) return 5;
+    if (image && *image) image = bb_os4_path(image, ib, sizeof ib);
     uint32 r;
     for (int tries = 0;; tries++) {
         r = notify_result = IApp->Notify(app_id, APPNOTIFY_Title, (uint32)title, APPNOTIFY_Text, (uint32)text,
@@ -59,6 +63,14 @@ static int app_notify(const char *title, const char *text, const char *image)
     return r == APPNOTIFY_OK_MSGQUEUED || r == APPNOTIFY_OK_APPREGISTERED ? 0 : 5;
 }
 
+/* App_Quit if the program has it; else every form closes as with the close gadget (QueryUnload
+   may cancel), and a program without forms ends */
+static void quit_request(void)
+{
+    if (bb_app_event("App_Quit", 0, NULL)) return;
+    if (bb_forms_quit(3) < 0) bb_end();
+}
+
 static void app_messages(void)
 {
     struct ApplicationMsg *m;
@@ -66,7 +78,7 @@ static void app_messages(void)
         uint32 type = m->type;
         IExec->ReplyMsg(&m->msg);
         if (type == APPLIBMT_Quit) {
-            if (!bb_app_event("App_Quit", 0, NULL)) bb_forms_end();
+            quit_request();
         } else if (type == APPLIBMT_Hide) bb_app_event("App_Hide", 0, NULL);
         else if (type == APPLIBMT_Unhide || type == APPLIBMT_ToFront) bb_app_event("App_Show", 0, NULL);
     }
@@ -144,7 +156,7 @@ static void cx_messages(void)
         } else if (type == CXM_COMMAND) {
             switch (id) {
             case CXCMD_KILL:
-                if (!bb_app_event("App_Quit", 0, NULL)) bb_forms_end();
+                quit_request();
                 break;
             case CXCMD_APPEAR: case CXCMD_UNIQUE: bb_app_event("App_Show", 0, NULL); break;
             case CXCMD_DISAPPEAR: bb_app_event("App_Hide", 0, NULL); break;
@@ -159,10 +171,12 @@ static void cx_messages(void)
 
 typedef struct rarg {
     char key[32];
-    char type;            /* 'S' switch, 'N' number, 'M' multiple, ' ' string */
+    char type;            /* 'S' switch, 'T' toggle, 'N' number, ' ' string */
+    char multi, required; /* /M, /A */
     char *value;          /* as text; multiple values joined by '\n' */
 } rarg;
-static rarg rargs[32];
+#define MAXRARGS 32
+static rarg rargs[MAXRARGS];
 static int nrargs;
 
 static void clear_rargs(void)
@@ -171,38 +185,69 @@ static void clear_rargs(void)
     nrargs = 0;
 }
 
+static void append(char **o, const char *v)
+{
+    size_t n = *o ? strlen(*o) : 0;
+    char *p = realloc(*o, n + strlen(v) + 2);
+    if (!p) return;
+    if (n) p[n++] = '\n';
+    strcpy(p + n, v);
+    *o = p;
+}
+
 /* App.ReadArgs(template): parses the program's arguments (the command line; from Workbench the
-   tooltypes KEY=value); True if they fit the template. App.ArgValue(key) reads a value. */
+   tooltypes KEY=value); True if they fit the template. App.ArgValue(key) reads a value.
+   Modifiers: /A /K /S /T /N /M /F (a template of up to 32 items). */
 static int read_args(const char *templ, bb_fval *ret)
 {
     clear_rargs();
     /* the template's keys: "FILE/A,SIZE/N,QUIET/S,FILES/M" (aliases: "F=FILE") */
     const char *p = templ;
-    while (*p && nrargs < 32) {
+    while (*p) {
+        if (nrargs >= MAXRARGS) return 5;           /* more items than ReadArgs' array has room for */
         const char *e = strchr(p, ',');
         size_t l = e ? (size_t)(e - p) : strlen(p);
         char item[64];
         snprintf(item, sizeof item, "%.*s", (int)(l < 63 ? l : 63), p);
         rarg *r = &rargs[nrargs++];
+        memset(r, 0, sizeof *r);
         char *slash = strchr(item, '/');
         r->type = ' ';
         if (slash) {
-            for (char *q = slash; *q; q++)
-                if (q[0] == '/' && strchr("SNMsnm", q[1])) r->type = (char)toupper((unsigned char)q[1]);
+            for (char *q = slash; *q; q++) {
+                if (q[0] != '/') continue;
+                int m = toupper((unsigned char)q[1]);
+                if (m == 'S' || m == 'T' || m == 'N') r->type = (char)m;
+                else if (m == 'M') r->multi = 1;
+                else if (m == 'A') r->required = 1;
+            }
             *slash = 0;
         }
         char *eq = strrchr(item, '=');
         snprintf(r->key, sizeof r->key, "%s", eq ? eq + 1 : item);
         p = e ? e + 1 : p + l;
     }
-    if (bb_sys_wbstartup() || (IDOS->Cli() == NULL)) {
-        /* from Workbench: the tooltypes */
+    if (bb_sys_wbstartup() || bb_sys_wbproject() || IDOS->Cli() == NULL) {
+        /* from Workbench: the tooltypes; /A keys must be there, /N ones numbers */
+        int ok = 1;
         for (int i = 0; i < nrargs; i++) {
             bb_fval v, d = { BB_FV_STR, 0, "", NULL };
             bb_fval a[2] = { { BB_FV_STR, 0, rargs[i].key, NULL }, d };
-            if (bb_app_plat_call("ToolType", 2, a, &v) == 0 && v.s && *v.s) rargs[i].value = xstrdup(v.s);
+            if (bb_app_plat_call("ToolType", 2, a, &v) == 0 && v.s && *v.s) {
+                rargs[i].value = xstrdup(v.s);
+                if (rargs[i].type == 'N') {
+                    char *end;
+                    strtol(v.s, &end, 10);
+                    if (end == v.s || *end) ok = 0;
+                } else if (rargs[i].type == 'T') {
+                    int off = !strcasecmp(v.s, "no") || !strcasecmp(v.s, "off") || !strcmp(v.s, "0");
+                    free(rargs[i].value);
+                    rargs[i].value = xstrdup(off ? "0" : "1");
+                }
+            } else if (rargs[i].required)
+                ok = 0;
         }
-        return ret_int(ret, -1);
+        return ret_int(ret, vb_bool(ok));
     }
     struct RDArgs *rda = IDOS->AllocDosObject(DOS_RDARGS, NULL);
     if (!rda) return 7;
@@ -213,30 +258,38 @@ static int read_args(const char *templ, bb_fval *ret)
     rda->RDA_Source.CS_Length = strlen(src);
     rda->RDA_Source.CS_CurChr = 0;
     rda->RDA_Flags |= RDAF_NOPROMPT;
-    int32 array[32];
+    int32 array[MAXRARGS];
     memset(array, 0, sizeof array);
     int ok = IDOS->ReadArgs(templ, array, rda) != NULL;
     if (ok)
         for (int i = 0; i < nrargs; i++) {
-            if (!array[i]) continue;
+            rarg *r = &rargs[i];
             char buf[32];
-            if (rargs[i].type == 'S') rargs[i].value = xstrdup("1");
-            else if (rargs[i].type == 'N') {
-                snprintf(buf, sizeof buf, "%ld", (long)*(int32 *)array[i]);
-                rargs[i].value = xstrdup(buf);
-            } else if (rargs[i].type == 'M') {
-                size_t n = 1;
-                char **v = (char **)array[i];
-                for (int k = 0; v[k]; k++) n += strlen(v[k]) + 1;
-                char *o = malloc(n);
-                o[0] = 0;
+            /* /S and /T: the value itself (a Boolean), not a pointer */
+            if (r->type == 'S') {
+                if (array[i]) r->value = xstrdup("1");
+                continue;
+            }
+            if (r->type == 'T') {
+                r->value = xstrdup(array[i] ? "1" : "0");
+                continue;
+            }
+            if (!array[i]) continue;
+            if (r->multi) {                     /* a NULL-ended array: of strings, or of LONG pointers (/N/M) */
+                void **v = (void **)array[i];
                 for (int k = 0; v[k]; k++) {
-                    if (k) strcat(o, "\n");
-                    strcat(o, v[k]);
+                    if (r->type == 'N') {
+                        snprintf(buf, sizeof buf, "%ld", (long)*(int32 *)v[k]);
+                        append(&r->value, buf);
+                    } else
+                        append(&r->value, (const char *)v[k]);
                 }
-                rargs[i].value = o;
+                if (!r->value) r->value = xstrdup("");
+            } else if (r->type == 'N') {
+                snprintf(buf, sizeof buf, "%ld", (long)*(int32 *)array[i]);
+                r->value = xstrdup(buf);
             } else
-                rargs[i].value = xstrdup((char *)array[i]);
+                r->value = xstrdup((char *)array[i]);
         }
     IDOS->FreeArgs(rda);
     IDOS->FreeDosObject(DOS_RDARGS, rda);

@@ -41,6 +41,11 @@ static char **sys_argv;
 static void *sys_wbmsg;
 
 void *bb_sys_wbstartup(void) { return sys_wbmsg; }
+/* boing started from a project icon (src/main/wbstart.c): the WBStartup, whose ArgList[1] is the
+   program's own project and ArgList[2..] the other selected icons */
+static void *sys_wbproj;
+void bb_sys_set_wbproject(void *wbs) { sys_wbproj = wbs; }
+void *bb_sys_wbproject(void) { return sys_wbproj; }
 int bb_sys_argc(void) { return sys_argc > 1 ? sys_argc - 1 : 0; }
 int bb_sys_raw_argc(void) { return sys_argc; }
 const char *bb_sys_argv(int i) { return i >= 0 && i + 1 < sys_argc ? sys_argv[i + 1] : ""; }

@@ -23,8 +23,8 @@ void bbf_ext_cleanup(void)
     bbf_dialog_cleanup();
 }
 
-/* a picture file (any datatype) as a bitmap.image remapped to the Workbench screen */
-Object *bbf_load_image(const char *file, const char *selfile)
+/* a picture file (any datatype) as a bitmap.image remapped to the form's screen */
+Object *bbf_load_image(bb_form *f, const char *file, const char *selfile)
 {
     char nbf_[1024], nbs_[1024];
     if (!file || !*file) return NULL;
@@ -39,7 +39,7 @@ Object *bbf_load_image(const char *file, const char *selfile)
         if (sl) IDOS->UnLock(sl);
         else selfile = NULL;
     }
-    struct Screen *scr = IIntuition->LockPubScreen(NULL);
+    struct Screen *scr = bbf_lock_form_screen(f);
     tags t = { 0 };
     tg(&t, BITMAP_SourceFile, (uint32)file);
     if (selfile && *selfile) tg(&t, BITMAP_SelectSourceFile, (uint32)selfile);
@@ -47,7 +47,7 @@ Object *bbf_load_image(const char *file, const char *selfile)
     tg(&t, BITMAP_Masking, TRUE);
     tg(&t, BITMAP_Precision, PRECISION_IMAGE);
     Object *o = new_obj(C_BITMAP, &t);
-    if (scr) IIntuition->UnlockPubScreen(NULL, scr);
+    bbf_unlock_form_screen(f, scr);
     if (o) {      /* a file datatypes couldn't read gives an empty image: none then */
         uint32 w = 0, h = 0;
         IIntuition->GetAttr(BITMAP_Width, o, &w);
@@ -83,7 +83,7 @@ static Object *build_toolbar(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
         if (afg_get_bool(k, "separator")) {
             tc->sbnode = sb->AllocSpeedButtonNode(tc->gid, SBNA_Separator, TRUE, TAG_DONE);
         } else {
-            tc->img = bbf_load_image(afg_get(k, "image"), afg_get(k, "selimage"));
+            tc->img = bbf_load_image(f, afg_get(k, "image"), afg_get(k, "selimage"));
             if (tc->img) any_image = 1;
             else all_images = 0;
             tc->text = bbf_strip_underscore(afg_get(k, "text"));
@@ -185,7 +185,7 @@ static int tool_set_prop(bb_ctl *c, const char *prop, const bb_fval *v)
         return 0;
     }
     if (IS("Picture")) {
-        Object *img = bbf_load_image(vstr(v, buf), NULL);
+        Object *img = bbf_load_image(c->form, vstr(v, buf), NULL);
         if (!img) return 53;
         free(c->extra);
         c->extra = xstrdup(vstr(v, buf));
@@ -254,8 +254,7 @@ static int panel_set(bb_ctl *c, int i, const char *s)
 
 static Object *build_image(bb_form *f, afg_node *n, bb_ctl *c, tags *t)
 {
-    (void)f;
-    c->img = bbf_load_image(afg_get(n, "file"), NULL);
+    c->img = bbf_load_image(f, afg_get(n, "file"), NULL);
     tg(t, GA_ID, c->gid);
     tg(t, GA_ReadOnly, TRUE);
     tg(t, BUTTON_BevelStyle, afg_get_bool(n, "frame") ? BVS_FIELD : BVS_NONE);
@@ -329,7 +328,7 @@ int bbf_ext_set(bb_ctl *c, const char *prop, int index, const bb_fval *v)
         return 438;
     case AFG_IMAGE:
         if (IS("Picture")) {
-            Object *img = bbf_load_image(vstr(v, buf), NULL);
+            Object *img = bbf_load_image(c->form, vstr(v, buf), NULL);
             if (!img) return 53;
             free(c->extra);
             c->extra = xstrdup(vstr(v, buf));

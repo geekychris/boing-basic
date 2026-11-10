@@ -103,10 +103,12 @@ static struct DiskObject *program_icon(void)
 {
     if (icon_tried || !icon()) return prog_icon;
     icon_tried = 1;
-    struct WBStartup *wbs = bb_sys_wbstartup();
-    if (wbs && wbs->sm_NumArgs > 0) {
-        BPTR old = IDOS->SetCurrentDir(wbs->sm_ArgList[0].wa_Lock);
-        prog_icon = IIc->GetDiskObject(wbs->sm_ArgList[0].wa_Name);
+    struct WBStartup *wbs = bb_sys_wbstartup(), *proj = bb_sys_wbproject();
+    /* a project started with boing as its default tool: the project's own icon */
+    struct WBArg *wa = proj && proj->sm_NumArgs > 1 ? &proj->sm_ArgList[1] : wbs && wbs->sm_NumArgs > 0 ? &wbs->sm_ArgList[0] : NULL;
+    if (wa) {
+        BPTR old = IDOS->SetCurrentDir(wa->wa_Lock);
+        prog_icon = IIc->GetDiskObject(wa->wa_Name);
         IDOS->SetCurrentDir(old);
     }
     if (!prog_icon) {
@@ -140,15 +142,20 @@ static int tooltype(const char *name, const char *def, bb_fval *out)
 /* the files the program was given: Workbench arguments, else the shell's */
 static int arg_count(void)
 {
-    struct WBStartup *wbs = bb_sys_wbstartup();
+    struct WBStartup *wbs = bb_sys_wbstartup(), *proj = bb_sys_wbproject();
+    if (proj) return proj->sm_NumArgs > 2 ? proj->sm_NumArgs - 2 : 0;     /* [1] is the program */
     if (wbs) return wbs->sm_NumArgs > 1 ? wbs->sm_NumArgs - 1 : 0;
     return bb_sys_argc();
 }
 
 static int arg(int i, bb_fval *out)
 {
-    struct WBStartup *wbs = bb_sys_wbstartup();
+    struct WBStartup *wbs = bb_sys_wbstartup(), *proj = bb_sys_wbproject();
     if (i < 0 || i >= arg_count()) return 381;
+    if (proj) {
+        wbs = proj;
+        i++;
+    }
     if (wbs) {
         char *p = lock_path(wbs->sm_ArgList[i + 1].wa_Lock, (const char *)wbs->sm_ArgList[i + 1].wa_Name);
         rs(out, p);
@@ -815,7 +822,7 @@ int bb_app_plat_get(const char *prop, int index, bb_fval *out)
         snprintf(b, sizeof b, "argc=%d cli=%p wbmsg=%p", bb_sys_raw_argc(), (void *)IDOS->Cli(), bb_sys_wbstartup());
         return rs(out, b);
     }
-    if (IS("FromWorkbench")) return ri(out, vb_bool(bb_sys_wbstartup() != NULL || IDOS->Cli() == NULL));
+    if (IS("FromWorkbench")) return ri(out, vb_bool(bb_sys_wbstartup() != NULL || bb_sys_wbproject() != NULL || IDOS->Cli() == NULL));
     if (IS("ToolTypeCount")) return ri(out, tooltype_count());
     if (IS("ToolTypes")) {
         struct DiskObject *d = program_icon();
@@ -911,11 +918,12 @@ int bb_app_plat_call(const char *method, int argc, const bb_fval *argv, bb_fval 
         if (argc < 1) return 450;
         return rs(ret, bbf_app_str(vint(&argv[0]), argstr(argc, argv, 1, b1)));
     }
-    if (IS("OpenScreen")) {      /* App.OpenScreen modeid [, width, height, depth [, title]] */
+    if (IS("OpenScreen")) {      /* App.OpenScreen modeid [, width, height, depth [, title [, showTitle]]] */
         if (argc < 1) return 450;
         return bbf_open_screen((uint32)vint(&argv[0]), argc > 1 && argv[1].type != BB_FV_NONE ? vint(&argv[1]) : 0,
                                argc > 2 && argv[2].type != BB_FV_NONE ? vint(&argv[2]) : 0,
-                               argc > 3 && argv[3].type != BB_FV_NONE ? vint(&argv[3]) : 0, argstr(argc, argv, 4, b0), 1);
+                               argc > 3 && argv[3].type != BB_FV_NONE ? vint(&argv[3]) : 0, argstr(argc, argv, 4, b0),
+                               argc > 5 && argv[5].type != BB_FV_NONE ? vint(&argv[5]) != 0 : 1);
     }
     if (IS("CloseScreen")) return ri(ret, vb_bool(bbf_close_screen()));
     {
