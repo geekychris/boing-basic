@@ -1,3 +1,4 @@
-connected
-client got: HELLO
-client got: BYE
+b:UDP True
+b got ping, from a:True
+a got pong
+nothing more: []
