@@ -39,8 +39,9 @@ For Each f In p.OutputLines()
     Print f
 Next
 
-'' feed it input: Type * copies its input to its output
-p.Run "Type *", "pear" & vbLf & "apple" & vbLf
+'' feed it input: the command reads it as its standard input (on AmigaOS its Input(), e.g.
+' a command asking for its arguments with ?; note that Type * reads the console instead)
+p.Run "Echo ?", "hello" & vbLf
 ```
 
 ## Environment variables

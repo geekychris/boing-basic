@@ -15,12 +15,10 @@ Else
 End If
 lines = p.OutputLines()
 Print "lines:"; UBound(lines) + 1; Join(lines, "|")
-If amiga Then
-    rc = p.Run("Type *", "line A" & vbLf & "line B" & vbLf)
-Else
-    rc = p.Run("cat", "line A" & vbLf & "line B" & vbLf)
-End If
-Print "input:"; rc; " "; Replace(p.Output, vbLf, "|")
+' input: a command that reads its standard input (Echo ? reads its arguments through ReadArgs;
+' Type * would read the console, not the input)
+If amiga Then rc = p.Run("Echo ?", "line A" & vbLf) Else rc = p.Run("cat", "line A" & vbLf)
+Print "input:"; rc; InStr(p.Output, "line A") > 0
 If amiga Then
     rc = p.Run("Type nonexistent-file-xyz")
     Print "error:"; rc > 0; Len(p.Output & p.ErrorOutput) > 0
