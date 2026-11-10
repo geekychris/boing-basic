@@ -59,10 +59,63 @@ def all_stems():
     return out
 
 
+CODE_TOKEN = "BBCODESPAN%dX"
+
+
+def code_spans(md):
+    """The inline code spans of a Markdown text (outside fenced blocks), as written: a list of
+    (start, end, text) with the text as the reader sees it (table-cell \\| unescaped)."""
+    out, fence, pos = [], False, 0
+    for line in md.split("\n"):
+        if line.lstrip().startswith("```"):
+            fence = not fence
+        elif not fence:
+            for m in re.finditer(r"(`+)(.+?)(?<!`)\1(?!`)", line):
+                text = m.group(2)
+                if text.startswith(" ") and text.endswith(" ") and text.strip():
+                    text = text[1:-1]
+                if line.lstrip().startswith("|"):
+                    text = text.replace("\\|", "|")
+                out.append((pos + m.start(), pos + m.end(), text))
+        pos += len(line) + 1
+    return out
+
+
+def protect_code_spans(md):
+    """Replace inline code with tokens pandoc leaves alone: AsciiDoc would read #, ^, ~, *, _,
+    + and {name} inside backticks as markup."""
+    spans = code_spans(md)
+    texts = []
+    for start, end, text in reversed(spans):
+        texts.append(text)
+        md = md[:start] + CODE_TOKEN % (len(spans) - len(texts)) + md[end:]
+    texts.reverse()
+    return md, texts
+
+
+def restore_code_spans(adoc, texts):
+    """Each token -> monospace text passed through as it is (only <, > and & escaped). In a
+    table row a | is escaped, or it would end the cell."""
+    out = []
+    for line in adoc.split("\n"):
+        cell = line.startswith("|")
+
+        def put(mm):
+            t = texts[int(mm.group(1))]
+            if cell:
+                t = t.replace("|", "\\|")
+            core = t.rstrip("\\")          # pass:c[...\] would read as an escaped ]: trailing
+            tail = "{backslash}" * (len(t) - len(core))   # backslashes go outside the macro
+            return "``%s%s``" % ("pass:c[%s]" % core.replace("]", "\\]") if core else "", tail)
+        out.append(re.sub(r"BBCODESPAN(\d+)X", put, line))
+    return "\n".join(out)
+
+
 def convert(stem, known):
     src = os.path.join(MAN, stem + ".md")
     md = open(src, encoding="utf-8").read()
     md = re.sub(r"<!--.*?-->\n?", "", md, flags=re.S)          # the manual-check directives
+    md, spans = protect_code_spans(md)
     adoc = subprocess.run([PANDOC, "-f", "gfm", "-t", "asciidoc", "--wrap=none"], input=md,
                           capture_output=True, text=True, check=True).stdout
     here = os.path.dirname(src)
@@ -73,7 +126,8 @@ def convert(stem, known):
         m = re.match(r"^(=+) (.*)$", line)
         if m:
             title = m.group(2)
-            slug = gh_slug(re.sub(r"\[.*?\]|link:\S+", "", title))
+            plain = re.sub(r"BBCODESPAN(\d+)X", lambda mm: spans[int(mm.group(1))], title)
+            slug = gh_slug(re.sub(r"\[.*?\]|link:\S+", "", plain))
             n = seen.get(slug, 0)
             seen[slug] = n + 1
             anchor = sid if first else "%s-%s" % (sid, slug + ("-%d" % n if n else ""))
@@ -109,8 +163,8 @@ def convert(stem, known):
     adoc = re.sub(r"link:([^\[\s]+)\[([^\]]*)\]", link, adoc)
 
     # "Listing N.M (path)" paragraphs -> the title of the block that follows
-    adoc = re.sub(r"_Listing (\d+\.\d+)_ \(`([^`]+)`\)\n\n\[source,basic\]",
-                  lambda mm: ".Listing %s (`%s`)\n[source,basic]" % (mm.group(1), mm.group(2)), adoc)
+    adoc = re.sub(r"_Listing (\d+\.\d+)_ \((BBCODESPAN\d+X)\)\n\n\[source,basic\]",
+                  lambda mm: ".Listing %s (%s)\n[source,basic]" % (mm.group(1), mm.group(2)), adoc)
     adoc = adoc.replace("[source,basic]", "[source,boingbasic]")   # tools/manual-pdf-lexer.rb
     adoc = re.sub(r"\[source,(output|text)\]", "[listing]", adoc)
 
@@ -121,6 +175,9 @@ def convert(stem, known):
         title = cap if cap else alt
         return ".%s\nimage::%s[%s]\n" % (title, full, alt.replace(",", ""))
     adoc = re.sub(r"^image:([^\[\s]+)\[([^\]]*)\]\n(\n_([^\n]+)_\n)?", figure, adoc, flags=re.M)
+    if re.search(r"^_Listing \d+\.\d+_", adoc, re.M):
+        raise SystemExit("manual-pdf: %s: a Listing caption wasn't turned into a block title" % stem)
+    adoc = restore_code_spans(adoc, spans)
     open(os.path.join(OUT, stem.replace("/", "_") + ".adoc"), "w", encoding="utf-8").write(adoc)
 
 

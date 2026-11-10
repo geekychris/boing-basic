@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """manual-pdf-test.py [PDF] - check the PDF of the user manual (make manual-pdf-test): it exists,
 has at least MIN_PAGES pages, and (with pdftotext) contains every chapter's, exercise's and
-appendix's title."""
+appendix's title and every inline code span of the Markdown (characters such as # ^ ~ * + or
+{name} in code must survive the conversion to AsciiDoc)."""
 import glob
 import os
 import re
@@ -19,7 +20,7 @@ def main():
     if not os.path.exists(PDF):
         print("FAIL manual-pdf: %s is missing (make manual-pdf)" % PDF)
         return 1
-    pages = 0
+    pages, info = 0, ""
     if shutil.which("pdfinfo"):
         info = subprocess.run(["pdfinfo", PDF], capture_output=True, text=True).stdout
         m = re.search(r"^Pages:\s+(\d+)", info, re.M)
@@ -39,6 +40,30 @@ def main():
             title = re.sub(r"^Appendix [A-Z]: ", "", title).replace("`", "")
             if re.sub(r"\s+", " ", title) not in flat:
                 fails.append("title not found in the PDF: %s (%s)" % (title, os.path.relpath(md, ROOT)))
+        # every inline code span, compared without white space (lines wrap in the PDF)
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("manual_pdf", os.path.join(ROOT, "tools", "manual-pdf.py"))
+        mp = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mp)
+        # the body text in reading order, without the running headers and footers (a span split
+        # by a page break would otherwise have them in the middle)
+        size = re.search(r"Page size:\s+([\d.]+) x ([\d.]+)", info or "")
+        w, h = (float(size.group(1)), float(size.group(2))) if size else (612.0, 842.0)
+        body = subprocess.run(["pdftotext", "-raw", "-x", "0", "-y", "58", "-W", str(int(w) + 10),
+                               "-H", str(int(h) - 120), PDF, "-"], capture_output=True, text=True).stdout
+        squashed = re.sub(r"\s+", "", body)
+        missing = 0
+        for stem in mp.all_stems():
+            md = open(os.path.join(ROOT, "docs", "manual", stem + ".md"), encoding="utf-8").read()
+            md = re.sub(r"<!--.*?-->", "", md, flags=re.S)
+            for _, _, code in mp.code_spans(md):
+                c = re.sub(r"\s+", "", code)
+                if c and c not in squashed:
+                    missing += 1
+                    if missing <= 20:
+                        fails.append("inline code missing from the PDF: %s: `%s`" % (stem, code))
+        if missing > 20:
+            fails.append("... %d inline code spans missing in all" % missing)
     for f in fails:
         print("FAIL manual-pdf:", f)
     print("manual-pdf: %s, %d pages, %d KB%s" % (os.path.relpath(PDF, ROOT), pages, os.path.getsize(PDF) // 1024,
