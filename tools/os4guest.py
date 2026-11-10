@@ -570,6 +570,21 @@ def push(m, local, dest):
     return bridge_push(m, local, dest)
 
 
+def pull(m, amiga_path, local):
+    """A (small) file from the guest to `local` over the bridge (CRC-checked); for a guest on
+    another machine the devbench writes it there and it comes back with scp."""
+    import subprocess
+    if SSH:
+        remote = "/tmp/os4pull-%d-%s" % (os.getpid(), re.sub(r"[^A-Za-z0-9._-]", "_", os.path.basename(local)))
+        out = m.tool("amiga_pull_file", amiga_path=amiga_path, local_path=remote)
+        try:
+            subprocess.run(["scp", "-q", "-o", "BatchMode=yes", "%s:%s" % (SSH, remote), local], check=True, timeout=60)
+        finally:
+            _ssh("rm -f %s" % remote)
+        return out
+    return m.tool("amiga_pull_file", amiga_path=amiga_path, local_path=os.path.abspath(local))
+
+
 def bridge_push(m, local, dest):
     # ELF files padded to a 1 KB multiple: the bridge's push can wedge on a tiny last chunk
     # (AmiForge tools/m1push.sh); trailing zeros don't matter to the ELF loader.

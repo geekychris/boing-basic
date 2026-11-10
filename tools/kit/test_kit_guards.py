@@ -143,10 +143,10 @@ for reaper, wb, what in ((True, True, "a Grim Reaper"), (False, False, "a silent
 
 # the swap script, run by a small AmigaDOS model (Rename/If EXISTS/Set/Quit/Echo/MakeDir/Delete):
 # a normal swap, an old file in use, a new file that won't move in -> the old install stays whole
-def run_dos(lines, fs, locked=(), stuck=()):
+def run_dos(lines, fs, locked=(), stuck=(), failcopy=(), unpack=None):
     """fs: set of paths (dirs and files, 'DH1:a/b'). locked: old paths Rename can't move;
     stuck: new paths Rename can't move. Returns the Echo output."""
-    out, env, stack = [], {}, []
+    out, env, stack, rc = [], {}, [], [0]
     def active():
         return all(stack)
     def exists(p):
@@ -161,7 +161,9 @@ def run_dos(lines, fs, locked=(), stuck=()):
         if cmd == "if":
             if not active():
                 stack.append(False); continue
-            if w[1] == "EXISTS":
+            if w[1] == "WARN":
+                stack.append(rc[0] >= 5)
+            elif w[1] == "EXISTS":
                 stack.append(exists(w[2]))
             elif w[1] == "NOT":
                 stack.append(not exists(w[3]))
@@ -188,11 +190,22 @@ def run_dos(lines, fs, locked=(), stuck=()):
         elif cmd == "makedir":
             fs.add(w[1])
         elif cmd == "delete":
-            d = w[1]
+            d = w[1].strip('"')
             if d == "RAM:bbkit/kitbad":
                 fs.discard(d)
             for x in [x for x in fs if x == d or x.startswith(d + "/")]:
                 fs.discard(x)
+        elif cmd == "copy" and "TO" in w:
+            a, b = w[1].strip('"'), w[w.index("TO") + 1].strip('"')
+            if not exists(a) or any(b.startswith(f) for f in failcopy):
+                rc[0] = 10
+                continue
+            rc[0] = 0
+            for x in [x for x in fs if x == a or x.startswith(a + "/")]:
+                fs.add(b + x[len(a):])
+        elif cmd == "xadunfile":
+            dest = [x for x in w if x.startswith("DEST=")][0][5:]
+            fs.update(dest + "/" + x for x in (unpack or []))
         elif cmd == "rename":
             a, b = w[1].strip('"'), w[2].strip('"')
             if a in locked or a in stuck or not exists(a):
@@ -235,6 +248,71 @@ check(any("rolled back" in o for o in out) and "DH1:BoingBASIC/Examples/old.afp"
       all("DH1:BoingBASIC/" + e in fs for e in OLD) and "DH1:BoingBASIC/KIT-MANIFEST.txt" not in fs and
       "DH1:BBkit-new/BoingBASIC/KIT-MANIFEST.txt" in fs,
       "install-kit swap: a new file that won't move in rolls back to the old install, whole")
+
+# staging in RAM: (DH1 short): old contents backed up to RAM:, replaced on DH1, rolled back on failure
+NEWTREE = ["BoingBASIC"] + ["BoingBASIC/" + e for e in NEW] + ["BoingBASIC/Examples/new.afp"]
+
+
+def disk_ram():
+    fs = {"DH1:BoingBASIC"} | {"DH1:BoingBASIC/" + e for e in OLD} | {"DH1:BoingBASIC/Examples/old.afp",
+                                                                      "DH1:BoingBASIC/MyProjects/mine.bas"}
+    return fs
+
+
+fs = disk_ram()
+out = run_dos(ik.ram_swap_lines(OLD, NEW, True), fs, unpack=NEWTREE)
+check(not any("FAIL" in o for o in out) and "INSTALL-OK" in out and "DH1:BoingBASIC/Examples/new.afp" in fs
+      and "DH1:BoingBASIC/Examples/old.afp" not in fs and "DH1:BoingBASIC/MyProjects/mine.bas" in fs
+      and all("DH1:BoingBASIC/" + e in fs for e in NEW) and not any(x.startswith("RAM:BoingBASIC-old") for x in fs)
+      and not any(x.startswith("RAM:BBkit-new") for x in fs),
+      "install-kit RAM: staging: the new kit replaces the old on DH1, MyProjects stays, RAM: is cleaned up")
+fs = disk_ram()
+out = run_dos(ik.ram_swap_lines(OLD, NEW, True), fs, unpack=NEWTREE, failcopy={"DH1:BoingBASIC/lib"})
+check(any("rolled back" in o for o in out) and "DH1:BoingBASIC/Examples/old.afp" in fs
+      and all("DH1:BoingBASIC/" + e in fs for e in OLD) and "DH1:BoingBASIC/lib" not in fs
+      and "DH1:BoingBASIC/KIT-MANIFEST.txt" not in fs and "DH1:BoingBASIC/MyProjects/mine.bas" in fs,
+      "install-kit RAM: staging: a copy that fails (disk full) rolls back to the old install from RAM:")
+fs = disk_ram()
+out = run_dos(ik.ram_swap_lines(OLD, NEW, True), fs, unpack=NEWTREE, failcopy={"RAM:BoingBASIC-old/Examples"})
+check(any("nothing changed" in o for o in out) and "DH1:BoingBASIC/Examples/old.afp" in fs
+      and all("DH1:BoingBASIC/" + e in fs for e in OLD) and "DH1:BoingBASIC/lib" not in fs,
+      "install-kit RAM: staging: a backup that fails stops before DH1 is touched")
+fs = set()
+out = run_dos(ik.ram_swap_lines([], NEW, False), fs, unpack=NEWTREE)
+check("INSTALL-OK" in out and all("DH1:BoingBASIC/" + e in fs for e in NEW), "install-kit RAM: staging: a first install")
+
+
+# where to stage: DH1 when it has room for a second kit, else RAM:
+class SpaceGuest(FakeGuest):
+    def __init__(self, free_mb, old_mb, ram_mb=980):
+        FakeGuest.__init__(self)
+        self.free, self.old, self.ram = free_mb, old_mb, ram_mb
+
+    def tool(self, name, **a):
+        c = a.get("command", "")
+        if c.startswith("info"):
+            return "DH1: 511M 400,000 %d,000  %d%%  0 Read/Write chris" % (self.free, 100 - self.free * 100 // 511)
+        if c.startswith('list "DH1:BoingBASIC" LFORMAT'):
+            return "AmiForge\nExamples\nMyProjects\n"
+        if c.startswith("avail"):
+            return "Type  Available    In-Use   Maximum   Largest\nfast  %d  1000  2000  3000\n" % (self.ram << 20)
+        return FakeGuest.tool(self, name, **a)
+
+
+ik.unpacked_size = lambda: 64 << 20
+_pull_size = {}
+ik.g.pull = lambda m, amiga_path, local: open(local, "w").write("%d\n%d\n" % (m.old << 19, m.old << 19))
+ik.free_bytes = lambda info: int(info.split()[3].split(",")[0]) << 20     # "DH1: 511M used free,000 ..."
+mode_disk = ik.choose_mode(SpaceGuest(100, 57))[0]
+mode_ram, need_ram = ik.choose_mode(SpaceGuest(51, 57))
+try:
+    ik.choose_mode(SpaceGuest(10, 57))
+    refused = False
+except RuntimeError as e:
+    refused = "even staged in RAM" in str(e)
+check(mode_disk == "disk" and mode_ram == "ram" and need_ram == (7 + 16) << 20 and refused,
+      "install-kit: DH1 staging with room for a second kit, RAM: staging when short (needs new - old + 16 MB), "
+      "a refusal below that (%s, %s %d MB)" % (mode_disk, mode_ram, need_ram >> 20))
 
 print("PASS kit guards" if ok else "FAIL kit guards")
 sys.exit(0 if ok else 1)
