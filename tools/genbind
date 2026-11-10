@@ -259,6 +259,23 @@ def collect_constants(inc_dir, libs):
                 defined_names.add(re.match(r"^\s*#\s*define\s+(\w+)", line).group(1))
             if m and "(" not in m.group(1):
                 raw.append((m.group(1), m.group(2), rel))
+        # enum constants too (application.h's APPNOTIFY_/REGAPP_ tags are enums): NAME = expr,
+        # or NAME alone = the previous one + 1
+        for body in re.findall(r"\benum\s*\w*\s*\{([^{}]*)\}", text):
+            prev = None
+            for item in body.split(","):
+                item = item.strip()
+                if not item or item.startswith("#"):
+                    continue
+                mm = re.match(r"^(\w+)\s*(?:=\s*(.+))?$", item, re.S)
+                if not mm:
+                    prev = None
+                    continue
+                name, expr = mm.group(1), mm.group(2)
+                expr = expr.strip() if expr else ("(%s)+1" % prev if prev is not None else "0")
+                if name not in defined_names:
+                    raw.append((name, expr, rel))
+                prev = expr
     # a name #defined twice with different values (#if/#else branches: CTB_MAPCOLOR in
     # graphics/text.h) can't be known without the preprocessor: leave it out
     seen_expr, ambiguous = {}, set()

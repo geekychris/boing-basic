@@ -41,13 +41,19 @@ static struct LocaleIFace *ILoc;
 static struct AmigaGuideIFace *IAG;
 static struct DataTypesIFace *IDT;
 
-static void *open_if(struct Library **lib, const char *name, int ver)
+/* programs without forms use App too: everything is closed at exit (brokers, ports...) */
+void bbf_app_atexit(void)
 {
     static int registered;
-    if (!registered) {          /* programs without forms use App too: close everything at exit */
+    if (!registered) {
         registered = 1;
         atexit(bbf_app_cleanup);
     }
+}
+
+static void *open_if(struct Library **lib, const char *name, int ver)
+{
+    bbf_app_atexit();
     if (!*lib) *lib = IExec->OpenLibrary(name, ver);
     return *lib ? IExec->GetInterface(*lib, "main", 1, NULL) : NULL;
 }
@@ -165,6 +171,7 @@ static char *menutexts[16];
 static int nmenuitems;
 
 static bb_int app_doevents(void);
+void bbf_app_enable_doevents(void) { bb_set_doevents(app_doevents); }
 
 static struct MsgPort *port(void)
 {
@@ -842,6 +849,11 @@ int bb_app_plat_call(const char *method, int argc, const bb_fval *argv, bb_fval 
                                argc > 3 && argv[3].type != BB_FV_NONE ? vint(&argv[3]) : 0, argstr(argc, argv, 4, b0), 1);
     }
     if (IS("CloseScreen")) return ri(ret, vb_bool(bbf_close_screen()));
+    {
+        extern int bbf_desk_call(const char *method, int argc, const bb_fval *argv, bb_fval *ret);
+        int e = bbf_desk_call(method, argc, argv, ret);      /* Notify, HotKey, ReadArgs, ArgValue */
+        if (e != 438) return e;
+    }
     if (IS("ShowHelp")) {
         if (argc < 1) return 450;
         return show_help(argstr(argc, argv, 0, b0), argstr(argc, argv, 1, b1));
@@ -869,9 +881,13 @@ int bb_clip_plat_call(const char *method, int argc, const bb_fval *argv, bb_fval
 
 /* --- the event loop's part ------------------------------------------------------------------ */
 
+uint32 bbf_desk_sigmask(void);
+void bbf_desk_signals(uint32 got);
+void bbf_desk_cleanup(void);
+
 uint32 bbf_app_sigmask(void)
 {
-    uint32 m = 0;
+    uint32 m = bbf_desk_sigmask();
     if (app_port) m |= 1u << app_port->mp_SigBit;
     if (rexx_port) m |= 1u << rexx_port->mp_SigBit;
     if (guide_handle && IAG) m |= IAG->AmigaGuideSignal(guide_handle);
@@ -880,6 +896,7 @@ uint32 bbf_app_sigmask(void)
 
 void bbf_app_signals(uint32 got)
 {
+    bbf_desk_signals(got);
     if (app_port && (got & (1u << app_port->mp_SigBit))) app_messages();
     if (rexx_port && (got & (1u << rexx_port->mp_SigBit))) rexx_messages();
     if (guide_handle && IAG && (got & IAG->AmigaGuideSignal(guide_handle))) guide_messages();
@@ -890,6 +907,7 @@ void bbf_print_cleanup(void);
 void bbf_app_cleanup(void)
 {
     bbf_print_cleanup();
+    bbf_desk_cleanup();
     rexx_close();
     guide_close();
     hide_appicon();

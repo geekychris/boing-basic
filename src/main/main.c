@@ -175,9 +175,16 @@ static char *program_dir(const char *path)
     return d;
 }
 
+#ifdef __amigaos4__
+int bb_wb_start(int *argc, char ***argv);     /* wbstart.c: a Workbench project start */
+#endif
+
 int main(int argc, char **argv)
 {
     const char *cmd;
+#ifdef __amigaos4__
+    bb_wb_start(&argc, &argv);
+#endif
     if (argc < 2) usage();
     cmd = argv[1];
     if (!strcmp(cmd, "--version") || !strcmp(cmd, "version")) { printf("Boing BASIC " BOING_VERSION "\n"); return 0; }
