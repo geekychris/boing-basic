@@ -11,7 +11,8 @@ check() {  # name got want
 counter=$(printf 'value 55 count 10 \nset 100 Counter\nreset 0  0 \nclamp 10  0  7 ')
 shapes=$(printf 'area 42  6x7\ndefault 1  1x1\ngcd 12  6 ')
 clib=$(printf ' 20  25  5 positive not positive')
-for t in "examples/ext_counter/demo.bbp:counter" "examples/ext_shapes/demo.bbp:shapes" "tests/ext/clib/clib.bbp:clib"; do
+asnew=$(printf 'auto 5  5  2 \nrenew 1 Counter\nfield 9 ')
+for t in "examples/ext_counter/demo.bbp:counter" "examples/ext_shapes/demo.bbp:shapes" "tests/ext/clib/clib.bbp:clib" "tests/ext/asnew/asnew.bbp:asnew"; do
     proj=${t%%:*}; name=${t##*:}; d=$(dirname "$root/$proj"); f=$(basename "$proj")
     eval want=\$$name
     if (cd "$d" && "$B" build "$f" -o "$tmp/$name.nat" >/dev/null 2>&1); then check "$name native" "$(cd "$d" && "$tmp/$name.nat" 2>&1)" "$want"

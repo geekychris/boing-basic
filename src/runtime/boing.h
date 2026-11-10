@@ -185,6 +185,9 @@ void bb_poll_slow(void);
 int bb_err_from_break(void);    /* the current error is Ctrl-C's 18: On Error Resume Next lets it through */
 /* Dim x As New C: the object is created when x is first used */
 BB_INLINE bb_obj *bb_autonew(bb_obj **p, bb_obj *(*ctor)(void)) { if (!*p) *p = ctor(); return *p; }
+/* As New of a registered (runtime or extension) class: created by name, 429 if it can't be;
+   p NULL = just create one (the VM stores it itself) */
+bb_obj *bb_autonew_named(bb_obj **p, const char *name);
 /* Shl / ShrA / ShrL: 32-bit shifts of a Long (Shl wraps, no overflow); count 0..31, else error 5 */
 void bb_shift_range_error(void) BB_NORETURN;
 BB_INLINE bb_long bb_shl(bb_long x, bb_long n) { if (BB_UNLIKELY((uint32_t)n > 31)) bb_shift_range_error(); return (bb_long)((uint32_t)x << n); }

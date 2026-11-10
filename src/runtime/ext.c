@@ -80,6 +80,16 @@ static ext_class *find_class(const char *name)
 const bb_class *bb_runtime_class(const char *name) { ext_class *c = find_class(name); return c ? c->cls : NULL; }
 bb_obj *bb_ext_create(const char *name) { ext_class *c = find_class(name); return c && c->create ? c->create() : NULL; }
 
+bb_obj *bb_autonew_named(bb_obj **p, const char *name)
+{
+    bb_obj *o;
+    if (p && *p) return *p;
+    o = bb_ext_create(name);
+    if (!o) bb_raise(429, NULL);
+    if (p) *p = o;
+    return o;
+}
+
 bb_ext_fn bb_ext_function(const char *name)
 {
     int i;

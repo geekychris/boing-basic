@@ -47,7 +47,7 @@ sub Beep2(ByVal hz As Long)
   and `BB_CLASS(var, "Name", struct_type, members, invoke, terminate)` for a class whose instances
   are `struct { bb_obj hdr; ...your data... }` with a `bb_member` table `{name, id, BB_INV_xxx}`.
 - `Set c = New Counter` and `CreateObject("Counter")` both use the registered create function;
-  `Dim c As New Counter` is not supported (write `Set c = New Counter`).
+  `Dim c As New Counter` (local, module-level or a class field) creates one on first use, and again after `Set c = Nothing`; a class with no create function raises 429.
 - The `.bbx` lists each class's members (`method`, `property`, `property ... ReadOnly`) and each
   `function` / `sub` with its signature (ByVal only). The compiler checks member names, writes to
   read-only properties and argument counts (`boing check` gives `file:line:col` errors), converts
@@ -56,6 +56,12 @@ sub Beep2(ByVal hz As Long)
 - C++: `BB_EXTENSION` has C linkage; keep C++ objects inside the `bb_obj` (see
   `examples/ext_shapes/shapes.cpp`). The C++ driver links (on AmigaOS 4 with `-athread=native`,
   which the OS4 `libstdc++` needs).
+  - A String argument as a `std::string`: `bb_str *s = bb_v_to_str(&argv[i]);` (owned), then
+    `std::string t(bb_str_ptr(s), bb_str_len(s)); bb_str_release(s);`.
+  - Never let a C++ exception escape into the runtime: catch it in the invoke function (or the
+    function), and call `bb_raise(n, msg)` after the try block, once C++ objects are destroyed (it longjmps), for example `std::bad_alloc` as error 7.
+- A class that keeps a `bb_str` (or an object) in its instance owns that reference: release it
+  in the class's terminate function.
 
 ## Using one
 

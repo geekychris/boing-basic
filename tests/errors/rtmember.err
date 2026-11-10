@@ -1,3 +1,2 @@
-rtmember.bas:2:24: error: 'As New Canvas' is not supported: write Set x = New Canvas (or CreateObject("Canvas"))
 rtmember.bas:4:7: error: 'DrawMesj' is not a member of Engine3D
 rtmember.bas:5:11: error: TypeOf ... Is Audio is not supported: compare TypeName(x) with "Audio"

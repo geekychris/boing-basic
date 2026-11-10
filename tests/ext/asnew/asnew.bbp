@@ -1,0 +1,6 @@
+# As New with an extension class: module-level, local, a class field; re-created after Nothing
+Name=AsNew
+Startup=Sub Main
+Module=asnew.bas
+Class=holder.cls
+Extension=../../../examples/ext_counter/counter

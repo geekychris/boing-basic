@@ -370,13 +370,20 @@ static char *lval(EC *e, Node *n)
     }
 }
 
+/* As New: the object is created on first use (a registered class by name, through the registry) */
+static char *autonew_c(const char *lv, ClassInfo *c)
+{
+    if (IS_REGCLS(c)) return xsprintf("bb_autonew_named((bb_obj **)&%s, %s)", lv, cstrlit(c->name, (int)strlen(c->name)));
+    return xsprintf("bb_autonew((bb_obj **)&%s, %s)", lv, c->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(c)));
+}
+
 static char *addr(EC *e, Node *n)
 {
     Type *t = n->ty;
     const char *ct = t->kind == T_UDT ? udt_cname(t->udt) : ctype(t);
     if (n->kind == E_VAR && n->sym->is_new && t->kind == T_OBJECT && t->cls)
         /* passing an As New variable creates its object too */
-        pre(e, "(void)bb_autonew((bb_obj **)&%s, %s);", lval(e, n), t->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(t->cls)));
+        pre(e, "(void)%s;", autonew_c(lval(e, n), t->cls));
     if (n->kind == E_VAR && sym_is_ref(n->sym)) return sym_cname(e, n->sym);
     if (is_lvalue(n)) return xsprintf("((%s *)&%s)", ct, lval(e, n));
     /* rvalue: through a temporary */
@@ -943,8 +950,7 @@ static R prod(EC *e, Node *n)
     case E_VAR:
         if (n->sym->is_new && n->ty->kind == T_OBJECT && n->ty->cls)
             /* As New: created on first use */
-            return mkr(xsprintf("bb_autonew((bb_obj **)&%s, %s)", lval(e, n),
-                                n->ty->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(n->ty->cls))), 0);
+            return mkr(autonew_c(lval(e, n), n->ty->cls), 0);
         if (n->ty->kind == T_VARIANT) {
             if (sym_is_ref(n->sym)) return mkr(sym_cname(e, n->sym), 0);
             return mkr(xsprintf("((bb_value *)&%s)", lval(e, n)), 0);
@@ -952,8 +958,7 @@ static R prod(EC *e, Node *n)
         return mkr(lval(e, n), 0);
     case E_INDEX: case E_FIELD: case E_MFIELD:
         if (n->kind == E_MFIELD && n->sym->is_new && n->ty->kind == T_OBJECT && n->ty->cls)
-            return mkr(xsprintf("bb_autonew((bb_obj **)&%s, %s)", lval(e, n),
-                                n->ty->cls->builtin ? "bb_collection_new" : xsprintf("%s_new", cls_cname(n->ty->cls))), 0);
+            return mkr(autonew_c(lval(e, n), n->ty->cls), 0);
         if (n->ty->kind == T_VARIANT) return mkr(xsprintf("(&%s)", lval(e, n)), 0);
         return mkr(lval(e, n), 0);
     case E_CONV: {

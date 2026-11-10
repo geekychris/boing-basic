@@ -6,7 +6,7 @@
 #include "../runtime/boing.h"
 
 #define BBC_MAGIC "BBC1"
-#define BBC_VERSION 11
+#define BBC_VERSION 12
 
 /* array operands of the register forms: slot >= 0, global -1 - index, field of Me BB_ME_OPND - index */
 #define BB_ME_OPND (-0x20000000)

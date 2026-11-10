@@ -150,6 +150,15 @@ static void expr(E *e, Node *n);
 static void addr(E *e, Node *n);
 static void stmt(E *e, Node *s);
 
+/* the class operand of AUTONEW/AUTONEWM: -1 Collection, n+1 user class n, -2-k a registered
+   class whose name is string constant k */
+static int autonew_cls(E *e, ClassInfo *c)
+{
+    if (c->builtin) return -1;
+    if (IS_REGCLS(c)) return -2 - str_const(e, c->name, (int)strlen(c->name));
+    return c->index + 1;
+}
+
 static void autonew(E *e, Sym *s);
 static void load_var(E *e, Sym *s)
 {
@@ -202,7 +211,7 @@ static void autonew(E *e, Sym *s)
     if (s->is_new && t->kind == T_OBJECT && t->cls) {
         int where = (s->storage == ST_LOCAL || s->storage == ST_PARAM) ? 0 : s->storage == ST_FIELD ? 2 : 1;
         int idx = where == 0 ? slot_of(e, s) : s->index;
-        emit_w(e, I_AUTONEW); emit_w(e, where); emit_w(e, idx << 16); emit_w(e, t->cls->builtin ? -1 : t->cls->index + 1);
+        emit_w(e, I_AUTONEW); emit_w(e, where); emit_w(e, idx << 16); emit_w(e, autonew_cls(e, t->cls));
     }
 }
 
@@ -504,7 +513,7 @@ static void expr(E *e, Node *n)
             /* As New field of another object: created on first use */
             e->used_keep = 1;
             expr(e, n->a);
-            op2(e, I_AUTONEWM, n->sym->index, n->ty->cls->builtin ? -1 : n->ty->cls->index + 1);
+            op2(e, I_AUTONEWM, n->sym->index, autonew_cls(e, n->ty->cls));
             op3(e, I_MFIELD, n->cls->index, n->sym->index, vt_of(n->ty));
             op1(e, I_LDIND, vt_of(n->ty));
             return;

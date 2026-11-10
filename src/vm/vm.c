@@ -1426,7 +1426,7 @@ static void vm_exec(VM *vm, int entry)
                 if (v->type != BB_OBJECT || !v->u.o) {
                     bb_obj *o;
                     SYNC();
-                    o = nc < 0 ? bb_collection_new() : new_object(vm, nc - 1);
+                    o = nc == -1 ? bb_collection_new() : nc < -1 ? bb_autonew_named(NULL, bb_str_ptr(img->consts[-2 - nc].u.s)) : new_object(vm, nc - 1);
                     if (v->type == BB_OBJECT && v->u.o) bb_obj_release(o);     /* created meanwhile */
                     else { v->type = BB_OBJECT; v->u.o = o; }
                 }
@@ -1455,7 +1455,7 @@ static void vm_exec(VM *vm, int entry)
                     if (v->type != BB_OBJECT || !v->u.o) {
                         bb_obj *o;
                         SYNC();
-                        o = pc[2] < 0 ? bb_collection_new() : new_object(vm, pc[2] - 1);
+                        o = pc[2] == -1 ? bb_collection_new() : pc[2] < -1 ? bb_autonew_named(NULL, bb_str_ptr(img->consts[-2 - pc[2]].u.s)) : new_object(vm, pc[2] - 1);
                         v = &((VMObj *)TOP.u.o)->f[pc[1]];
                         if (v->type == BB_OBJECT && v->u.o) bb_obj_release(o);
                         else { v->type = BB_OBJECT; v->u.o = o; }
