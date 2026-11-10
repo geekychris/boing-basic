@@ -24,9 +24,9 @@ itself; for the interpreter you build an interpreter that includes it, with `boi
 
 Write the functions in plain C. They don't need any Boing BASIC header:
 
-*Listing 20.1* (`examples/book/ch20-extending/cfuncs/cfuncs.bbp`)
+*Listing 21.1* (`examples/book/ch21-extending/cfuncs/cfuncs.bbp`)
 
-<!-- project: examples/book/ch20-extending/cfuncs/cfuncs.bbp -->
+<!-- project: examples/book/ch21-extending/cfuncs/cfuncs.bbp -->
 ```basic
 ' main.bas - calls the C functions in cfuncs.c (CSource=cfuncs.c in cfuncs.bbp)
 Declare Function CRC32 Lib "C" Alias "crc32_text" (ByVal text As String) As Long
@@ -147,9 +147,9 @@ main.bas:8: runtime error 453: function 'CRC32' is not linked into this program 
 classes (with methods and properties) and functions that the compiler knows about, so a
 program uses them like Canvas or Audio:
 
-*Listing 20.2* (`examples/book/ch20-extending/mathx/demo.bbp`)
+*Listing 21.2* (`examples/book/ch21-extending/mathx/demo.bbp`)
 
-<!-- project: examples/book/ch20-extending/mathx/demo.bbp -->
+<!-- project: examples/book/ch21-extending/mathx/demo.bbp -->
 ```basic
 ' demo.bas - uses the mathx extension (Extension=mathx in demo.bbp)
 Dim WithEvents rain As Stats
@@ -357,7 +357,7 @@ static bb_obj *new_stats(void)
 `Dim s As Stats` and `TypeName(s)` work; a registered class without a create function raises
 error 429 when a program tries to make one. The runtime counts the references to an object and calls `terminate` when
 the last one goes, then frees its memory. The whole file is
-`examples/book/ch20-extending/mathx/mathx.c` in the book examples.
+`examples/book/ch21-extending/mathx/mathx.c` in the book examples.
 
 ### Events
 
@@ -479,9 +479,9 @@ class WordCount
 
 and a program:
 
-*Listing 20.3* (`examples/book/ch20-extending/textutil/demo.bbp`)
+*Listing 21.3* (`examples/book/ch21-extending/textutil/demo.bbp`)
 
-<!-- project: examples/book/ch20-extending/textutil/demo.bbp -->
+<!-- project: examples/book/ch21-extending/textutil/demo.bbp -->
 ```basic
 ' demo.bas - uses the textutil extension (Extension=textutil in demo.bbp)
 Sub Main()
@@ -503,7 +503,7 @@ Top 3: ball:4 the:3 and:2
  3
 ```
 
-The file is `examples/book/ch20-extending/textutil/textutil.cpp`. On AmigaOS 4 the SDK's C++
+The file is `examples/book/ch21-extending/textutil/textutil.cpp`. On AmigaOS 4 the SDK's C++
 library needs the thread model `-athread=native`, which `boing build` and `boing vm` add for
 C++ extensions.
 

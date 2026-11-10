@@ -1,0 +1,4 @@
+connect: 31103 
+send: 31109  the socket isn't open
+listen: 380  a port is 0 to 65535
+line: 31104  no line within 300 ms

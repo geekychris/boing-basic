@@ -1,0 +1,10 @@
+# scan.afg - count the lines and words of a big text file without freezing the window
+window name=scan title="Text statistics" width=420 height=0
+vlayout id=root
+  getfile id=src label="File" title="Choose a text file"
+  hlayout weight=0
+    button id=startbtn text="_Start"
+    button id=cancelbtn text="_Cancel" disabled=1
+  fuelgauge id=progress min=0 max=100 level=0
+  label id=status text="Choose a file and press Start"
+  timer id=tick interval=10 enabled=0

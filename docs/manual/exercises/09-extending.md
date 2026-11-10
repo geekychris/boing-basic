@@ -12,7 +12,7 @@ function, then with an extension class of your own.
 - how to run such a program in the interpreter with `boing vm`.
 
 You need a C compiler: the AmigaOS 4 SDK's GCC on the Amiga (it also does native builds), or
-`cc` on macOS and Linux. Read [Extending Boing BASIC](../20-extending.md) first, or alongside.
+`cc` on macOS and Linux. Read [Extending Boing BASIC](../21-extending.md) first, or alongside.
 
 The finished program is `examples/book/ex09-extending/Sieve.bbp`.
 
@@ -336,6 +336,6 @@ In AmiForge, **Build** (F7) makes the native program. For **Run** (the interpret
 3. Turn `primes.c` into an extension function instead: add
    `function CountPrimesX(ByVal n As Long) As Long` to a `.bbx` and register it with
    `bb_register_function`. What changes in the BASIC program?
-4. Write the BitSet in C++ with `std::vector<bool>` (see the C++ example in chapter 20).
+4. Write the BitSet in C++ with `std::vector<bool>` (see the C++ example in chapter 21).
 5. Measure: how many calls per second does your computer make into an extension method? Time
    a million calls to `TestBit`.

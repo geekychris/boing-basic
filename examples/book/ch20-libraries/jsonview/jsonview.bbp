@@ -1,0 +1,5 @@
+# JsonView: fetch a JSON web service with Http, read it with JsonParse and show every value
+# as a "path = value" line (manual chapter 20)
+Name=JsonView
+Startup=Form jsonview
+Form=jsonview.afg

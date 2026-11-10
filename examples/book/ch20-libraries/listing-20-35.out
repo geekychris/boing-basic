@@ -1,0 +1,4 @@
+ 31401 ISO 8601: the year is missing in "10.11.2026"
+ 31401 ISO 8601: the month or day is out of range in "2026-13-01"
+ 31401 ISO 8601: the time is out of range in "2026-11-10T25:00"
+ 31401 ISO 8601: unexpected text at the end in "2026-11-10 08:45 CET"

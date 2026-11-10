@@ -405,16 +405,81 @@ native, and checks the others compile.
 | 19.7 | [ch19-networking/listing-19-07.bas](ch19-networking/listing-19-07.bas) | Working with JSON |
 | 19.8 | [ch19-networking/webfetch/webfetch.bbp](ch19-networking/webfetch/webfetch.bbp) | A web page in a form |
 | 19.9 | [ch19-networking/repoinfo/repoinfo.bbp](ch19-networking/repoinfo/repoinfo.bbp) | A web page in a form |
+| 19.10 | [ch19-networking/listing-19-10.bas](ch19-networking/listing-19-10.bas) | Errors are not raised |
+| 19.11 | [ch19-networking/listing-19-11.bas](ch19-networking/listing-19-11.bas) | Polling from a console program |
+| 19.12 | [ch19-networking/listing-19-12.bas](ch19-networking/listing-19-12.bas) | Polling from a console program |
+| 19.13 | [ch19-networking/listing-19-13.bas](ch19-networking/listing-19-13.bas) | Several requests at once |
+| 19.14 | [ch19-networking/asyncfetch/asyncfetch.bbp](ch19-networking/asyncfetch/asyncfetch.bbp) | Cancelling |
+| 19.15 | [ch19-networking/asyncfetch/asyncfetch.bbp](ch19-networking/asyncfetch/asyncfetch.bbp) | A downloader with a progress bar |
+| 19.16 | [ch19-networking/asyncfetch/asyncfetch.bbp](ch19-networking/asyncfetch/asyncfetch.bbp) | A downloader with a progress bar |
+| 19.17 | [ch19-networking/asyncfetch/asyncfetch.bbp](ch19-networking/asyncfetch/asyncfetch.bbp) | A downloader with a progress bar |
+| 19.18 | [ch19-networking/listing-19-18.bas](ch19-networking/listing-19-18.bas) | Sockets: TCP and UDP |
+| 19.19 | [ch19-networking/listing-19-19.bas](ch19-networking/listing-19-19.bas) | A server and a client with waiting calls |
+| 19.20 | [ch19-networking/listing-19-20.bas](ch19-networking/listing-19-20.bas) | A server and a client with waiting calls |
+| 19.21 | [ch19-networking/listing-19-21.bas](ch19-networking/listing-19-21.bas) | UDP |
+| 19.22 | [ch19-networking/listing-19-22.bas](ch19-networking/listing-19-22.bas) | Events |
+| 19.23 | [ch19-networking/chat/chat.bbp](ch19-networking/chat/chat.bbp) | A chat room in a form |
+| 19.24 | [ch19-networking/chat/chat.bbp](ch19-networking/chat/chat.bbp) | A chat room in a form |
+| 19.25 | [ch19-networking/listing-19-25.bas](ch19-networking/listing-19-25.bas) | Errors |
+| 19.26 | [ch19-networking/slices/slices.bbp](ch19-networking/slices/slices.bbp) | Example: statistics of a big text file |
 
-## Extending Boing BASIC
+## Modern libraries
 
-[20-extending.md](../../docs/manual/20-extending.md), drawer `ch20-extending/`
+[20-libraries.md](../../docs/manual/20-libraries.md), drawer `ch20-libraries/`
 
 | Listing | File | Section |
 |---|---|---|
-| 20.1 | [ch20-extending/cfuncs/cfuncs.bbp](ch20-extending/cfuncs/cfuncs.bbp) | Calling your own C functions: Declare Lib "C" |
-| 20.2 | [ch20-extending/mathx/demo.bbp](ch20-extending/mathx/demo.bbp) | Extensions: new objects and functions |
-| 20.3 | [ch20-extending/textutil/demo.bbp](ch20-extending/textutil/demo.bbp) | An extension in C++ |
+| 20.1 | [ch20-libraries/listing-20-01.bas](ch20-libraries/listing-20-01.bas) | Dictionary |
+| 20.2 | [ch20-libraries/listing-20-02.bas](ch20-libraries/listing-20-02.bas) | Making one |
+| 20.3 | [ch20-libraries/listing-20-03.bas](ch20-libraries/listing-20-03.bas) | Adding, reading and removing |
+| 20.4 | [ch20-libraries/listing-20-04.bas](ch20-libraries/listing-20-04.bas) | Counting things |
+| 20.5 | [ch20-libraries/listing-20-05.bas](ch20-libraries/listing-20-05.bas) | Case-insensitive keys |
+| 20.6 | [ch20-libraries/listing-20-06.bas](ch20-libraries/listing-20-06.bas) | Objects and nested Dictionaries |
+| 20.7 | [ch20-libraries/listing-20-07.bas](ch20-libraries/listing-20-07.bas) | Errors |
+| 20.8 | [ch20-libraries/listing-20-08.bas](ch20-libraries/listing-20-08.bas) | JSON |
+| 20.9 | [ch20-libraries/listing-20-09.bas](ch20-libraries/listing-20-09.bas) | JsonParse(text) As Variant |
+| 20.10 | [ch20-libraries/listing-20-10.bas](ch20-libraries/listing-20-10.bas) | JsonStringify(value [, indent]) As String |
+| 20.11 | [ch20-libraries/listing-20-11.bas](ch20-libraries/listing-20-11.bas) | Reading and changing a document |
+| 20.12 | [ch20-libraries/listing-20-12.bas](ch20-libraries/listing-20-12.bas) | Errors |
+| 20.13 | [ch20-libraries/listing-20-13.bas](ch20-libraries/listing-20-13.bas) | JSON from a web service |
+| 20.14 | [ch20-libraries/listing-20-14.bas](ch20-libraries/listing-20-14.bas) | JSON from a web service |
+| 20.15 | [ch20-libraries/jsonview/jsonview.bbp](ch20-libraries/jsonview/jsonview.bbp) | A JSON viewer |
+| 20.16 | [ch20-libraries/listing-20-16.bas](ch20-libraries/listing-20-16.bas) | Why UTF-8 matters on the Amiga |
+| 20.17 | [ch20-libraries/listing-20-17.bas](ch20-libraries/listing-20-17.bas) | Why UTF-8 matters on the Amiga |
+| 20.18 | [ch20-libraries/listing-20-18.bas](ch20-libraries/listing-20-18.bas) | Base64 |
+| 20.19 | [ch20-libraries/listing-20-19.bas](ch20-libraries/listing-20-19.bas) | Base64 |
+| 20.20 | [ch20-libraries/listing-20-20.bas](ch20-libraries/listing-20-20.bas) | URL encoding |
+| 20.21 | [ch20-libraries/listing-20-21.bas](ch20-libraries/listing-20-21.bas) | URL encoding |
+| 20.22 | [ch20-libraries/listing-20-22.bas](ch20-libraries/listing-20-22.bas) | Hex |
+| 20.23 | [ch20-libraries/listing-20-23.bas](ch20-libraries/listing-20-23.bas) | Errors |
+| 20.24 | [ch20-libraries/listing-20-24.bas](ch20-libraries/listing-20-24.bas) | Known answers |
+| 20.25 | [ch20-libraries/listing-20-25.bas](ch20-libraries/listing-20-25.bas) | Raw digests |
+| 20.26 | [ch20-libraries/listing-20-26.bas](ch20-libraries/listing-20-26.bas) | Checking a file or a download |
+| 20.27 | [ch20-libraries/listing-20-27.bas](ch20-libraries/listing-20-27.bas) | Checking a file or a download |
+| 20.28 | [ch20-libraries/listing-20-28.bas](ch20-libraries/listing-20-28.bas) | Signing a request |
+| 20.29 | [ch20-libraries/listing-20-29.bas](ch20-libraries/listing-20-29.bas) | Dates and times in UTC |
+| 20.30 | [ch20-libraries/listing-20-30.bas](ch20-libraries/listing-20-30.bas) | Unix time |
+| 20.31 | [ch20-libraries/listing-20-31.bas](ch20-libraries/listing-20-31.bas) | FormatIso8601(d [, offset]) |
+| 20.32 | [ch20-libraries/listing-20-32.bas](ch20-libraries/listing-20-32.bas) | ParseIso8601(s) |
+| 20.33 | [ch20-libraries/listing-20-33.bas](ch20-libraries/listing-20-33.bas) | ParseIso8601(s) |
+| 20.34 | [ch20-libraries/listing-20-34.bas](ch20-libraries/listing-20-34.bas) | Local time and UTC |
+| 20.35 | [ch20-libraries/listing-20-35.bas](ch20-libraries/listing-20-35.bas) | Errors |
+| 20.36 | [ch20-libraries/listing-20-36.bas](ch20-libraries/listing-20-36.bas) | StringBuilder |
+| 20.37 | [ch20-libraries/listing-20-37.bas](ch20-libraries/listing-20-37.bas) | When to use it |
+| 20.38 | [ch20-libraries/listing-20-38.bas](ch20-libraries/listing-20-38.bas) | Members |
+| 20.39 | [ch20-libraries/listing-20-39.bas](ch20-libraries/listing-20-39.bas) | Errors |
+| 20.40 | [ch20-libraries/wordfreq/wordfreq.bbp](ch20-libraries/wordfreq/wordfreq.bbp) | Example: a word count report |
+| 20.41 | [ch20-libraries/wordfreq/wordfreq.bbp](ch20-libraries/wordfreq/wordfreq.bbp) | Example: a word count report |
+
+## Extending Boing BASIC
+
+[21-extending.md](../../docs/manual/21-extending.md), drawer `ch21-extending/`
+
+| Listing | File | Section |
+|---|---|---|
+| 21.1 | [ch21-extending/cfuncs/cfuncs.bbp](ch21-extending/cfuncs/cfuncs.bbp) | Calling your own C functions: Declare Lib "C" |
+| 21.2 | [ch21-extending/mathx/demo.bbp](ch21-extending/mathx/demo.bbp) | Extensions: new objects and functions |
+| 21.3 | [ch21-extending/textutil/demo.bbp](ch21-extending/textutil/demo.bbp) | An extension in C++ |
 
 ## Exercises
 

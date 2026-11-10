@@ -1,0 +1,4 @@
+# Chat: a chat room over TCP with the Socket class, host or join (manual chapter 19)
+Name=Chat
+Startup=Form chat
+Form=chat.afg

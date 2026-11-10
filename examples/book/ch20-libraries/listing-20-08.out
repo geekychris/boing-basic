@@ -1,0 +1,8 @@
+Boing BASIC ( 2026 )
+first tag: BASIC, tags: 2 
+by Chris, city unknown
+name is a String
+year is a Long
+tags is a Variant()
+author is a Dictionary
+open is a Boolean
