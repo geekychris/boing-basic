@@ -305,7 +305,9 @@ statusbar id=sb panels="Ready|Ln 1|" widths="0|60|50"
 With `hints=1`, the status bar is also the window's help line, a common sight in Amiga
 programs: while the pointer is over a control that has a `hint=`, panel 0 shows that hint, and
 when the pointer moves away from it, panel 0 shows your own text again (what you last put in
-`Text` or `Panel(0)`). The hint is still the control's help bubble too. Give every button and
+`Text` or `Panel(0)`, even if you changed it while the hint was showing). `Text` and
+`Panel(0)` always read your own text; the read-only `Hint` property is the hint being shown,
+or `""`. The hint is still the control's help bubble too. Give every button and
 field a short hint that says what it does:
 
 ```text
@@ -1008,7 +1010,7 @@ program, and in `DoEvents` in a program without forms.
 |---|---|
 | `App.ShowHelp file [, node]` | opens an AmigaGuide document at a node (`main` if none is given) in its own window; the program goes on running |
 | `App.HelpFile` | an AmigaGuide file: the Help key, pressed in any of the program's windows, opens it |
-| `helpnode=` (`.afg`), `HelpNode` | on a control: the node the Help key opens while the pointer is over that control; on the `window` line: the node for the rest of the window |
+| `helpnode=` (`.afg`), `HelpNode` | on a control (or a toolbar as a whole): the node the Help key opens while the pointer is over it; on the `window` line: the node for the rest of the window, also readable and changeable as `Me.HelpNode` |
 
 *Listing 13.19* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
 
@@ -1022,7 +1024,7 @@ End Sub
 **Help for each control.** With `App.HelpFile` set, the Help key opens the help at a node
 chosen from where the pointer is: the `helpnode=` of the control under the pointer if it has
 one, else the `helpnode=` of the window line, else `main`. Layouts (`vlayout`, `hlayout`)
-take no `helpnode=`. At run time each control's `HelpNode` property reads and changes its node
+and single toolbar buttons take no `helpnode=`. At run time each control's `HelpNode` property reads and changes its node
 (`""` if it has none). So a settings window can explain each of its fields:
 
 ```text

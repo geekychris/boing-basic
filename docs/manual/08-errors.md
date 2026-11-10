@@ -545,6 +545,10 @@ Resume Next` can therefore still be stopped with Ctrl-C.
 once too. Whether or not your handler runs, the runtime's own clean-up (forms, sounds, timers,
 files) always happens.
 
+A Ctrl-C also ends a program that is waiting in a requester (`MsgBox`, `InputBox`, the
+CommonDialog's file, font or palette requesters): the requester closes and the program stops
+with error 18 as usual.
+
 ## Compile-time errors
 
 `boing check prog.bas` (or `prog.bbp` for a project) checks a program without running it.
