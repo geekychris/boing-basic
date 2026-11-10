@@ -784,7 +784,7 @@ def setup(m):
     the SDK's GCC."""
     src = os.path.join(ROOT, "tools/os4/bbfetch.c")
     m.tool("amiga_dos_command", command="makedir DH1:bbtools")
-    built = [os.path.join(ROOT, "build/os4", t) for t in ("bbfetch", "ptr", "tasklist", "tasks")]
+    built = [os.path.join(ROOT, "build/os4", t) for t in ("bbfetch", "ptr", "tasklist")]
     if all(os.path.exists(b) for b in built):
         for b in built:
             print(bridge_push(m, b, "DH1:bbtools/" + os.path.basename(b)))

@@ -126,7 +126,3 @@ all: $(OUT)/bbfetch
 $(OUT)/tasklist: tools/os4/tasklist.c
 	$(CC) -mcrt=newlib -mcpu=powerpc -O2 -Wall -D__USE_INLINE__ -o $@ $< -lauto
 all: $(OUT)/tasklist
-# tasks with a CLI's command, filtered by name (tests-net/os4-run.sh's leftover check)
-$(OUT)/tasks: tools/os4/tasks.c
-	$(CC) -mcrt=newlib -mcpu=powerpc -O2 -Wall -o $@ $< -lauto
-all: $(OUT)/tasks

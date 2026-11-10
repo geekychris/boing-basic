@@ -50,9 +50,9 @@ try:
                 ok &= same
                 print("== %s %s: %s" % (t, label, "PASS (output == %s.out)" % t if same else "FAIL"))
                 if not same: print(out)
-        if not os.path.exists("build/os4/tasks"):
-            subprocess.check_call(["tools/build-os4.sh", "build/os4/tasks"])
-        print(g.push(m, "build/os4/tasks", "RAM:bbnet/tasks"))
+        if not os.path.exists("build/os4/tasklist"):
+            subprocess.check_call(["tools/build-os4.sh", "build/os4/tasklist"])
+        print(g.push(m, "build/os4/tasklist", "RAM:bbnet/tasklist"))
         time.sleep(3)                           # a crash at exit shows its requester a moment later
         n = g.reapers(m)
         if n:
@@ -63,7 +63,7 @@ try:
         for what in ("Boing BASIC worker", "RAM:bbnet/"):
             left = ""
             for _ in range(15):                 # a program may still be ending
-                left = m.tool("amiga_dos_command", command='RAM:bbnet/tasks "%s"' % what)
+                left = m.tool("amiga_dos_command", command='RAM:bbnet/tasklist "%s"' % what)
                 if "0 task(s)" in left: break
                 time.sleep(2)
             if "0 task(s)" not in left:

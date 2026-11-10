@@ -314,8 +314,8 @@ default certificate store is Homebrew's.
   an unknown host, a POST, HTTPS (one and two at once), Cancel while waiting for headers and
   while connecting (immediate), no half answer after an error, a missing OnDone Sub, and the
   `WithEvents` events. `tests-net/asyncexit.bas` ends with three requests running. On the
-  AmigaOS 4 guest the runner then checks (with `DH1:bbtools/tasks`, built from
-  `tools/os4/tasks.c`) that no worker process and no test program is left.
+  AmigaOS 4 guest the runner then checks (with `tasklist NAME`, built from
+  `tools/os4/tasklist.c`) that no worker process and no test program is left.
 - `tests-net/sessiontest.bas` (in both runners): 31 checks of kept connections (reuse, a POST, the
   server's `Connection: close`, a connection the server dropped, `KeepAlive = False`, chunked
   answers, HTTPS) and cookies (Path, longer paths first, replacing, `Max-Age=0`, `Expires`,
