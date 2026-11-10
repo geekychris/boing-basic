@@ -713,6 +713,16 @@ bb_str *bb_sha256(bb_str *s, bb_bool raw);
 bb_str *bb_hmacsha1(bb_str *key, bb_str *msg, bb_bool raw);
 bb_str *bb_hmacsha256(bb_str *key, bb_str *msg, bb_bool raw);
 
+/* UTC, Unix time, ISO 8601 (isodate.c); bad ISO text raises 31401 */
+bb_long bb_utcoffset(void);
+bb_date bb_nowutc(void);
+bb_date bb_localtoutc(bb_date d);
+bb_date bb_utctolocal(bb_date d);
+bb_double bb_unixtime(bb_date d);
+bb_date bb_fromunixtime(bb_double s);
+bb_str *bb_formatiso8601(bb_date d, bb_long offset);
+bb_date bb_parseiso8601(bb_str *s);
+
 /* Built-in classes */
 extern const bb_class bb_collection_class;
 bb_obj *bb_collection_new(void);

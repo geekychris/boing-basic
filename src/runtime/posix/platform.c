@@ -52,6 +52,21 @@ int bb_plat_read_line(char **line, size_t *len)
     return 1;
 }
 
+/* minutes local time is ahead of UTC, from the C library's time zone */
+int bb_plat_utc_offset(void)
+{
+    time_t now = time(NULL);
+    struct tm lt;
+    localtime_r(&now, &lt);
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+    return (int)(lt.tm_gmtoff / 60);
+#else
+    struct tm gt;
+    gmtime_r(&now, &gt);
+    return (int)((mktime(&lt) - mktime(&gt)) / 60);
+#endif
+}
+
 void bb_plat_localtime(bb_tm *tm)
 {
     struct timeval tv;

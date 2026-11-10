@@ -30,6 +30,7 @@ int bb_plat_read_line(char **line, size_t *len);         /* malloc'ed, no newlin
 /* time */
 void bb_plat_localtime(bb_tm *tm);
 double bb_plat_seconds(void);                            /* monotonic-ish, seconds */
+int bb_plat_utc_offset(void);                            /* minutes local time is ahead of UTC */
 void bb_plat_sleep_ms(long ms);
 /* Ctrl-C: nonzero if a break was requested since the last call (clears it) */
 int bb_plat_break(void);
