@@ -817,7 +817,12 @@ static void vm_poll(VM *vm)
    bytecode offset to continue at. Out of line: inlined into every branch op it made the register
    ops ~3x bigger, more code pages per loop iteration (TLB refills under QEMU) */
 static uint32_t *jit_stats;          /* BOING_JIT_STATS (below) */
-static __attribute__((noinline)) int32_t jit_go(VMImage *img, Frame *fr, bb_jitctx *jc, bb_value *L, int32_t bt, bb_jitfn jf)
+#if defined(__amigaos4__)
+#define BB_JITGO_ATTR __attribute__((noinline))            /* fewer code pages (QEMU's TLB) */
+#else
+#define BB_JITGO_ATTR inline __attribute__((always_inline)) /* out of line cost 38% on nbody (arm64) */
+#endif
+static BB_JITGO_ATTR int32_t jit_go(VMImage *img, Frame *fr, bb_jitctx *jc, bb_value *L, int32_t bt, bb_jitfn jf)
 {
     if (!jf) {
         jf = img->jitcode[bt];
