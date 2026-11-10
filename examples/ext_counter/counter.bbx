@@ -1,0 +1,7 @@
+# counter.bbx - what the counter extension registers (counter.c)
+class Counter
+  method Add(ByVal n As Long) As Long
+  method Reset()
+  property Value As Long
+  property-ro Count As Long
+function Clamp(ByVal x As Long, ByVal lo As Long, ByVal hi As Long) As Long

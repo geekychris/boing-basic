@@ -29,6 +29,8 @@ void bb_register_function(const char *name, bb_ext_fn fn);
 const bb_class *bb_runtime_class(const char *name);     /* NULL if not registered */
 bb_obj *bb_ext_create(const char *name);                /* NULL if not registered */
 bb_ext_fn bb_ext_function(const char *name);            /* NULL if not registered */
+/* call a registered function (error 453 if it is not linked into this program) */
+bb_value bb_ext_call(const char *name, int argc, bb_value *argv);
 int bb_ext_class_count(void);
 const char *bb_ext_class_name(int i);
 int bb_ext_linked(const char *ext);                     /* an extension's init ran */

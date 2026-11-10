@@ -136,7 +136,7 @@ static char *cls_cname(ClassInfo *c) { return xsprintf("C%d_%s", c->index, ciden
 /* the bb_class of a program's class, or of a runtime class (As Engine3D / Canvas / Audio) */
 static char *cls_ref(ClassInfo *c)
 {
-    if (c->rtcls) return xsprintf("bb_runtime_class(\"%s\")", c->name);
+    if (IS_REGCLS(c)) return xsprintf("bb_runtime_class(\"%s\")", c->name);
     return xsprintf("&%s_class", cls_cname(c));
 }
 
@@ -951,6 +951,16 @@ static R prod(EC *e, Node *n)
     case E_CALL: return call(e, n);
     case E_MCALL: return mcall(e, n);
     case E_BUILTIN: return builtin(e, n);
+    case E_EXTCALL: {
+        /* a linked extension's function (or Lib "C" through the registry): Variant arguments */
+        int i, cnt = n->list.n;
+        char *arr = varr_temp(e, cnt);
+        for (i = 0; i < cnt; i++) {
+            pre(e, "%s[%d] = %s;", arr, i, own(e, n->list.v[i]));
+            rel(e, xsprintf("bb_v_release(&%s[%d]);", arr, i));
+        }
+        return mkr(xsprintf("bb_ext_call(%s, %d, %s)", cstrlit(n->name, (int)strlen(n->name)), cnt, arr), n->ty->kind != T_VOID);
+    }
     case E_LATE: return late(e, n);
     case E_NEW:
         if (n->cls->builtin) return mkr(xstrdup("bb_collection_new()"), 1);
@@ -2277,8 +2287,10 @@ int emit_c(Program *p, Buf *outb, int debug)
             char *v = xsprintf("$VER: %s %s (%02d.%02d.%04d)", t, p->version, tm->tm_mday, tm->tm_mon + 1, tm->tm_year + 1900);
             buf_printf(outb, "\nstatic const char __attribute__((used)) bb_version_[] = %s;\n", cstrlit(v, (int)strlen(v)));
         }
+        for (i = 0; i < p->nexts; i++) buf_printf(outb, "void bb_ext_init_%s(void);\n", p->exts[i].name);
         buf_puts(outb, "\nint main(int argc, char **argv)\n{\n    int i;\n    bb_rt_init(argc, argv);\n    bb_set_program(&bb_ops);\n");
         if (t) buf_printf(outb, "    bb_set_app_title(%s);\n", cstrlit(t, (int)strlen(t)));
+        for (i = 0; i < p->nexts; i++) buf_printf(outb, "    bb_ext_init_%s();\n", p->exts[i].name);
     }
     buf_puts(outb, "    bb_vk_null.type = BB_NULL;\n    bb_vk_missing = bb_v_missing();\n");
     buf_printf(outb, "    for (i = 0; i < %d; i++) bb_k[i] = bb_str_lit(bb_klit[i], bb_klen[i]);\n", nlits);

@@ -84,7 +84,7 @@ static int str_const(E *e, const char *s, int len)
    class (Engine3D, Canvas, Audio, an extension's), looked up by name when the VM runs it */
 static int32_t chkcls_opnd(E *e, ClassInfo *c)
 {
-    if (c->rtcls) return -1 - str_const(e, c->name, (int)strlen(c->name));
+    if (IS_REGCLS(c)) return -1 - str_const(e, c->name, (int)strlen(c->name));
     return c->index;
 }
 
@@ -509,6 +509,12 @@ static void expr(E *e, Node *n)
     case E_CALL: call(e, n); return;
     case E_MCALL: mcall(e, n); return;
     case E_BUILTIN: builtin(e, n); return;
+    case E_EXTCALL: {
+        int i;
+        for (i = 0; i < n->list.n; i++) expr(e, n->list.v[i]);
+        op3(e, I_CALLX, str_const(e, n->name, (int)strlen(n->name)), n->list.n, n->ty->kind != T_VOID);
+        return;
+    }
     case E_LATE: late_call(e, n); return;
     case E_ADDROF:
         op3(e, I_ADDROF, str_const(e, n->proc->mod->name, (int)strlen(n->proc->mod->name)),
@@ -557,6 +563,7 @@ static int has_value(Node *n)
     switch (n->kind) {
     case E_CALL: case E_MCALL: return n->proc->ret != NULL && n->proc->kind != PK_SUB;
     case E_BUILTIN: return builtins[n->bi].ret != T_VOID;
+    case E_EXTCALL: return n->ty->kind != T_VOID;
     case E_LATE: return 1;
     case E_ERRPROP: return n->op != 4 && n->op != 5;
     default: return 1;
@@ -2205,5 +2212,8 @@ VMImage *emit_bytecode(Program *p)
         g->nforms++;
     }
     g->title = p->title ? p->title : p->name;
+    g->nexts = p->nexts;
+    g->ext_names = (char **)xcalloc((size_t)p->nexts + 1, sizeof(char *));
+    for (i = 0; i < p->nexts; i++) g->ext_names[i] = p->exts[i].name;
     return p->nerrors ? NULL : g;
 }

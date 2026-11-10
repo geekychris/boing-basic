@@ -134,16 +134,49 @@ static int cmd_build(const char *argv0, const char *src, const char *out, int ke
         cc = "cc";
 #endif
     }
+    {
+        /* the linked extensions' and CSource= files, each compiled to an object (C++ with the C++
+           driver); with any C++ the C++ driver links too (its runtime library) */
+        Buf objs = {0, 0, 0};
+        int k, cxx = 0;
+        const char *cxxc = getenv("BOING_CXX");
 #ifdef __amigaos4__
-    /* never -mcpu=440/440fp: GCC then inlines string functions with dlmzb., which only the
-       440/460 has (real X5000, A1222 and G3/G4 machines crash); see docs/os4.md */
-    /* AmigaDOS only strips quotes that open an argument: quote the whole "-I..." / "-L..." */
-    cmd = xsprintf("%s -mcrt=newlib -mcpu=powerpc %s -D__USE_OLD_TIMEVAL__ \"-I%s\" \"%s\" -o \"%s\" \"-L%s\" "
-                   "-lboing -lauto -lm %s", cc, debug ? "-gstabs -O0" : opt, inc, cpath, outp, lib, extra ? extra : "");   /* AmiForge's debugger reads stabs */
+        const char *fl = "-mcrt=newlib -mcpu=powerpc -D__USE_OLD_TIMEVAL__", *q1 = "\"-I", *q2 = "\"";
+        if (!cxxc || !*cxxc) cxxc = bb_sys_probe("SDK:gcc/bin/g++") ? "SDK:gcc/bin/g++" : "g++";
 #else
-    cmd = xsprintf("%s %s -I\"%s\" \"%s\" -o \"%s\" -L\"%s\" -lboing -lm %s", cc,
-                   debug ? "-g -O0" : opt, inc, cpath, outp, lib, extra ? extra : "");
+        const char *fl = "", *q1 = "-I\"", *q2 = "\"";
+        if (!cxxc || !*cxxc) cxxc = "c++";
 #endif
+        const char *o2 = debug ?
+#ifdef __amigaos4__
+            "-gstabs -O0"
+#else
+            "-g -O0"
+#endif
+            : opt;
+        buf_puts(&objs, "");
+        for (k = 0; k < p->nexts + p->ncsources; k++) {
+            const char *f = k < p->nexts ? p->exts[k].src : p->csources[k - p->nexts];
+            size_t n2 = strlen(f);
+            int isx = (n2 > 4 && !strcasecmp(f + n2 - 4, ".cpp")) || (n2 > 3 && !strcasecmp(f + n2 - 3, ".cc"));
+            char *o = xsprintf("%s.x%d.o", outp, k);
+            char *c1 = xsprintf("%s %s %s %s%s%s -c \"%s\" -o \"%s\"", isx ? cxxc : cc, fl, o2, q1, inc, q2, f, o);
+            if (system(c1) != 0) { fprintf(stderr, "boing: %s compiler failed: %s\n", isx ? "C++" : "C", c1); return 1; }
+            buf_printf(&objs, " \"%s\"", o);
+            if (isx) cxx = 1;
+        }
+        /* never -mcpu=440/440fp on AmigaOS 4: GCC then inlines string functions with dlmzb., which
+           only the 440/460 has (real X5000, A1222 and G3/G4 machines crash); see docs/os4.md.
+           AmigaDOS only strips quotes that open an argument: quote the whole "-I..." / "-L..." */
+#ifdef __amigaos4__
+        cmd = xsprintf("%s %s %s %s%s%s %s\"%s\"%s%s -o \"%s\" \"-L%s\" -lboing -lauto -lm %s", cxx ? cxxc : cc, fl, o2, q1, inc, q2,
+                       cxx ? "-x c " : "", cpath, cxx ? " -x none" : "", objs.p, outp, lib, extra ? extra : "");
+#else
+        cmd = xsprintf("%s %s %s%s%s %s\"%s\"%s%s -o \"%s\" -L\"%s\" -lboing -lm %s", cxx ? cxxc : cc, o2, q1, inc, q2,
+                       cxx ? "-x c " : "", cpath, cxx ? " -x none" : "", objs.p, outp, lib, extra ? extra : "");
+        (void)fl;
+#endif
+    }
     rc = system(cmd);
     if (!keep_c) remove(cpath);
     if (rc != 0) {
@@ -189,6 +222,16 @@ int main(int argc, char **argv)
     cmd = argv[1];
     if (!strcmp(cmd, "--version") || !strcmp(cmd, "version")) { printf("Boing BASIC " BOING_VERSION "\n"); return 0; }
     if (argc < 3 && strcmp(cmd, "members")) usage();
+    if (!strcmp(cmd, "sources")) {
+        /* boing sources PROG.bbp: the C/C++ files a native build compiles besides the program
+           (Extension= and CSource=), one per line (tools/boing-build-os4.sh) */
+        Program *p = load(argv[2]);
+        int k;
+        if (p->nerrors) return 1;
+        for (k = 0; k < p->nexts; k++) printf("%s\n", p->exts[k].src);
+        for (k = 0; k < p->ncsources; k++) printf("%s\n", p->csources[k]);
+        return 0;
+    }
     if (!strcmp(cmd, "members")) {
         /* boing members [Class]: the members of the runtime classes (Engine3D, Canvas, Audio), one per
            line "Class<TAB>Name<TAB>method|property", for AmiForge's completion; each name is checked

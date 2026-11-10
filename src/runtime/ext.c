@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <stdio.h>
 
 typedef struct { const char *name; const bb_class *cls; bb_obj *(*create)(void); } ext_class;
 typedef struct { const char *name; bb_ext_fn fn; } ext_func;
@@ -100,4 +101,15 @@ int bb_ext_linked(const char *ext)
     int i;
     for (i = 0; i < nlinked; i++) if (!strcasecmp(linked[i], ext)) return 1;
     return 0;
+}
+
+bb_value bb_ext_call(const char *name, int argc, bb_value *argv)
+{
+    bb_ext_fn f = bb_ext_function(name);
+    char msg[160];
+    if (!f) {
+        snprintf(msg, sizeof msg, "function '%s' is not linked into this program (an extension or CSource missing)", name);
+        bb_raise(453, msg);
+    }
+    return f(argc, argv);
 }

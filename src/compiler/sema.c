@@ -172,11 +172,11 @@ static Sym *make_var(Ctx *c, Node *d, int storage)
     }
     if (d->flags & NF_NEW) {
         if (t->kind != T_OBJECT || !t->cls) ERR(c, d, "'As New' needs a class");
-        else if (t->cls->rtcls) ERR(c, d, "use CreateObject(\"Boing.%s\") to make a %s", t->cls->name, t->cls->name);
+        else if (IS_REGCLS(t->cls)) ERR(c, d, "use CreateObject(\"Boing.%s\") to make a %s", t->cls->name, t->cls->name);
         else s->is_new = 1;
     }
     if (d->flags & NF_WITHEVENTS) {
-        if (t->kind != T_OBJECT || !t->cls || t->cls->rtcls) ERR(c, d, "WithEvents needs a class type");
+        if (t->kind != T_OBJECT || !t->cls || IS_REGCLS(t->cls)) ERR(c, d, "WithEvents needs a class type");
         s->withevents = 1;
     }
     s->ty = t;
@@ -505,7 +505,7 @@ static void resolve_implements(Program *p, Module *m)
         if (d->kind != D_IMPLEMENTS) continue;
         if (!m->cls) { ERR(c, d, "Implements is only allowed in a class module"); continue; }
         iface = find_class(c, d->name);
-        if (!iface || iface->builtin || iface->rtcls) { ERR(c, d, "class '%s' is not defined", d->name); continue; }
+        if (!iface || iface->builtin || IS_REGCLS(iface)) { ERR(c, d, "class '%s' is not defined", d->name); continue; }
         if (iface == m->cls) { ERR(c, d, "a class cannot implement itself"); continue; }
         iface->is_interface = 1;
         m->cls->impls = (ClassInfo **)xrealloc(m->cls->impls, sizeof(ClassInfo *) * (size_t)(m->cls->nimpls + 1));
@@ -1414,6 +1414,22 @@ int sema_program(Program *p)
        checked at compile time; a module or class of the program with the same name wins */
     {
         int k, nk = bb_ext_class_count();
+        /* extension classes first (Extension= in the project): members from their .bbx */
+        for (k = 0; k < p->nxclasses; k++) {
+            ExtClass *xc = p->xclasses[k];
+            ClassInfo *rc;
+            Sym *s;
+            if (scope_find_local(p->global, xc->name)) { diag(p, 0, 1, 1, "extension class '%s' clashes with a name of the program", xc->name); continue; }
+            rc = (ClassInfo *)xcalloc(1, sizeof(ClassInfo));
+            rc->name = xstrdup(xc->name);
+            rc->xcls = xc;
+            rc->rtcls = NULL;
+            rc->index = -1;
+            s = new_sym(SK_CLASS, rc->name, NULL);
+            s->cls = rc;
+            s->is_public = 1;
+            scope_add(p->global, s);
+        }
         for (k = 0; k < nk; k++) {
             const char *rn = bb_ext_class_name(k);
             ClassInfo *rc;

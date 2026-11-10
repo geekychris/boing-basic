@@ -983,6 +983,36 @@ static Type *conv_fn_type(const char *name)
 
 static Node *special_builtin(Ctx *c, Node *at, const char *name, NodeList *args, int mode, char suffix, int *handled);
 
+/* a type named in a .bbx signature */
+static Type *ext_type(Ctx *c, Node *at, const char *name)
+{
+    Node *tn = node_new(E_NAME, at->file, at->line, at->col);
+    tn->name = (char *)name;
+    return resolve_type(c, tn, 0, NULL);
+}
+
+/* a call of an extension function: arguments converted to the declared types (then passed as
+   Variants), the result converted from the Variant it returns */
+static Node *ext_call(Ctx *c, Node *e, ExtFunc *xf, NodeList *args, int mode)
+{
+    Node *n = node_new(E_EXTCALL, e->file, e->line, e->col);
+    int i, na = args ? args->n : 0;
+    n->name = xf->name;
+    if (na != xf->np) ERR(c, e, "'%s' takes %d argument%s, not %d", xf->name, xf->np, xf->np == 1 ? "" : "s", na);
+    for (i = 0; i < na && i < xf->np; i++) {
+        Node *a = args->v[i];
+        if (a->kind == E_MISSING || a->kind == E_NAMEDARG) { ERR(c, a, "argument %d of '%s' is required", i + 1, xf->name); continue; }
+        nl_push(&n->list, coerce(c, coerce(c, check_value(c, a), ext_type(c, e, xf->p[i].type)), &ty_variant));
+    }
+    if (!xf->ret) {
+        if (mode == M_VALUE) ERR(c, e, "'%s' does not return a value", xf->name);
+        n->ty = &ty_void;
+        return n;
+    }
+    n->ty = &ty_variant;
+    return coerce(c, n, ext_type(c, e, xf->ret));
+}
+
 /* ---------- names ---------- */
 
 static Node *err_prop(Ctx *c, Node *at, const char *member, NodeList *args, int mode);
@@ -1127,6 +1157,11 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
             return char_at_node(c, e, "__ascat", str, idx);
         return n;
     }
+    {
+        /* a function of a linked extension (its .bbx) or Declare ... Lib "C" */
+        ExtFunc *xf = ext_func_find(c->prog, e->name);
+        if (xf) return ext_call(c, e, xf, args, mode);
+    }
     /* implicit declaration */
     if (args) {
         ERR(c, e, "Sub, Function or array '%s' is not defined", e->name);
@@ -1244,6 +1279,25 @@ static Node *resolve_member(Ctx *c, Node *e, Node *base, const char *name, NodeL
         ERR(c, e, "type '%s' has no field '%s'", u->name, name);
         e->ty = &ty_variant;
         return e;
+    }
+    if (t->kind == T_OBJECT && t->cls && t->cls->xcls) {
+        /* a linked extension's class: the member must be in its .bbx; called by name */
+        ExtMember *m = ext_member_find(t->cls->xcls, name);
+        int kind = BB_INV_GET | BB_INV_METHOD;
+        if (!m) {
+            ERR(c, e, "'%s' is not a member of %s", name, t->cls->name);
+            e->ty = &ty_variant;
+            return e;
+        }
+        if ((mode == M_LVAL || mode == M_SETLVAL) && m->kind != 1) {
+            ERR(c, e, "%s.%s is %s", t->cls->name, m->name, m->kind == 2 ? "read-only" : "a method");
+            e->ty = &ty_variant;
+            return e;
+        }
+        if (mode == M_STMT) kind = BB_INV_METHOD;
+        if (mode == M_LVAL) kind = BB_INV_LET;
+        if (mode == M_SETLVAL) kind = BB_INV_SET;
+        return late(c, e, base, name, args, kind);
     }
     if (t->kind == T_OBJECT && t->cls && t->cls->rtcls) {
         /* Engine3D / Canvas / Audio: the member must exist (its id comes from the class's find) */
@@ -1683,7 +1737,7 @@ Node *check_expr(Ctx *c, Node *e, int mode)
             e->ty = &ty_object;
             return e;
         }
-        if (cls->rtcls) ERR(c, e, "use CreateObject(\"Boing.%s\") to make a %s", cls->name, cls->name);
+        if (IS_REGCLS(cls)) ERR(c, e, "use CreateObject(\"Boing.%s\") to make a %s", cls->name, cls->name);
         e->cls = cls;
         e->ty = type_object(cls);
         return e;
@@ -1694,7 +1748,7 @@ Node *check_expr(Ctx *c, Node *e, int mode)
         if (e->a->ty->kind != T_OBJECT && e->a->ty->kind != T_VARIANT) ERR(c, e, "TypeOf needs an object");
         e->a = coerce(c, e->a, &ty_object);
         if (!cls) ERR(c, e, "class '%s' is not defined", e->name);
-        else if (cls->rtcls) ERR(c, e, "TypeOf ... Is %s is not supported: compare TypeName(x) with \"%s\"", cls->name, cls->name);
+        else if (IS_REGCLS(cls)) ERR(c, e, "TypeOf ... Is %s is not supported: compare TypeName(x) with \"%s\"", cls->name, cls->name);
         e->cls = cls;
         e->ty = &ty_boolean;
         return e;

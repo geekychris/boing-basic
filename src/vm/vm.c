@@ -1,6 +1,7 @@
 /* vm.c - the Boing BASIC bytecode interpreter */
 #include "bytecode.h"
 #include "jit.h"
+#include "../runtime/boing_ext.h"
 #include "../compiler/bbc.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -1845,6 +1846,18 @@ static void vm_exec(VM *vm, int entry)
                 pc += 4;
                 break;
             }
+            case I_CALLX: {
+                /* a function of a linked extension or Declare ... Lib "C" (registry: boing_ext.h) */
+                int argc = pc[2], i;
+                bb_value *args = sp - argc, r;
+                SYNC();
+                r = bb_ext_call(bb_str_ptr(img->consts[pc[1]].u.s), argc, args);
+                for (i = 0; i < argc; i++) release_slot(&args[i]);
+                sp = args;
+                if (pc[3]) PUSH(r); else bb_v_release(&r);
+                pc += 4;
+                break;
+            }
             case I_CALLD: {
                 int argc = pc[2] & 0xffff, hasret = (pc[2] >> 16) != 0, i;
                 bb_value *args = sp - argc;
@@ -2316,6 +2329,14 @@ int vm_run(VMImage *img, int argc, char **argv)
     vm_pairs = (unsigned long long *)xcalloc((size_t)I__COUNT * I__COUNT, sizeof(unsigned long long));
 #endif
     bb_rt_init(argc, argv);
+    for (i = 0; i < img->nexts; i++)
+        if (!bb_ext_linked(img->ext_names[i])) {
+            /* the program uses an extension this interpreter was not built with */
+            fprintf(stderr, "boing: this program needs the extension '%s', which is not linked into this interpreter\n"
+                            "       (build one with: boing vm --ext DIR/%s -o myboing, then run the program with it)\n",
+                    img->ext_names[i], img->ext_names[i]);
+            return 20;
+        }
     jit_init();
     if (!img->jitno) img->jitno = (unsigned char *)xcalloc((size_t)img->ncode + 1, 1);
     if (!img->jitcode) img->jitcode = (bb_jitfn *)xcalloc((size_t)img->ncode + 1, sizeof(bb_jitfn));

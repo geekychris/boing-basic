@@ -197,7 +197,29 @@ static int load_project(Program *p, const char *path)
             p->ver_major = atoi(val);
             p->ver_minor = strchr(val, '.') ? atoi(strchr(val, '.') + 1) : 0;
             p->ver_rev = strchr(val, '.') && strchr(strchr(val, '.') + 1, '.') ? atoi(strchr(strchr(val, '.') + 1, '.') + 1) : 0;
-        } else if (name_eq(key, "Icon") || name_eq(key, "Uses")) {
+        }
+        else if (name_eq(key, "Extension")) {
+            /* Extension=dir/name: dir/name.c (or .cpp) and its descriptor dir/name.bbx */
+            char *base = join_dir(dir, val), *slash = strrchr(base, '/'), *colon = strrchr(base, ':');
+            const char *nm = slash ? slash + 1 : colon ? colon + 1 : base;
+            ExtInfo *x;
+            long n2;
+            char *probe;
+            p->exts = (ExtInfo *)xrealloc(p->exts, sizeof(ExtInfo) * (size_t)(p->nexts + 1));
+            x = &p->exts[p->nexts++];
+            x->name = xstrdup(nm);
+            x->dir = xstrndup(base, (size_t)(nm - base));
+            x->bbx = xsprintf("%s.bbx", base);
+            x->src = xsprintf("%s.c", base);
+            probe = read_file(x->src, &n2);
+            if (!probe) { free(x->src); x->src = xsprintf("%s.cpp", base); probe = read_file(x->src, &n2); }
+            free(probe);
+            bbx_load(p, x->bbx, x->name);
+        } else if (name_eq(key, "CSource")) {
+            p->csources = (char **)xrealloc(p->csources, sizeof(char *) * (size_t)(p->ncsources + 1));
+            p->csources[p->ncsources++] = join_dir(dir, val);
+        }
+        else if (name_eq(key, "Icon") || name_eq(key, "Uses")) {
             /* used by the platform build */
         } else diag_warn(p, 0, lineno, 1, "unknown project key '%s'", key);
     }
