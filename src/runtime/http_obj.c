@@ -25,6 +25,7 @@ enum {
     P_STATUS, P_STATUSTEXT, P_RESPONSETEXT, P_RESPONSEHEADERS, P_URL, P_CONTENTTYPE, P_TIMEOUT,
     P_FOLLOWREDIRECTS, P_MAXREDIRECTS, P_VERIFYCERTIFICATE, P_CACERTFILE, P_USERAGENT, P_BYTESRECEIVED,
     P_REDIRECTS, P_BUSY, P_ONDONE, P_ONPROGRESS, P_ERRORNUMBER, P_ERRORTEXT,
+    P_KEEPALIVE, P_USECOOKIES, P_COOKIES, M_GETCOOKIE, M_SETCOOKIE, M_CLEARCOOKIES, P_COOKIECOUNT, P_REUSED,
 };
 
 static const struct { const char *name; int id; } members[] = {
@@ -39,6 +40,9 @@ static const struct { const char *name; int id; } members[] = {
     {"SendAsync", M_SENDASYNC}, {"GetAsync", M_GETASYNC}, {"Cancel", M_CANCEL}, {"Wait", M_WAIT},
     {"Busy", P_BUSY}, {"OnDone", P_ONDONE}, {"OnProgress", P_ONPROGRESS}, {"ErrorNumber", P_ERRORNUMBER},
     {"ErrorText", P_ERRORTEXT},
+    {"KeepAlive", P_KEEPALIVE}, {"UseCookies", P_USECOOKIES}, {"Cookies", P_COOKIES}, {"GetCookie", M_GETCOOKIE},
+    {"SetCookie", M_SETCOOKIE}, {"ClearCookies", M_CLEARCOOKIES}, {"CookieCount", P_COOKIECOUNT},
+    {"ConnectionReused", P_REUSED},
 };
 
 /* An asynchronous request: the worker (bb_plat_thread_start) owns everything in here until it
@@ -68,6 +72,7 @@ typedef struct http_obj {
     int err_number;
     char *err_text;
     struct http_obj *next_busy; /* the list of objects with a request running */
+    bb_http_session session;    /* cookies, the kept connection */
 } http_obj;
 
 static http_obj *busy_list;
@@ -169,6 +174,7 @@ static void request(http_obj *h, const char *method, const char *url, const char
     rq.verify = h->verify;
     rq.ca_file = h->ca_file && *h->ca_file ? h->ca_file : NULL;
     rq.out = out;
+    rq.session = &h->session;
     if (h->have_resp) bb_http_resp_free(&h->resp);
     int rc = bb_http_do(&rq, &h->resp, err, sizeof err);
     h->have_resp = 1;
@@ -191,6 +197,7 @@ static void job_run(void *arg)
 {
     job *j = arg;
     j->rc = bb_http_do(&j->req, &j->resp, j->err, sizeof j->err);
+    if (j->req.session) bb_http_session_close(j->req.session);   /* a connection this worker kept */
     bb_net_task_done();                     /* this worker's bsdsocket / AmiSSL (OS4) */
     j->done = 1;
 }
@@ -324,6 +331,7 @@ static void start_async(http_obj *h, const char *method, const char *url, const 
     j->req.ca_file = j->ca;
     j->req.progress = job_progress;
     j->req.progress_ud = j;
+    j->req.session = &h->session;
     j->total = -1;
     h->err_number = 0;
     h->reported = -1;
@@ -527,6 +535,52 @@ static void h_invoke(bb_obj *self, int32_t id, int kind, int argc, bb_value *arg
             h->ca_file = arg_str(argc, argv, argc - 1, NULL);
         } else *ret = bb_v_str(bb_str_from_c(h->ca_file ? h->ca_file : ""));
         return;
+    case P_KEEPALIVE:
+        if (set) {
+            h->session.keep_alive = arg_long(argc, argv, argc - 1) != 0;
+            if (!h->session.keep_alive && !h->job) bb_http_session_close(&h->session);
+        } else *ret = bb_v_bool(h->session.keep_alive);
+        return;
+    case P_USECOOKIES:
+        if (set) h->session.use_cookies = arg_long(argc, argv, argc - 1) != 0;
+        else *ret = bb_v_bool(h->session.use_cookies);
+        return;
+    case P_REUSED: *ret = bb_v_bool(h->session.reused); return;
+    case P_COOKIES:
+    case M_GETCOOKIE:
+    case M_SETCOOKIE:
+    case M_CLEARCOOKIES:
+    case P_COOKIECOUNT:
+        /* the worker of a running request uses the jar */
+        if (h->job) bb_raise(5, "a request of this Http object is still running");
+        if (id == P_COOKIES && set) {
+            char *t = arg_str(argc, argv, argc - 1, NULL);
+            bb_http_cookies_load(&h->session, t);
+            free(t);
+        } else if (id == P_COOKIES) {
+            char *t = bb_http_cookies_text(&h->session);
+            *ret = bb_v_str(bb_str_from_c(t));
+            free(t);
+        } else if (id == M_GETCOOKIE) {      /* GetCookie(name [, host]) */
+            char *n = arg_str(argc, argv, 0, NULL);
+            char *host = present(argc, argv, 1) ? arg_str(argc, argv, 1, NULL) : NULL;
+            const char *v = bb_http_cookie_get(&h->session, n, host);
+            *ret = bb_v_str(bb_str_from_c(v ? v : ""));
+            free(n);
+            free(host);
+        } else if (id == M_SETCOOKIE) {      /* SetCookie name, value, domain [, path] */
+            char *n = arg_str(argc, argv, 0, NULL), *v = arg_str(argc, argv, 1, NULL);
+            char *d = arg_str(argc, argv, 2, NULL);
+            char *pa = present(argc, argv, 3) ? arg_str(argc, argv, 3, NULL) : NULL;
+            int bad = bb_http_cookie_set(&h->session, n, v, d, pa);
+            free(n); free(v); free(d); free(pa);
+            if (bad) bb_raise(5, "SetCookie: a cookie needs a name without = ; or spaces, and a domain");
+        } else if (id == M_CLEARCOOKIES) {
+            bb_http_cookies_clear(&h->session);
+        } else {
+            *ret = bb_v_long(bb_http_cookie_count(&h->session));
+        }
+        return;
     case P_USERAGENT:
         if (set) {
             free(h->user_agent);
@@ -547,6 +601,7 @@ static void h_terminate(bb_obj *self)
     free(h->ca_file);
     free(h->user_agent);
     if (h->have_resp) bb_http_resp_free(&h->resp);
+    bb_http_session_free(&h->session);
 }
 
 static const bb_class http_class = {
@@ -563,5 +618,7 @@ bb_obj *bb_http_new(void)
     h->max_redirects = 10;
     h->verify = 1;
     h->user_agent = dupstr("BoingBASIC/1.0");
+    h->session.keep_alive = 1;
+    h->session.use_cookies = 1;
     return &h->hdr;
 }

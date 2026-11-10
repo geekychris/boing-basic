@@ -23,7 +23,7 @@ try:
         if os.path.exists(pf): break
         time.sleep(0.1)
     hp, sp, ca = open(pf).read().split()
-    tests = ["httptest", "asynctest"]
+    tests = ["httptest", "asynctest", "sessiontest"]
     m = g.MCP(g.URL)
     ok = True
     with g.testing("Boing BASIC Http tests"):

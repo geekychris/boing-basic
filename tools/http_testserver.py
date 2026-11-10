@@ -17,6 +17,11 @@ with the openssl command) on free ports, and writes "http_port https_port ca_fil
   /relative              302 with a relative Location (hello)
   /see-other             303 to /echo (a POST continues as GET without body)
   /chunked               a chunked body (5 chunks)
+  /conn                  the client's port (keep-alive tests); /close the same, then closes
+  /drop                  the client's port, then closes without saying so
+  /setcookie?c=V&c=V     answers with a Set-Cookie header for each V
+  /cookies[/...]         the request's Cookie header
+  /login                 a redirect to /cookies/after-login that sets a cookie
   /drip                  5000 bytes in 50 chunks over 5 s (progress and Cancel tests)
   /slow                  waits 5 s before answering
   /big?n=BYTES           BYTES bytes of a known pattern (byte i = i mod 251)
@@ -47,17 +52,24 @@ class H(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         for k, v in (extra or {}).items():
-            self.send_header(k, v)
-        self.send_header("Connection", "close")
+            if isinstance(v, list):
+                for x in v:
+                    self.send_header(k, x)
+            else:
+                self.send_header(k, v)
+        if self.headers.get("Connection", "").lower() == "close" or self.path.startswith("/close"):
+            self.send_header("Connection", "close")
+            self.close_connection = True
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(body)
 
     def body(self):
-        n = int(self.headers.get("Content-Length") or 0)
-        return self.rfile.read(n) if n else b""
+        return self._body
 
     def handle_any(self):
+        n = int(self.headers.get("Content-Length") or 0)     # read it always: the connection may stay open
+        self._body = self.rfile.read(n) if n else b""
         u = urlparse(self.path)
         p = u.path
         if p == "/page":
@@ -69,6 +81,22 @@ class H(http.server.BaseHTTPRequestHandler):
             return self.send(200, '{"name": "Boing BASIC", "platform": {"os": "AmigaOS 4.1", "cpu": "PowerPC"}, '
                                   '"libraries": ["Http", "Dictionary", "JSON"], "year": 2026, "stable": false, '
                                   '"maintainer": null}', "application/json")
+        if p in ("/conn", "/close"):
+            # the client's port: two requests over one kept connection show the same number
+            return self.send(200, str(self.client_address[1]))
+        if p == "/drop":
+            # answers as if the connection stays open, then closes it (a server's idle timeout)
+            self.send(200, str(self.client_address[1]))
+            self.close_connection = True
+            return
+        if p == "/setcookie":
+            # /setcookie?c=a%3D1%3B+Path%3D%2F&c=... : each c is one Set-Cookie value
+            return self.send(200, "set", extra={"Set-Cookie": parse_qs(u.query).get("c", [])})
+        if p.startswith("/cookies"):
+            return self.send(200, self.headers.get("Cookie", ""))
+        if p == "/login":
+            # a cookie set on a redirect
+            return self.send(302, "", extra={"Location": "/cookies/after-login", "Set-Cookie": ["session=abc123; Path=/"]})
         if p == "/hello":
             return self.send(200, "Hello, Boing!")
         if p == "/echo":

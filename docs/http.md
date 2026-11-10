@@ -111,6 +111,48 @@ Print n; " bytes"
 web.CACertFile = "PROGDIR:test-ca.pem"
 ```
 
+## Cookies and kept connections
+
+An `Http` object works like a browser session: it remembers the cookies servers set and keeps
+its connection open for the next request to the same server.
+
+| | |
+|---|---|
+| `UseCookies` | store `Set-Cookie` answers and send them back (default True) |
+| `GetCookie(name [, host])` | a stored cookie's value, or `""` |
+| `SetCookie name, value, domain [, path]` | add one (for the domain and its subdomains; path default `/`) |
+| `ClearCookies` | forget them all |
+| `CookieCount` | how many are stored |
+| `Cookies` | all of them as text, one per line in the `cookies.txt` layout curl and browsers use (domain, subdomains TRUE/FALSE, path, secure, expiry as Unix time with 0 for "until the program ends", name, value, separated by tabs); assigning text replaces them |
+| `KeepAlive` | keep the connection open after a request (default True) |
+| `ConnectionReused` | True if the last request went over a kept connection |
+
+Cookies follow the usual rules (RFC 6265): `Domain` (a cookie for another site is refused),
+`Path` (longer paths are sent first), `Expires` and `Max-Age` (an expiry in the past deletes
+the cookie), `Secure` (sent over HTTPS only). Cookies set by a redirect go with the request
+to its target, so a login that redirects works. A `Cookie` header set with `SetHeader` replaces
+the stored cookies for that request.
+
+```basic
+' log in once; later requests carry the session cookie
+s = web.Post("https://example.com/login", "user=boing&pass=" & UrlEncode(pw), "application/x-www-form-urlencoded")
+s = web.Get("https://example.com/account")
+
+' keep the login for the next run
+Open "PROGDIR:cookies.txt" For Output As #1: Print #1, web.Cookies;: Close #1
+' ... and load it
+Open "PROGDIR:cookies.txt" For Binary As #1
+web.Cookies = Input(LOF(1), #1)
+Close #1
+```
+
+A kept connection saves the TCP and TLS handshakes, which on a 68k-class or emulated machine
+are most of a small request's time. When the server closed it in the meantime the request
+quietly opens a new one. On AmigaOS 4 a connection belongs to the task that opened it, so
+asynchronous requests (which run on a task of their own) use a new connection each time and
+close it at the end; the cookie jar is shared, and can't be read while an asynchronous request
+of the same object runs (error 5).
+
 ## Asynchronous requests
 
 `Get`, `Post` and the rest wait for the answer, so a form freezes during a long download.
@@ -245,7 +287,12 @@ default certificate store is Homebrew's.
   `DoEvents`, `OnDone`, two requests at once finishing in their own order, `OnProgress` over a
   300 KB body, `Wait` with a limit, `Cancel`, error 5 for overlapping requests, `ErrorNumber` for
   an unknown host, a POST, HTTPS (one and two at once), and the `WithEvents` events.
+- `tests-net/sessiontest.bas` (in both runners): 31 checks of kept connections (reuse, a POST, the
+  server's `Connection: close`, a connection the server dropped, `KeepAlive = False`, chunked
+  answers, HTTPS) and cookies (Path, longer paths first, replacing, `Max-Age=0`, `Expires`,
+  another domain, `Secure`, a cookie set by a redirect, `SetCookie`, `Cookies` as text and back,
+  `UseCookies = False`, your own `Cookie` header, asynchronous requests).
 
 ## Not yet
 
-`Content-Encoding: gzip`, cookies, proxies, keep-alive connections, IPv6 on AmigaOS.
+`Content-Encoding: gzip`, proxies, IPv6 on AmigaOS.

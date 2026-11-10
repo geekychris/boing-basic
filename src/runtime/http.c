@@ -285,23 +285,46 @@ static int once(const bb_http_req *req, const char *url, const char *method, int
         return BB_E_NET_URL;
     }
     bb_tls_opts o = { req->verify, req->ca_file };
-    bb_net *n;
-    int rc = bb_net_open(host, port, tls, &o, req->timeout_ms, &n, err, errlen);
-    if (rc) {
-        free(host);
-        free(path);
-        return rc;
+    bb_http_session *ses = req->session;
+    /* keep-alive: this task can reuse (and later keep) the session's connection */
+    int pool = ses && ses->keep_alive && (!ses->conn || bb_net_owned(ses->conn));
+    bb_net *n = NULL;
+    int reused = 0, kept = 0, rc;
+    if (ses) ses->reused = 0;
+    if (pool && ses->conn) {
+        if (ses->conn_tls == tls && ses->conn_port == port && !strcasecmp(ses->conn_host, host)) {
+            n = ses->conn;
+            reused = kept = 1;
+        } else {
+            bb_net_close(ses->conn);
+        }
+        ses->conn = NULL;                           /* back in the session only if it stays usable */
+        free(ses->conn_host);
+        ses->conn_host = NULL;
+    }
+    char *cookies = ses && ses->use_cookies && !has_header(req->headers, "Cookie") ?
+                    bb_http_cookie_header(ses, host, path, tls) : NULL;
+retry:
+    if (!n) {
+        rc = bb_net_open(host, port, tls, &o, req->timeout_ms, &n, err, errlen);
+        if (rc) {
+            free(host);
+            free(path);
+            free(cookies);
+            return rc;
+        }
     }
     /* the request */
     size_t cap = 512 + strlen(path) + strlen(host) + (req->headers ? strlen(req->headers) : 0) +
-                 (req->user_agent ? strlen(req->user_agent) : 0);
+                 (req->user_agent ? strlen(req->user_agent) : 0) + (cookies ? strlen(cookies) : 0);
     char *q = malloc(cap);
     int dflt = (tls && port == 443) || (!tls && port == 80);
     int v6 = strchr(host, ':') != NULL;
     char portpart[16] = "";
     if (!dflt) snprintf(portpart, sizeof portpart, ":%d", port);
-    int ql = snprintf(q, cap, "%s %s HTTP/1.1\r\nHost: %s%s%s%s\r\nConnection: close\r\n", method, path,
-                      v6 ? "[" : "", host, v6 ? "]" : "", portpart);
+    int ql = snprintf(q, cap, "%s %s HTTP/1.1\r\nHost: %s%s%s%s\r\n%s", method, path,
+                      v6 ? "[" : "", host, v6 ? "]" : "", portpart, pool ? "" : "Connection: close\r\n");
+    if (cookies) ql += snprintf(q + ql, cap - ql, "Cookie: %s\r\n", cookies);
     if (req->user_agent && *req->user_agent && !has_header(req->headers, "User-Agent"))
         ql += snprintf(q + ql, cap - ql, "User-Agent: %s\r\n", req->user_agent);
     if (!has_header(req->headers, "Accept"))
@@ -316,10 +339,17 @@ static int once(const bb_http_req *req, const char *url, const char *method, int
     free(q);
     if (!rc && send_body && req->body && req->body_len)
         rc = bb_net_write(n, req->body, (int)req->body_len, req->timeout_ms, err, errlen);
-    free(path);
+    if (rc && reused) {                             /* the server closed the kept connection */
+        bb_net_close(n);
+        n = NULL;
+        reused = kept = 0;
+        goto retry;
+    }
     if (rc) {
         bb_net_close(n);
         free(host);
+        free(path);
+        free(cookies);
         return rc;
     }
 
@@ -330,8 +360,17 @@ static int once(const bb_http_req *req, const char *url, const char *method, int
     r->err = err;
     r->errlen = errlen;
     char *line;
+    int http11 = 0, delimited = 0;
     for (;;) {                                      /* skip 1xx interim answers */
         line = read_line(r, &rc);
+        if (!line && reused && r->have == 0 && rc != BB_E_NET_TIMEOUT) {   /* closed while idle */
+            free(r);
+            bb_net_close(n);
+            n = NULL;
+            reused = kept = 0;
+            goto retry;
+        }
+        reused = 0;
         if (!line) {
             if (!rc) {
                 snprintf(err, errlen, "the server closed the connection without an answer");
@@ -346,6 +385,7 @@ static int once(const bb_http_req *req, const char *url, const char *method, int
             goto out;
         }
         char *sp = strchr(line, ' ');
+        http11 = !strncmp(line, "HTTP/1.1", 8);
         resp->status = atoi(sp + 1);
         char *st = strchr(sp + 1, ' ');
         free(resp->status_text);
@@ -372,6 +412,7 @@ static int once(const bb_http_req *req, const char *url, const char *method, int
         if (rc) goto out;
         if (resp->status >= 200 || resp->status == 101) break;
     }
+    if (ses && ses->use_cookies) bb_http_cookies_from_response(ses, host, path, resp->headers);
 
     int redirect = req->follow_redirects && (resp->status == 301 || resp->status == 302 || resp->status == 303 ||
                                              resp->status == 307 || resp->status == 308);
@@ -397,13 +438,32 @@ static int once(const bb_http_req *req, const char *url, const char *method, int
         else if (te && icontains(te, "chunked")) rc = read_chunked(r, &s);
         else if (cl) rc = copy_body(r, &s, atol(cl));
         else rc = copy_body(r, &s, -1);
+        delimited = nobody || (te && icontains(te, "chunked")) || cl;
         free(te);
         free(cl);
     }
+    /* keep the connection: HTTP/1.1, the body's end known and read, no "Connection: close",
+       and nothing more already received */
+    if (pool && !rc && http11 && delimited && r->pos == r->have && resp->status != 101) {
+        char *conn = bb_http_header(resp->headers, "Connection");
+        int close = conn && icontains(conn, "close");
+        free(conn);
+        if (!close) {
+            ses->conn = n;
+            ses->conn_host = host;
+            ses->conn_port = port;
+            ses->conn_tls = tls;
+            n = NULL;
+            host = NULL;
+        }
+    }
 out:
+    if (ses) ses->reused = kept;
     free(r);
-    bb_net_close(n);
+    if (n) bb_net_close(n);
     free(host);
+    free(path);
+    free(cookies);
     return rc;
 }
 

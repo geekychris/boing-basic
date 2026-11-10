@@ -5,6 +5,30 @@
 
 #include <stdio.h>
 
+struct bb_net;
+
+/* A session (one per Http object): its cookie jar and the connection kept open for the next
+ * request to the same server. Zero-initialise, then set the switches. */
+typedef struct bb_http_cookie {
+    char *name, *value;
+    char *domain;               /* lower case, no leading dot */
+    char *path;
+    int host_only;              /* no Domain attribute: only for exactly that host */
+    int secure;                 /* only over HTTPS */
+    long long expires;          /* Unix time (UTC), 0 = until the program ends */
+} bb_http_cookie;
+
+typedef struct bb_http_session {
+    int use_cookies;            /* store Set-Cookie answers and send them back */
+    int keep_alive;             /* keep the connection open for the next request */
+    bb_http_cookie *cookies;
+    int ncookies, capcookies;
+    struct bb_net *conn;        /* the open connection, to conn_host:conn_port (TLS if conn_tls) */
+    char *conn_host;
+    int conn_port, conn_tls;
+    int reused;                 /* the last request went over a kept connection (for tests) */
+} bb_http_session;
+
 typedef struct bb_http_req {
     const char *method;         /* "GET", "POST", ... */
     const char *url;            /* http://host[:port]/path or https://... */
@@ -21,6 +45,7 @@ typedef struct bb_http_req {
     /* progress: called as data arrives (total = -1 when unknown); nonzero return cancels */
     int (*progress)(void *ud, long got, long total);
     void *progress_ud;
+    bb_http_session *session;   /* cookies and keep-alive, or NULL for neither */
 } bb_http_req;
 
 typedef struct bb_http_resp {
@@ -43,5 +68,17 @@ char *bb_http_header(const char *headers, const char *name);
 
 /* Split a URL: returns 0 or BB_E_NET_URL. host and path are malloc'd. */
 int bb_http_parse_url(const char *url, int *tls, char **host, int *port, char **path);
+
+/* sessions (http_cookie.c) */
+void bb_http_session_close(bb_http_session *s);         /* close the kept connection */
+void bb_http_session_free(bb_http_session *s);          /* and forget the cookies */
+void bb_http_cookies_from_response(bb_http_session *s, const char *host, const char *rpath, const char *headers);
+char *bb_http_cookie_header(bb_http_session *s, const char *host, const char *rpath, int tls); /* malloc'd or NULL */
+int bb_http_cookie_set(bb_http_session *s, const char *name, const char *value, const char *domain, const char *path);
+const char *bb_http_cookie_get(bb_http_session *s, const char *name, const char *host);
+int bb_http_cookie_count(bb_http_session *s);
+void bb_http_cookies_clear(bb_http_session *s);
+char *bb_http_cookies_text(bb_http_session *s);         /* cookies.txt layout, malloc'd */
+int bb_http_cookies_load(bb_http_session *s, const char *text);
 
 #endif

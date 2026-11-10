@@ -14,7 +14,7 @@ set -- $(cat "$work/ports") ; hp=$1 sp=$2 ca=$3
 args="http://127.0.0.1:$hp https://localhost:$sp $ca"
 cd "$work" || exit 1
 rc=0
-for t in httptest asynctest; do
+for t in httptest asynctest sessiontest; do
     "$BOING" run "$root/tests-net/$t.bas" $args > vm.txt 2>&1
     if diff "$root/tests-net/$t.out" vm.txt >/dev/null; then echo "PASS net/$t (vm)"; else echo "FAIL net/$t (vm)"; diff "$root/tests-net/$t.out" vm.txt | head -20; rc=1; fi
     if "$BOING" build "$root/tests-net/$t.bas" -o "$work/${t}_native" > build.txt 2>&1; then
