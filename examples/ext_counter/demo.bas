@@ -1,7 +1,7 @@
 ' demo.bas - uses the counter extension (Extension=counter in demo.bbp)
 Sub Main()
     Dim c As Counter, i As Long
-    Set c = CreateObject("Counter")
+    Set c = New Counter
     For i = 1 To 10
         c.Add i
     Next

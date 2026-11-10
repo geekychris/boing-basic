@@ -6,7 +6,7 @@
  *     method Add(ByVal n As Long) As Long
  *     method Reset()
  *     property Value As Long
- *     property-ro Count As Long
+ *     property Count As Long ReadOnly
  *   function Clamp(ByVal x As Long, ByVal lo As Long, ByVal hi As Long) As Long
  *   sub Beep2(ByVal hz As Long)
  */
@@ -98,14 +98,28 @@ int bbx_load(Program *p, const char *path, const char *ext)
             cur->ext = xstrdup(ext);
             p->xclasses = (ExtClass **)xrealloc(p->xclasses, sizeof(ExtClass *) * (size_t)(p->nxclasses + 1));
             p->xclasses[p->nxclasses++] = cur;
-        } else if (!strcasecmp(s, "method") || !strcasecmp(s, "property") || !strcasecmp(s, "property-ro")) {
+        } else if (!strcasecmp(s, "property-ro")) {
+            fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: write a read-only property as 'property Name As Type ReadOnly'\n", path, lineno);
+            p->nerrors++;
+            ok = 0;
+            continue;
+        } else if (!strcasecmp(s, "method") || !strcasecmp(s, "property")) {
             char *full = xstrdup(rest);
             ExtMember *m;
             if (!cur || !split_sig(rest, &name, &args, &type)) goto bad;
             cur->m = (ExtMember *)xrealloc(cur->m, sizeof(ExtMember) * (size_t)(cur->nm + 1));
             m = &cur->m[cur->nm++];
             m->name = xstrdup(name);
-            m->kind = !strcasecmp(s, "method") ? 0 : !strcasecmp(s, "property") ? 1 : 2;
+            m->kind = !strcasecmp(s, "method") ? 0 : 1;
+            /* "property Count As Long ReadOnly" */
+            if (type) {
+                size_t tl = strlen(type);
+                if (tl > 8 && !strcasecmp(type + tl - 8, "ReadOnly") && (type[tl - 9] == ' ' || type[tl - 9] == '\t')) {
+                    type[tl - 9] = 0;
+                    type = trim(type);
+                    if (m->kind == 1) m->kind = 2;
+                }
+            }
             m->sig = xstrdup(args ? args : "");
             m->type = xstrdup(type ? type : "");
             free(full);
@@ -123,7 +137,7 @@ int bbx_load(Program *p, const char *path, const char *ext)
         } else goto bad;
         continue;
     bad:
-        fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: expected 'class', 'method', 'property', 'property-ro', 'function' or 'sub'\n", path, lineno);
+        fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: expected 'class', 'method', 'property', 'function' or 'sub'\n", path, lineno);
         p->nerrors++;
         ok = 0;
     }

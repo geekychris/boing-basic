@@ -425,6 +425,11 @@ int main(int argc, char **argv)
                     printf("%s\t%s\t%s\t%s\t%s\n", xc->name, xc->m[j].name, xc->m[j].kind == 0 ? "method" : xc->m[j].kind == 1 ? "property" : "property-ro",
                            xc->m[j].sig, xc->m[j].type);
             }
+            /* the extensions' functions and subs: an empty class field */
+            for (k = 0; !want && k < xp->nxfuncs; k++) {
+                ExtFunc *xf = xp->xfuncs[k];
+                printf("\t%s\t%s\t%s\t%s\n", xf->name, xf->ret ? "function" : "sub", xf->sig, xf->ret ? xf->ret : "");
+            }
         }
         for (i = 0; i < sizeof bb_rtmembers / sizeof bb_rtmembers[0]; i++) {
             const bb_class *rc = bb_runtime_class(bb_rtmembers[i].cls);

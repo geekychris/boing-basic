@@ -33,7 +33,7 @@ class Counter
   method Add(ByVal n As Long) As Long
   method Reset()
   property Value As Long
-  property-ro Count As Long
+  property Count As Long ReadOnly
 function Clamp(ByVal x As Long, ByVal lo As Long, ByVal hi As Long) As Long
 sub Beep2(ByVal hz As Long)
 ```
@@ -42,7 +42,13 @@ sub Beep2(ByVal hz As Long)
   create)` makes `CreateObject("name")` / `CreateObject("Boing.name")` and `As name` work;
   `bb_register_function(name, fn)` makes `name(...)` callable. A class is an ordinary `bb_class`
   (find/invoke/terminate, see `src/runtime/boing.h` and `examples/ext_counter/counter.c`).
-- The `.bbx` lists each class's members (`method`, `property`, `property-ro`) and each
+- Helpers (stable API, `boing_ext.h`): arguments `bb_arg_long/double/bool/str/obj(argv, i)`,
+  results `bb_ret_long/double/bool/str/strn/obj/empty(...)`, errors `bb_raise(number, "message")`,
+  and `BB_CLASS(var, "Name", struct_type, members, invoke, terminate)` for a class whose instances
+  are `struct { bb_obj hdr; ...your data... }` with a `bb_member` table `{name, id, BB_INV_xxx}`.
+- `Set c = New Counter` and `CreateObject("Counter")` both use the registered create function;
+  `Dim c As New Counter` is not supported (write `Set c = New Counter`).
+- The `.bbx` lists each class's members (`method`, `property`, `property ... ReadOnly`) and each
   `function` / `sub` with its signature (ByVal only). The compiler checks member names, writes to
   read-only properties and argument counts (`boing check` gives `file:line:col` errors), converts
   function arguments to the declared types and the result from it, and `boing members --project

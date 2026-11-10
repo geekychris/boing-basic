@@ -172,7 +172,7 @@ static Sym *make_var(Ctx *c, Node *d, int storage)
     }
     if (d->flags & NF_NEW) {
         if (t->kind != T_OBJECT || !t->cls) ERR(c, d, "'As New' needs a class");
-        else if (IS_REGCLS(t->cls)) ERR(c, d, "use CreateObject(\"Boing.%s\") to make a %s", t->cls->name, t->cls->name);
+        else if (IS_REGCLS(t->cls)) ERR(c, d, "'As New %s' is not supported: write Set x = New %s (or CreateObject(\"%s\"))", t->cls->name, t->cls->name, t->cls->name);
         else s->is_new = 1;
     }
     if (d->flags & NF_WITHEVENTS) {

@@ -1734,7 +1734,22 @@ Node *check_expr(Ctx *c, Node *e, int mode)
             e->ty = &ty_object;
             return e;
         }
-        if (IS_REGCLS(cls)) ERR(c, e, "use CreateObject(\"Boing.%s\") to make a %s", cls->name, cls->name);
+        if (IS_REGCLS(cls)) {
+            /* New Counter / New Canvas: the registered create function, as CreateObject("Counter") */
+            Node *b = bare_builtin(c, e, builtin_find("CreateObject"));
+            CVal k;
+            memset(&k, 0, sizeof k);
+            k.type = T_STRING;
+            k.s = xstrdup(cls->name);
+            k.slen = (int)strlen(cls->name);
+            nl_push(&b->list, mk_const_node(e, &k));
+            memset(&k, 0, sizeof k);
+            k.type = T_STRING;
+            k.s = xstrdup("");
+            nl_push(&b->list, mk_const_node(e, &k));
+            b->ty = &ty_variant;
+            return coerce(c, b, type_object(cls));
+        }
         e->cls = cls;
         e->ty = type_object(cls);
         return e;
