@@ -93,6 +93,11 @@ def main():
             if re.sub(r"\s+", " ", cap)[:60] not in flat_body:
                 fails.append("diagram caption not in the PDF: %s: %s" % (stem, cap[:60]))
         print("manual-pdf: %d pictures (%d diagrams)" % (got, diagrams))
+    # AsciiDoc markup that leaked into the text: an anchor or a cross reference shown as written
+    if shutil.which("pdftotext"):
+        leaks = sorted(set(re.findall(r"\[\[[A-Za-z0-9_][\w.-]*\]\]|<<[A-Za-z_][\w.-]*(?:,[^>]*)?>>", text)))
+        for l in leaks[:10]:
+            fails.append("AsciiDoc markup in the PDF's text: %s" % l)
     for f in fails:
         print("FAIL manual-pdf:", f)
     print("manual-pdf: %s, %d pages, %d KB%s" % (os.path.relpath(PDF, ROOT), pages, os.path.getsize(PDF) // 1024,
