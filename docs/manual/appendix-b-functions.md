@@ -22,7 +22,7 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `AllocMem(size [, clear])` | allocates `size` bytes of memory (cleared to 0 if `clear` is True) and returns its address | [17](17-amigaos.md) |
 | `App.EXEName` | the program's name without directory or `.bas` | [10](10-files.md#the-app-object) |
 | `App.Path` | the program's directory | [10](10-files.md#files-beside-the-program-apppath) |
-| `App.Title` | the program's title (the same as `App.EXEName`) | [10](10-files.md#the-app-object) |
+| `App.Title` | the program's title (`Title=`, `Name=` or the program's name); can be assigned | [10](10-files.md#the-app-object) |
 | `Array(v1, v2, ...)` | a Variant holding an array of the values, from index 0 | [09](09-builtins.md#inspecting-values) |
 | `Asc(s)` | the character code (0-255) of the first character of `s` | [09](09-builtins.md#characters-and-character-codes) |
 | `AscW(s)` | the same as `Asc` | [09](09-builtins.md#characters-and-character-codes) |

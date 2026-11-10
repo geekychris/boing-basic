@@ -172,7 +172,7 @@ These tell you how the program was started and what it was given:
 
 | | What it is |
 |---|---|
-| `App.FromWorkbench` | `True` if Workbench started the program |
+| `App.FromWorkbench` | `True` if the program was started by double-clicking its icon (or a project icon). Programs started with `WBRun` or by other programs through Workbench get a CLI and see `False` |
 | `App.ArgCount` | the number of files the program was given: the project icons from Workbench, or the words of the command line |
 | `App.Arg(i)` | file `i` (from 0) with its full path when it came from Workbench |
 | `Command` | the whole command line as one string (empty from Workbench) |
@@ -830,22 +830,38 @@ commands.
 
 ## Version strings
 
-The AmigaOS `Version` command, and installers, find a program's version in its file: a text
-`$VER: name version.revision (dd.mm.yyyy)`. Put it in a string constant and use the constant
-(for example in the About requester), and a native build carries it in the executable, where
-`Version Jotter` finds it:
+The AmigaOS `Version` command, Workbench's information window and installers find a program's
+version in its file: a text `$VER: name version.revision (dd.mm.yyyy)`. Give the project a
+`Title=` and a `Version=` line, and `boing build` puts that text into the native program for
+you, with the date of the build:
+
+```ini
+Name=Jotter
+Title=Jotter
+Version=1.0
+```
+
+`Version Jotter` in a Shell then prints `Jotter 1.0`. The program can read the same numbers as
+`App.Major`, `App.Minor` and `App.Revision`, and the title as `App.Title`:
 
 *Listing 18.16* (`examples/book/ch18-desktop/listing-18-16.bas`)
 
 <!-- run -->
 ```basic
-Const VERSTAG = "$VER: Jotter 1.0 (09.11.2026)"
-Print Mid(VERSTAG, 7)
+Print "Version"; App.Major; "."; App.Minor
+App.Title = "Jotter"
+Print App.Title
 ```
 
 ```output
-Jotter 1.0 (09.11.2026)
+Version 0 . 0 
+Jotter
 ```
+
+(Run as a single file it has no project, so its version is 0.0 and its title is the file's
+name until the program sets one.)
+An About requester usually shows both. Jotter keeps its own `$VER:` text in a constant as well,
+which works in the interpreter too:
 
 Raise the version when you release a new one, and write the date as day, month and year with
 dots. Jotter shows it in its About requester:
@@ -924,7 +940,6 @@ End Sub
 > - Commodities: a hotkey to pop up the window, Show/Hide/Quit from Exchange.
 > - A Workbench start of `boing` itself (a project icon with `boing` as default tool): use an IconX script.
 > - AmigaDOS argument templates (`ReadArgs`, `FILE/M,PUBSCREEN/K`): parse `Command` yourself.
-> - A version string made from the project: the `Version=` and `Title=` lines of a `.bbp` are not used, `App.Major`, `App.Minor` and `App.Revision` are always 0, and `App.Title` is the executable's (or program file's) name, not the project's `Name=`.
 > - "Use" for settings: `SaveSetting` always writes both `ENV:` and `ENVARC:`.
 > - Context-sensitive help (a guide node per control for the Help key), and gadget help texts shown in a status bar.
 > - Number and date formats from the user's Locale preferences: `Format` and the date functions don't follow the locale.

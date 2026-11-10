@@ -573,10 +573,10 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 |---|---|
 | `App.Path` | the program's directory (see above): of the `.bas`, `.bbp` or `.bbc` file under `boing run`, of the executable in a native program |
 | `App.EXEName` | the program's name, without the directory or a `.bas` ending |
-| `App.Title` | the program's title; the same as `App.EXEName` |
+| `App.Title` | the program's title: the project's `Title=` line, else its `Name=`, else the program's name; you can change it (`App.Title = "Paint - " & doc`), and requester titles, `App.EnvPath` and remembered window positions use it |
 | `App.EnvPath` | `ENVARC:` followed by the title: a directory for files of your own that should survive a reboot (on a host, a directory under the settings directory, see below) |
-| `App.Major`, `App.Minor`, `App.Revision` | always 0 |
-| `App.FromWorkbench` | True if the program was started from a Workbench icon (AmigaOS) |
+| `App.Major`, `App.Minor`, `App.Revision` | the numbers of the project's `Version=` line (`Version=1.4.2` gives 1, 4 and 2); 0 without one |
+| `App.FromWorkbench` | True if the program was started by double-clicking its Workbench icon (AmigaOS) |
 | `App.ToolType(name [, default])` | a tooltype from the program's icon: `NAME=value` gives `"value"`, a bare `NAME` gives `"1"`, a missing one `default` (or `""`). On a host, always the default |
 | `App.ToolTypeCount`, `App.ToolTypes(i)` | the number of tooltypes and each tooltype line (AmigaOS) |
 | `App.ArgCount`, `App.Arg(i)` | the files the program was given: icons selected with it on the Workbench, or the names on the command line (AmigaOS) |
@@ -587,12 +587,15 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 ```basic
 Print "App.Path is set: "; App.Path <> ""
 Print "title = name: "; App.Title = App.EXEName
+App.Title = "My program"
+Print App.Title
 Print "window width "; App.ToolType("WIDTH", "640")
 ```
 
 ```output
 App.Path is set: True
 title = name: True
+My program
 window width 640
 ```
 

@@ -1,2 +1,3 @@
-Const VERSTAG = "$VER: Jotter 1.0 (09.11.2026)"
-Print Mid(VERSTAG, 7)
+Print "Version"; App.Major; "."; App.Minor
+App.Title = "Jotter"
+Print App.Title
