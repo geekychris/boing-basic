@@ -695,6 +695,16 @@ void bb_ptr_cleanup(void);
 bb_value bb_jsonparse(bb_str *text);
 bb_str *bb_jsonstringify(const bb_value *v, bb_long indent);
 
+/* Text encodings (encode.c); decoding errors raise 31301 */
+bb_str *bb_utf8encode(bb_str *s);
+bb_str *bb_utf8decode(bb_str *s, bb_str *repl);
+bb_str *bb_base64encode(bb_str *s, bb_long linelen);
+bb_str *bb_base64decode(bb_str *s);
+bb_str *bb_urlencode(bb_str *s);
+bb_str *bb_urldecode(bb_str *s);
+bb_str *bb_hexencode(bb_str *s);
+bb_str *bb_hexdecode(bb_str *s);
+
 /* Built-in classes */
 extern const bb_class bb_collection_class;
 bb_obj *bb_collection_new(void);

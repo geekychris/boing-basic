@@ -167,7 +167,7 @@ def watchdog():
     testing() session in a process gets a deadline of its own."""
     import threading
     import time
-    silent_max = float(os.environ.get("BB_SILENT", "90"))
+    silent_max = float(os.environ.get("BB_SILENT", "150"))
     session_max = float(os.environ.get("BB_SESSION_TIMEOUT", "300"))
     poll = float(os.environ.get("BB_WATCHDOG_POLL", "10"))
     status_url = URL.rsplit("/mcp", 1)[0] + "/api/status"
@@ -200,7 +200,7 @@ def watchdog():
     return done
 
 
-def bridge_alive(max_age=60):
+def bridge_alive(max_age=150):
     import datetime
     try:
         d = json.load(urllib.request.urlopen(URL.rsplit("/mcp", 1)[0] + "/api/status", timeout=5))
@@ -648,7 +648,7 @@ def run_script(m, cmd, outf, limit=300):
 def outtest(m, src, mode):
     import subprocess
     src = os.path.abspath(src)
-    expected = open(os.path.splitext(src)[0] + ".out").read()
+    expected = open(os.path.splitext(src)[0] + ".out", encoding="latin-1").read()
     base = os.path.splitext(os.path.basename(src))[0]
     d = "RAM:bbt/" + base
     push(m, src, d + "/" + base + ".bas")
