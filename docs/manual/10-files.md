@@ -713,7 +713,7 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 | `App.Notify title, text [, imagefile]` | a Ringhio notification (AmigaOS; [chapter 18](18-desktop.md#notifications)) |
 | `App.HotKey name, keys` | a hotkey such as `"ctrl alt j"`, which calls `HotKey_Pressed(Name)`, and an entry in Exchange (AmigaOS; [chapter 18](18-desktop.md#commodities-a-hotkey-and-exchange)) |
 | `App.FormatNumber(x [, decimals])` | the number with the decimal point and thousands separator of the user's Locale settings, and `decimals` digits after the point (2 if not given); on a host `.` and `,` ([chapter 18](18-desktop.md#number-and-date-formats)) |
-| `App.FormatDate(d [, format])` | a date in the user's format: `"short"` (the default), `"long"`, `"time"`, `"datetime"`, or a locale.library pattern such as `"%Y-%m-%d"` (AmigaOS; on a host the same as `CStr(d)`) |
+| `App.FormatDate(d [, format])` | a date in the user's format: `"short"` (the default), `"long"`, `"time"`, `"datetime"`, or a pattern such as `"%Y-%m-%d"` (on a host `"short"` is an ISO date and patterns follow `strftime`) |
 | `App.DecimalPoint`, `App.GroupSeparator` | the user's decimal point and thousands separator, as strings (on a host `.` and `,`) |
 
 *Listing 10.16* (`examples/book/ch10-files/listing-10-16.bas`)

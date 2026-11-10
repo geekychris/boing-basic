@@ -1331,8 +1331,9 @@ Print App.FormatDate(d, "%A %-d %B")      ' for example: Tuesday 10 November
 Print App.FormatDate(d, "%Y-%m-%d")       ' for example: 2026-11-10
 ```
 
-On a host, without locale.library, `App.FormatDate` gives the same text as `CStr(d)` whatever
-the format. Keep `Format` for what a program writes into files: a number written with the
+On a host, without locale.library, `App.FormatDate` writes `"short"` as an ISO date
+(`2026-11-10`), `"datetime"` as an ISO date and time, and treats other formats as `strftime`
+patterns (`"%d.%m.%Y"` gives `10.11.2026`). Keep `Format` for what a program writes into files: a number written with the
 user's decimal comma can't be read back with `Val`.
 
 ## Help: AmigaGuide
