@@ -213,13 +213,13 @@ wait  pri=   0 proc pid= 31 ppid=  0 cli= 1 cmd=[DH1:amiga-bridge] name=[amiga-b
 bad = g.suspect_tasks(listing)
 check(sorted(b[1] for b in bad) == ["DH1:tincture/Tincture", "RAM:bbg/boing"],
       "snapshot: busy programs READY at priority >= 0 are flagged, also in a Background CLI (%s)" % bad)
-# the banner goes below the bridge's Background CLIs
-pg = ProcGuest()
-pg.procs[5] = "DH1:bbtools/claude_busy"
-calls = []
-real_tool = pg.tool
-pg.tool = lambda name, **a: (calls.append(a.get("command", "")), real_tool(name, **a))[1]
-check(g.lower_banner(pg) == 5 and "ChangeTaskPri -20 PROCESS 5" in calls, "banner: lowered to priority -20")
+# a busy banner is reported (it once spun and starved the bridge's commands)
 bad = g.suspect_tasks("READY pri=   0 proc pid=719 ppid= 56 cli= 5 cmd=[DH1:bbtools/claude_busy] name=[Background CLI]\n")
 check(len(bad) == 1, "snapshot: a busy banner at priority 0 is reported")
+# no "makedir ... QUIET" anywhere: OS4's MakeDir has no QUIET and makes a drawer called QUIET
+import subprocess as _sp
+root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+hits = [l for l in _sp.run(["git", "-C", root, "grep", "-n", "-i", "-E", "makedir.*[ \"']QUIET[\"' )]", "--", "*.py"],
+                           capture_output=True, text=True).stdout.splitlines() if "has no QUIET" not in l and "test_os4guest" not in l]
+check(not hits, "no makedir ... QUIET in the guest tools (%s)" % hits[:3])
 sys.exit(0 if ok else 1)

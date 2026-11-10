@@ -51,14 +51,14 @@ def main():
     res = {}
     with g.testing("Boing BASIC: sound tests"):
         # tests-os4/audio: the Mac's PCM hashes on OS4, then AHI output (VM)
-        dos("makedir RAM:bbt RAM:bbt/tests-os4 RAM:bbt/tests-os4/audio QUIET")
+        dos("makedir RAM:bbt RAM:bbt/tests-os4 RAM:bbt/tests-os4/audio")
         print(g.push(m, os.path.join(ROOT, "build/os4/boing"), "RAM:bbt/boing"))
         for f in ("audio.bas", "fx.mod"):
             print(g.push(m, os.path.join(ROOT, "tests-os4/audio", f), "RAM:bbt/tests-os4/audio/" + f))
         out = g.run_bg(m, "RAM:bbt/boing run RAM:bbt/tests-os4/audio/audio.bas", "RAM:bbt/audio.out")
         print("== tests-os4/audio (vm)\n" + out)
         res["test"] = out
-        dos("makedir RAM:glimsnd QUIET")
+        dos("makedir RAM:glimsnd")
         print(g.push(m, exe, "RAM:glimsnd/Glimmerfield"))
         print(g.push(m, os.path.join(ROOT, "examples/glimmerfield/glimmer.mod"), "RAM:glimsnd/glimmer.mod"))
         for name, args in (("silent", ""), ("sound", " --sound")):
@@ -96,7 +96,7 @@ def main_vm():
     m = g.MCP(g.URL)
     dos = lambda c: str(m.tool("amiga_dos_command", command=c))
     with g.testing("Boing BASIC: Glimmerfield VM sound"):
-        dos("makedir RAM:bbt RAM:bbt/tests-os4 RAM:bbt/tests-os4/audio RAM:glimvm QUIET")
+        dos("makedir RAM:bbt RAM:bbt/tests-os4 RAM:bbt/tests-os4/audio RAM:glimvm")
         print(g.push(m, os.path.join(ROOT, "build/os4/boing"), "RAM:bbt/boing"))
         for f in ("audio.bas", "fx.mod"):
             print(g.push(m, os.path.join(ROOT, "tests-os4/audio", f), "RAM:bbt/tests-os4/audio/" + f))

@@ -41,7 +41,7 @@ def dos(m, c):
 
 
 def push_all(m, binaries=True):
-    dos(m, "makedir %s %s/Icons %s/demo QUIET" % (DIR, DIR, DIR))
+    dos(m, "makedir %s %s/Icons %s/demo" % (DIR, DIR, DIR))
     files = []
     for f in sorted(os.listdir(APP)):
         if os.path.splitext(f)[1] in (".bas", ".bbp", ".afg", ".guide"):
@@ -52,7 +52,7 @@ def push_all(m, binaries=True):
     files.append((icons + "/picture.info", DIR + "/Icons/picture.info"))
     for f in sorted(os.listdir(APP + "/demo")):
         files.append((os.path.join(APP, "demo", f), DIR + "/demo/" + f))
-    dos(m, "makedir %s/tests QUIET" % DIR)
+    dos(m, "makedir %s/tests" % DIR)
     files.append((APP + "/tests/arexx_client.bas", DIR + "/tests/arexx_client.bas"))
     if binaries:
         if os.path.exists(ROOT + "/build/os4/boing"):

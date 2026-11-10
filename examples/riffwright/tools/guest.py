@@ -50,7 +50,7 @@ def cleanup(m):
 
 
 def push_all(m):
-    dos(m, "makedir %s %s/demos QUIET" % (DIR, DIR))
+    dos(m, "makedir %s %s/demos" % (DIR, DIR))
     files = [(ROOT + "/build/Riffwright", DIR + "/Riffwright")]
     for f in sorted(os.listdir(APP)):
         if os.path.splitext(f)[1] in (".bas", ".bbp", ".afg", ".guide", ".info"):

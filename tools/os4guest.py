@@ -289,6 +289,9 @@ def end_session(m):
 TASKS_OK = ("dos_signal_server", "dos_appdir_server", "idle.task", "AmiDock", "amiga-bridge",
             "Background CLI", "tasklist", "input.device", "Workbench", "RinghioServer")
 CMDS_OK = ("amiga-bridge", "tasklist")     # a CLI running one of these is fine
+# (claude_busy, the testing banner, is deliberately on neither list: it once spun at priority 0
+# and starved every command the bridge runs, fixed in amiga_mcp #71; if it is ever busy again,
+# the snapshot says so)
 
 
 def suspect_tasks(listing):
@@ -306,17 +309,6 @@ def suspect_tasks(listing):
         if not ok_:
             out.append((name, cmd, pri))
     return out
-
-
-def lower_banner(m):
-    """The "CLAUDE IS TESTING" banner (claude_busy) stays READY at priority 0 on OS4, and the
-    bridge runs every command in Background CLIs at -10: with the banner up, bbfetch, boing and
-    the tests got leftover CPU only (4 MB in 52 s instead of 1 s on m1c). Lower it below them."""
-    for n, c in status_procs(m).items():
-        if "claude_busy" in c.lower():
-            m.tool("amiga_dos_command", command="ChangeTaskPri -20 PROCESS %d" % n)
-            return n
-    return None
 
 
 def task_snapshot(m):
@@ -348,10 +340,6 @@ def testing(message):
                 if not bridge_alive():
                     sys.stderr.write("os4guest: the guest's bridge isn't answering (no heartbeat): not starting\n")
                     os._exit(3)
-                try:
-                    lower_banner(MCP(URL, timeout=60))
-                except Exception as e:
-                    sys.stderr.write("os4guest: lowering the banner's priority failed: %s\n" % e)
                 try:
                     task_snapshot(MCP(URL, timeout=60))
                 except Exception as e:
@@ -407,7 +395,7 @@ def mkdirs(m, dest):
             continue
         acc = acc + seg if acc.endswith(":") else acc + "/" + seg
         parts.append(acc)
-    m.tool("amiga_dos_command", command="makedir " + " ".join('"%s"' % x for x in parts) + " QUIET")
+    m.tool("amiga_dos_command", command="makedir " + " ".join('"%s"' % x for x in parts))   # OS4's MakeDir has no QUIET
     _made.add(parent)
 
 
@@ -780,7 +768,7 @@ def setup(m):
     over the bridge when they exist (no SDK needed on the guest), else built on the guest with
     the SDK's GCC."""
     src = os.path.join(ROOT, "tools/os4/bbfetch.c")
-    m.tool("amiga_dos_command", command="makedir DH1:bbtools QUIET")
+    m.tool("amiga_dos_command", command="makedir DH1:bbtools")
     built = [os.path.join(ROOT, "build/os4", t) for t in ("bbfetch", "ptr", "tasklist")]
     if all(os.path.exists(b) for b in built):
         for b in built:
