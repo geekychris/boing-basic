@@ -238,7 +238,8 @@ App.SaveIcon "Work:Projects/Notes/Notes.bbp", "BOING:boing"
 A console window opens when the program first prints something (and `Input` reads from it); it
 stays open at the end until you close it, so you can read the output. A program with windows
 that doesn't print gets no console window. The program sees itself as started from Workbench:
-`App.FromWorkbench` is `True`, `Command()` is empty, and its options come from tooltypes (see
+`App.FromWorkbench` is `True`, `Command()` is empty, its options come from the tooltypes of the
+project icon, and other icons selected with it are `App.Arg(0)`, `App.Arg(1)`... (see
 [Interpreted programs from Workbench](18-desktop.md#interpreted-programs-from-workbench)).
 
 To pass arguments, or to start the program the way the Shell would, use a small script instead,

@@ -705,16 +705,17 @@ Information window), and the files it was started with:
 | `App.ToolType(name [, default])` | the value of the tooltype `NAME=value`; `"1"` for a bare `NAME`; `default` (or `""`) if there is none |
 | `App.ToolTypeCount` | the number of tooltype lines |
 | `App.ToolTypes(i)` | tooltype line `i` (from 0), as written |
-| `App.FromWorkbench` | `True` if the program was started from Workbench |
+| `App.FromWorkbench` | `True` if the program was started from Workbench (also through a project icon) |
 | `App.ArgCount` | the number of files given to the program: project icons double-clicked, icons selected with it, or names on the Shell command line |
 | `App.Arg(i)` | file `i` (from 0), with its full path |
-| `App.ReadArgs(template)` | reads the arguments with an AmigaDOS template (`"FILE/A,SIZE/N,QUIET/S"`), or the tooltypes when started from Workbench; `True` if they fit |
+| `App.ReadArgs(template)` | reads the arguments with an AmigaDOS template (`"FILE/A,SIZE/N,QUIET/S"`, up to 32 items), or the tooltypes when started from Workbench; `True` (a Boolean) if they fit |
 | `App.ArgValue(key)` | a value after `ReadArgs`, as text |
 
-The icon is the executable's: a native build has its own `.info`. Under `boing run` (also when
-a project icon with the default tool `boing` starts the program) it is `Name.info` in the
-program's drawer, `Name` being `App.EXEName`; without such an icon, `App.ToolType` gives the
-default. Templates, and starting interpreted programs from Workbench, are described in
+The icon is the executable's: a native build has its own `.info`. Under `boing run` it is
+`Name.info` in the program's drawer, `Name` being `App.EXEName`; without such an icon,
+`App.ToolType` gives the default. When a project icon with the default tool `boing` starts the
+program, it is that project icon (`Jotter.bbp.info`), and icons selected with it are
+`App.Arg(i)`. Templates, and starting interpreted programs from Workbench, are described in
 [chapter 18](18-desktop.md#arguments-templates-and-tooltypes).
 
 *Listing 13.11* (`examples/book/ch13-menus-dialogs/workbench/workbench.bbp`)
@@ -852,7 +853,9 @@ Programs without forms receive these events (and ARexx commands) while they call
 | `App_Show()`, `App_Hide()`, `App_Quit()` | Exchange's Show, Hide and Remove buttons, or the same request from another program through application.library |
 
 These Subs, too, can be in any module. A program with a hotkey should always have an
-`App_Quit` that does what its Quit menu item does (for example `Unload Me`). In a form's
+`App_Quit` that does what its Quit menu item does (for example `Unload Me`). Without one, a
+Quit unloads every form, each getting `Form_QueryUnload` with `UnloadMode` 3
+(`vbAppTaskManager`), which can cancel it; a program without forms ends. In a form's
 code, a hotkey that brings the window to the front is a line in `Form_Load` and a Sub:
 
 <!-- fragment -->

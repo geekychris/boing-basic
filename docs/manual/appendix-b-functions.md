@@ -21,7 +21,7 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 |---|---|---|
 | `Abs(x)` | `x` without its sign | [09](09-builtins.md#arithmetic-functions) |
 | `AllocMem(size [, clear])` | allocates `size` bytes of memory (cleared to 0 if `clear` is True) and returns its address | [17](17-amigaos.md) |
-| `App.ArgValue(key)` | a value after `App.ReadArgs`, as text (`"1"` for a switch, `/M` values joined by `vbLf`, `""` if absent); error 5 for a key not in the template (AmigaOS) | [18](18-desktop.md#arguments-templates-and-tooltypes) |
+| `App.ArgValue(key)` | a value after `App.ReadArgs`, as text (`"1"` for a switch, `"1"` or `"0"` for a `/T` toggle, `/M` and `/N/M` values joined by `vbLf`, `""` if absent); error 5 for a key not in the template (AmigaOS) | [18](18-desktop.md#arguments-templates-and-tooltypes) |
 | `App.CloseScreen` | closes the program's own screen if no window is open on it; `True` when it is closed (AmigaOS) | [18](18-desktop.md#screens) |
 | `App.DecimalPoint` | the decimal point of the user's Locale settings, as a string (`"."` on a host) | [18](18-desktop.md#number-and-date-formats) |
 | `App.EXEName` | the program's name without directory or `.bas` | [10](10-files.md#the-app-object) |
@@ -31,9 +31,9 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 | `App.HotKey name, keys` | statement: a Commodities hotkey (`"ctrl alt j"`) that calls `HotKey_Pressed(Name)`, and an Exchange entry under `App.Title` (AmigaOS) | [18](18-desktop.md#commodities-a-hotkey-and-exchange) |
 | `App.Notify title, text [, imagefile]` | statement: a Ringhio notification through application.library; error 5 if it can't be shown (AmigaOS) | [18](18-desktop.md#notifications) |
 | `App.NotifyResult` | application.library's answer to the last `App.Notify` (0 = queued) (AmigaOS) | [18](18-desktop.md#notifications) |
-| `App.OpenScreen modeid [, width, height, depth [, title]]` | statement: opens the program's own screen (a `ScreenModeID`, 0 = the Workbench's mode); forms loaded afterwards open on it (AmigaOS) | [18](18-desktop.md#screens) |
+| `App.OpenScreen modeid [, width, height, depth [, title [, showTitle]]]` | statement: opens the program's own screen (a `ScreenModeID`, 0 = the Workbench's mode; `showTitle = False`: no title bar); forms loaded afterwards open on it. Error 5 if it is already open (AmigaOS) | [18](18-desktop.md#screens) |
 | `App.Path` | the program's directory | [10](10-files.md#files-beside-the-program-apppath) |
-| `App.ReadArgs(template)` | reads the arguments with an AmigaDOS template (`"FILE/A,SIZE/N,QUIET/S"`), or the tooltypes when started from Workbench; `True` if they fit (AmigaOS) | [18](18-desktop.md#arguments-templates-and-tooltypes) |
+| `App.ReadArgs(template)` | reads the arguments with an AmigaDOS template (`"FILE/A,SIZE/N,QUIET/S"`, up to 32 items: more is error 5), or the tooltypes when started from Workbench; `True` (a Boolean) if they fit (AmigaOS) | [18](18-desktop.md#arguments-templates-and-tooltypes) |
 | `App.Register` | registers the program with application.library (for Quit, Hide and Show messages); `True` if it worked (AmigaOS) | [18](18-desktop.md#quit-hide-and-show-from-the-system) |
 | `App.Title` | the program's title (`Title=`, `Name=` or the program's name); can be assigned | [10](10-files.md#the-app-object) |
 | `Array(v1, v2, ...)` | a Variant holding an array of the values, from index 0 | [09](09-builtins.md#inspecting-values) |

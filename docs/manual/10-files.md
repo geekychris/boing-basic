@@ -703,11 +703,11 @@ itself, so `PROGDIR:` is the directory of `boing`, while `App.Path` is the direc
 | `App.Title` | the program's title: the project's `Title=` line, else its `Name=`, else the program's name; you can change it (`App.Title = "Paint - " & doc`), and requester titles, `App.EnvPath` and remembered window positions use it |
 | `App.EnvPath` | `ENVARC:` followed by the title: a directory for files of your own that should survive a reboot (on a host, a directory under the settings directory, see below) |
 | `App.Major`, `App.Minor`, `App.Revision` | the numbers of the project's `Version=` line (`Version=1.4.2` gives 1, 4 and 2); 0 without one |
-| `App.FromWorkbench` | True if the program was started by double-clicking its Workbench icon (AmigaOS) |
+| `App.FromWorkbench` | True if the program was started by double-clicking its Workbench icon, or a project icon with the default tool `boing` (AmigaOS) |
 | `App.ToolType(name [, default])` | a tooltype from the program's icon: `NAME=value` gives `"value"`, a bare `NAME` gives `"1"`, a missing one `default` (or `""`). On a host, always the default |
 | `App.ToolTypeCount`, `App.ToolTypes(i)` | the number of tooltypes and each tooltype line (AmigaOS) |
 | `App.ArgCount`, `App.Arg(i)` | the files the program was given: icons selected with it on the Workbench, or the names on the command line (AmigaOS) |
-| `App.ReadArgs(template)`, `App.ArgValue(key)` | the arguments read with an AmigaDOS template such as `"FILE/A,SIZE/N,QUIET/S"` (`True` if they fit), and each value as text; from Workbench, the tooltypes (AmigaOS; see [below](#command)) |
+| `App.ReadArgs(template)`, `App.ArgValue(key)` | the arguments read with an AmigaDOS template such as `"FILE/A,SIZE/N,QUIET/S"` (`True` if they fit; up to 32 items), and each value as text; from Workbench, the tooltypes (AmigaOS; see [below](#command)) |
 | `App.Notify title, text [, imagefile]` | a Ringhio notification (AmigaOS; [chapter 18](18-desktop.md#notifications)) |
 | `App.HotKey name, keys` | a hotkey such as `"ctrl alt j"`, which calls `HotKey_Pressed(Name)`, and an entry in Exchange (AmigaOS; [chapter 18](18-desktop.md#commodities-a-hotkey-and-exchange)) |
 | `App.FormatNumber(x [, decimals])` | the number with the decimal point and thousands separator of the user's Locale settings, and `decimals` digits after the point (2 if not given); on a host `.` and `,` ([chapter 18](18-desktop.md#number-and-date-formats)) |

@@ -57,7 +57,7 @@ Next
 | No. | Message | Typical cause |
 |---|---|---|
 | 3 | Return without GoSub | a `Return` that was not reached through `GoSub` (often: falling into a `GoSub` routine at the end of the main code) |
-| 5 | Invalid procedure call or argument | an argument out of range: `Left(s, -1)`, `Mid(s, 0)`, `Chr(300)`, `Asc("")`, `Sqr(-1)`, `Log(0)`, `Shl(x, 32)`, `MonthName(13)`, an unknown interval in `DateAdd`, `Dir` without a pattern before any search, an empty name in `SaveSetting`; a runtime object method given a bad value; a missing key in a `Collection` |
+| 5 | Invalid procedure call or argument | an argument out of range: `Left(s, -1)`, `Mid(s, 0)`, `Chr(300)`, `Asc("")`, `Sqr(-1)`, `Log(0)`, `Shl(x, 32)`, `MonthName(13)`, an unknown interval in `DateAdd`, `Dir` without a pattern before any search, an empty name in `SaveSetting`; a runtime object method given a bad value; a missing key in a `Collection`; `App.OpenScreen` while the program's screen is open, or an `App.ReadArgs` template of more than 32 items |
 | 6 | Overflow | a result too big for its type: `Dim n As Integer: n = 40000`, `CInt(1E6)`, a Long calculation beyond 2147483647, a Double result that is infinite or not a number |
 | 7 | Out of memory | the program or a runtime object could not get memory; also too many items for some runtime tables (menu items, AppIcons) |
 | 9 | Subscript out of range | an array index outside the array's bounds, an array element before `ReDim`, an index of a control array or list that does not exist |
