@@ -14,7 +14,12 @@ ok 13 - an unknown host: ErrorNumber 31102
 ok 14 - SendAsync POST
 ok 15 - HTTPS asynchronously
 ok 16 - two HTTPS requests at once
-ok 17 - WithEvents: Done and Progress
-ok 18 - WithEvents: Failed(number, text)
-ok 19 - WithEvents: Failed after Cancel
-PASS 19
+ok 17 - Cancel while waiting for the answer's headers is immediate
+ok 18 - a cancelled request leaves no half answer
+ok 19 - Cancel while connecting is immediate
+ok 20 - a new request clears ErrorText
+ok 21 - OnDone naming a missing Sub: error 35 at once
+ok 22 - WithEvents: Done and Progress
+ok 23 - WithEvents: Failed(number, text)
+ok 24 - WithEvents: Failed after Cancel
+PASS 24

@@ -399,7 +399,8 @@ char *bb_plat_inputbox(const char *prompt, const char *title, const char *def)
 }
 
 /* --- background work (async Http) ------------------------------------------------------------
- * A worker is a child process (NP_Child) started with the job as its entry data. It signals the
+ * A worker is a child process (NP_Child) started with the job as its entry data. Cancel and
+ * program end send it Ctrl-C (bb_plat_thread_break), which ends its network waits. It signals the
  * task that started it with a signal bit allocated once in that task (bb_plat_wake), which the
  * forms event loop includes in its Wait. join waits until the worker has returned from fn. */
 typedef struct {
@@ -407,6 +408,7 @@ typedef struct {
     void *arg;
     volatile int finished;
     struct Task *parent;
+    struct Process *proc;
 } bb_worker;
 
 static int8 wake_bit = -1;
@@ -421,7 +423,7 @@ static int32 worker_entry(STRPTR args, int32 len, struct ExecBase *sys)
     w->finished = 1;
     bb_plat_wake();
     IExec->Permit();
-    return 0;
+    return 0;                         /* NP_Child: the program isn't unloaded before this returns */
 }
 
 void *bb_plat_thread_start(void (*fn)(void *), void *arg)
@@ -436,12 +438,14 @@ void *bb_plat_thread_start(void (*fn)(void *), void *arg)
     w->arg = arg;
     w->parent = IExec->FindTask(NULL);
     struct Process *p = IDOS->CreateNewProcTags(NP_Entry, worker_entry, NP_EntryData, w, NP_Name, "Boing BASIC worker",
+                                                NP_Priority, (int32)IExec->FindTask(NULL)->tc_Node.ln_Pri,
                                                 NP_StackSize, 131072, NP_Child, TRUE, NP_Output, ZERO, NP_Input, ZERO,
                                                 NP_CloseOutput, FALSE, NP_CloseInput, FALSE, TAG_DONE);
     if (!p) {
         free(w);
         return NULL;
     }
+    w->proc = p;                      /* (worker_entry doesn't touch it) */
     return w;
 }
 
@@ -451,6 +455,17 @@ void bb_plat_thread_join(void *p)
     if (!w) return;
     while (!w->finished) bb_plat_sleep_ms(5);
     free(w);
+}
+
+/* Ctrl-C to the worker: Roadshow's blocking calls and our WaitSelects end with it. Only while it
+   hasn't finished: a finished worker's process may already be gone. */
+void bb_plat_thread_break(void *p)
+{
+    bb_worker *w = p;
+    if (!w) return;
+    IExec->Forbid();
+    if (!w->finished) IExec->Signal((struct Task *)w->proc, SIGBREAKF_CTRL_C);
+    IExec->Permit();
 }
 
 void bb_plat_wake(void)

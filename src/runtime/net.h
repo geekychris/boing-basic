@@ -45,6 +45,9 @@ int bb_net_owned(bb_net *n);
 /* Close the calling task's network resources (OS4: its bsdsocket/AmiSSL bases); a worker task
  * calls this before it ends. A no-op on the host. */
 void bb_net_task_done(void);
+/* A flag the calling task's network calls watch: when it becomes nonzero they end with error 18
+   (Cancel of an asynchronous request). NULL for none. */
+void bb_net_set_cancel(volatile int *flag);
 
 /* Is TLS available? 1, or 0 with the reason in why. */
 int bb_net_tls_available(char *why, int whylen);

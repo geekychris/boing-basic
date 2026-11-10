@@ -353,6 +353,21 @@ def testing(message):
                 done.set()      # this session's deadline ends with it
 
 
+@contextlib.contextmanager
+def quiet():
+    """The guest's lock without the banner, for a short check after a test: while the banner
+    (pri 0) is up, programs started by the bridge (pri -10) and DOS's process reaper hardly run,
+    so a process that has ended can't finish leaving until the banner is gone."""
+    import fcntl
+    with fifo_ticket():
+        lock = open(LOCK, "w")
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
 HTTP_MIN = int(os.environ.get("BB_HTTP_MIN", "16384"))
 BRIDGE_MAX = int(os.environ.get("BB_BRIDGE_MAX", "100000"))
 FETCH = "DH1:bbtools/bbfetch"
@@ -769,7 +784,7 @@ def setup(m):
     the SDK's GCC."""
     src = os.path.join(ROOT, "tools/os4/bbfetch.c")
     m.tool("amiga_dos_command", command="makedir DH1:bbtools")
-    built = [os.path.join(ROOT, "build/os4", t) for t in ("bbfetch", "ptr", "tasklist")]
+    built = [os.path.join(ROOT, "build/os4", t) for t in ("bbfetch", "ptr", "tasklist", "tasks")]
     if all(os.path.exists(b) for b in built):
         for b in built:
             print(bridge_push(m, b, "DH1:bbtools/" + os.path.basename(b)))

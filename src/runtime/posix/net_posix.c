@@ -44,6 +44,7 @@ static struct {
     int (*SSL_connect)(SSL *);
     long (*SSL_get_verify_result)(const SSL *);
     int (*SSL_read)(SSL *, void *, int);
+    int (*SSL_pending)(const SSL *);
     int (*SSL_write)(SSL *, const void *, int);
     int (*SSL_get_error)(const SSL *, int);
     int (*SSL_shutdown)(SSL *);
@@ -92,7 +93,7 @@ static int ossl_load(void)
     LOAD(SSL_CTX_load_verify_locations) LOAD(SSL_CTX_set_verify) LOAD(SSL_new) LOAD(SSL_free) LOAD(SSL_set_fd)
     LOAD(SSL_ctrl) LOAD(SSL_set1_host) LOAD(SSL_connect) LOAD(SSL_get_verify_result) LOAD(SSL_read)
     LOAD(SSL_write) LOAD(SSL_get_error) LOAD(SSL_shutdown) LOAD(X509_verify_cert_error_string)
-    LOAD(ERR_get_error) LOAD(ERR_error_string_n)
+    LOAD(ERR_get_error) LOAD(ERR_error_string_n) LOAD(SSL_pending)
 #undef LOAD
     ossl.ok = 1;
     return 1;
@@ -106,6 +107,22 @@ int bb_net_tls_available(char *why, int whylen)
 }
 
 /* --- connections -------------------------------------------------------------------------- */
+
+static __thread volatile int *cancel_flag;
+void bb_net_set_cancel(volatile int *flag) { cancel_flag = flag; }
+
+/* poll that also ends (returning -2) when the calling thread's cancel flag is set */
+static int poll_c(struct pollfd *p, nfds_t n, int timeout_ms)
+{
+    if (!cancel_flag) return poll(p, n, timeout_ms);
+    for (int left = timeout_ms;;) {
+        if (*cancel_flag) return -2;
+        int slice = left < 0 || left > 100 ? 100 : left;
+        int r = poll(p, n, slice);
+        if (r != 0) return r;
+        if (left >= 0 && (left -= slice) <= 0) return 0;
+    }
+}
 
 struct bb_net {
     int fd;
@@ -152,7 +169,13 @@ static int tcp_connect(const char *host, int port, int timeout_ms, int *out, cha
         int r = connect(fd, ai->ai_addr, ai->ai_addrlen);
         if (r < 0 && errno == EINPROGRESS) {
             struct pollfd p = { fd, POLLOUT, 0 };
-            r = poll(&p, 1, timeout_ms);
+            r = poll_c(&p, 1, timeout_ms);
+            if (r == -2) {
+                close(fd);
+                freeaddrinfo(res);
+                snprintf(err, errlen, "cancelled");
+                return 18;
+            }
             if (r == 0) {
                 close(fd);
                 rc = BB_E_NET_TIMEOUT;
@@ -279,6 +302,18 @@ int bb_net_read(bb_net *n, void *p, int len, int timeout_ms, char *err, int errl
     set_timeouts(n->fd, timeout_ms);
     for (;;) {
         int r;
+        if (cancel_flag && !(n->ssl && ossl.SSL_pending && ossl.SSL_pending(n->ssl))) {
+            struct pollfd pf = { n->fd, POLLIN, 0 };
+            int pr = poll_c(&pf, 1, timeout_ms);
+            if (pr == -2) {
+                snprintf(err, errlen, "cancelled");
+                return -18;
+            }
+            if (pr == 0) {
+                snprintf(err, errlen, "no data within %d ms", timeout_ms);
+                return -BB_E_NET_TIMEOUT;
+            }
+        }
         if (n->ssl) {
             r = ossl.SSL_read(n->ssl, p, len);
             if (r > 0) return r;

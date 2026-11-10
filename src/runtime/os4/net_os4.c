@@ -49,28 +49,37 @@ typedef struct netctx {
     int f_sock_tried, f_ssl_tried, f_ssl_ok;
     char f_ssl_why[200];
     int f_ssl_errno;
+    volatile int *f_cancel;     /* bb_net_set_cancel */
 } netctx;
 
-#define NCTX 16
+#define NCTX 64
 static netctx ctxs[NCTX];
+static netctx spare;                    /* when all are taken: no network for that task */
 
+/* The calling task's context. Looked up and claimed under Forbid: two workers starting at the
+   same moment must not take the same slot. Never raises (a worker has no error frames of its
+   own): when the table is full the task gets a context whose bsdsocket "failed to open". */
 static netctx *net_ctx(void)
 {
     struct Task *me = IExec->FindTask(NULL);
-    netctx *freec = NULL;
+    netctx *c = NULL, *freec = NULL;
+    IExec->Forbid();
     for (int i = 0; i < NCTX; i++) {
-        if (ctxs[i].task == me) return &ctxs[i];
+        if (ctxs[i].task == me) { c = &ctxs[i]; break; }
         if (!ctxs[i].task && !freec) freec = &ctxs[i];
     }
-    IExec->Forbid();
-    if (freec && !freec->task) {
+    if (!c && freec) {
         memset(freec, 0, sizeof *freec);
         freec->task = me;
-    } else
-        freec = NULL;
+        c = freec;
+    }
     IExec->Permit();
-    if (!freec) bb_raise(7, "too many tasks using the network");
-    return freec;
+    if (!c) {
+        spare.f_sock_tried = 1;         /* sock_open reports it can't open bsdsocket.library */
+        spare.f_ssl_tried = 1;
+        c = &spare;
+    }
+    return c;
 }
 
 #define sock_base (net_ctx()->f_sock_base)
@@ -99,7 +108,9 @@ void bb_net_task_done(void)
             if (c->f_master_base) IExec->CloseLibrary(c->f_master_base);
             if (c->f_isock) IExec->DropInterface((struct Interface *)c->f_isock);
             if (c->f_sock_base) IExec->CloseLibrary(c->f_sock_base);
+            IExec->Forbid();                /* (net_ctx scans the table under Forbid) */
             memset(c, 0, sizeof *c);
+            IExec->Permit();
         }
 }
 
@@ -205,6 +216,8 @@ static int wait_fd(int fd, int wr, int ms)
     tv.tv_sec = ms / 1000;
     tv.tv_usec = (ms % 1000) * 1000;
     ULONG sigs = SIGBREAKF_CTRL_C;
+    volatile int *cancel = net_ctx()->f_cancel;
+    if (cancel && *cancel) return -1;
     int r = ISock->WaitSelect(fd + 1, wr ? NULL : &set, wr ? &set : NULL, NULL, &tv, &sigs);
     if (r < 0 || (r == 0 && (sigs & SIGBREAKF_CTRL_C))) return -1;
     return r > 0 ? 1 : 0;
@@ -369,6 +382,17 @@ int bb_net_read(bb_net *n, void *p, int len, int timeout_ms, char *err, int errl
 {
     if (n->ssl) {
         set_timeouts(n->fd, timeout_ms);
+        if (!ISSL->SSL_pending(n->ssl)) {       /* wait here, where Ctrl-C and Cancel end it */
+            int w = wait_fd(n->fd, 0, timeout_ms);
+            if (w < 0) {
+                snprintf(err, errlen, "interrupted (Ctrl-C)");
+                return -18;
+            }
+            if (w == 0) {
+                snprintf(err, errlen, "no data within %d ms", timeout_ms);
+                return -BB_E_NET_TIMEOUT;
+            }
+        }
         int r = ISSL->SSL_read(n->ssl, p, len);
         if (r > 0) return r;
         int e = ISSL->SSL_get_error(n->ssl, r);
@@ -709,3 +733,5 @@ int bb_net_machine_addr(char *host, int hostlen)
 }
 /* a socket belongs to the task whose bsdsocket base opened it */
 int bb_net_owned(bb_net *n) { return n && n->owner == (void *)net_ctx(); }
+
+void bb_net_set_cancel(volatile int *flag) { net_ctx()->f_cancel = flag; }
