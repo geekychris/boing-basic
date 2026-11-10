@@ -1,0 +1,5 @@
+# Boing BASIC project: the mathx extension (C) and a program that uses it
+Name=MathxDemo
+Startup=Sub Main
+Module=demo.bas
+Extension=mathx

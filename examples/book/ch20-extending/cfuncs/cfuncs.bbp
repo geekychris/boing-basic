@@ -1,0 +1,5 @@
+# Boing BASIC project: plain C functions called with Declare ... Lib "C"
+Name=CFuncs
+Startup=Sub Main
+Module=main.bas
+CSource=cfuncs.c

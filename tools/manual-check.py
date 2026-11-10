@@ -87,7 +87,17 @@ def check_program(src, cwd=None):
 def run_program(src, stdin, cwd=None):
     """stdout of the VM and (NATIVE) the native build; both must agree."""
     outs = []
-    rc, out = run([BOING, "run", src], stdin, cwd)
+    txt = open(src, encoding="latin-1").read() if src.endswith(".bbp") else ""
+    if re.search(r"^\s*(Extension|CSource)\s*=", txt, re.M | re.I):
+        # a project with C/C++ extensions: an interpreter of its own (boing vm), then run with it
+        vm = tempfile.mktemp(prefix="bbmanvm")
+        rc, out = run([BOING, "vm", "--project", src, "-o", vm], cwd=cwd)
+        if rc:
+            return [("boing vm", rc, out)]
+        rc, out = run([vm, "run", src], stdin, cwd)
+        os.unlink(vm)
+    else:
+        rc, out = run([BOING, "run", src], stdin, cwd)
     outs.append(("vm", rc, out))
     if NATIVE:
         exe = tempfile.mktemp(prefix="bbman")
