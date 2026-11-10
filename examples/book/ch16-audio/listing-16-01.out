@@ -1,0 +1,7 @@
+device manual, rate 22050 , voices 8 
+laser: 3307 samples at 22050 Hz, 16 bits
+boom:  13230 samples
+voices 1  2  playing:TrueTrue
+after 0.2 s:FalseTrue
+after 1.2 s:False
+PCM hash 1631454528 

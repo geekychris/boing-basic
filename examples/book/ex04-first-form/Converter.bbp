@@ -1,0 +1,4 @@
+# Boing BASIC project: exercise 4 of the user manual, a first form (a temperature converter).
+Name=Converter
+Startup=Form conv
+Form=conv.afg

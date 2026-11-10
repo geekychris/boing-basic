@@ -1,0 +1,46 @@
+Console Toolbox
+
+1) Guess the number
+2) Times-table quiz
+3) Count words
+0) Quit
+Your choice: Which table (2 to 12): Question 1: 6 x 7: Right!
+Question 2: 12 x 7: Right!
+Question 3: 3 x 7: No, 3 x 7 = 21 
+Question 4: 10 x 7: Right!
+Question 5: 6 x 7: Right!
+You scored 4 out of 5 - well done.
+
+1) Guess the number
+2) Times-table quiz
+3) Count words
+0) Quit
+Your choice: I am thinking of a number from 1 to 100.
+Your guess: Too high - far away.
+Your guess: Too high - very close!
+Your guess: Please type a whole number from 1 to 100.
+Your guess: Too low - not far.
+Your guess: Yes, it was 23 - you needed 4 tries. Very good.
+
+1) Guess the number
+2) Times-table quiz
+3) Count words
+0) Quit
+Your choice: Type some lines of text. An empty line ends the text.
+> > > Lines: 2 
+Words: 14 
+Letters: 51 
+Average word length: 3.6
+Longest word: quick (5 letters)
+
+1) Guess the number
+2) Times-table quiz
+3) Count words
+0) Quit
+Your choice: Please type 0, 1, 2 or 3.
+
+1) Guess the number
+2) Times-table quiz
+3) Count words
+0) Quit
+Your choice: Goodbye!

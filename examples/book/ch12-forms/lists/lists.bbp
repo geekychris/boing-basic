@@ -1,0 +1,4 @@
+# Lists: a list with columns, a tree and a grid (manual chapter 12)
+Name=Lists
+Startup=Form lists
+Form=lists.afg

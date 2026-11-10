@@ -1,0 +1,17 @@
+# dialogs.afg
+window name=dialogs title="Requesters" width=300 height=0
+vlayout id=root
+  hlayout even=1
+    button id=openOne text="Open..."
+    button id=openMany text="Open several..."
+    button id=saveAs text="Save as..."
+  hlayout even=1
+    button id=font text="Font..."
+    button id=colour text="Colour..."
+    button id=screen text="Screen mode..."
+  hlayout even=1
+    button id=ask text="MsgBox"
+    button id=askName text="InputBox"
+    button id=choose text="Own buttons"
+  listbrowser id=log minheight=80
+  commondialog id=dlg filter="Texts|#?.(txt|doc)" initdir="RAM:"

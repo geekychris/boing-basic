@@ -1,0 +1,4 @@
+# Timer: a stopwatch driven by a timer control (manual chapter 12)
+Name=Stopwatch
+Startup=Form watch
+Form=watch.afg

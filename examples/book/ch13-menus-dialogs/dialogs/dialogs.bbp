@@ -1,0 +1,4 @@
+# Dialogs: the CommonDialog's requesters, MsgBox, InputBox and App.Request (manual chapter 13)
+Name=Dialogs
+Startup=Form dialogs
+Form=dialogs.afg

@@ -1,0 +1,6 @@
+# Jotter: a small text editor that follows the AmigaOS 4 conventions (manual chapter 18)
+Name=Jotter
+Startup=Sub Main
+Module=Startup.bas
+Form=jotter.afg
+Stack=262144

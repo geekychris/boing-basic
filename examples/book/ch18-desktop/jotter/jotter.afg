@@ -1,0 +1,33 @@
+# jotter.afg - Jotter's main window
+window name=editor title="Jotter" width=480 height=300 resizable=1 remember=1 iconify=1 dropfiles=1
+vlayout id=root
+  texteditor id=ed contextmenu=mnuEdCtx
+  statusbar id=sb panels="Ready|Ln 1" widths="0|80"
+  commondialog id=dlg filter="#?.(txt|doc|readme)"
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New" key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu text=-
+  menu id=mnuSave text="Save" key=S
+  menu id=mnuSaveAs text="Save as..." key=A
+  menu text=-
+  menu id=mnuHelp text="Help..."
+  menu id=mnuAbout text="About..." key=?
+  menu text=-
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuEdit text="Edit"
+  menu id=mnuUndo text="Undo" key=Z
+  menu id=mnuRedo text="Redo" key=Y
+  menu text=-
+  menu id=mnuCut text="Cut" key=X
+  menu id=mnuCopy text="Copy" key=C
+  menu id=mnuPaste text="Paste" key=V
+  menu text=-
+  menu id=mnuSelAll text="Select all"
+menu id=mnuSettings text="Settings"
+  menu id=mnuFixed text="Fixed-width font" checkable=1
+  menu id=mnuIcons text="Create icons" checkable=1 checked=1
+menu id=mnuEdCtx text="Edit" hidden=1
+  menu id=mnuCtxCut text="Cut"
+  menu id=mnuCtxCopy text="Copy"
+  menu id=mnuCtxPaste text="Paste"

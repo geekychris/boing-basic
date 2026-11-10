@@ -1,0 +1,4 @@
+# Boing BASIC project: the first step of exercise 6, a ball bouncing round a Canvas.
+Name=Bounce
+Startup=Form bounce
+Form=bounce.afg

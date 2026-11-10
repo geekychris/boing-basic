@@ -39,9 +39,13 @@ provide.
 **Beyond the language**
 
 17. [Calling AmigaOS](17-amigaos.md): `Declare` and the system bindings
-18. [Extending Boing BASIC](18-extending.md): calling C, and extensions written in C or C++
+18. [The AmigaOS 4 desktop](18-desktop.md): fitting in with the system's windows, screens, Workbench and conventions
+19. [Networking and modern libraries](19-networking.md): HTTP and HTTPS, web services and JSON
+20. [Extending Boing BASIC](20-extending.md): calling C, and extensions written in C or C++
 
 **[Exercises](exercises/README.md)**: complete programs to build, step by step
+
+**[Book examples](../../examples/book/README.md)**: every listing and exercise solution as a file you can run
 
 **Appendices**
 

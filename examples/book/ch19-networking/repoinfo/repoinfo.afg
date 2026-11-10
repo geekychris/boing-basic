@@ -1,0 +1,10 @@
+# AmiForge GUI (edit with Tools > GUI Designer)
+window name=repoinfo title="Repository Info" width=420 height=0 resizable=1
+vlayout id=root
+  hlayout weight=0
+    string id=repo label="_Repository" text="geekychris/amiforge" maxchars=200
+    button id=go text="_Look up" weight=0
+  label id=title text=" "
+  label id=desc text=" "
+  label id=stars text=" "
+  label id=status text="Type owner/name and press Look up"

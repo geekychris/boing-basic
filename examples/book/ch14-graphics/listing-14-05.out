@@ -1,0 +1,5 @@
+ship is image 1 size 16 x 16 
+corner of the image:-1 (transparent)
+sprite pixel &HFFFFFF, around it &HFF0000
+scaled: 32 x 32 
+loaded 64 x 64  same pixel: True

@@ -10,6 +10,8 @@ where it builds programs for that computer or, with Docker, for AmigaOS 4.)
 Write a program with any editor (NotePad, MultiEdit, GoldED, or AmiForge's editor) and save
 it with the extension `.bas`:
 
+*Listing 2.1* (`examples/book/ch02-shell/listing-02-01.bas`)
+
 <!-- run stdin="Amy" -->
 ```basic
 ' greet.bas - asks for a name and says hello
@@ -37,6 +39,8 @@ with `Command()`:
 ```sh
 1> boing run args.bas one two
 ```
+
+*Listing 2.2* (`examples/book/ch02-shell/listing-02-02.bas`)
 
 <!-- run -->
 ```basic
@@ -212,15 +216,17 @@ right path even when the program is at the top of a volume (`Work:x`).
 
 ## Running programs from Workbench
 
-A native program is an ordinary AmigaOS program: give it an icon and double-click it. For an
-interpreted program, make a project icon for the `.bas` or `.bbp` file with `boing` as its
-default tool, or a small script:
+A native program is an ordinary AmigaOS program: give it an icon and double-click it. To start
+an interpreted program from Workbench, write a small script and give it a project icon whose
+default tool is `C:IconX`:
 
 ```sh
-; Run-Notes: start Notes in the interpreter
+; Run-Notes: start Notes in the interpreter (default tool C:IconX)
 Stack 262144
 boing run Work:Projects/Notes/Notes.bbp
 ```
+
+(`boing` itself is a Shell command: started directly from Workbench it only prints its usage.)
 
 Programs with windows need a stack of at least 256 KB (the native programs `boing build`
 makes ask for it themselves).

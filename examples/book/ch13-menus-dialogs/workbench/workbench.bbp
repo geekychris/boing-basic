@@ -1,0 +1,6 @@
+# Workbench: icons, tooltypes, drag and drop, iconify, AppIcon, the clipboard, ARexx,
+# AmigaGuide help and a catalog (manual chapter 13)
+Name=Jotter
+Startup=Sub Main
+Module=start.bas
+Form=jotter.afg

@@ -1,0 +1,19 @@
+# prefs.afg - an AmigaOS-style settings editor
+window name=prefs title="Alarm preferences" width=0 height=0 resizable=1 remember=1
+vlayout id=root
+  vlayout title="Alarm"
+    string id=message label="_Message" text="" hint="The text the alarm shows"
+    hlayout
+      integer id=minutes label="_Every" value=30 min=1 max=999 minwidth=60
+      label text="minutes"
+      space
+  vlayout title="Sound"
+    checkbox id=flash text="_Flash the screen" checked=1
+    chooser id=sound label="S_ound" items="None|Bell|Chime" selected=1
+  space
+  hlayout even=1 weight=0
+    button id=save text="_Save" hint="Use the settings and keep them after a reboot"
+    space
+    button id=use text="_Use" hint="Use the settings until the next reboot"
+    space
+    button id=cancel text="_Cancel" hint="Close without changing anything"

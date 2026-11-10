@@ -1,0 +1,8 @@
+# hello.afg - the layout of the form
+window name=hello title="Hello" width=260 height=0
+vlayout id=root
+  string id=who label="Your name" text="Amiga"
+  hlayout even=1
+    button id=greet text="_Greet"
+    button id=quit text="_Quit"
+  label id=answer text=" "

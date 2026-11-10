@@ -1,0 +1,25 @@
+Opened account 1001 for Ann
+Opened account 1002 for Bob
+Opened account 1003 for Cleo
+Rename: error 5 - An account needs an owner
+
+Working on Ann's account:
+  in  120.00, balance now 120.00
+  out 30.50, balance now 89.50
+  refused: over the limit
+Working on Bob's account:
+  in  20.00, balance now 20.00
+  warning: taking 45.00 overdraws account 1002 
+  refused by the handler
+  warning: taking 45.00 overdraws account 1002 
+  out 45.00, balance now -25.00
+
+No.   Owner        Balance
+1001  Ann            89.50
+1002  Bob           -25.00
+1003  Cleo            0.00
+Total in the bank: 64.50
+
+Removed from the bank; 2 accounts left
+(account 1003 closed)
+Done.

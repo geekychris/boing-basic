@@ -1,0 +1,32 @@
+# AmiForge GUI (a Boing BASIC form: its code is in main.bas)
+window name=notes title="Notes" width=480 height=320 remember=1
+vlayout id=root
+  toolbar id=tb weight=0
+    tool id=tbNew text="New" hint="Start a new note" menu=mnuNew
+    tool id=tbOpen text="Open" hint="Open a text file" menu=mnuOpen
+    tool id=tbSave text="Save" hint="Save the note" menu=mnuSave
+    tool separator=1
+    tool id=tbFind text="Find" hint="Find text in the note" menu=mnuFind
+  texteditor id=ed
+  statusbar id=sb panels="Ready|Ln 1, Col 1" widths="0|110"
+  commondialog id=dlg filter="Text files|#?.(txt|doc|readme)"
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New" key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu id=mnuSave text="Save" key=S
+  menu id=mnuSaveAs text="Save as..." key=A
+  menu text=-
+  menu id=mnuAbout text="About..." key=?
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuEdit text="Edit"
+  menu id=mnuUndo text="Undo" key=Z
+  menu text=-
+  menu id=mnuCut text="Cut" key=X
+  menu id=mnuCopy text="Copy" key=C
+  menu id=mnuPaste text="Paste" key=V
+  menu id=mnuSelAll text="Select all" key=L
+  menu text=-
+  menu id=mnuFind text="Find..." key=F
+menu id=mnuSettings text="Settings"
+  menu id=mnuFixed text="Fixed-width font" checkable=1
+  menu id=mnuReopen text="Open the last note at start" checkable=1 checked=1

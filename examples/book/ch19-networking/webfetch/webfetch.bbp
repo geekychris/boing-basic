@@ -1,0 +1,4 @@
+# Boing BASIC project: fetch a web page (HTTP or HTTPS) and show it in a form
+Name=WebFetch
+Startup=Form webfetch
+Form=webfetch.afg

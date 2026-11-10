@@ -1,0 +1,10 @@
+# watch.afg
+window name=watch title="Stopwatch" width=220 height=0
+vlayout id=root
+  label id=display text="0.0 s"
+  fuelgauge id=minute min=0 max=600 level=0
+  hlayout even=1
+    button id=startStop text="_Start"
+    button id=clear text="C_lear"
+  timer id=tick interval=100 enabled=0
+  timer id=clock interval=1000

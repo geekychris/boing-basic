@@ -1,0 +1,8 @@
+# AmiForge GUI (a Boing BASIC form: its code is in findwin.bas)
+window name=finder title="Find" width=280 height=0 toolwindow=1
+vlayout id=root
+  string id=what label="_Find" maxchars=200
+  checkbox id=matchCase text="_Match case"
+  hlayout even=1
+    button id=findNext text="Find _next"
+    button id=closeIt text="_Close"

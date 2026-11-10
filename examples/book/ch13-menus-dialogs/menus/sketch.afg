@@ -1,0 +1,25 @@
+# sketch.afg
+window name=sketch title="Sketch" width=360 height=240 contextmenu=mnuWindow
+vlayout id=root
+  canvas id=view width=320 height=180 contextmenu=mnuCanvas
+  label id=status text="Ready"
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New" key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu id=mnuRecent text="Open recent"
+    menu id=mnuNoRecent text="(none)" disabled=1
+  menu text=-
+  menu id=mnuAbout text="About..."
+  menu id=mnuQuit text="Quit" key=Q
+menu id=mnuView text="View"
+  menu id=mnuGrid text="Grid" checkable=1 checked=1 key=G
+  menu id=mnuRulers text="Rulers" checkable=1
+  menu text=-
+  menu id=mnuSmall text="Small" radio=1
+  menu id=mnuNormal text="Normal" radio=1 checked=1
+  menu id=mnuLarge text="Large" radio=1
+menu id=mnuCanvas text="Canvas" hidden=1
+  menu id=mnuClear text="Clear"
+  menu id=mnuFillRed text="Fill red"
+menu id=mnuWindow text="Window" hidden=1
+  menu id=mnuHome text="Move to the top left"

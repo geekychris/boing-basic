@@ -519,7 +519,7 @@ def assemble(o):
             open(os.path.join(docs, name), "wb").write(md2txt(src))
             shutil.copy(os.path.join(icons, "doc.info"), os.path.join(docs, name + ".info"))
     # the user manual: Docs/Manual/ as text (one file per chapter), the AmigaGuide, and the
-    # exercises' solutions in Examples/Manual/
+    # book examples in Examples/Book/
     mf = manual_files(bb)
     if mf:
         mdir = os.path.join(docs, "Manual")
@@ -535,10 +535,10 @@ def assemble(o):
     exs = examples(bb)
     os.makedirs(os.path.join(top, "Examples"))
     drawer("Examples")
-    if os.path.isdir(os.path.join(bb, "examples", "manual")):     # the manual's exercise solutions
-        shutil.copytree(os.path.join(bb, "examples", "manual"), os.path.join(top, "Examples", "Manual"),
-                        ignore=shutil.ignore_patterns("*.md", ".*", "shots", "expected.out", "input.txt"))
-        drawer("Examples/Manual")
+    if os.path.isdir(os.path.join(bb, "examples", "book")):     # every listing and exercise of the manual
+        shutil.copytree(os.path.join(bb, "examples", "book"), os.path.join(top, "Examples", "Book"),
+                        ignore=shutil.ignore_patterns(".*", "shots"))
+        drawer("Examples/Book")
     for e in exs:
         dest = os.path.join(top, "Examples", e["dir"])
         e["staged"] = stage_example(e, bb, dest, mi, icons, o["native"])

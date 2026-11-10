@@ -1,0 +1,5 @@
+# AmiForge GUI (a Boing BASIC form: its code is in bounce.bas)
+window name=bounce title="Bounce" width=320 height=256
+vlayout id=root
+  canvas id=view width=320 height=256
+  timer id=tick interval=20 enabled=1

@@ -1,0 +1,9 @@
+# Boing BASIC project: exercise 1 of the user manual, a console toolbox
+# (a number-guessing game, a times-table quiz and a word counter).
+Name=Console
+Startup=Sub Main
+Module=Main.bas
+Module=Answers.bas
+Module=Guess.bas
+Module=Quiz.bas
+Module=Words.bas

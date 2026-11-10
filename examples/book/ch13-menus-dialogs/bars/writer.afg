@@ -1,0 +1,18 @@
+# writer.afg
+window name=writer title="Writer" width=460 height=280
+vlayout id=root
+  toolbar id=tb
+    tool id=tbNew text="New" image="TBImages:new" hint="A new text" menu=mnuNew
+    tool id=tbOpen text="Open" image="TBImages:open" hint="Open a text" menu=mnuOpen
+    tool id=tbSave text="Save" image="TBImages:save" hint="Save the text" menu=mnuSave
+    tool separator=1
+    tool id=tbFind text="Find" image="TBImages:search" hint="Show the find field" toggle=1
+  texteditor id=ed
+  string id=findText label="Find" maxchars=80
+  statusbar id=sb panels="Ready|Ln 1|" widths="0|60|50"
+menu id=mnuProject text="Project"
+  menu id=mnuNew text="New" key=N
+  menu id=mnuOpen text="Open..." key=O
+  menu id=mnuSave text="Save" key=S disabled=1
+  menu text=-
+  menu id=mnuQuit text="Quit" key=Q

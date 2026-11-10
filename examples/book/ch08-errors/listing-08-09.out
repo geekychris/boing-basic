@@ -1,0 +1,2 @@
+name set to Ada
+error 1 from SetName: the name must not be empty

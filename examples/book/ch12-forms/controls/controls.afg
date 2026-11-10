@@ -1,0 +1,19 @@
+# controls.afg
+window name=controls title="Controls" width=380 height=0
+vlayout id=root
+  hlayout
+    vlayout title="Choices"
+      checkbox id=sound text="_Sound" checked=1
+      radio id=size items="Small|Medium|Large" selected=1
+      chooser id=colour items="Red|Green|Blue" selected=0 label="Colour"
+    vlayout title="Numbers"
+      slider id=volume min=0 max=64 level=32 label="Volume"
+      scroller id=pos total=100 visible=10 top=0 label="Position"
+      integer id=copies value=1 min=1 max=99 label="Copies"
+      fuelgauge id=meter min=0 max=64 level=32
+  hlayout
+    string id=title label="Title" text="Untitled" maxchars=40 hint="The document's title"
+    button id=apply text="_Apply" weight=0
+    space
+    button id=reset text="_Reset" weight=0 disabled=1
+  label id=status text="Ready"

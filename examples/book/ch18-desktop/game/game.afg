@@ -1,0 +1,5 @@
+# game.afg - a fixed-size game window, shown at twice its size
+window name=game title="Boing Catch" width=0 height=0 resizable=0 iconify=1
+vlayout id=root
+  canvas id=view width=320 height=200 scale=2
+  timer id=tick interval=20

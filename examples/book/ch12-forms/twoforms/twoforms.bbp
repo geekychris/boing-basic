@@ -1,0 +1,6 @@
+# TwoForms: a main window, a modal dialog and a tool window (manual chapter 12)
+Name=TwoForms
+Startup=Form people
+Form=people.afg
+Form=person.afg
+Form=about.afg

@@ -1,0 +1,5 @@
+# Boing BASIC project: the first step of exercise 3, one small class.
+Name=First
+Startup=Sub Main
+Module=Main.bas
+Class=Counter.cls

@@ -1,0 +1,66 @@
+THE LOST LAMP - a tiny adventure. Type HELP for the commands.
+HALL
+A dusty hall. A staircase leads up to the north; a door opens to the east.
+Exits: north east
+
+> Commands: N E S W (or GO NORTH...), LOOK, TAKE x, DROP x, INVENTORY, EAT x, QUIT
+
+> You are carrying nothing.
+
+> I don't know how to dance.
+
+> Go where?
+
+> LANDING
+The top of the stairs. A cold draught comes from the west.
+You can see a key here.
+Exits: south west
+
+> Taken: key.
+
+> ATTIC
+Cobwebs and old trunks under the roof.
+You can see a map here.
+Exits: east
+
+> Taken: map.
+
+> You are carrying:
+  a key
+  a map
+
+> LANDING
+The top of the stairs. A cold draught comes from the west.
+Exits: south west
+
+> HALL
+A dusty hall. A staircase leads up to the north; a door opens to the east.
+Exits: north east
+
+> KITCHEN
+Pots and pans everywhere. A heavy door leads east.
+You can see a pear here.
+Exits: east west
+
+> There is no room here: the pear is in the way.
+
+> Taken: pear.
+
+> Dropped: map.
+
+> Delicious. You feel ready for anything.
+
+> KITCHEN
+Pots and pans everywhere. A heavy door leads east.
+You can see a map here.
+Exits: east west
+
+> You unlock the door with the key.
+CELLAR
+A cool cellar. Something shines in the corner.
+You can see a lamp here.
+Exits: west
+
+> Taken: lamp.
+You have found the lost lamp. Well done!
+You made 18 moves.

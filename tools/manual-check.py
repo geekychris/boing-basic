@@ -8,12 +8,14 @@ Every ```basic block in docs/manual/**/*.md is a complete program and is checked
                           equal the ```output (or ```text) block that follows the code
     <!-- run stdin="Ann" -->   the same, with this text (\\n for new lines) as its input
     <!-- fragment -->     not a whole program (a few lines out of a larger one): skipped
-    <!-- project: examples/manual/04_first_form/FirstForm.bbp -->
+    <!-- project: examples/book/ex04-first-form/Converter.bbp -->
                           the block is an excerpt of that project: the project is checked
     <!-- error: 12:5: ... -->  `boing check` must fail with this text in its output
 
-Then every project in examples/manual/ (each directory's .bbp, or its .bas) is checked, and
-the ones with an expected.out are run in the VM (and natively unless NATIVE=0) and compared.
+Then the book examples are checked (tools/manual-book.py --check: the generated listings are in
+step with the manual), every project under examples/book/ (each .bbp, and each exercise drawer's
+.bas) is checked, and the ones with an expected.out are run in the VM (and natively unless
+NATIVE=0) and compared.
 Exit 1 on any failure. `make manual-test` runs it; `make test` too.
 """
 import glob
@@ -139,13 +141,20 @@ def main():
                                         % (where, kind, expected, rc, out))
             if VERBOSE:
                 print("ok", where, d)
-    # the exercise solutions (all of them when no .md files were named, or with --projects)
+    # the book examples: in step with the manual, and every project in them
     want_projects = not [a for a in sys.argv[1:] if a.endswith(".md")] or "--projects" in sys.argv
-    for d in ([] if not want_projects else sorted(glob.glob(os.path.join(ROOT, "examples", "manual", "*", "")))):
-        projs = glob.glob(os.path.join(d, "*.bbp")) or glob.glob(os.path.join(d, "*.bas"))
-        if not projs:
-            continue
-        proj = projs[0]
+    if want_projects:
+        r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "manual-book.py"), "--check"],
+                           capture_output=True, text=True)
+        if r.returncode:
+            failures.append("examples/book is out of step with the manual:\n" + r.stdout)
+    book = os.path.join(ROOT, "examples", "book")
+    projs = sorted(glob.glob(os.path.join(book, "**", "*.bbp"), recursive=True)) if want_projects else []
+    for d in (sorted(glob.glob(os.path.join(book, "ex*", ""))) if want_projects else []):
+        if not glob.glob(os.path.join(d, "*.bbp")):
+            projs += sorted(glob.glob(os.path.join(d, "*.bas")))[:1]
+    for proj in projs:
+        d = os.path.dirname(proj)
         rel = os.path.relpath(proj, ROOT)
         rc, out = check_program(proj, cwd=d)
         counts["project"] += 1
@@ -153,7 +162,7 @@ def main():
             failures.append("%s: boing check failed:\n%s" % (rel, out))
             continue
         exp = os.path.join(d, "expected.out")
-        if os.path.exists(exp):
+        if os.path.exists(exp) and len(glob.glob(os.path.join(d, "*.bbp"))) <= 1:
             inp = os.path.join(d, "input.txt")
             stdin = open(inp).read() if os.path.exists(inp) else None
             want = open(exp).read()

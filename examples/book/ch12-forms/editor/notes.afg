@@ -1,0 +1,13 @@
+# notes.afg
+window name=notes title="Notes" width=480 height=300 dropfiles=1
+vlayout id=root
+  hlayout weight=0
+    getfile id=pick title="Open a text" pattern="#?.(txt|bas)" weight=60
+    button id=btnLoad text="_Load" weight=0
+    button id=btnSave text="_Save" weight=0
+  texteditor id=ed fixedfont=1
+  hlayout weight=0
+    string id=findText label="Find" maxchars=80
+    checkbox id=matchCase text="Match _case"
+    button id=findNext text="_Next" weight=0
+  label id=status text="Ln 1, Col 1"

@@ -1,0 +1,6 @@
+manual tune: 3 positions, 2 patterns, 4 channels
+cell 0/4/0 is E-2, packed &H11010000
+after 3 s: position 0  row 25  pattern 0 
+played 23.1 seconds, ended 1 time
+PCM hash 714887021 
+tune.mod 3164 bytes, tune.wav 2031660 bytes

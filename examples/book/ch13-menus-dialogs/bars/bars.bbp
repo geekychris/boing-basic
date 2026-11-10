@@ -1,0 +1,4 @@
+# Bars: a toolbar linked to the menus and a status bar (manual chapter 13)
+Name=Bars
+Startup=Form writer
+Form=writer.afg

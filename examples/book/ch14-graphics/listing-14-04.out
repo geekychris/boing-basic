@@ -1,0 +1,5 @@
+TextWidth("SCORE 100") = 54 
+TextHeight = 10 
+after two Prints: CurrentX 0  CurrentY 22 
+after DrawText: CurrentX 20 
+hash 1008490052 

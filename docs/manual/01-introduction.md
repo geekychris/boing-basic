@@ -86,6 +86,8 @@ Amiga also need the AmigaOS 4 SDK installed, with its `SDK:` assign.
 
 Type this into a file called `hello.bas`:
 
+*Listing 1.1* (`examples/book/ch01-introduction/listing-01-01.bas`)
+
 <!-- run -->
 ```basic
 Print "Hello from Boing BASIC!"
@@ -128,8 +130,9 @@ Chapter 2 explains these commands; exercise 1 builds on this program.
   [menus, toolbars and dialogs](13-menus-dialogs.md).
 - **Graphics and sound**: [the Canvas and Timers](14-graphics.md), [Engine3D](15-engine3d.md)
   and [Audio](16-audio.md).
-- **Beyond the language**: [calling AmigaOS](17-amigaos.md) and
-  [extending Boing BASIC with C and C++](18-extending.md).
+- **Beyond the language**: [calling AmigaOS](17-amigaos.md), [the AmigaOS 4 desktop](18-desktop.md),
+  [networking and modern libraries](19-networking.md) and
+  [extending Boing BASIC with C and C++](20-extending.md).
 - **[Exercises](exercises/README.md)**: a series of complete programs to build, from a Shell
   game to windowed applications, a Canvas game, a 3D scene and sound.
 - **Appendices**: [keywords](appendix-a-keywords.md), [all built-in functions](appendix-b-functions.md)

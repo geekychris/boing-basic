@@ -1,0 +1,19 @@
+# lists.afg
+window name=lists title="Lists" width=520 height=300
+vlayout id=root
+  tabs id=pages
+    vlayout title="Files"
+      listbrowser id=files columns="Name|Size|Type" widths="50|20|30" sortable=1 multiselect=1
+      hlayout weight=0
+        button id=addFile text="_Add"
+        button id=removeFiles text="_Remove selected"
+        label id=fileInfo text=" "
+    hlayout title="Tree" splitter=1
+      treeview id=tree weight=40
+      vlayout weight=60
+        label id=nodeInfo text="Choose a node"
+        button id=expandAll text="_Expand all" weight=0
+        space
+    vlayout title="Grid"
+      grid id=sheet rows=11 cols=5 fixedrows=1 fixedcols=1 colwidth=70 editable=1 headers=1
+      label id=cellInfo text=" "

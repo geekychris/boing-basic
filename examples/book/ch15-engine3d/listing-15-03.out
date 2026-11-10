@@ -1,0 +1,7 @@
+horizon row: 128 
+camera space: 50  0  400 
+on screen at 192  128 
+a point behind the camera is not drawn
+visible ahead:True  behind:False
+yaw after CamLookAt: 8192  pitch: 0 
+camera restored to x = 0 
