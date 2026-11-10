@@ -15,7 +15,7 @@ extracted: 5
  26000  5000 True
  15 
 written: 9 
-readme.txt(21) empty.txt(0) data.bin(5000) texts/hello.txt(15) tree/(0) tree/sub/(0) tree/sub/big.txt(26000) tree/data.bin(5000) stored.txt(1000) 
+readme.txt(21) empty.txt(0) data.bin(5000) texts/hello.txt(15) tree/(0) tree/data.bin(5000) tree/sub/(0) tree/sub/big.txt(26000) stored.txt(1000) 
 True 1000 True
 True 0 True
 missing: 53 

@@ -463,6 +463,8 @@ static void add_file(zip_obj *z, const char *path, const char *name)
     free(data);
 }
 
+static int cmp_names(const void *a, const void *b) { return strcmp(*(char *const *)a, *(char *const *)b); }
+
 /* a folder with everything in it; names start with prefix ("" or "dir/") */
 static void add_folder(zip_obj *z, const char *dir, const char *prefix, int depth)
 {
@@ -479,6 +481,7 @@ static void add_folder(zip_obj *z, const char *dir, const char *prefix, int dept
         names[n++] = nm;
     }
     free(pat);
+    qsort(names, (size_t)n, sizeof(char *), cmp_names);    /* the same archive on every system */
     for (i = 0; i < n; i++) {
         char *full = join(dir, names[i]), *zn = malloc(strlen(prefix) + strlen(names[i]) + 2);
         sprintf(zn, "%s%s", prefix, names[i]);
