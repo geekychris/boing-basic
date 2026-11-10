@@ -1,6 +1,7 @@
 /* sema.c - declarations, statements and the program-level checks */
 #include "sema.h"
 #include "../runtime/boing.h"
+#include "../runtime/boing_ext.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -1412,16 +1413,16 @@ int sema_program(Program *p)
     /* the runtime's own classes as types (Dim e As Engine3D / As Boing.Engine3D): member names
        checked at compile time; a module or class of the program with the same name wins */
     {
-        static const char *rtn[] = {"Engine3D", "Canvas", "Audio", "Http"};
-        int k;
-        for (k = 0; k < 4; k++) {
+        int k, nk = bb_ext_class_count();
+        for (k = 0; k < nk; k++) {
+            const char *rn = bb_ext_class_name(k);
             ClassInfo *rc;
             Sym *s;
-            if (scope_find_local(p->global, rtn[k]) || !bb_runtime_class(rtn[k])) continue;
+            if (scope_find_local(p->global, rn) || !bb_runtime_class(rn)) continue;
             rc = (ClassInfo *)xcalloc(1, sizeof(ClassInfo));
-            rc->name = xstrdup(rtn[k]);
-            rc->rtcls = bb_runtime_class(rtn[k]);
-            rc->index = -2 - k;     /* the VM's CHKCLS: -2 Engine3D, -3 Canvas, -4 Audio, -5 Http */
+            rc->name = xstrdup(rn);
+            rc->rtcls = bb_runtime_class(rn);
+            rc->index = -1;         /* the VM's CHKCLS finds it by name (emit_bc) */
             s = new_sym(SK_CLASS, rc->name, NULL);
             s->cls = rc;
             s->is_public = 1;

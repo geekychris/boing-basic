@@ -80,6 +80,14 @@ static int str_const(E *e, const char *s, int len)
     return add_const(e, bb_v_str(bb_str_lit(s, len)));
 }
 
+/* CHKCLS operand: a program class's index, or -1 - (constant holding the name) for a registered
+   class (Engine3D, Canvas, Audio, an extension's), looked up by name when the VM runs it */
+static int32_t chkcls_opnd(E *e, ClassInfo *c)
+{
+    if (c->rtcls) return -1 - str_const(e, c->name, (int)strlen(c->name));
+    return c->index;
+}
+
 static void line(E *e, Node *s)
 {
     if (e->nlines && e->lines[e->nlines - 1].pc == here(e)) { e->lines[e->nlines - 1].line = s->line; return; }
@@ -386,7 +394,7 @@ static void conv(E *e, Node *n)
     if (to->kind == T_ARRAY) { op1(e, I_CVTARR, vt_of(to->elem)); return; }
     if (to->kind == T_OBJECT) {
         if (from->kind != T_OBJECT) op1(e, I_CVT, BB_OBJECT);
-        if (to->cls && !to->cls->builtin) op1(e, I_CHKCLS, to->cls->index);
+        if (to->cls && !to->cls->builtin) op1(e, I_CHKCLS, chkcls_opnd(e, to->cls));
         return;
     }
     if (type_eq(from, to) && !(to->kind == T_STRING && to->fixlen)) return;
@@ -1617,7 +1625,7 @@ static void foreach_stmt(E *e, Node *s)
     if (s->a->ty->kind != T_VARIANT) {
         if (s->a->ty->kind == T_OBJECT) {
             op1(e, I_CVT, BB_OBJECT);
-            if (s->a->ty->cls && !s->a->ty->cls->builtin) op1(e, I_CHKCLS, s->a->ty->cls->index);
+            if (s->a->ty->cls && !s->a->ty->cls->builtin) op1(e, I_CHKCLS, chkcls_opnd(e, s->a->ty->cls));
         } else op1(e, I_CVT, vt_of(s->a->ty));
     }
     store_top(e, s->a);

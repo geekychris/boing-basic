@@ -1753,9 +1753,8 @@ static void vm_exec(VM *vm, int entry)
             }
             case I_CHKCLS: {
                 bb_value *a = &TOP;
-                if (pc[1] < 0) {        /* As Engine3D / Canvas / Audio (the runtime's classes) */
-                    static const char *const rtn_[] = {"Engine3D", "Canvas", "Audio", "Http"};
-                    if (a->type == BB_OBJECT && a->u.o && a->u.o->cls != bb_runtime_class(rtn_[-2 - pc[1]])) bb_raise(13, NULL);
+                if (pc[1] < 0) {        /* a registered class (Engine3D, Canvas, Audio, extensions): by name */
+                    if (a->type == BB_OBJECT && a->u.o && a->u.o->cls != bb_runtime_class(bb_str_ptr(img->consts[-1 - pc[1]].u.s))) bb_raise(13, NULL);
                 } else if (a->type == BB_OBJECT && a->u.o && !bb_obj_is(a->u.o, &img->classes[pc[1]].rt)) bb_raise(13, NULL);
                 pc += 2;
                 break;
