@@ -40,6 +40,9 @@ const bb_class *bb_ini_class(void);   /* ini.c */
 bb_obj *bb_ini_new(void);
 const bb_class *bb_logger_class(void);   /* logger.c */
 bb_obj *bb_logger_new(void);
+const bb_class *bb_xmldoc_class(void);   /* xml.c */
+const bb_class *bb_xmlelem_class(void);
+bb_obj *bb_xmldoc_new(void);
 static bb_obj *new_canvas(void) { return bb_canvas_new(320, 200, NULL); }
 
 static void builtins(void)
@@ -59,6 +62,8 @@ static void builtins(void)
     bb_register_class("Process", bb_process_class(), bb_process_new);
     bb_register_class("IniFile", bb_ini_class(), bb_ini_new);
     bb_register_class("Logger", bb_logger_class(), bb_logger_new);
+    bb_register_class("XmlDocument", bb_xmldoc_class(), bb_xmldoc_new);
+    bb_register_class("XmlElement", bb_xmlelem_class(), NULL);
 }
 
 static const char *strip(const char *name) { return name && !strncasecmp(name, "Boing.", 6) ? name + 6 : name; }

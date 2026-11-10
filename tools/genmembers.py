@@ -13,13 +13,17 @@ SRC = {"Canvas": ["src/runtime/canvas.c", "src/runtime/canvas_paint_impl.h"],
        "Csv": ["src/runtime/csv.c"],
        "Process": ["src/runtime/process.c"],
        "IniFile": ["src/runtime/ini.c"],
-       "Logger": ["src/runtime/logger.c"]}
+       "Logger": ["src/runtime/logger.c"],
+       "XmlDocument": ["src/runtime/xml.c"],
+       "XmlElement": ["src/runtime/xml.c:elem_tab"]}
 OUT = os.path.join(ROOT, "src/compiler/rtmembers.h")
 
 def members(path):
+    path, _, table = path.partition(":")      # file.c:table reads that table instead of members[]
     s = open(os.path.join(ROOT, path)).read()
     out = []
-    for m in re.finditer(r'(?:members|paint_members)\[\]\s*=\s*\{(.*?)\n\};', s, re.S):
+    pat = r'\b%s\[\]\s*=\s*\{(.*?)\n\};' % table if table else r'(?:members|paint_members)\[\]\s*=\s*\{(.*?)\n\};'
+    for m in re.finditer(pat, s, re.S):
         for name, mid in re.findall(r'\{\s*"([A-Za-z_][A-Za-z0-9_]*)"\s*,\s*([A-Z0-9_]+)\s*\}', m.group(1)):
             out.append((name, "property" if mid.startswith("P_") else "method"))
     return out
