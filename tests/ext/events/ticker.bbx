@@ -1,0 +1,6 @@
+# ticker.bbx - a class with events
+class Ticker
+  method Run(ByVal n As Long)
+  property Runs As Long ReadOnly
+  event Tick(ByVal i As Long, ByVal label As String)
+  event Done()

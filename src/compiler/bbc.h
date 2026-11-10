@@ -309,6 +309,7 @@ struct Proc {
     int defined;            /* body present */
     Sym **labels; int nlabels;
     int event_index;        /* PK_EVENT */
+    int ev_np;              /* a registered class's event: its parameter count (-1 unknown) */
 };
 
 struct ClassInfo {
@@ -374,7 +375,8 @@ struct Module {
 /* linked extensions (docs/extensions.md): what a descriptor name.bbx declares */
 typedef struct ExtParam { char *name; char *type; } ExtParam;
 typedef struct ExtMember { char *name; int kind; char *sig; char *type; } ExtMember;  /* kind: 0 method, 1 property, 2 property-ro */
-typedef struct ExtClass { char *name; char *ext; ExtMember *m; int nm; } ExtClass;
+typedef struct ExtClass { char *name; char *ext; ExtMember *m; int nm; struct ExtFunc *ev; int nev; } ExtClass;   /* ev: 'event' lines */
+struct ExtFunc;
 typedef struct ExtFunc { char *name; char *ext; ExtParam *p; int np; char *ret; char *sig; int line, file; } ExtFunc;
 typedef struct ExtInfo { char *name; char *dir; char *src; char *bbx; } ExtInfo;   /* Extension=dir/name */
 

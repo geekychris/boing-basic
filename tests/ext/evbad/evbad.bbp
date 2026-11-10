@@ -1,0 +1,5 @@
+Name=EvBad
+Startup=Sub Main
+Module=evbad.bas
+Extension=../events/ticker
+Extension=../../../examples/ext_counter/counter

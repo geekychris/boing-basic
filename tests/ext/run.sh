@@ -12,7 +12,8 @@ counter=$(printf 'value 55 count 10 \nset 100 Counter\nreset 0  0 \nclamp 10  0 
 shapes=$(printf 'area 42  6x7\ndefault 1  1x1\ngcd 12  6 ')
 clib=$(printf ' 20  25  5 positive not positive')
 asnew=$(printf 'auto 5  5  2 \nrenew 1 Counter\nfield 9 ')
-for t in "examples/ext_counter/demo.bbp:counter" "examples/ext_shapes/demo.bbp:shapes" "tests/ext/clib/clib.bbp:clib" "tests/ext/asnew/asnew.bbp:asnew"; do
+events=$(printf 'tick 1 tick 2 tick 3 | done, total 6 \nwatcher done 2 \nruns 2 ')
+for t in "examples/ext_counter/demo.bbp:counter" "examples/ext_shapes/demo.bbp:shapes" "tests/ext/clib/clib.bbp:clib" "tests/ext/asnew/asnew.bbp:asnew" "tests/ext/events/events.bbp:events"; do
     proj=${t%%:*}; name=${t##*:}; d=$(dirname "$root/$proj"); f=$(basename "$proj")
     eval want=\$$name
     if (cd "$d" && "$B" build "$f" -o "$tmp/$name.nat" >/dev/null 2>&1); then check "$name native" "$(cd "$d" && "$tmp/$name.nat" 2>&1)" "$want"
@@ -31,6 +32,10 @@ case $got in *"runtime error 453: function 'AddMul' is not linked"*"rc=20") ;; *
 got=$(cd "$root/tests/ext/bad" && "$B" check bad.bbp 2>&1)
 want=$(printf "bad.bas:4:7: error: 'Ad' is not a member of Counter\nbad.bas:5:7: error: Counter.Count is read-only\nbad.bas:6:9: error: 'Clamp' takes 3 arguments, not 2")
 check "bbx checks" "$got" "$want"
+# WithEvents: a handler with the wrong parameter count; a class without events
+got=$(cd "$root/tests/ext/evbad" && "$B" check evbad.bbp 2>&1)
+want=$(printf "evbad.bas:2:5: error: WithEvents: the class Counter has no events\nevbad.bas:3:1: error: tk_Tick handles the event Ticker.Tick, which has 2 parameters, not 1")
+check "event checks" "$got" "$want"
 # members of an extension's classes
 n=$(cd "$root/examples/ext_counter" && "$B" members --project demo.bbp Counter | wc -l | tr -d ' ')
 [ "$n" = 4 ] || { echo "FAIL ext members --project: $n lines"; fail=1; }
