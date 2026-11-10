@@ -1,0 +1,5 @@
+# AmiForge GUI
+window name=scale3big title="blit scale3 centred" width=1000 height=700
+vlayout id=root
+  canvas id=view width=200 height=150 scale=3
+  timer id=tick interval=250 enabled=1

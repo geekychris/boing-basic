@@ -114,6 +114,80 @@ static int blit_friend(struct Window *win, const uint32_t *px, int32_t w, int32_
     return 1;
 }
 
+/* Present enlarged s times straight into the friend bitmap: no scaled copy in between (at 2x a
+ * 1.3 MB buffer written and read again every frame), and the per-frame loops in one function on
+ * its own page. On the QEMU guest a frame's cost depends on how many distinct pages it touches
+ * (its small TLB, docs/performance.md): the old path's time moved by 40% with the code's layout
+ * (Orbit Docking's blit 5.6-7.9 ms for the same code). */
+__attribute__((aligned(4096), noinline))
+int canvas_plat_present_scaled(bb_ctl *ctl, const uint32_t *px, int32_t w, int32_t h, int32_t s)
+{
+    void *wp = NULL;
+    int x, y, gw, gh;
+    int32_t W = w * s, H = h * s, i, j, k;
+    struct Window *win;
+    APTR lock;
+    uint8 *base = NULL;
+    uint32 bpr = 0, pf = 0;
+    if (s < 2 || (canvas_blit_mode != 0 && canvas_blit_mode != 3)) return -1;
+    if (!bb_ctl_os_window(ctl, &wp, &x, &y, &gw, &gh)) return 0;
+    win = (struct Window *)wp;
+    if (W > gw || H > gh) return -1;            /* clipped: the general path */
+    x += (gw - W) / 2;
+    y += (gh - H) / 2;
+    if (!friend_bm || friend_w < W || friend_h < H || friend_of != win->RPort->BitMap) {
+        free_friend();
+        friend_bm = IGraphics->AllocBitMapTags(W, H, IGraphics->GetBitMapAttr(win->RPort->BitMap, BMA_DEPTH),
+                                               BMATags_Friend, (uint32)win->RPort->BitMap, TAG_DONE);
+        if (!friend_bm) return -1;
+        friend_w = W;
+        friend_h = H;
+        friend_of = win->RPort->BitMap;
+    }
+    lock = IGraphics->LockBitMapTags(friend_bm, LBM_BaseAddress, (uint32)&base, LBM_BytesPerRow, (uint32)&bpr,
+                                     LBM_PixelFormat, (uint32)&pf, TAG_DONE);
+    if (!lock) return -1;
+    if (!base) { IGraphics->UnlockBitMap(lock); return -1; }
+    if (pf == PIXF_R5G6B5 || pf == PIXF_R5G6B5PC) {
+        int swap = pf == PIXF_R5G6B5PC;
+        for (j = 0; j < h; j++) {
+            const uint32_t *src = px + j * w;
+            uint16_t *d = (uint16_t *)(base + (size_t)j * s * bpr), *d2;
+            for (i = 0; i < w; i++) {
+                uint16_t p = rgb565(src[i]);
+                if (swap) p = __builtin_bswap16(p);
+                for (k = 0; k < s; k++) d[i * s + k] = p;
+            }
+            for (k = 1; k < s; k++) {           /* the other rows: copies of the first */
+                d2 = (uint16_t *)((uint8 *)d + (size_t)k * bpr);
+                for (i = 0; i < W; i++) d2[i] = d[i];
+            }
+        }
+        blit_info = swap ? "friend bitmap R5G6B5PC, scaled" : "friend bitmap R5G6B5, scaled";
+    } else if (pf == PIXF_A8R8G8B8 || pf == PIXF_B8G8R8A8) {
+        int swap = pf == PIXF_B8G8R8A8;
+        for (j = 0; j < h; j++) {
+            const uint32_t *src = px + j * w;
+            uint32_t *d = (uint32_t *)(base + (size_t)j * s * bpr), *d2;
+            for (i = 0; i < w; i++) {
+                uint32_t p = swap ? __builtin_bswap32(src[i]) : src[i];
+                for (k = 0; k < s; k++) d[i * s + k] = p;
+            }
+            for (k = 1; k < s; k++) {
+                d2 = (uint32_t *)((uint8 *)d + (size_t)k * bpr);
+                for (i = 0; i < W; i++) d2[i] = d[i];
+            }
+        }
+        blit_info = swap ? "friend bitmap B8G8R8A8, scaled" : "friend bitmap A8R8G8B8, scaled";
+    } else {
+        IGraphics->UnlockBitMap(lock);
+        return -1;
+    }
+    IGraphics->UnlockBitMap(lock);
+    IGraphics->BltBitMapRastPort(friend_bm, 0, 0, win->RPort, x, y, W, H, 0xC0);
+    return 0;
+}
+
 int canvas_plat_present(bb_ctl *ctl, const uint32_t *px, int32_t w, int32_t h, int32_t stride)
 {
     void *wp = NULL;

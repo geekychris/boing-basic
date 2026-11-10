@@ -1,0 +1,5 @@
+# AmiForge GUI
+window name=clipped title="blit clipped" width=400 height=300
+vlayout id=root
+  canvas id=view width=320 height=256 scale=2
+  timer id=tick interval=250 enabled=1

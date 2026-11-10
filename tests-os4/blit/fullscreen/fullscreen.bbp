@@ -1,0 +1,3 @@
+Name=fullscreen
+Startup=Form fullscreen
+Form=fullscreen.afg

@@ -101,6 +101,14 @@ def screendump(out_png):
     import tempfile
     from PIL import Image
     tmp = tempfile.mktemp(suffix=".ppm")
+    try:
+        # wake the screen blanker (a screenshot showed the blanker, not the game): a 1-pixel move
+        # there and back, so the pointer ends where it was and screenshots stay comparable
+        g.mouse(1, 0)
+        g.mouse(-1, 0)
+        time.sleep(1)
+    except Exception as ex:
+        print("screendump: could not wake the blanker:", ex)
     if g.SSH:
         subprocess.run(["ssh", g.SSH, "printf 'screendump /tmp/bbg_shot.ppm\\n' | nc -w 3 127.0.0.1 %d >/dev/null" % hmp_port()], check=True)
         time.sleep(1)
