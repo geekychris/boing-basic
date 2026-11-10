@@ -350,6 +350,69 @@ Failed:
 End Sub
 ```
 
+## Cookies and kept connections
+
+An `Http` object behaves like a browser session: it remembers the cookies servers set, sends
+them back on later requests to those servers, and keeps its connection open for the next
+request to the same server. Both are on unless you switch them off.
+
+| Member | What it does |
+|---|---|
+| `UseCookies` | store the cookies servers set and send them back (default True) |
+| `GetCookie(name [, host])` | a stored cookie's value, or `""` |
+| `SetCookie name, value, domain [, path]` | add a cookie, for the domain and its subdomains (the path is `/` unless you give one) |
+| `ClearCookies` | forget all the cookies |
+| `CookieCount` | how many are stored |
+| `Cookies` | all of them as text, one line each in the `cookies.txt` layout browsers and `curl` use (domain, subdomains `TRUE`/`FALSE`, path, secure, expiry as Unix time with 0 for "until the program ends", name and value, separated by tabs); assigning text replaces them |
+| `KeepAlive` | keep the connection open after a request (default True) |
+| `ConnectionReused` | True if the last request went over a connection kept from an earlier one |
+
+*Listing 19.10* (`examples/book/ch19-networking/listing-19-10.bas`)
+
+<!-- run -->
+```basic
+Dim web As Http
+Set web = New Http
+web.SetCookie "theme", "dark", "example.com"
+web.SetCookie "lang", "en", "example.com", "/docs"
+Print web.CookieCount; "cookies; theme = "; web.GetCookie("theme", "example.com")
+Print Replace(web.Cookies, vbTab, " | ");
+web.ClearCookies
+Print web.CookieCount; "after ClearCookies"
+```
+
+```output
+ 2 cookies; theme = dark
+example.com | TRUE | / | FALSE | 0 | theme | dark
+example.com | TRUE | /docs | FALSE | 0 | lang | en
+ 0 after ClearCookies
+```
+
+Cookies follow the usual rules of the web: a cookie for another site is refused, longer paths
+are sent first, an expiry in the past deletes the cookie, and a `Secure` cookie only travels
+over HTTPS. Cookies set by a redirect go with the request to its target, so a login page that
+redirects works. A `Cookie` header set with `SetHeader` replaces the stored cookies for that
+request.
+
+To stay logged in between runs of the program, save the `Cookies` text in a file and load it
+next time:
+
+<!-- fragment -->
+```basic
+Open App.Path & "/cookies.txt" For Output As #1
+Print #1, web.Cookies;
+Close #1
+' ... and in the next run:
+Open App.Path & "/cookies.txt" For Binary As #1
+web.Cookies = Input(LOF(1), #1)
+Close #1
+```
+
+A kept connection saves setting up the connection (and, for HTTPS, the encryption) again,
+which is most of the time a small request takes on an emulated or older machine. If the
+server has closed it in the meantime, the next request quietly opens a new one. On AmigaOS 4
+requests in the background (`GetAsync`) always use a connection of their own.
+
 ## Requests that don't block: GetAsync / SendAsync
 
 `Get`, `Post` and the other request methods wait until the whole answer has arrived. In a
@@ -429,7 +492,7 @@ its errors are **not** raised: the request ends, and `ErrorNumber` and `ErrorTex
 wrong. Check `ErrorNumber` first, then `Status` (a request that fails halfway can have a
 `Status` of 200 and half a body):
 
-*Listing 19.10* (`examples/book/ch19-networking/listing-19-10.bas`)
+*Listing 19.11* (`examples/book/ch19-networking/listing-19-11.bas`)
 
 <!-- run -->
 ```basic
@@ -501,7 +564,7 @@ complete and the object is ready for the next request.
 A program without forms can start a request, do other work, and look at `Busy` now and then.
 `Busy` handles the events (and calls `OnProgress` and `OnDone`) each time you read it:
 
-*Listing 19.11* (`examples/book/ch19-networking/listing-19-11.bas`)
+*Listing 19.12* (`examples/book/ch19-networking/listing-19-12.bas`)
 
 ```basic
 Option Explicit
@@ -529,7 +592,7 @@ End Sub
 `Wait` does the same loop for you. `web.Wait()` waits as long as it takes; `web.Wait(500)` waits
 at most half a second and tells you whether the request ended in that time:
 
-*Listing 19.12* (`examples/book/ch19-networking/listing-19-12.bas`)
+*Listing 19.13* (`examples/book/ch19-networking/listing-19-13.bas`)
 
 ```basic
 Option Explicit
@@ -547,7 +610,7 @@ Print web.Status
 Each `Http` object runs one request at a time, but several objects can run theirs together.
 They end in their own order: a quick one started after a slow one ends first.
 
-*Listing 19.13* (`examples/book/ch19-networking/listing-19-13.bas`)
+*Listing 19.14* (`examples/book/ch19-networking/listing-19-14.bas`)
 
 ```basic
 Option Explicit
@@ -587,7 +650,7 @@ A program that ends while a request still runs simply stops it. In a form, cance
 request in `Form_Unload`, and clear `OnDone` first so that it isn't called while the window
 goes away:
 
-*Listing 19.14* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
+*Listing 19.15* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
 
 <!-- project: examples/book/ch19-networking/asyncfetch/asyncfetch.bbp -->
 ```basic
@@ -625,7 +688,7 @@ name a control.)
 `Form_Load` creates the `Http` object once and names the two Subs. **Download** starts the
 request and returns at once; **Cancel** asks it to stop:
 
-*Listing 19.15* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
+*Listing 19.16* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
 
 <!-- project: examples/book/ch19-networking/asyncfetch/asyncfetch.bbp -->
 ```basic
@@ -658,7 +721,7 @@ End Sub
 `Fetching` moves the progress bar. When the server didn't send the size (`total` is -1), it
 can't show a percentage, so it shows the kilobytes in the bar instead:
 
-*Listing 19.16* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
+*Listing 19.17* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
 
 <!-- project: examples/book/ch19-networking/asyncfetch/asyncfetch.bbp -->
 ```basic
@@ -679,7 +742,7 @@ End Sub
 `Fetched` runs once at the end. It puts the buttons back, then looks at how the request ended:
 cancelled, failed, an error status from the server, or a whole answer to save:
 
-*Listing 19.17* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
+*Listing 19.18* (`examples/book/ch19-networking/asyncfetch/asyncfetch.bbp`)
 
 <!-- project: examples/book/ch19-networking/asyncfetch/asyncfetch.bbp -->
 ```basic
@@ -760,7 +823,7 @@ You can use a socket in two ways, and mix them in one program:
 
 A first client, asking a web server for the headers of its home page by hand:
 
-*Listing 19.18* (`examples/book/ch19-networking/listing-19-18.bas`)
+*Listing 19.19* (`examples/book/ch19-networking/listing-19-19.bas`)
 
 ```basic
 Option Explicit
@@ -796,7 +859,7 @@ that connection. Both ends `Send` and receive bytes; each `Close`s its end when 
 This program is a tiny echo server and its client at once. The server answers every line in
 capitals. Port 0 asks for any free port, which `LocalPort` then tells you:
 
-*Listing 19.19* (`examples/book/ch19-networking/listing-19-19.bas`)
+*Listing 19.20* (`examples/book/ch19-networking/listing-19-20.bas`)
 
 <!-- run -->
 ```basic
@@ -846,7 +909,7 @@ uses `MachineAddress`, the machine's own address on the network, instead.
 
 A real server waits for clients in a loop and serves them one after the other:
 
-*Listing 19.20* (`examples/book/ch19-networking/listing-19-20.bas`)
+*Listing 19.21* (`examples/book/ch19-networking/listing-19-21.bas`)
 
 ```basic
 Option Explicit
@@ -909,7 +972,7 @@ so that each fits in one network packet.
 | `ReceiveFrom([waitMs])` | the next datagram, or `""` if none came within waitMs milliseconds (default 0: don't wait). `RemoteHost` and `RemotePort` then tell you who sent it. |
 | `BytesAvailable` | the size of the next datagram |
 
-*Listing 19.21* (`examples/book/ch19-networking/listing-19-21.bas`)
+*Listing 19.22* (`examples/book/ch19-networking/listing-19-22.bas`)
 
 <!-- run -->
 ```basic
@@ -1000,7 +1063,7 @@ Here is the echo server and client again, with events. The server keeps the conn
 accepts in a Collection; the client sends its lines as soon as it is connected and closes the
 connection when the answer to "bye" comes back:
 
-*Listing 19.22* (`examples/book/ch19-networking/listing-19-22.bas`)
+*Listing 19.23* (`examples/book/ch19-networking/listing-19-23.bas`)
 
 <!-- run -->
 ```basic
@@ -1113,7 +1176,7 @@ The hosting half: the listening socket accepts every client into a Collection, a
 `ClientDataArrival` and `ClientClose` events serve all of them with one handler each.
 `MachineAddress` tells the user what the others should type into Host:
 
-*Listing 19.23* (`examples/book/ch19-networking/chat/chat.bbp`)
+*Listing 19.24* (`examples/book/ch19-networking/chat/chat.bbp`)
 
 <!-- project: examples/book/ch19-networking/chat/chat.bbp -->
 ```basic
@@ -1173,7 +1236,7 @@ End Sub
 The joining half connects with events, so the window doesn't freeze while it connects, and
 shows each line as it arrives:
 
-*Listing 19.24* (`examples/book/ch19-networking/chat/chat.bbp`)
+*Listing 19.25* (`examples/book/ch19-networking/chat/chat.bbp`)
 
 <!-- project: examples/book/ch19-networking/chat/chat.bbp -->
 ```basic
@@ -1229,7 +1292,7 @@ numbers are the same as for `Http`:
 | 5 | a call that doesn't fit the socket: `Send` on a UDP socket, `Accept` on one that isn't listening, `ReceiveFrom` on a TCP socket |
 | 18 | the user pressed Ctrl-C while a call was waiting |
 
-*Listing 19.25* (`examples/book/ch19-networking/listing-19-25.bas`)
+*Listing 19.26* (`examples/book/ch19-networking/listing-19-26.bas`)
 
 <!-- run -->
 ```basic
@@ -1342,7 +1405,7 @@ vlayout id=root
 The progress is how far into the file the job has read: `Seek(f)` is the position of the next
 byte to read (from 1) and `LOF(f)` the file's length.
 
-*Listing 19.26* (`examples/book/ch19-networking/slices/slices.bbp`)
+*Listing 19.27* (`examples/book/ch19-networking/slices/slices.bbp`)
 
 <!-- project: examples/book/ch19-networking/slices/slices.bbp -->
 ```basic
@@ -1439,8 +1502,7 @@ use Timer slices for anything the user may want to cancel.
 
 ## Limits
 
-Not supported yet: compressed (gzip) answers, cookies, proxies, reusing connections between
-requests, and IPv6 on AmigaOS.
+Not supported yet: compressed (gzip) answers, proxies, and IPv6 on AmigaOS.
 
 ## Summary
 
