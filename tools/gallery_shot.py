@@ -178,7 +178,7 @@ def shoot(ex, shot, keep_full):
         fl = files_of(src, run.get("files", [])) if run.get("project") else []
         dirs = sorted({os.path.dirname(amiga(p)) for p in fl} | {DEST + rel})
         mk = sorted({"/".join(x.split("/")[:i]) for x in dirs for i in range(2, x.count("/") + 2)})
-        m.tool("amiga_dos_command", command="makedir RAM:bbdoc " + " ".join(mk) + " QUIET")
+        m.tool("amiga_dos_command", command="makedir RAM:bbdoc " + " ".join(mk))
         for f in fl:
             g.push(m, f, amiga(f))
         d = DEST + rel
