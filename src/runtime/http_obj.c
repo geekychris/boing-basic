@@ -202,6 +202,10 @@ static void job_free(job *j)
     free(j);
 }
 
+/* events for Dim WithEvents x As Http (registered in ext.c, in this order) */
+enum { EV_DONE, EV_PROGRESS, EV_FAILED };
+const char *const bb_http_events[] = { "Done", "Progress", "Failed", NULL };
+
 static void call_named(const char *name, int argc, bb_value *argv)
 {
     if (!name || !*name) return;
@@ -252,16 +256,24 @@ void bb_http_async_poll(void)
             next = h->next_busy;
             job *j = h->job;
             if (!j) continue;
-            if (h->onprogress && *h->onprogress && j->got != h->reported) {
+            if (((h->onprogress && *h->onprogress) || h->hdr.sinks) && j->got != h->reported) {
                 h->reported = j->got;
                 bb_value a[2] = { bb_v_long((bb_long)j->got), bb_v_long((bb_long)j->total) };
                 bb_obj_retain(&h->hdr);
+                bb_event_raise(&h->hdr, EV_PROGRESS, "Progress", 2, a);
                 call_named(h->onprogress, 2, a);
                 bb_obj_release(&h->hdr);
             }
             if (j->done) {
                 bb_obj_retain(&h->hdr);     /* the Sub may drop the last reference */
                 finish(h);
+                if (h->err_number) {
+                    bb_value a[2] = { bb_v_long(h->err_number), bb_v_str(bb_str_from_c(h->err_text)) };
+                    bb_event_raise(&h->hdr, EV_FAILED, "Failed", 2, a);
+                    bb_v_release(&a[1]);
+                } else {
+                    bb_event_raise(&h->hdr, EV_DONE, "Done", 0, NULL);
+                }
                 call_named(h->ondone, 0, NULL);
                 bb_obj_release(&h->hdr);    /* the busy list's reference */
                 bb_obj_release(&h->hdr);

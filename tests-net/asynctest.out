@@ -14,4 +14,7 @@ ok 13 - an unknown host: ErrorNumber 31102
 ok 14 - SendAsync POST
 ok 15 - HTTPS asynchronously
 ok 16 - two HTTPS requests at once
-PASS 16
+ok 17 - WithEvents: Done and Progress
+ok 18 - WithEvents: Failed(number, text)
+ok 19 - WithEvents: Failed after Cancel
+PASS 19

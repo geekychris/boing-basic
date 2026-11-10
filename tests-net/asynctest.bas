@@ -4,6 +4,8 @@
 Option Explicit
 
 Private n As Integer, fails As Integer
+Private WithEvents ev As Http
+Private evLog As String, evProgress As Long
 Private h1 As Http, h2 As Http, order As String, progressCalls As Long, lastGot As Long, doneCount As Long
 
 Private Sub Check(ok As Boolean, what As String)
@@ -25,6 +27,18 @@ Sub H1Progress(got As Long, total As Long)
     lastGot = got
 End Sub
 
+Private Sub ev_Done()
+    evLog = evLog & "done " & ev.Status & " "
+End Sub
+
+Private Sub ev_Failed(number As Long, text As String)
+    evLog = evLog & "failed " & number & " "
+End Sub
+
+Private Sub ev_Progress(got As Long, total As Long)
+    evProgress = evProgress + 1
+End Sub
+
 Sub Main()
     Dim args() As String, base As String, sbase As String, ca As String, s As String, ok As Boolean
     args = Split(Command(), " ")
@@ -44,7 +58,7 @@ Sub Main()
     h2.OnDone = "H2Done"
     h1.GetAsync base & "/slow"
     h2.GetAsync base & "/hello"
-    Check h1.Busy And h2.Wait(4000), "a quick request finishes while a slow one runs"
+    Check h1.Busy And h2.Wait() And h1.Busy, "a quick request finishes while a slow one runs"
     Check h1.Wait(), "Wait without a limit"
     Check order = "h2 h1 " And h1.ResponseText = "slow", "they finish in their own order"
 
@@ -96,6 +110,18 @@ Sub Main()
         Check True, "(no TLS here)"
         Check True, "(no TLS here)"
     End If
+
+    ' events: Dim WithEvents ev As Http
+    Set ev = CreateObject("Http")
+    ev.GetAsync base & "/big?n=100000"
+    Check ev.Wait() And evLog = "done 200 " And evProgress > 0, "WithEvents: Done and Progress"
+    evLog = ""
+    ev.GetAsync "http://no-such-host.invalid/"
+    Check ev.Wait(30000) And evLog = "failed 31102 ", "WithEvents: Failed(number, text)"
+    evLog = ""
+    ev.GetAsync base & "/drip"
+    ev.Cancel
+    Check ev.Wait(10000) And evLog = "failed 18 ", "WithEvents: Failed after Cancel"
 
     If fails = 0 Then Print "PASS " & n Else Print "FAIL " & (n - fails) & "/" & n
 End Sub

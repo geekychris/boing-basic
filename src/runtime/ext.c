@@ -23,6 +23,7 @@ const bb_class *bb_engine3d_class(void);
 const bb_class *bb_audio_class(void);
 const bb_class *bb_http_class(void);     /* http_obj.c */
 bb_obj *bb_http_new(void);
+extern const char *const bb_http_events[];
 const bb_class *bb_dict_class(void);    /* dict.c */
 bb_obj *bb_dict_new(void);
 const bb_class *bb_sbuilder_class(void);      /* sbuilder.c */
@@ -53,6 +54,7 @@ static void builtins(void)
     bb_register_class("Engine3D", bb_engine3d_class(), bb_engine3d_new);
     bb_register_class("Audio", bb_audio_class(), bb_audio_new);
     bb_register_class("Http", bb_http_class(), bb_http_new);
+    bb_register_class_events("Http", bb_http_events);
     bb_register_class("Dictionary", bb_dict_class(), bb_dict_new);
     bb_register_class("StringBuilder", bb_sbuilder_class(), bb_sbuilder_new);
     bb_register_class("Socket", bb_socket_class(), bb_socket_new);
