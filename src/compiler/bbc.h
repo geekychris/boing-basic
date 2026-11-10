@@ -366,6 +366,7 @@ struct Module {
     Proc **procs; int nprocs;
     char **form_controls; int ncontrols;   /* .afg ids */
     char *form_name;
+    Sym *form_var;          /* a form named like its module (window name=X in X.bas): the form object */
     char *afg_path;
     int index;
 };

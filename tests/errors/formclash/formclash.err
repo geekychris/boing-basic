@@ -1,0 +1,1 @@
+prefs.bas:1:1: error: the form 'Settings' has the same name as the procedure 'Settings' in module main: rename the window (window name=) or the other

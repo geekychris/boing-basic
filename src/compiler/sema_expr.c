@@ -1060,6 +1060,7 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
     Sym *s = scope_find(c->scope, e->name);
     int bi;
     check_ambiguous(c, e, s);
+    if (s && s->kind == SK_MODULE && s->mod && s->mod->form_var) s = s->mod->form_var;    /* the form */
     if (s && s->is_retvar && args && s->proc) {
         /* F(...) inside F: a recursive call */
         {
@@ -1471,6 +1472,8 @@ static Node *resolve_dot(Ctx *c, Node *e, NodeList *args, int mode)
             Module *m = s->mod;
             Sym *ms = scope_find_local(m->scope, e->name);
             Node tmp;
+            if ((!ms || (!ms->is_public && m != c->mod)) && m->form_var)
+                return resolve_member(c, e, mk_var(base, m->form_var), e->name, args, mode);   /* Form.Caption */
             if (!ms || (!ms->is_public && m != c->mod)) {
                 ERR(c, e, "module '%s' has no public member '%s'", m->name, e->name);
                 e->ty = &ty_variant;

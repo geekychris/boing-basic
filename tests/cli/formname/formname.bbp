@@ -1,0 +1,7 @@
+# forms whose window name is their module name (opts.afg: window name=opts) are reachable:
+# opts.Caption, Load/Unload, a Public Sub of the form
+Name=formname
+Startup=Sub Main
+Module=main.bas
+Form=opts.afg
+Form=Settings.afg

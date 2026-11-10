@@ -1493,9 +1493,20 @@ int sema_program(Program *p)
             scope_add(m->scope, s);
             add_global(p, s);
             /* the form itself is visible from every module: other.Show */
-            if (m->form_name && name_eq(m->form_controls[k], m->form_name) && !scope_find_local(p->global, s->name)) {
-                s->is_public = 1;
-                scope_add(p->global, s);
+            if (m->form_name && name_eq(m->form_controls[k], m->form_name)) {
+                Sym *gg = scope_find_local(p->global, s->name);
+                if (!gg) {
+                    s->is_public = 1;
+                    scope_add(p->global, s);
+                } else if (gg->kind == SK_MODULE && gg->mod == m) {
+                    /* window name = the module's own name: X.Caption / Load X reach the form */
+                    s->is_public = 1;
+                    m->form_var = s;
+                } else
+                    diag(p, m->file, 1, 1, "the form '%s' has the same name as %s '%s'%s%s: rename the window (window name=) or the other",
+                         s->name, gg->kind == SK_PROC ? "the procedure" : gg->kind == SK_MODULE ? "the module" : gg->kind == SK_CLASS ? "the class" : "the Public",
+                         gg->name, gg->mod && gg->kind != SK_MODULE && gg->kind != SK_CLASS ? " in module " : "",
+                         gg->mod && gg->kind != SK_MODULE && gg->kind != SK_CLASS ? gg->mod->name : "");
             }
         }
     }
