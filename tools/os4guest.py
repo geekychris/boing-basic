@@ -306,6 +306,20 @@ def _fetch_timeout(data):
     return max(30.0, 60.0 + len(data) / 100000.0)
 
 
+def _wait_fetch(m, dest, size, limit=180):
+    """bbfetch is still running on a slow guest (the bridge reports "[RUNNING]" after 30 s): wait
+    for the file to appear with its full size (bbfetch renames it into place only when the CRC
+    matched)."""
+    import time
+    t0 = time.time()
+    while time.time() - t0 < limit:
+        time.sleep(5)
+        out = m.tool("amiga_dos_command", command='list "%s" LFORMAT "%%L"' % dest)
+        if out.strip().split("\n")[-1].strip() == str(size):
+            return "OK %d (finished late)" % size
+    return "bbfetch didn't finish within %d s" % limit
+
+
 def http_push(m, local, dest):
     import zlib
     if SSH:
@@ -336,6 +350,8 @@ def http_push(m, local, dest):
         for gw in GATEWAYS:
             out = m.tool("amiga_dos_command", command='%s http://%s:%d/%s "%s" %s' % (FETCH, gw, port, name, dest, crc),
                          timeout=_fetch_timeout(data))
+            if "[RUNNING]" in out:
+                out = _wait_fetch(m, dest, len(data))
             if "OK %d" % len(data) in out:
                 return "pushed %s (%d bytes, HTTP, crc %s)" % (dest, len(data), crc)
         raise RuntimeError("HTTP push of %s failed: %s" % (local, out.strip()))

@@ -12,6 +12,7 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
+#include <proto/locale.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/stat.h>
@@ -77,6 +78,27 @@ int bb_plat_read_line(char **line, size_t *len)
     *line = b;
     *len = n;
     return 1;
+}
+
+/* minutes local time is ahead of UTC: locale.library's time zone (loc_GMTOffset is minutes
+   west of Greenwich, so the sign flips). The Amiga clock runs on local time. */
+int bb_plat_utc_offset(void)
+{
+    struct Library *lb = IExec->OpenLibrary("locale.library", 50);
+    int off = 0;
+    if (lb) {
+        struct LocaleIFace *IL = (struct LocaleIFace *)IExec->GetInterface(lb, "main", 1, NULL);
+        if (IL) {
+            struct Locale *loc = IL->OpenLocale(NULL);
+            if (loc) {
+                off = -(int)loc->loc_GMTOffset;
+                IL->CloseLocale(loc);
+            }
+            IExec->DropInterface((struct Interface *)IL);
+        }
+        IExec->CloseLibrary(lb);
+    }
+    return off;
 }
 
 void bb_plat_localtime(bb_tm *tm)
