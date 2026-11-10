@@ -87,6 +87,15 @@ else stdexts=; fi
 print "standard extensions in the kit's boing: ${stdexts:-none}"
 $src/bb/tools/build-os4.sh check-cpu ${stdexts:+STD_EXTS="$stdexts"} >$log/os4.log 2>&1 || { tail -30 $log/os4.log; exit 1 }
 [[ -f $src/bb/build/os4/libboingvm.a ]] || { print -u2 "make-kit: no build/os4/libboingvm.a (boing vm needs it)"; exit 1 }
+# The guest SDK's ld (binutils 2.23) doesn't know GCC 11's float-ABI attribute value ("hard float,
+# 64-bit long double", Tag_GNU_Power_ABI_FP 9) and warns "uses unknown floating point ABI 9" for every
+# object of libboing.a in a `boing build` on the Amiga. The guest's GCC 11.5 targets the same ABI, so
+# the attribute adds nothing: the shipped libraries go without .gnu.attributes.
+docker run --rm -v $src/bb/build/os4:/o -w /o $PPC_IMAGE sh -c '
+  for a in libboing.a libboingvm.a; do ppc-amigaos-objcopy --remove-section=.gnu.attributes $a || exit 1; done
+  n=$(for a in libboing.a libboingvm.a; do ppc-amigaos-readelf -A $a; done | grep -c Tag_GNU_Power_ABI_FP); test "$n" = 0' \
+  || { print -u2 "make-kit: removing .gnu.attributes from the libraries failed"; exit 1 }
+print "libboing.a, libboingvm.a: no .gnu.attributes (the guest SDK's ld 2.23 warned about GCC 11's float-ABI tag)"
 grep 'dlmzb=' $log/os4.log | grep -v 'dlmzb=0$' && { print -u2 "make-kit: dlmzb in the OS4 build"; exit 1 }
 print "$(grep -c 'dlmzb=0' $log/os4.log) OS4 binaries, no dlmzb"
 
