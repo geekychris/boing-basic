@@ -1,0 +1,6 @@
+# WithEvents on an extension class: module level and a class field
+Name=Events
+Startup=Sub Main
+Module=events.bas
+Class=Watcher.cls
+Extension=ticker

@@ -180,7 +180,8 @@ static Sym *make_var(Ctx *c, Node *d, int storage)
         else s->is_new = 1;     /* registered classes too: created by name (bb_ext_create) */
     }
     if (d->flags & NF_WITHEVENTS) {
-        if (t->kind != T_OBJECT || !t->cls || IS_REGCLS(t->cls)) ERR(c, d, "WithEvents needs a class type");
+        if (t->kind != T_OBJECT || !t->cls) ERR(c, d, "WithEvents needs a class type");
+        else if (IS_REGCLS(t->cls) && !t->cls->nevents) ERR(c, d, "WithEvents: the class %s has no events", t->cls->name);
         s->withevents = 1;
     }
     s->ty = t;
@@ -1371,6 +1372,39 @@ static void add_vb_constants(Program *p)
     }
 }
 
+/* an event of a registered (runtime or extension) class; np -1 = parameters unknown */
+static void add_reg_event(ClassInfo *rc, const char *name, int np)
+{
+    Proc *pr = (Proc *)xcalloc(1, sizeof(Proc));
+    pr->name = xstrdup(name);
+    pr->kind = PK_EVENT;
+    pr->event_index = rc->nevents;
+    pr->is_public = 1;
+    pr->vslot = -1;
+    pr->nparams = np < 0 ? 0 : np;
+    pr->ev_np = np;
+    rc->events = (Proc **)xrealloc(rc->events, sizeof(Proc *) * (size_t)(rc->nevents + 1));
+    rc->events[rc->nevents++] = pr;
+}
+
+static void check_handlers(Program *p, Sym *s)
+{
+    ClassInfo *src = s->ty && s->ty->kind == T_OBJECT ? s->ty->cls : NULL;
+    int k, j;
+    if (!src || !src->xcls || !s->mod) return;
+    for (k = 0; k < src->nevents; k++) {
+        Proc *ev = src->events[k];
+        char *hn = xsprintf("%s_%s", s->name, ev->name);
+        for (j = 0; j < s->mod->nprocs; j++) {
+            Proc *h = s->mod->procs[j];
+            if (h->kind == PK_SUB && name_eq(h->name, hn) && ev->ev_np >= 0 && h->nparams != ev->ev_np)
+                diag(p, h->file, h->line, 1, "%s handles the event %s.%s, which has %d parameter%s, not %d",
+                     h->name, src->name, ev->name, ev->ev_np, ev->ev_np == 1 ? "" : "s", h->nparams);
+        }
+        free(hn);
+    }
+}
+
 /* a module-level declaration with the name of another module's Public hides it in this module
    (legal in VB, names are case-insensitive): a warning, it is easy to do by accident */
 static void warn_shadows(Program *p)
@@ -1457,6 +1491,10 @@ int sema_program(Program *p)
             rc->xcls = xc;
             rc->rtcls = NULL;
             rc->index = -1;
+            {
+                int q;
+                for (q = 0; q < xc->nev; q++) add_reg_event(rc, xc->ev[q].name, xc->ev[q].np);
+            }
             s = new_sym(SK_CLASS, rc->name, NULL);
             s->cls = rc;
             s->is_public = 1;
@@ -1471,6 +1509,10 @@ int sema_program(Program *p)
             rc->name = xstrdup(rn);
             rc->rtcls = bb_runtime_class(rn);
             rc->index = -1;         /* the VM's CHKCLS finds it by name (emit_bc) */
+            {
+                const char *const *ev = bb_runtime_class_events(rn);
+                for (; ev && *ev; ev++) add_reg_event(rc, *ev, -1);
+            }
             s = new_sym(SK_CLASS, rc->name, NULL);
             s->cls = rc;
             s->is_public = 1;
@@ -1541,12 +1583,15 @@ int sema_program(Program *p)
         if (pr->kind != PK_MAIN) pr->body = pr->decl->list2;
         check_proc(p, pr);
     }
-    /* WithEvents handlers */
+    /* WithEvents handlers of a linked extension's class: the parameter count its .bbx gives */
     for (i = 0; i < p->nglobals; i++) {
         Sym *s = p->globals[i];
-        if (s->withevents && s->mod && s->mod->cls == NULL) {
-            /* module-level WithEvents in a standard module */
-        }
+        if (s->withevents) check_handlers(p, s);
+    }
+    for (i = 0; i < p->nclasses; i++) {
+        int k;
+        for (k = 0; k < p->classes[i]->nfields; k++)
+            if (p->classes[i]->fields[k]->withevents) check_handlers(p, p->classes[i]->fields[k]);
     }
     /* module variables used only by their module's main program become its locals
      * (fast slots in the VM, registers in C) */

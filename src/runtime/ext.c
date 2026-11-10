@@ -8,7 +8,7 @@
 #include <strings.h>
 #include <stdio.h>
 
-typedef struct { const char *name; const bb_class *cls; bb_obj *(*create)(void); } ext_class;
+typedef struct { const char *name; const bb_class *cls; bb_obj *(*create)(void); const char *const *events; } ext_class;
 typedef struct { const char *name; bb_ext_fn fn; } ext_func;
 static ext_class *classes;
 static int nclasses, capclasses;
@@ -37,6 +37,8 @@ static void builtins(void)
 
 static const char *strip(const char *name) { return name && !strncasecmp(name, "Boing.", 6) ? name + 6 : name; }
 
+static ext_class *find_class(const char *name);
+
 void bb_register_class(const char *name, const bb_class *cls, bb_obj *(*create)(void))
 {
     int i;
@@ -51,7 +53,22 @@ void bb_register_class(const char *name, const bb_class *cls, bb_obj *(*create)(
     classes[nclasses].name = name;
     classes[nclasses].cls = cls;
     classes[nclasses].create = create;
+    classes[nclasses].events = NULL;
     nclasses++;
+}
+
+/* a runtime class's events (WithEvents): NULL-terminated names in index order; the class raises
+   them with bb_event_raise(obj, index, name, argc, argv) */
+void bb_register_class_events(const char *name, const char *const *events)
+{
+    ext_class *c = find_class(name);
+    if (c) c->events = events;
+}
+
+const char *const *bb_runtime_class_events(const char *name)
+{
+    ext_class *c = find_class(name);
+    return c ? c->events : NULL;
 }
 
 void bb_register_function(const char *name, bb_ext_fn fn)

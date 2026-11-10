@@ -145,6 +145,18 @@ int bbx_load(Program *p, const char *path, const char *ext)
             m->sig = xstrdup(args ? args : "");
             m->type = xstrdup(type ? type : "");
             free(full);
+        } else if (!strcasecmp(s, "event")) {
+            /* event Name(ByVal x As T, ...): the class raises it with bb_event_raise(obj, i, ...),
+               i = its position among the class's event lines */
+            ExtFunc *ev;
+            if (!cur || !split_sig(rest, &name, &args, &type) || type) goto bad;
+            cur->ev = (ExtFunc *)xrealloc(cur->ev, sizeof(ExtFunc) * (size_t)(cur->nev + 1));
+            ev = &cur->ev[cur->nev++];
+            memset(ev, 0, sizeof *ev);
+            ev->name = xstrdup(name);
+            ev->ext = xstrdup(ext);
+            ev->sig = xstrdup(args ? args : "");
+            if (!parse_params(args ? xstrdup(args) : NULL, &ev->p, &ev->np)) goto bad;
         } else if (!strcasecmp(s, "function") || !strcasecmp(s, "sub")) {
             ExtFunc *f = (ExtFunc *)xcalloc(1, sizeof(ExtFunc));
             if (!split_sig(rest, &name, &args, &type)) goto bad;
@@ -159,7 +171,7 @@ int bbx_load(Program *p, const char *path, const char *ext)
         } else goto bad;
         continue;
     bad:
-        fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: expected 'class', 'method', 'property', 'function', 'sub' or 'link'\n", path, lineno);
+        fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: expected 'class', 'method', 'property', 'event', 'function', 'sub' or 'link'\n", path, lineno);
         p->nerrors++;
         ok = 0;
     }

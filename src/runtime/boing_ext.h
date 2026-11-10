@@ -24,6 +24,11 @@ void bb_register_class(const char *name, const bb_class *cls, bb_obj *(*create)(
    .bbx signature (Variants for As Variant); return an owned value */
 typedef bb_value (*bb_ext_fn)(int argc, bb_value *argv);
 void bb_register_function(const char *name, bb_ext_fn fn);
+/* a runtime class's events for WithEvents, NULL-terminated, in index order (a linked
+   extension's classes declare theirs in the .bbx with 'event' lines instead); either way the
+   class raises event i with bb_event_raise(&obj->hdr, i, "Name", argc, argv) */
+void bb_register_class_events(const char *name, const char *const *events);
+const char *const *bb_runtime_class_events(const char *name);
 
 /* lookups (the runtime and the compiler use these) */
 const bb_class *bb_runtime_class(const char *name);     /* NULL if not registered */

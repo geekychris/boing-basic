@@ -53,6 +53,15 @@ sub Beep2(ByVal hz As Long)
   read-only properties and argument counts (`boing check` gives `file:line:col` errors), converts
   function arguments to the declared types and the result from it, and `boing members --project
   P.bbp` lists the members (fields 4 and 5: signature and type) for AmiForge's completion.
+- Events: `event Tick(ByVal i As Long, ByVal label As String)` lines in a class make it usable
+  with `Dim WithEvents t As Ticker` (module level or a class field; handlers `t_Tick`). The
+  class raises event *i* (its position among the class's `event` lines, from 0) with
+  `bb_event_raise(&obj->hdr, i, "Tick", argc, argv)`; the arguments are ByVal values the caller
+  owns (release strings after the call). A handler with another parameter count is a compile
+  error, and so is WithEvents on a class without events. A runtime class (built into the
+  runtime rather than linked from a `.bbx`) registers its event names instead:
+  `bb_register_class_events("Socket", names)` with a NULL-terminated list in index order
+  (`tests/ext/events/ticker.c`, `tests/c/ext_events.c`).
 - C++: `BB_EXTENSION` has C linkage; keep C++ objects inside the `bb_obj` (see
   `examples/ext_shapes/shapes.cpp`). The C++ driver links (on AmigaOS 4 with `-athread=native`,
   which the OS4 `libstdc++` needs).
