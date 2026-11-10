@@ -34,6 +34,18 @@ check "bbx checks" "$got" "$want"
 # members of an extension's classes
 n=$(cd "$root/examples/ext_counter" && "$B" members --project demo.bbp Counter | wc -l | tr -d ' ')
 [ "$n" = 4 ] || { echo "FAIL ext members --project: $n lines"; fail=1; }
+# standard extensions: Extension=NAME found in $BOING_EXT; .bbx link lines per target (m and,
+# on OS4, auto are always linked); a stock interpreter built with STD_EXTS runs it as is
+sd=$root/tests/ext/stdproj
+check "links host" "$(cd "$sd" && BOING_EXT=../std "$B" links stdproj.bbp)" "-lpthread"
+check "links os4" "$(cd "$sd" && BOING_EXT=../std "$B" links stdproj.bbp os4)" ""
+if (cd "$sd" && BOING_EXT=../std "$B" build stdproj.bbp -o "$tmp/std.nat" >/dev/null 2>&1); then check "std native" "$("$tmp/std.nat" 2>&1)" "cube 3 -2 "
+else echo "FAIL ext std native (build)"; fail=1; fi
+got=$(cd "$sd" && "$B" check stdproj.bbp 2>&1)
+case $got in *"extension 'stdhello' not found"*) ;; *) echo "FAIL ext std not found: $got"; fail=1 ;; esac
+if (cd "$root" && make -s STD_EXTS=stdhello STD_EXT_DIR=tests/ext/std BOING_EXE="$tmp/boing-std" "$tmp/boing-std" >/dev/null 2>&1); then
+    check "std interpreter" "$(cd "$sd" && BOING_EXT=../std "$tmp/boing-std" run stdproj.bbp 2>&1)" "cube 3 -2 "
+else echo "FAIL ext STD_EXTS interpreter (build)"; fail=1; fi
 rm -rf "$tmp"
 echo "extension tests: $([ $fail = 0 ] && echo all passed || echo FAILURES)"
 exit $fail

@@ -11,6 +11,17 @@ VM_SRC   = $(wildcard src/vm/*.c)
 RT_OBJ   = $(patsubst src/%.c,$(B)/obj/%.o,$(RT_SRC))
 CC_OBJ   = $(patsubst src/%.c,$(B)/obj/%.o,$(CC_SRC))
 VM_OBJ   = $(patsubst src/%.c,$(B)/obj/%.o,$(VM_SRC))
+# standard extensions linked into the stock interpreter (docs/extensions.md): STD_EXTS=sqlite
+# takes $(STD_EXT_DIR)/sqlite/sqlite.c (or .cpp) and its .bbx 'link' libraries. Empty by default,
+# so a host build needs no extra libraries; the kit build sets it
+STD_EXTS    ?=
+STD_EXT_DIR ?= ext
+BOING_EXE   ?= $(B)/boing
+STDX_SRCS = $(foreach e,$(STD_EXTS),$(firstword $(wildcard $(STD_EXT_DIR)/$(e)/$(e).c $(STD_EXT_DIR)/$(e)/$(e).cpp)))
+STDX_OBJS = $(patsubst %,$(B)/obj/stdext/%.o,$(notdir $(STDX_SRCS)))
+STDX_LIBS = $(if $(strip $(STD_EXTS)),$(shell sh tools/stdext.sh libs host $(STD_EXT_DIR) $(STD_EXTS)))
+STDX_LD   = $(if $(filter %.cpp,$(STDX_SRCS)),$(CXX),$(CC))
+EXT_INIT  = $(if $(strip $(STD_EXTS)),$(B)/obj/stdext/glue.o $(STDX_OBJS),$(B)/obj/main/vmext_default.o)
 HDRS     = $(wildcard src/runtime/*.h src/runtime/a3d/*.h src/runtime/audio/*.h src/runtime/$(PLAT)/*.h src/compiler/*.h src/compiler/*.def src/vm/*.h)
 
 all: $(B)/boing $(B)/libboing.a $(B)/libboingvm.a $(B)/include/boing.h
@@ -31,8 +42,21 @@ $(B)/libboing.a: $(RT_OBJ)
 	@rm -f $@
 	ar rcs $@ $^
 
-$(B)/boing: $(B)/obj/main/main.o $(B)/obj/main/vmext_default.o $(CC_OBJ) $(VM_OBJ) $(B)/libboing.a
-	$(CC) $(CFLAGS) -o $@ $(B)/obj/main/main.o $(B)/obj/main/vmext_default.o $(CC_OBJ) $(VM_OBJ) $(B)/libboing.a -lm
+$(BOING_EXE): $(B)/obj/main/main.o $(EXT_INIT) $(CC_OBJ) $(VM_OBJ) $(B)/libboing.a
+	$(if $(strip $(STD_EXTS)),$(STDX_LD),$(CC)) $(CFLAGS) -o $@ $(B)/obj/main/main.o $(EXT_INIT) $(CC_OBJ) $(VM_OBJ) $(B)/libboing.a $(STDX_LIBS) -lm
+
+# STD_EXTS: the glue (regenerated when the list changes) and each extension's object
+$(B)/obj/stdext/glue.c: FORCE
+	@mkdir -p $(dir $@)
+	@sh tools/stdext.sh glue $(STD_EXTS) | cmp -s - $@ || sh tools/stdext.sh glue $(STD_EXTS) > $@
+$(B)/obj/stdext/glue.o: $(B)/obj/stdext/glue.c
+	$(CC) $(WARN) $(CFLAGS) -c $< -o $@
+define stdext_rule
+$(B)/obj/stdext/$(notdir $(1)).o: $(1) $(HDRS) $(B)/flags.stamp
+	@mkdir -p $(B)/obj/stdext
+	$(if $(filter %.cpp,$(1)),$(CXX),$(CC)) $(CFLAGS) -Isrc/runtime -c $(1) -o $$@
+endef
+$(foreach s,$(STDX_SRCS),$(eval $(call stdext_rule,$(s))))
 
 # the interpreter as a library: `boing vm` links main.o, the compiler and the VM with a program's
 # extensions into a custom interpreter (docs/extensions.md)

@@ -75,6 +75,41 @@ In the project file: `Extension=dir/name` (dir/name.c or .cpp, and dir/name.bbx)
   stops a program whose extension it lacks: `this program needs the extension 'counter', which
   is not linked into this interpreter`.
 
+### Libraries: `link` lines
+
+An extension that needs a C library says so in its `.bbx`:
+
+```
+link sqlite3          # -lsqlite3 for every target
+link os4 foo          # only for AmigaOS 4 builds
+link host bar         # only for host builds (macOS, Linux)
+```
+
+Native builds (host, `--target os4`, on the Amiga), `boing vm` and the standard-extension build
+below add these libraries after libboing. `m` (and `auto` on AmigaOS 4) are always linked.
+`boing links P.bbp [os4|host]` prints the flags.
+
+### Standard extensions
+
+`Extension=sqlite` with no directory, and no `sqlite.bbx` beside the project, is a standard
+extension: `NAME/NAME.c` (or `.cpp`) and `NAME/NAME.bbx` found in `$BOING_EXT`, else in `ext/` of
+the Boing BASIC installation (`BOING_HOME`, or the directory of the `boing` executable;
+`PROGDIR:ext/` on AmigaOS), else, on hosts, the repo's `ext/` (`build/boing` → `ext/`). A name
+found nowhere is a compile error naming those places.
+
+A standard extension can also be linked into the stock interpreter, so `boing run` runs
+programs that use it without a custom `boing vm`. That is a build-time list, empty by default
+(a host build then needs no extra libraries):
+
+```
+make STD_EXTS=sqlite                      # host: build/boing with ext/sqlite and its link libraries
+tools/build-os4.sh STD_EXTS=sqlite        # AmigaOS 4: build/os4/boing likewise
+```
+
+The kit build sets `STD_EXTS=sqlite`, so the kit's interpreter has SQLite; native programs get an
+extension only from their own `Extension=` line. `STD_EXT_DIR` (default `ext`) is where the
+build looks (tests/ext/run.sh builds one from tests/ext/std).
+
 ## C functions: Declare ... Lib "C"
 
 ```vb
