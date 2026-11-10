@@ -58,7 +58,7 @@ Sub Main()
     h2.OnDone = "H2Done"
     h1.GetAsync base & "/slow"
     h2.GetAsync base & "/hello"
-    Check h1.Busy And h2.Wait(4000), "a quick request finishes while a slow one runs"
+    Check h1.Busy And h2.Wait() And h1.Busy, "a quick request finishes while a slow one runs"
     Check h1.Wait(), "Wait without a limit"
     Check order = "h2 h1 " And h1.ResponseText = "slow", "they finish in their own order"
 
