@@ -349,18 +349,18 @@ native, and checks the others compile.
 | 18.4 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | AppWindows: files dropped on a window |
 | 18.5 | [ch18-desktop/listing-18-05.bas](ch18-desktop/listing-18-05.bas) | AppIcons and AppMenu items |
 | 18.6 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Confirmation requesters |
-| 18.7 | [ch18-desktop/prefs/Prefs.bbp](ch18-desktop/prefs/Prefs.bbp) | Keyboard control |
-| 18.8 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Window titles, the busy pointer and hints |
-| 18.9 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | An ARexx port |
-| 18.10 | [ch18-desktop/listing-18-10.bas](ch18-desktop/listing-18-10.bas) | An ARexx port |
-| 18.11 | [ch18-desktop/listing-18-11.bas](ch18-desktop/listing-18-11.bas) | Settings in ENV: and ENVARC: |
-| 18.12 | [ch18-desktop/prefs/Prefs.bbp](ch18-desktop/prefs/Prefs.bbp) | Settings in ENV: and ENVARC: |
-| 18.13 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Translations: catalogs |
-| 18.14 | [ch18-desktop/listing-18-14.bas](ch18-desktop/listing-18-14.bas) | Translations: catalogs |
-| 18.15 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Help: AmigaGuide |
-| 18.16 | [ch18-desktop/listing-18-16.bas](ch18-desktop/listing-18-16.bas) | Version strings |
-| 18.17 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Version strings |
-| 18.18 | [ch18-desktop/game/Game.bbp](ch18-desktop/game/Game.bbp) | Games on the desktop |
+| 18.7 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Window titles, the busy pointer and hints |
+| 18.8 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | An ARexx port |
+| 18.9 | [ch18-desktop/listing-18-09.bas](ch18-desktop/listing-18-09.bas) | An ARexx port |
+| 18.10 | [ch18-desktop/listing-18-10.bas](ch18-desktop/listing-18-10.bas) | Settings in ENV: and ENVARC: |
+| 18.11 | [ch18-desktop/prefs/Prefs.bbp](ch18-desktop/prefs/Prefs.bbp) | Settings in ENV: and ENVARC: |
+| 18.12 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Translations: catalogs |
+| 18.13 | [ch18-desktop/listing-18-13.bas](ch18-desktop/listing-18-13.bas) | Translations: catalogs |
+| 18.14 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Help: AmigaGuide |
+| 18.15 | [ch18-desktop/listing-18-15.bas](ch18-desktop/listing-18-15.bas) | Version strings |
+| 18.16 | [ch18-desktop/jotter/Jotter.bbp](ch18-desktop/jotter/Jotter.bbp) | Version strings |
+| 18.17 | [ch18-desktop/game/Game.bbp](ch18-desktop/game/Game.bbp) | Games on the desktop |
+| 18.18 | [ch18-desktop/fullscreen/FullScreen.bbp](ch18-desktop/fullscreen/FullScreen.bbp) | A full-screen game on its own screen |
 
 ## Networking and modern libraries
 

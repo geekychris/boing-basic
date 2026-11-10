@@ -141,7 +141,7 @@ End Sub
 ' --- the Help key, when there is no guide ---------------------------------------------------
 
 Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
-    If KeyCode = vbKeyHelp Then sb.Text = "Right mouse button: menus"
+    If KeyCode = vbKeyHelp Then sb.Text = "Right mouse button: menus; Shift + right button over the text: Edit"
 End Sub
 
 ' --- ARexx: OPEN file, SAVE, GETTEXT, QUIT --------------------------------------------------

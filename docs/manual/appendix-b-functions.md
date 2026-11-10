@@ -14,13 +14,16 @@ The chapters referred to are: 04 [Data](04-data.md), 05 [Procedures](05-procedur
 09 [Built-in functions](09-builtins.md), 10 [Files and the system](10-files.md),
 11 [Classes](11-classes.md), 12 [Forms](12-forms.md),
 13 [Menus and dialogs](13-menus-dialogs.md), 14 [Graphics](14-graphics.md),
-15 [Engine3D](15-engine3d.md), 16 [Audio](16-audio.md), 17 [AmigaOS](17-amigaos.md).
+15 [Engine3D](15-engine3d.md), 16 [Audio](16-audio.md), 17 [AmigaOS](17-amigaos.md),
+18 [The desktop](18-desktop.md).
 
 | Syntax | What it does | Chapter |
 |---|---|---|
 | `Abs(x)` | `x` without its sign | [09](09-builtins.md#arithmetic-functions) |
 | `AllocMem(size [, clear])` | allocates `size` bytes of memory (cleared to 0 if `clear` is True) and returns its address | [17](17-amigaos.md) |
+| `App.CloseScreen` | closes the program's own screen if no window is open on it; `True` when it is closed (AmigaOS) | [18](18-desktop.md#screens) |
 | `App.EXEName` | the program's name without directory or `.bas` | [10](10-files.md#the-app-object) |
+| `App.OpenScreen modeid [, width, height, depth [, title]]` | statement: opens the program's own screen (a `ScreenModeID`, 0 = the Workbench's mode); forms loaded afterwards open on it (AmigaOS) | [18](18-desktop.md#screens) |
 | `App.Path` | the program's directory | [10](10-files.md#files-beside-the-program-apppath) |
 | `App.Title` | the program's title (`Title=`, `Name=` or the program's name); can be assigned | [10](10-files.md#the-app-object) |
 | `Array(v1, v2, ...)` | a Variant holding an array of the values, from index 0 | [09](09-builtins.md#inspecting-values) |

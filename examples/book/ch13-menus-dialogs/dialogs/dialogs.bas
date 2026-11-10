@@ -47,6 +47,13 @@ Private Sub font_Click()
     dlg.ShowFont
     If dlg.Cancelled Then Exit Sub
     Note "Font " & dlg.FontName & " " & dlg.FontSize & IIf(dlg.FontBold, " bold", "") & IIf(dlg.FontItalic, " italic", "")
+    ' the window and its controls take the font (name and size)
+    On Error GoTo noFont
+    Me.FontName = dlg.FontName
+    Me.FontSize = dlg.FontSize
+    Exit Sub
+noFont:
+    Note "Can't use that font: " & Err.Description
 End Sub
 
 Private Sub colour_Click()
@@ -59,6 +66,7 @@ End Sub
 Private Sub screen_Click()
     dlg.ShowScreenMode
     If dlg.Cancelled Then Exit Sub
+    ' App.OpenScreen dlg.ScreenModeID, dlg.ScreenWidth, ... would open a screen in this mode
     Note "Screen mode &H" & Hex(dlg.ScreenModeID) & ": " & dlg.ScreenWidth & " x " & dlg.ScreenHeight & " x " & dlg.ScreenDepth
 End Sub
 

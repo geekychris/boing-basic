@@ -112,10 +112,11 @@ A text value written as `"$12:Open..."` is looked up in the program's catalog wh
 loads: string 12 of the catalog, or `Open...` when there is no catalog or no string 12. That
 lets one `.afg` file show the user's language ([chapter 13](13-menus-dialogs.md#locale-catalogs)).
 
-In `text` values of buttons and check boxes, an underscore marks the next letter as the
-control's keyboard shortcut and is not shown itself: `text="_Quit"` shows *Quit* with the Q
-underlined. (In menus and toolbar buttons the underscore is simply left out; menus have their
-own shortcuts, see [chapter 13](13-menus-dialogs.md).)
+In a control's `text` or `label` value, an underscore marks the next letter as the control's
+keyboard shortcut and is not shown itself: `text="_Quit"` shows *Quit* with the Q underlined,
+and pressing Q clicks the button ([Shortcut letters](#shortcut-letters-return-and-esc)). (In
+menus and toolbar buttons the underscore is simply left out; menus have their own shortcuts,
+see [chapter 13](13-menus-dialogs.md).)
 
 ### The window line
 
@@ -129,10 +130,21 @@ own shortcuts, see [chapter 13](13-menus-dialogs.md).)
 | `iconify` | 0 | 1 = an iconify gadget ([chapter 13](13-menus-dialogs.md#iconifying)) |
 | `toolwindow` | 0 | 1 = no size or depth gadget (small dialogs and palettes) |
 | `dropfiles` | 0 | 1 = icons can be dropped on the window ([chapter 13](13-menus-dialogs.md#drag-and-drop-from-workbench)) |
-| `contextmenu` | | the id of a hidden menu that the right mouse button opens over the window ([chapter 13](13-menus-dialogs.md#context-menus)) |
+| `contextmenu` | | the id of a hidden menu that Shift or Ctrl + the right mouse button opens over the window ([chapter 13](13-menus-dialogs.md#context-menus)) |
+| `contextmenukey` | | `always` = context menus open with a plain right click (then the menu bar can't be reached over them) |
 | `mousemove` | 0 | 1 = `Form_MouseMove` for every move, not only while a button is held |
+| `font`, `fontsize` | | the font of the window and all its controls, for example `font="DejaVu Sans" fontsize=15`; the screen's font if not given |
+| `screentitle` | | the text of the screen's title bar while the window is active (`ScreenTitle`) |
+| `pubscreen` | | the name of a public screen to open on; the default public screen if there is none of that name |
+| `screen` | | `own` = the program's own screen (opened with the window if it isn't open yet); `workbench` = the default public screen even when the program has its own |
+| `screenmode`, `screenwidth`, `screenheight`, `screendepth` | | with `screen=own`: the new screen's mode (a `ScreenModeID`, as `0x50011000`), size and depth; the Workbench's for those not given |
+| `fullscreen` | 0 | 1 = no border, no gadgets, and the window covers its whole screen (on a screen it opens with `screen=own`, the screen has no title bar either) |
+| `borderless` | 0 | 1 = no border, title bar or gadgets |
+| `backdrop` | 0 | 1 = a backdrop window, behind all the other windows of its screen |
 
-The window opens centred on the screen, unless `remember=1` and it was open before.
+The window opens centred on the screen, unless `remember=1` and it was open before, or it is
+a `fullscreen=1` window. Screens, full-screen windows and fonts are explained with examples in
+[The AmigaOS 4 desktop](18-desktop.md#screens).
 
 ### Layouts: vlayout and hlayout
 
@@ -236,8 +248,10 @@ End Sub
 | `id` | the control's name in your code; without one, code can't reach the control |
 | `disabled` | 1 = greyed out at first (`Enabled = False`) |
 | `hint` | a help bubble shown when the pointer rests on it (`ToolTipText`) |
-| `contextmenu` | the id of a hidden menu for the right mouse button ([chapter 13](13-menus-dialogs.md#context-menus)) |
+| `contextmenu` | the id of a hidden menu that Shift or Ctrl + the right mouse button opens over the control ([chapter 13](13-menus-dialogs.md#context-menus)) |
 | `dropfiles` | 1 = icons dropped on this control go to its own `OLEDragDrop` event |
+| `font`, `fontsize` | a font for this control alone; with only `fontsize`, the window's `font`, or DejaVu Sans |
+| `label` | (in a layout) a label beside the control; a `_` in it marks the control's shortcut letter |
 
 The keys of each kind of control are in the [control reference](#the-controls) below.
 
@@ -304,6 +318,10 @@ Then `dlgPerson.Show` is the form and `person.Answer` a Public variable of its c
 | `MousePointer` | Integer | | the pointer shape over the window ([chapter 14](14-graphics.md)) |
 | `ContextMenu` | String | `contextmenu` | ([chapter 13](13-menus-dialogs.md#context-menus)) |
 | `ContextControl` | String, read-only | | the control the last context menu was opened over |
+| `ContextMenuKey` | Long | `contextmenukey` | 1 (the default): context menus open with Shift or Ctrl + right button; 0: with any right click |
+| `ScreenTitle` | String | `screentitle` | the screen's title while the window is active |
+| `FontName`, `FontSize` | String, Long | `font`, `fontsize` | the window's font (`""` and 0 if it has none of its own); setting either gives the window and its controls the new font and lays the window out again. Error 380 if the font can't be opened |
+| `ScreenWidth`, `ScreenHeight` | Long, read-only | | the size of the window's screen, in pixels |
 | `OLEDropMode` | Integer | `dropfiles` | 1 = icons can be dropped on the window |
 | `Tag` | String | | free for your program |
 
@@ -484,7 +502,9 @@ A push button.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `text` | `Button` | the caption; `_` marks the shortcut letter |
+| `text` | `Button` | the caption; `_` marks the shortcut letter, which clicks the button |
+| `default` | 0 | 1 = Return clicks the button (OK, Save) |
+| `cancel` | 0 | 1 = Esc clicks the button (Cancel) |
 | `image` | | a picture file (any format the datatypes read: PNG, IFF, JPEG, ...) shown on the button, beside the text if there is one; `text=""` for a picture only |
 | `selimage` | | a second picture, shown while the button is pressed |
 
@@ -543,7 +563,7 @@ A field for a whole number, with arrow buttons.
 
 | Key | Default | Meaning |
 |---|---|---|
-| `text` | `Check box` | the label |
+| `text` | `Check box` | the label; `_` marks the shortcut letter, which ticks or clears it |
 | `checked` | 0 | 1 = ticked |
 
 | Property | Type | Notes |
@@ -1060,11 +1080,46 @@ A drawing surface for graphics and games:
 
 The window that is active gets the keys. Inside it, a text field, number field or text editor
 that has the cursor takes the typing; `control.SetFocus` puts the cursor into one (for example
-in `Form_Activate`), and Tab moves between text and number fields. Keys that no field takes go
-to the form's key events.
+in `Form_Activate`), and Tab moves between text and number fields. Keys that no field takes
+work the controls' shortcuts (next section), or else go to the form's key events.
 
 Other controls don't take the keyboard focus, and `SetFocus` does nothing for them. There is no
 `ActiveControl` property.
+
+### Shortcut letters, Return and Esc
+
+The letter after a `_` in a control's `text` or `label` is its shortcut. While no text field
+has the cursor, pressing that letter, alone or with Shift, works the control:
+
+| Control | The shortcut letter |
+|---|---|
+| button | clicks it: `<id>_Click` runs |
+| check box | ticks or clears it; `Click` runs |
+| text field, number field, text editor | puts the cursor into it |
+| chooser, radio buttons, tabs, list | selects the next item (with Shift the previous one), going round at the end; `Click` runs |
+
+A disabled or hidden control has no shortcut. With an Amiga key or Ctrl held, the letter is
+left to the menus (`key=`) and to your key events. `default=1` on a button makes Return click
+it, and `cancel=1` makes Esc click it: the usual OK and Cancel of a dialog.
+
+```text
+window name=ask title="Rename" width=0 height=0 resizable=0
+vlayout id=root
+  string id=newName label="_New name"
+  checkbox id=keepIcon text="_Keep the icon" checked=1
+  hlayout even=1
+    button id=ok text="_Rename" default=1
+    button id=cancel text="_Cancel" cancel=1
+```
+
+Here N puts the cursor into the field, K switches the check box, R or Return renames, and C or
+Esc cancels. While the field has the cursor, the typing goes to the field, shortcut letters
+included; Return there ends the entry and arrives in the field's `KeyPress`, so
+`If KeyAscii = 13 Then ok_Click` there lets Return in the field rename as well.
+
+A key used by a shortcut, and Return and Esc when a `default=1` or `cancel=1` button takes
+them, do not reach `Form_KeyDown` and `Form_KeyPress`. In a game window, keep the letters the
+game uses free of `_` shortcuts.
 
 ### Key events
 
@@ -1144,14 +1199,15 @@ reach both the form (`dlgPerson`) and its code-behind module (`person`):
 # person.afg - a small modal dialog
 window name=dlgPerson title="Person" width=240 height=0 toolwindow=1
 vlayout id=root
-  string id=nameField label="Name" maxchars=40
+  string id=nameField label="_Name" maxchars=40
   hlayout even=1
-    button id=ok text="_OK"
-    button id=cancel text="_Cancel"
+    button id=ok text="_OK" default=1
+    button id=cancel text="_Cancel" cancel=1
 ```
 
-Its code-behind leaves its answer in Public variables and hides itself, which ends the modal
-`Show`:
+Return clicks OK and Esc clicks Cancel while the cursor is not in the field; in the field,
+Return arrives in `nameField_KeyPress`. Its code-behind leaves its answer in Public variables
+and hides itself, which ends the modal `Show`:
 
 *Listing 12.9* (`examples/book/ch12-forms/twoforms/twoforms.bbp`)
 
@@ -1305,7 +1361,10 @@ there.
 - `Show`, `Show vbModal`, `Hide`, `Load` and `Unload` manage forms; `Form_QueryUnload` and
   `Form_Unload` can keep a form open; the program ends with its last form.
 - The reference above lists every control's keys, properties, methods and events; key codes
-  are in [The keyboard](#the-keyboard).
+  are in [The keyboard](#the-keyboard). A `_` letter in a text or label is a working shortcut,
+  and `default=1` / `cancel=1` buttons take Return and Esc.
+- `font`, `fontsize`, `screen`, `pubscreen`, `fullscreen` and `screentitle` on the `window`
+  line choose the window's font and screen ([The AmigaOS 4 desktop](18-desktop.md)).
 
 See also: [Using AmiForge](03-amiforge.md), [Menus, toolbars and dialogs](13-menus-dialogs.md),
 [Graphics](14-graphics.md), [Classes and objects](11-classes.md).

@@ -419,9 +419,9 @@ In a form's `.afg` file a canvas is one line. These keys are read for it:
 | `scale` | 1 to 4: show every pixel scale x scale times bigger. Your program still draws `width` x `height`; mouse positions are still in canvas pixels |
 | `fill` | `fill=1`: the picture follows the control's size when the window is resized (`width` and `height` are the minimum). The old picture stays at the top left, the new part is cleared to `BackColor`, and the canvas's `Resize` event follows |
 | `mousemove` | `mousemove=1`: `MouseMove` events for every move over the canvas, not only while a button is held |
-| `rmb` | `rmb=1`: the right mouse button goes to the canvas (painting) instead of opening the menus |
+| `rmb` | `rmb=1`: the right mouse button goes to the canvas (painting) instead of opening the menus, with or without Shift and Ctrl |
 | `mousepointer` | the pointer shape over the canvas (see `MousePointer`) |
-| `contextmenu` | a pop-up menu for the canvas (see [Menus and dialogs](13-menus-dialogs.md)) |
+| `contextmenu` | a pop-up menu for the canvas, opened with Shift or Ctrl + right button (see [Menus and dialogs](13-menus-dialogs.md#context-menus)) |
 
 For example, a 320 x 256 picture shown twice as big, with a Timer for the game loop:
 
@@ -432,6 +432,24 @@ vlayout id=root
   canvas id=view width=320 height=256 scale=2
   timer id=tick interval=20 enabled=1
 ```
+
+A game can also take the whole display: `screen=own` on the `window` line opens a screen for
+the program (`screenwidth=`, `screenheight=`, `screendepth=`, or a mode the user chose with
+`App.OpenScreen`), and `fullscreen=1` makes the window cover it without a border. The canvas is
+centred in the window: here the 640 x 400 picture sits in the middle of an 800 x 600 screen.
+Make the screen a little larger than the picture: the layout keeps a small margin around its
+controls, and a window whose layout needs more room than the screen has can't open (error 7):
+
+```text
+window name=court title="Bat and ball" screen=own screenwidth=800 screenheight=600 fullscreen=1
+vlayout id=root
+  canvas id=view width=320 height=200 scale=2
+  timer id=tick interval=20 enabled=1
+```
+
+The window has no close gadget, so let Esc end the game. A complete example, which also lets
+the player choose the screen mode, is in
+[The AmigaOS 4 desktop](18-desktop.md#a-full-screen-game-on-its-own-screen).
 
 ### Control properties
 
@@ -471,7 +489,10 @@ them as array indexes. `Shift` is 1 for Shift, 2 for Ctrl, 4 for Alt and 8 for A
 together.
 
 On the Amiga the right mouse button opens a window's menus. So `Button = 2` reaches the
-canvas only in a form without menus, or over a canvas with `rmb=1`.
+canvas only in a form without menus, or over a canvas with `rmb=1`. A plain right click shows
+the menu bar, and Shift or Ctrl with the right button opens the canvas's `contextmenu`; with
+`rmb=1` the canvas gets every right-button press instead (its `Shift` argument tells you whether
+Shift or Ctrl was held), and neither menu opens over it.
 
 Here is the start of a small drawing program's code (the `.afg` has
 `canvas id=view width=320 height=200 mousemove=0`):
@@ -718,6 +739,8 @@ build`) to see where the time goes.
   IFF pictures.
 - Read the keys with `KeyDown` each frame, the mouse with the canvas's mouse events.
 - Run the game from a Timer, keep the game code in its own module, and test it off-screen.
+- For full screen, give the window `screen=own` and `fullscreen=1`; `rmb=1` gives a canvas the
+  right mouse button.
 
 See also: [Forms](12-forms.md), [Menus and dialogs](13-menus-dialogs.md),
 [Engine3D](15-engine3d.md), [Audio](16-audio.md).

@@ -1,4 +1,5 @@
 ' prefs.bas - Save keeps the settings in ENVARC: too, Use only in ENV:, Cancel changes nothing
+' (the keyboard needs no code: the .afg's _ letters, default=1 and cancel=1 do it)
 Option Explicit
 
 Const APPNAME = "AlarmPrefs"
@@ -41,21 +42,4 @@ End Sub
 
 Private Sub cancel_Click()
     Unload Me
-End Sub
-
-' the keyboard: Esc is Cancel; the underlined letters work the gadgets
-Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
-    If KeyCode = vbKeyEscape Then cancel_Click
-End Sub
-
-Private Sub Form_KeyPress(KeyAscii As Integer)
-    Select Case UCase(Chr(KeyAscii))
-    Case "S": save_Click
-    Case "U": use_Click
-    Case "C": cancel_Click
-    Case "M": message.SetFocus
-    Case "E": minutes.SetFocus
-    Case "F": flash.Value = 1 - flash.Value
-    Case "O": sound.ListIndex = (sound.ListIndex + 1) Mod sound.ListCount
-    End Select
 End Sub

@@ -149,11 +149,17 @@ End Sub
 
 ### Context menus
 
-A *context menu* opens when the user presses the right mouse button over a control; it offers
-what can be done with that control. Make it a `menu` title with `hidden=1` (it doesn't show
-in the menu bar) and name it in the control's `contextmenu` key, or the window's for the
-places that have none of their own. In the example above, the right button over the canvas
-opens `mnuCanvas`, anywhere else in the window `mnuWindow`.
+A *context menu* opens when the user holds Shift or Ctrl and presses the right mouse button
+over a control; it offers what can be done with that control. A plain right click always shows
+the menu bar, as everywhere on AmigaOS. Make the context menu a `menu` title with `hidden=1`
+(it doesn't show in the menu bar) and name it in the control's `contextmenu` key, or the
+window's for the places that have none of their own. In the example above, Shift + right
+button over the canvas opens `mnuCanvas`, anywhere else in the window `mnuWindow`.
+
+- `contextmenukey=always` on the `window` line, or `Me.ContextMenuKey = 0` at run time, makes
+  the window's context menus open with a plain right click (`Me.ContextMenuKey = 1` goes back to
+  Shift or Ctrl). The menu bar then only opens where no context menu applies, so use this only in
+  a window without a menu bar.
 
 - At run time, `control.ContextMenu = "mnuCanvas"` sets a control's context menu and
   `control.ContextMenu = ""` removes it; `Me.ContextMenu` is the window's.
@@ -178,7 +184,9 @@ End Sub
 
 On the Amiga the right mouse button belongs to the menus: in a window that has a menu bar or
 context menus, a canvas gets right-button clicks only with `rmb=1`
-([chapter 14](14-graphics.md#mouse-events)).
+([chapter 14](14-graphics.md#mouse-events)). Over such a canvas the right button always goes
+to the canvas, also with Shift or Ctrl, so its context menu doesn't open there: offer the same
+commands in the menu bar, or open the menu from code with `PopupMenu`.
 
 ## Toolbars
 
@@ -333,6 +341,12 @@ Set the properties, call a `Show` method, then read the result. Each `Show` meth
 the requester is closed; meanwhile the program's windows show a busy pointer. The requesters
 open on the program's screen, over its active window.
 
+The results of two requesters can be put to use directly: a font from `ShowFont` becomes the
+window's font with `Me.FontName = dlg.FontName` and `Me.FontSize = dlg.FontSize`, and a mode from
+`ShowScreenMode` opens the program's own screen with `App.OpenScreen dlg.ScreenModeID,
+dlg.ScreenWidth, dlg.ScreenHeight, dlg.ScreenDepth` (before the forms that should open on it are
+loaded). Both are described in [The AmigaOS 4 desktop](18-desktop.md#screens).
+
 ### Methods
 
 | Method | Requester |
@@ -422,6 +436,13 @@ Private Sub font_Click()
     dlg.ShowFont
     If dlg.Cancelled Then Exit Sub
     Note "Font " & dlg.FontName & " " & dlg.FontSize & IIf(dlg.FontBold, " bold", "") & IIf(dlg.FontItalic, " italic", "")
+    ' the window and its controls take the font (name and size)
+    On Error GoTo noFont
+    Me.FontName = dlg.FontName
+    Me.FontSize = dlg.FontSize
+    Exit Sub
+noFont:
+    Note "Can't use that font: " & Err.Description
 End Sub
 
 Private Sub colour_Click()
@@ -434,6 +455,7 @@ End Sub
 Private Sub screen_Click()
     dlg.ShowScreenMode
     If dlg.Cancelled Then Exit Sub
+    ' App.OpenScreen dlg.ScreenModeID, dlg.ScreenWidth, ... would open a screen in this mode
     Note "Screen mode &H" & Hex(dlg.ScreenModeID) & ": " & dlg.ScreenWidth & " x " & dlg.ScreenHeight & " x " & dlg.ScreenDepth
 End Sub
 ```
@@ -934,9 +956,12 @@ there for files of your own. These are described with the other system functions
   pop-up menus (`PopupMenu`).
 - A `toolbar` of `tool`s, linked to menu items with `menu=`, uses `TBImages:` pictures and
   falls back to texts; a `statusbar` shows text panels.
+- Context menus open with Shift or Ctrl + right button (`contextmenukey=always` for a plain
+  right click); the right button alone shows the menu bar.
 - The CommonDialog's `ShowOpen`, `ShowSave`, `ShowFont`, `ShowColor`, `ShowScreenMode` and
-  `ShowMessage` open the standard requesters; `MsgBox`, `InputBox` and `App.Request` ask quick
-  questions.
+  `ShowMessage` open the standard requesters; `Me.FontName` / `Me.FontSize` apply a chosen
+  font and `App.OpenScreen` a chosen screen mode. `MsgBox`, `InputBox` and `App.Request` ask
+  quick questions.
 - The App object connects a program to Workbench (tooltypes, arguments, drops, icons,
   AppIcons, iconify), ARexx (`ARexxPort`, `ARexx_Command`, `SendARexx`), AmigaGuide help and
   catalogs; `Clipboard` and `Printer` do what their names say.

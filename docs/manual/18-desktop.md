@@ -16,6 +16,8 @@ the end.
 |---|---|---|
 | windows follow the user's font and screen | lay controls out in rows and columns; don't place them at fixed pixels | [Layouts](#windows-that-fit-any-font-and-screen) |
 | windows can be resized, iconified, reopened where they were | `resizable=1`, `iconify=1`, `remember=1` on the `window` line | [Window options](#window-options) |
+| opens on the screen the user wants, or on a screen of its own | `pubscreen=`, `screen=own`, `App.OpenScreen` | [Screens](#screens) |
+| uses the user's fonts, or a font the user picked | no `font=` as a rule; `Me.FontName` after `ShowFont` | [Fonts](#fonts) |
 | works from Workbench and from the Shell | `App.FromWorkbench`, `App.ArgCount`, `App.Arg(i)`, `Command` | [Starting](#started-from-workbench-or-from-the-shell) |
 | reads its tooltypes | `App.ToolType("NAME", default)` | [Tooltypes](#tooltypes) |
 | gives saved documents an icon | `App.SaveIcon path` | [Icons](#icons) |
@@ -23,7 +25,7 @@ the end.
 | uses the system's file, font and screen mode requesters | a `commondialog` control | [ASL requesters](#asl-requesters) |
 | asks before throwing work away | `Form_QueryUnload` and a requester | [Requesters](#confirmation-requesters) |
 | Project, Edit, Settings menus; Quit last in Project; Amiga-key shortcuts | `menu` objects with `key=` | [Menus](#menus-the-standard-layout) |
-| keyboard control | underlined letters, Tab, Esc, Return, Help | [Keyboard](#keyboard-control) |
+| keyboard control | `_` shortcut letters, `default=1` and `cancel=1` buttons, Tab, Help | [Keyboard](#keyboard-control) |
 | an ARexx port | `App.ARexxPort` and `ARexx_Command` | [ARexx](#an-arexx-port) |
 | settings in `ENV:` and `ENVARC:` | `GetSetting` / `SaveSetting` | [Settings](#settings-in-env-and-envarc) |
 | speaks the user's language | `App.OpenCatalog`, `App.Str`, `$id:` texts | [Catalogs](#translations-catalogs) |
@@ -80,7 +82,7 @@ anywhere; only one `minwidth` so that the number field is wide enough for three 
 window name=prefs title="Alarm preferences" width=0 height=0 resizable=1 remember=1
 vlayout id=root
   vlayout title="Alarm"
-    string id=message label="_Message" text="" hint="The text the alarm shows"
+    string id=message label="_Message" hint="The text the alarm shows"
     hlayout
       integer id=minutes label="_Every" value=30 min=1 max=999 minwidth=60
       label text="minutes"
@@ -90,11 +92,11 @@ vlayout id=root
     chooser id=sound label="S_ound" items="None|Bell|Chime" selected=1
   space
   hlayout even=1 weight=0
-    button id=save text="_Save" hint="Use the settings and keep them after a reboot"
+    button id=save text="_Save" default=1 hint="Use the settings and keep them after a reboot"
     space
     button id=use text="_Use" hint="Use the settings until the next reboot"
     space
-    button id=cancel text="_Cancel" hint="Close without changing anything"
+    button id=cancel text="_Cancel" cancel=1 hint="Close without changing anything"
 ```
 
 Some rules that keep layouts working everywhere:
@@ -109,9 +111,9 @@ Some rules that keep layouts working everywhere:
   the right one Cancel.
 - Give the one control that should take the extra room (a list, a text editor, a canvas) the
   default weight, and its neighbours `weight=0`.
-- Don't set the font of a control: every control uses the screen's font, which is what the user
-  chose. (Boing BASIC has no font property for controls; a `texteditor` can switch to the
-  fixed-width font with `FixedFont`.)
+- Leave the fonts alone: without `font=`, every control uses the screen's font, which is what
+  the user chose. Set a font only for a reason, such as a large display or a font the user
+  picked in your program's settings (see [Fonts](#fonts)).
 - Make the window resizable unless its contents really have one size (a game at a fixed
   resolution).
 - If the layout needs more room than the screen has (a huge form on a small screen, or a big
@@ -131,10 +133,19 @@ These keys on the `window` line choose the window's gadgets and behaviour:
 | `remember=1` | 0 | the window's position and size are saved when it closes and used when it opens again (in `ENV:` and `ENVARC:`, in a drawer named after the program: `<App.Title>/windows/<form name>`) |
 | `toolwindow=1` | 0 | a tool window: no size gadget and no depth gadget (palettes, small floating panels) |
 | `dropfiles=1` | 0 | the window is an AppWindow: icons can be dropped on it (see [below](#appwindows-files-dropped-on-a-window)) |
-| `contextmenu=menuId` | | the window's context menu (see [Menus](13-menus-dialogs.md)) |
+| `contextmenu=menuId` | | the window's context menu (see [below](#the-right-mouse-button-and-context-menus)) |
+| `contextmenukey=always` | | context menus open with a plain right click instead of Shift or Ctrl + right button |
+| `screentitle="..."` | | the screen's title bar text while this window is the active one (at run time `Me.ScreenTitle`) |
+| `pubscreen="Name"`, `screen=own` | | the screen the window opens on (see [Screens](#screens)) |
+| `fullscreen=1` | 0 | a window without border or gadgets that covers its whole screen (see [Screens](#screens)) |
+| `borderless=1` | 0 | a window without border, title bar or gadgets, at its normal size and place |
+| `backdrop=1` | 0 | a backdrop window: it stays behind every other window of its screen |
+| `font="Name"`, `fontsize=n` | | the font of the window and its controls (see [Fonts](#fonts)) |
 
-Every window has a close gadget, a drag bar and (unless it is a tool window) a depth gadget.
-A window that does not remember its place opens centred on the screen. Closing the window is
+A normal window has a close gadget, a drag bar and (unless it is a tool window) a depth gadget.
+A `borderless=1` or `fullscreen=1` window has none of them, not even a close gadget: give the
+user another way out (a Quit menu item, a button, or Esc). A window that does not remember its
+place opens centred on the screen. Closing the window is
 the same as `Unload Me`, and goes through `Form_QueryUnload`, where the program can ask
 whether to save (see [Confirmation requesters](#confirmation-requesters)).
 
@@ -149,15 +160,82 @@ default (with a screen manager or a program that opens its own public screen), B
 windows open there instead, and so do the requesters they open: requesters always appear on
 the form's screen, centred over the active window.
 
-Boing BASIC can't yet open a window on a named public screen or on a screen of its own, and it
-has no full-screen or borderless windows: a game is always a window on the desktop. A game
-window can still be big: show the picture at 2, 3 or 4 times its size with `scale=` on the
-canvas, or let the canvas follow the window's size with `fill=1` (see
-[Graphics](14-graphics.md), and [Games on the desktop](#games-on-the-desktop) below).
+That is right for almost every program. The keys on the `window` line choose another screen:
 
-The screen mode requester exists (`ShowScreenMode`, see [ASL requesters](#asl-requesters)):
-a program can let the user choose a mode and keep it in its settings, but there is nothing yet
-that opens a screen with it.
+| Key | What it does |
+|---|---|
+| `pubscreen="Name"` | the window opens on the public screen with that name. If there is no such screen, it opens on the default public screen |
+| `screen=own` | the window opens on the program's **own screen**, which the program opens first if it isn't open yet |
+| `screenmode=0x...` | with `screen=own`: the screen mode, a `ScreenModeID` number as the screen mode requester returns it. Without it, the screen has the Workbench's mode |
+| `screenwidth=`, `screenheight=`, `screendepth=` | with `screen=own`: the screen's size in pixels and its depth (16 for 65536 colours, 24 or 32 for true colour); without them, those of the Workbench |
+| `screentitle="..."` | the text in the screen's title bar while the window is active; with `screen=own` also the title of the new screen |
+| `screen=workbench` | this window stays on the default public screen even when the program has its own screen |
+| `fullscreen=1` | the window has no border and no gadgets and covers its whole screen |
+
+The program's own screen is a public screen, shared by all its windows: once it is open, every
+form that is loaded afterwards opens on it (unless its `window` line says `screen=workbench`),
+and so do the requesters, `MsgBox` and the ASL requesters, which always appear on the screen of
+the program's active window. The screen stays open until the program ends. To close it earlier,
+close (unload) its windows and call `App.CloseScreen`, which returns `True` if the screen was
+closed (or wasn't open) and `False` while a window is still open on it.
+
+A program can also open its own screen in code, with a mode the user chose:
+
+| | What it does |
+|---|---|
+| `App.OpenScreen modeid [, width, height, depth [, title]]` | opens the program's own screen: `modeid` is a `ScreenModeID` (0 for the Workbench's mode); a width, height or depth of 0 (or left out) means the Workbench's. `title` is the screen's title (else `App.Title`). Error 5 if the screen can't be opened. While the screen is open, a second call does nothing |
+| `App.CloseScreen` | closes the program's own screen if no window is open on it; returns `True` when it is closed |
+
+The mode usually comes from the screen mode requester (`ShowScreenMode`, see
+[ASL requesters](#asl-requesters)), and the program keeps it in its settings. Open the screen
+*before* the forms that should appear on it are loaded: a form takes its screen when it is
+loaded, and a window that is already open stays where it is. A program that starts with a form
+(`Startup=Form`) has loaded it before any of its code runs, so such a program starts with
+`Sub Main`, opens the screen, and then shows its form; the full-screen game
+[at the end of this chapter](#a-full-screen-game-on-its-own-screen) does this.
+
+A screen opened with `App.OpenScreen` has a title bar. A screen opened by the `screen=own` key
+of a `fullscreen=1` window has none, so the window really covers the whole screen.
+
+Use your own screen for programs that need it: a game in a particular resolution, a program
+that needs more room or colours than the Workbench has. Ordinary programs belong on the
+Workbench or on the public screen the user has chosen.
+
+## Fonts
+
+Without a font of its own, a window and all its controls use the screen's font, the one the
+user chose in the Font preferences. That is the right choice for most windows. When you have a
+reason to choose (a calculator's large display, a program whose settings let the user pick a
+font), these keys set a font:
+
+| Key | On | What it does |
+|---|---|---|
+| `font="DejaVu Sans"` | the `window` line | the font of the window and of every control in it; the name is written without `.font` |
+| `fontsize=13` | the `window` line | its size in pixels (13 if only `font=` is given; with only `fontsize=`, the font is DejaVu Sans) |
+| `font=`, `fontsize=` | a control | a font for that control alone. With only `fontsize=`, the control takes the window's `font=`, or DejaVu Sans |
+
+If the font isn't installed, the window or control quietly keeps the screen's font. The layout
+measures every control with its own font, so a window with a large font is simply a larger
+window.
+
+At run time `Me.FontName` and `Me.FontSize` are the window's font (`""` and 0 when it has none
+of its own). Setting either one gives the window and its controls the new font and lays the
+window out again; controls with a `font=` of their own keep theirs. A font that can't be opened
+is error 380. This is how a program applies the font the user chose in the font requester:
+
+<!-- fragment -->
+```basic
+dlg.ShowFont
+If Not dlg.Cancelled Then
+    Me.FontName = dlg.FontName
+    Me.FontSize = dlg.FontSize
+End If
+```
+
+Only the name and the size are used: the bold and italic styles of the requester
+(`FontBold`, `FontItalic`) don't change a window's font. Keep the choice in the program's
+settings and set it again in `Form_Load`. The text editor control also has `FixedFont`, which
+switches it to the user's fixed-width font.
 
 ## Started from Workbench or from the Shell
 
@@ -513,7 +591,8 @@ menu id=mnuSettings text="Settings"
 - Disable items that can't be used now (`mnuSave.Enabled = False`) rather than hiding them, so
   the menus keep their shape.
 - Everything a context menu (`contextmenu=`) or a toolbar offers should also be in the menu
-  bar: not every user uses the right button over a control, and the menus show the shortcuts.
+  bar: not every user knows that Shift or Ctrl with the right button opens a context menu, and
+  the menus show the shortcuts.
 
 `key=` gives an item an Amiga-key shortcut: the right Amiga key with that key. Intuition
 handles it and shows it in the menu. Use the standard keys for the standard commands, and
@@ -535,60 +614,86 @@ in [Menus, toolbars, status bars and dialogs](13-menus-dialogs.md).
 
 ### The right mouse button and context menus
 
-On the Amiga the right mouse button is the menu button: hold it down to see the menu bar. On
-AmigaOS 4 a control can also have a **context menu**, a pop-up menu that the right button opens
-over that control instead of the menu bar (`contextmenu=mnuEdCtx` names a hidden top-level
-`menu`; see [chapter 13](13-menus-dialogs.md)). Jotter's text area has one with Cut, Copy and
-Paste. In a paint program or a game the right button may be needed for drawing: `rmb=1` on a
-canvas sends the right button to the canvas (as a `MouseDown` with button 2) while the pointer
-is over it, and the menus still work everywhere else.
+On the Amiga the right mouse button is the menu button: hold it down anywhere in the window to
+see the menu bar. Boing BASIC keeps it that way, also over controls that have a context menu.
+A control can have a **context menu**, a pop-up menu of what can be done with it
+(`contextmenu=mnuEdCtx` names a hidden top-level `menu`; see
+[chapter 13](13-menus-dialogs.md#context-menus)). It opens when the user holds **Shift or Ctrl**
+and presses the right button over the control. Jotter's text area has one with Cut, Copy and
+Paste:
+
+```text
+  texteditor id=ed contextmenu=mnuEdCtx
+...
+menu id=mnuEdCtx text="Edit" hidden=1
+  menu id=mnuCtxCut text="Cut"
+  menu id=mnuCtxCopy text="Copy"
+  menu id=mnuCtxPaste text="Paste"
+```
+
+`contextmenukey=always` on the `window` line (or `Me.ContextMenuKey = 0` in code) makes the
+context menus open with a plain right click, as in some other systems; the menu bar can then
+only be reached where no control has a context menu. Leave it at the default unless the
+window has no menu bar. Mention the Shift-click in your help, and put the context menu's
+commands in the menu bar too.
+
+In a paint program or a game the right button may be needed for drawing: `rmb=1` on a canvas
+sends the right button to the canvas (as a `MouseDown` with button 2), with or without Shift or
+Ctrl, while the pointer is over it; the menus still work everywhere else in the window.
 
 ## Keyboard control
 
 An AmigaOS program can be used without the mouse as far as possible:
 
-- **Underlined letters.** A `_` in a button's, checkbox's or label's text underlines the next
-  letter: `text="_Save"` shows **S**ave with the S underlined, telling the user which key
-  works that gadget. Use a different letter for each gadget of the window. The letters are
-  drawn by the gadgets; to make sure the keys work, handle them in `Form_KeyPress`, which runs
-  for typed characters while no text field has the input:
+- **Shortcut letters.** A `_` in a control's text or in its `label=` underlines the next
+  letter, and that letter is the control's keyboard shortcut: `text="_Save"` shows **S**ave
+  with the S underlined, and pressing S clicks the button. The key works on its own or with
+  Shift; combinations with an Amiga key or Ctrl are left to the menus and the program. Use a
+  different letter for each control of the window. What the key does depends on the control:
 
-*Listing 18.7* (`examples/book/ch18-desktop/prefs/Prefs.bbp`)
+  | Control | The shortcut key |
+  |---|---|
+  | button | clicks it (its `Click` event runs) |
+  | check box | ticks or clears it (`Click` runs) |
+  | text field, number field, text editor | puts the cursor into it |
+  | chooser, radio buttons, tabs, list | selects the next item, or with Shift the previous one, going round at the end (`Click` runs) |
 
-<!-- project: examples/book/ch18-desktop/prefs/Prefs.bbp -->
-```basic
-' the keyboard: Esc is Cancel; the underlined letters work the gadgets
-Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
-    If KeyCode = vbKeyEscape Then cancel_Click
-End Sub
-
-Private Sub Form_KeyPress(KeyAscii As Integer)
-    Select Case UCase(Chr(KeyAscii))
-    Case "S": save_Click
-    Case "U": use_Click
-    Case "C": cancel_Click
-    Case "M": message.SetFocus
-    Case "E": minutes.SetFocus
-    Case "F": flash.Value = 1 - flash.Value
-    Case "O": sound.ListIndex = (sound.ListIndex + 1) Mod sound.ListCount
-    End Select
-End Sub
-```
-
-- **Tab** moves from one text or number field to the next (and Shift-Tab back). A text field
-  reports Return and Tab in its `KeyPress` event, so Return in a field can start the action
+- **Return and Esc.** `default=1` on a button makes Return click it, `cancel=1` on a button
+  makes Esc click it. Give a dialog an OK (or Save) button with `default=1` and a Cancel
+  button with `cancel=1`.
+- **Tab** moves from one text or number field to the next (and Shift-Tab back). While a text
+  field has the cursor it takes the typing, the shortcut letters included. A text field reports
+  Return and Tab in its `KeyPress` event, so Return in a field can start the action
   (`If KeyAscii = 13 Then ...`).
-- **Esc** closes a requester or a dialog window as Cancel: do it in `Form_KeyDown` as above.
 - **Help** opens the program's help (see [Help](#help-amigaguide)).
 - `SetFocus` puts the cursor into a text field, for example the first field when a dialog
   opens.
+
+The settings window of the [layout example](#windows-that-fit-any-font-and-screen) needs no
+code for its keyboard: its `.afg` gives every control a letter, and its buttons are
+
+```text
+  hlayout even=1 weight=0
+    button id=save text="_Save" default=1 hint="Use the settings and keep them after a reboot"
+    space
+    button id=use text="_Use" hint="Use the settings until the next reboot"
+    space
+    button id=cancel text="_Cancel" cancel=1 hint="Close without changing anything"
+```
+
+so M and E put the cursor into the message and minutes fields, F switches the check box, O
+chooses the next sound, S or Return saves, U uses, and C or Esc cancels.
+
+A key that a control takes as its shortcut (or Return and Esc for a `default=1` or `cancel=1`
+button) does not also arrive in `Form_KeyDown` and `Form_KeyPress`. Keys without a control
+arrive there as usual ([Forms and controls](12-forms.md#the-keyboard)).
 
 ## Window titles, the busy pointer and hints
 
 - **The window title** names the program and the document: `Jotter: todo.txt`. Mark unsaved
   changes, for example with a `*`, and change the title when the document changes:
 
-*Listing 18.8* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.7* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -618,7 +723,7 @@ used, worth showing in the About requester). Each command that arrives calls
 `ARexx_Command(Cmd As String, Args As String, Result As String)`, with the first word in `Cmd`
 and the rest of the line in `Args`:
 
-*Listing 18.9* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.8* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -652,7 +757,7 @@ help. A program sends commands to another program's port with `App.SendARexx(por
 which returns the `RESULT` (and sets `App.ARexxRC`; error 5 if there is no such port), and
 starts a script with `App.RunARexx script`:
 
-*Listing 18.10* (`examples/book/ch18-desktop/listing-18-10.bas`)
+*Listing 18.9* (`examples/book/ch18-desktop/listing-18-09.bas`)
 
 ```basic
 ' Ask a running Jotter for its text
@@ -679,7 +784,7 @@ default. `DeleteSetting app, section [, key]` removes a setting or a whole secti
 program's name as `app`: the user then finds every setting in `ENVARC:Jotter/` (and `remember=1`
 windows keep their place in the same drawer). More in [Files and the system](10-files.md).
 
-*Listing 18.11* (`examples/book/ch18-desktop/listing-18-11.bas`)
+*Listing 18.10* (`examples/book/ch18-desktop/listing-18-10.bas`)
 
 <!-- run -->
 ```basic
@@ -700,7 +805,7 @@ AmigaOS settings editors (the programs in the `Prefs` drawer) have three buttons
 **Cancel**. `SaveSetting` is Save. For Use, write only the `ENV:` file; `GetSetting` finds it
 there first:
 
-*Listing 18.12* (`examples/book/ch18-desktop/prefs/Prefs.bbp`)
+*Listing 18.11* (`examples/book/ch18-desktop/prefs/Prefs.bbp`)
 
 <!-- project: examples/book/ch18-desktop/prefs/Prefs.bbp -->
 ```basic
@@ -758,7 +863,7 @@ that. A program that starts with a form (`Startup=Form`) loads it first, so a tr
 starts with `Sub Main` instead, opens the catalog, and then shows its window with `Show vbModal`
 (which returns when the window is closed, ending the program):
 
-*Listing 18.13* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.12* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -781,7 +886,7 @@ also the name of its file's module, or of a procedure such as `Main`.)
 In code, translate every text the user sees, and build sentences with placeholders rather than
 by joining pieces, because the word order differs between languages:
 
-*Listing 18.14* (`examples/book/ch18-desktop/listing-18-14.bas`)
+*Listing 18.13* (`examples/book/ch18-desktop/listing-18-13.bas`)
 
 <!-- run -->
 ```basic
@@ -818,7 +923,7 @@ and by a Help item in the Project menu:
 - Without `App.HelpFile`, the Help key arrives in `Form_KeyDown` as `vbKeyHelp`, so a program
   can do something of its own with it (a game can show its keys).
 
-*Listing 18.15* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.14* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -844,7 +949,7 @@ Version=1.0
 `Version Jotter` in a Shell then prints `Jotter 1.0`. The program can read the same numbers as
 `App.Major`, `App.Minor` and `App.Revision`, and the title as `App.Title`:
 
-*Listing 18.16* (`examples/book/ch18-desktop/listing-18-16.bas`)
+*Listing 18.15* (`examples/book/ch18-desktop/listing-18-15.bas`)
 
 <!-- run -->
 ```basic
@@ -866,7 +971,7 @@ which works in the interpreter too:
 Raise the version when you release a new one, and write the date as day, month and year with
 dots. Jotter shows it in its About requester:
 
-*Listing 18.17* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
+*Listing 18.16* (`examples/book/ch18-desktop/jotter/Jotter.bbp`)
 
 <!-- project: examples/book/ch18-desktop/jotter/Jotter.bbp -->
 ```basic
@@ -878,7 +983,9 @@ End Sub
 
 ## Games on the desktop
 
-A game in a window shares the screen with other programs, and should behave like one:
+A game can run in a window on the Workbench, among the user's other programs, or on a screen
+of its own. A game in a window shares the screen with other programs, and should behave like
+one:
 
 - **Pause when the window is not active.** `Form_Deactivate` runs when the user clicks another
   window; the keys go there now, so pause the game.
@@ -899,7 +1006,7 @@ vlayout id=root
   timer id=tick interval=20
 ```
 
-*Listing 18.18* (`examples/book/ch18-desktop/game/Game.bbp`)
+*Listing 18.17* (`examples/book/ch18-desktop/game/Game.bbp`)
 
 <!-- project: examples/book/ch18-desktop/game/Game.bbp -->
 ```basic
@@ -924,18 +1031,92 @@ Private Sub Form_KeyDown(KeyCode As Integer, Shift As Integer)
 End Sub
 ```
 
+### A full-screen game on its own screen
+
+A game that wants the whole display opens a screen of its own and covers it with a
+`fullscreen=1` window. Here is the same game as above, from
+`examples/book/ch18-desktop/fullscreen/`. Its `window` line asks for its own 800 x 600 screen:
+
+```text
+# fullgame.afg - the game window covers its screen: the program's own 800 x 600 screen,
+# unless Sub Main has opened one in the mode the user chose
+window name=play title="Boing Catch" screen=own screenwidth=800 screenheight=600 fullscreen=1
+vlayout id=root
+  canvas id=view width=320 height=200 scale=2
+  timer id=tick interval=20
+```
+
+The window is as big as the screen, and the 640 x 400 picture is centred in it. The screen
+must be a little larger than the picture, because the layout keeps a small margin around its
+controls: a window whose layout needs more room than the screen has can't open (error 7).
+
+The program starts in `Sub Main`, which lets the user choose a screen mode first (and
+remembers it). If the user chooses one that is big enough, `App.OpenScreen` opens the screen in
+that mode before the form is loaded, so the form opens there; otherwise the form's
+`screen=own` opens the 800 x 600 screen:
+
+*Listing 18.18* (`examples/book/ch18-desktop/fullscreen/FullScreen.bbp`)
+
+<!-- project: examples/book/ch18-desktop/fullscreen/FullScreen.bbp -->
+```basic
+' Startup.bas - asks for a screen mode, opens the game's own screen and plays on it
+Option Explicit
+
+Public Const APPNAME = "BoingCatch"
+
+Public Sub Main()
+    Dim dlg As Object
+    Set dlg = CreateObject("Boing.CommonDialog")
+    dlg.DialogTitle = "Boing Catch: choose a screen mode"
+    dlg.ScreenModeID = CLng(GetSetting(APPNAME, "Screen", "Mode", "0"))
+    dlg.ShowScreenMode
+    If Not dlg.Cancelled Then
+        ' the 640 x 400 picture and the layout's margin need a bit more than 640 x 400
+        If dlg.ScreenWidth < 680 Or dlg.ScreenHeight < 440 Then
+            MsgBox "That mode is too small: the game uses 800 x 600.", vbInformation, "Boing Catch"
+        Else
+            SaveSetting APPNAME, "Screen", "Mode", CStr(dlg.ScreenModeID)
+            On Error GoTo noScreen
+            App.OpenScreen dlg.ScreenModeID, dlg.ScreenWidth, dlg.ScreenHeight, dlg.ScreenDepth, "Boing Catch"
+            On Error GoTo 0
+        End If
+    End If
+start:
+    ' loaded now, so it opens on that screen; without one, its screen=own opens 800 x 600
+    play.Show vbModal
+    Exit Sub
+noScreen:
+    MsgBox "Can't open that screen mode." & vbLf & "The game uses 800 x 600.", vbExclamation, "Boing Catch"
+    Resume start
+End Sub
+```
+
+A full-screen window has no close gadget and no iconify gadget, so the keys matter more than
+in a window: Esc asks before quitting, P pauses, Help shows the keys, and the game pauses
+when it loses the input (`Form_Deactivate`), for example when the user switches to another
+screen with Left-Amiga M. `MsgBox` and the other requesters open on the game's screen. The
+screen closes when the program ends.
+
+Things to know about screens of your own:
+
+- The screen is like the Workbench (its mode, depth and font) in everything you don't give.
+  It is a public screen named after the program, so other programs could open windows on it
+  too; `App.CloseScreen` returns `False` while any window is still open there.
+- A screen opened with `App.OpenScreen` has a title bar, which stays in front of the top of a
+  full-screen window: leave the top of the picture free, or let the `.afg`'s `screen=own`
+  open the screen, which then has no title bar.
+- A game that runs on its own screen should still offer a window on the Workbench for users who
+  prefer it: a tooltype or a setting that chooses between two forms, one with `screen=own
+  fullscreen=1` and one without.
+
 > **Not yet supported**
 >
 > These AmigaOS features have no Boing BASIC support yet (some can be reached with `Declare`,
 > see [Calling AmigaOS](17-amigaos.md)):
 >
-> - Opening a window on a named public screen (a `PUBSCREEN` tooltype), or on a screen of the program's own.
-> - Full-screen, backdrop or borderless windows (for games); a canvas is always inside a normal window.
-> - Using the mode chosen with `ShowScreenMode`: nothing opens a screen with it.
-> - The screen title shown while the window is active (`WA_ScreenTitle`).
-> - Choosing the font of a window or a control; the font chosen with `ShowFont` can't be applied to controls.
-> - Gadget keyboard shortcuts bound by the runtime: the `_` letter is underlined, but the runtime sets no activation key (`GA_ActivateKey`), so the program handles the keys itself.
-> - A default button for Return and a Cancel button for Esc in a window: handled in code.
+> - Choosing the public screen at run time (for example from a `PUBSCREEN` tooltype): `pubscreen=` is fixed in the `.afg`, and there is no property for it.
+> - Hiding the title bar of a screen opened with `App.OpenScreen`, and screens with their own palette or pens.
+> - Bold and italic window fonts: `Me.FontName` and `Me.FontSize` take only the name and size of a `ShowFont` result.
 > - Notifications (Ringhio pop-ups through application.library), and registering with application.library (single instance, Quit or Show from other programs); the generated `application.bi` lacks the `APPNOTIFY_` tag constants.
 > - Commodities: a hotkey to pop up the window, Show/Hide/Quit from Exchange.
 > - A Workbench start of `boing` itself (a project icon with `boing` as default tool): use an IconX script.
@@ -950,13 +1131,19 @@ End Sub
 ## Summary
 
 - Lay windows out in groups with weights, never at fixed pixels, so they fit any font and
-  screen; offer resizing, iconifying and remembered positions.
+  screen; offer resizing, iconifying and remembered positions. Leave fonts to the user unless
+  there is a reason (`font=`, `Me.FontName` after `ShowFont`).
+- Windows open on the default public screen; `pubscreen=` names another one, and `screen=own`
+  or `App.OpenScreen` (with a `ShowScreenMode` result) opens the program's own screen, which a
+  `fullscreen=1` game window can cover.
 - Accept files from Workbench and the Shell (`App.Arg`), read tooltypes with defaults, and give
   saved documents icons with `App.SaveIcon`.
 - Use the ASL requesters, ask before discarding work, and name requester buttons after what
   they do.
 - Project, Edit, Settings menus with the standard Amiga-key shortcuts; Quit last; `...` on items
-  that open a requester; underlined letters, Esc and Help for the keyboard.
+  that open a requester; `_` shortcut letters, `default=1` and `cancel=1` buttons and Help for
+  the keyboard; the right button shows the menu bar, Shift or Ctrl + right button a context
+  menu.
 - An ARexx port, settings in `ENV:`/`ENVARC:`, catalogs, AmigaGuide help and a `$VER:` string
   make a program a full member of the desktop.
 

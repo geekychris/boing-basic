@@ -1,7 +1,7 @@
 # person.afg - a small modal dialog
 window name=dlgPerson title="Person" width=240 height=0 toolwindow=1
 vlayout id=root
-  string id=nameField label="Name" maxchars=40
+  string id=nameField label="_Name" maxchars=40
   hlayout even=1
-    button id=ok text="_OK"
-    button id=cancel text="_Cancel"
+    button id=ok text="_OK" default=1
+    button id=cancel text="_Cancel" cancel=1

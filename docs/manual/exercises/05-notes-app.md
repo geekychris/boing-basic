@@ -416,7 +416,8 @@ start again to see the settings kept.
 4. Add a word count to a third status-bar panel, updated in `ed_Change` (with `Split`, as in
    [Exercise 1](01-console.md)).
 5. Add a hidden menu (`menu id=mnuCtx text="Edit" hidden=1` with Cut, Copy and Paste items)
-   and give the editor `contextmenu=mnuCtx`, so the right mouse button opens it over the text.
+   and give the editor `contextmenu=mnuCtx`, so Shift (or Ctrl) and the right mouse button
+   open it over the text.
 
 ## See also
 
