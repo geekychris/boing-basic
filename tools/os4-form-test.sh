@@ -19,13 +19,20 @@ def run(cmd, label):
     out_f = "RAM:bbform/%s.out" % label
     m.tool("amiga_dos_command", command="delete %s QUIET" % out_f)
     m.tool("amiga_dos_command", command="run >NIL: %s >%s *>%s.err" % (cmd, out_f, out_f))
-    clicked, t0, out = False, time.time(), ""
+    clicks, last, t0, out = 0, 0.0, time.time(), ""
     while time.time() - t0 < 90:
         time.sleep(2)
         out = m.tool("amiga_dos_command", command="type %s" % out_f)
         c = re.search(r"CLICK\s+(-?\d+)\s+(-?\d+)", out)
-        if c and not clicked:
-            clicked = True
+        # up to 3 tries, 6 s apart: a click can still meet the blanker going away (ptr clicks
+        # only while the test's window is in front, so a late one lands nowhere else)
+        if c and clicks < 3 and time.time() - last > 6 and not re.search(r"ok_Click|^(PASS|FAIL)", out, re.M):
+            clicks += 1
+            last = time.time()
+            # wake the screen blanker first (as os4guest.shot does): while it is on, the front
+            # screen is the blanker's, ptr refuses to click and ok_Click never came
+            g.mouse(1, 0, m=m)
+            time.sleep(2)
             r = m.tool("amiga_dos_command", command="RAM:bbform/ptr %s %s click \"%s\"" % (c.group(1), c.group(2), TITLE))
             print("# ptr:", r.strip()[:200])
         if re.search(r"^(PASS|FAIL)", out, re.M):
@@ -40,8 +47,9 @@ ok = True
 with g.testing("Boing BASIC form test"):
     m.tool("amiga_dos_command", command="makedir RAM:bbform")
     files = [("build/os4/ptr", "RAM:bbform/ptr")]
-    for f in ("formbas.bbp", "formbas.afg", "formbas.bas"):
-        files.append((T + f, "RAM:bbform/" + f))
+    for f in sorted(os.listdir(T)):        # every file of the project (it has more than one module)
+        if os.path.splitext(f)[1].lower() in (".bbp", ".afg", ".bas", ".cls", ".bi"):
+            files.append((T + f, "RAM:bbform/" + f))
     if mode in ("vm", "both"):
         files.append(("build/os4/boing", "RAM:bbform/boing"))
     if mode in ("native", "both"):
