@@ -32,12 +32,12 @@ def host_reference(src):
 
 def run(m, label, cmd, rdir, limit):
     """run cmd in rdir on the guest; stdout then stderr"""
-    tag = "RAM:bbt/%s" % label
+    tag = "RAM:bbt/lt%d-%s" % (os.getpid(), label)      # unique: other agents use RAM:bbt too
     script = "%s.script" % tag
     lines = ["FailAt 1000", "CD %s" % rdir, "%s >%s.out *>%s.err" % (cmd, tag, tag), "Echo done >%s.done" % tag]
     for f in (".out", ".err", ".done"):
         m.tool("amiga_dos_command", command="delete %s%s QUIET" % (tag, f))
-    local = os.path.join(ROOT, "build", "os4-libtest-%s.script" % label)
+    local = os.path.join(ROOT, "build", "os4-libtest-%d-%s.script" % (os.getpid(), label))
     with open(local, "w", encoding="latin-1") as fh:
         fh.write("\n".join(lines) + "\n")
     g.push(m, local, script)
@@ -49,6 +49,8 @@ def run(m, label, cmd, rdir, limit):
         if re.search(r"^done", done.replace("\r", ""), re.M):
             out = m.tool("amiga_dos_command", command="type %s.out" % tag)
             err = m.tool("amiga_dos_command", command="type %s.err" % tag)
+            for f in (".out", ".err", ".done", ".script"):
+                m.tool("amiga_dos_command", command="delete %s%s QUIET" % (tag, f))
             return clean(out) + clean(err), True
     return "", False
 
@@ -93,7 +95,8 @@ def main():
             runs.append(("native", rdir + "/native"))
         for label, cmd in runs:
             got, finished = run(m, label, cmd, rdir, limit)
-            same = finished and got == ref
+            # the bridge drops trailing white space at the very end of an output
+            same = finished and got.rstrip() == ref.rstrip()
             ok &= same
             print("== %s: %s" % (label, "PASS (output = the host's)" if same else
                                  "FAIL" + ("" if finished else " (not finished within %ds)" % limit)))
