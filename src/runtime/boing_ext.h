@@ -39,6 +39,8 @@ bb_value bb_ext_call(const char *name, int argc, bb_value *argv);
 int bb_ext_class_count(void);
 const char *bb_ext_class_name(int i);
 int bb_ext_linked(const char *ext);                     /* an extension's init ran */
+int bb_ext_linked_count(void);                          /* the extensions whose init ran, in order */
+const char *bb_ext_linked_name(int i);
 void bb_ext_mark_linked(const char *ext);
 
 /* the stable helpers for extension code (instead of reading bb_value fields) */

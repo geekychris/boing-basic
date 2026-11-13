@@ -167,6 +167,9 @@ void bb_ext_mark_linked(const char *ext)
     linked[nlinked++] = ext;
 }
 
+int bb_ext_linked_count(void) { return nlinked; }
+const char *bb_ext_linked_name(int i) { return i >= 0 && i < nlinked ? linked[i] : NULL; }
+
 int bb_ext_linked(const char *ext)
 {
     int i;

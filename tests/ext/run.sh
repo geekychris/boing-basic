@@ -23,6 +23,7 @@ for t in "examples/ext_counter/demo.bbp:counter" "examples/ext_shapes/demo.bbp:s
         check "$name vm jit" "$(cd "$d" && BOING_JIT=1 BOING_JIT_THRESHOLD=1 "$tmp/$name.vm" run "$f" 2>&1)" "$want"
     else echo "FAIL ext $name vm (boing vm)"; fail=1; fi
 done
+check "boing extensions (none)" "$("$B" extensions 2>&1)" ""
 # the plain interpreter: a missing extension stops before running; a missing C function is 453
 got=$(cd "$root/examples/ext_counter" && "$B" run demo.bbp 2>&1; echo "rc=$?")
 case $got in *"needs the extension 'counter', which is not linked"*"rc=20") ;; *) echo "FAIL ext missing extension: $got"; fail=1 ;; esac
@@ -50,6 +51,7 @@ got=$(cd "$sd" && "$B" check stdproj.bbp 2>&1)
 case $got in *"extension 'stdhello' not found"*) ;; *) echo "FAIL ext std not found: $got"; fail=1 ;; esac
 if (cd "$root" && make -s STD_EXTS=stdhello STD_EXT_DIR=tests/ext/std BOING_EXE="$tmp/boing-std" "$tmp/boing-std" >/dev/null 2>&1); then
     check "std interpreter" "$(cd "$sd" && BOING_EXT=../std "$tmp/boing-std" run stdproj.bbp 2>&1)" "cube 3 -2 "
+    check "std interpreter: boing extensions" "$("$tmp/boing-std" extensions 2>&1)" "stdhello"
 else echo "FAIL ext STD_EXTS interpreter (build)"; fail=1; fi
 # the SQLite standard extension (ext/sqlite, Extension=sqlite): natively, and in a stock
 # interpreter built with STD_EXTS=sqlite (as the kit's is)

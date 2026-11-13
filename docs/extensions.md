@@ -126,7 +126,11 @@ make STD_EXTS=sqlite                      # host: build/boing with ext/sqlite an
 tools/build-os4.sh STD_EXTS=sqlite        # AmigaOS 4: build/os4/boing likewise
 ```
 
-The kit build sets `STD_EXTS=sqlite`, so the kit's interpreter has SQLite; native programs get an
+`boing extensions` lists the extensions linked into an interpreter, one per line (nothing for a
+plain `boing`). AmiForge's Run uses the kit's `boing` as it is for a project whose `Extension=`
+lines are all standard extensions it has, instead of building an interpreter with `boing vm`.
+
+The kit build sets `STD_EXTS="sqlite opengl"`, so the kit's interpreter has SQLite and OpenGL; native programs get an
 extension only from their own `Extension=` line. `STD_EXT_DIR` (default `ext`) is where the
 build looks (tests/ext/run.sh builds one from tests/ext/std).
 
