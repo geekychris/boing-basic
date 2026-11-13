@@ -35,6 +35,7 @@ provide.
 14. [Graphics with the Canvas, and Timers](14-graphics.md)
 15. [3D with Engine3D](15-engine3d.md)
 16. [Sound and music with Audio](16-audio.md)
+22. [3D with OpenGL](22-opengl.md): cameras, lighting, textures, display lists (Extension=opengl)
 
 **Beyond the language**
 

@@ -5,7 +5,9 @@
 #
 #   AmiForge(.info)           the IDE, AmiForge's feat-basic branch (REV default origin/feat-basic)
 #   boing, lib/libboing.a     the compiler/interpreter and runtime, boing_basic REV (default origin/main);
-#                             boing has the standard extensions of KIT_STD_EXTS (default: sqlite when ext/sqlite exists)
+#                             boing has the standard extensions of KIT_STD_EXTS (default: those of sqlite
+#                             and opengl that ext/ has)
+#   lib/libOSMesa.a           Mesa's software OpenGL, for native builds with Extension=opengl
 #   lib/libboingvm.a          the compiler and VM, for `boing vm` on the Amiga (projects with Extension=)
 #   include/, bindings/       the runtime headers incl. boing_ext.h (native builds and boing vm), OS library declarations
 #   ext/                      the standard extensions' sources (PROGDIR:ext/), when the tree has ext/
@@ -80,20 +82,26 @@ hostboing=$src/bb/build/boing
 step "boing + libboing.a (OS4, clean, check-cpu)"
 rm -rf $src/bb/build/os4
 # the standard extensions linked into the kit's boing (docs/extensions.md): KIT_STD_EXTS, else
-# sqlite once ext/sqlite is in the tree
+# sqlite and opengl, each once ext/ has it (OpenGL: Mesa is built for OS4 first, third_party/mesa)
 if [[ -n ${KIT_STD_EXTS+x} ]]; then stdexts=$KIT_STD_EXTS
-elif [[ -d $src/bb/ext/sqlite ]]; then stdexts=sqlite
-else stdexts=; fi
+else
+    stdexts=
+    for x in sqlite opengl; do [[ -d $src/bb/ext/$x ]] && stdexts="${stdexts:+$stdexts }$x"; done
+fi
 print "standard extensions in the kit's boing: ${stdexts:-none}"
+# git archive has no Mesa source or build: reuse this checkout's tarball (it is checked by SHA-256)
+[[ -f $repo/third_party/mesa/MesaLib-7.8.2.tar.bz2 && -d $src/bb/third_party/mesa ]] && cp $repo/third_party/mesa/MesaLib-7.8.2.tar.bz2 $src/bb/third_party/mesa/
 $src/bb/tools/build-os4.sh check-cpu ${stdexts:+STD_EXTS="$stdexts"} >$log/os4.log 2>&1 || { tail -30 $log/os4.log; exit 1 }
+[[ " $stdexts " == *" opengl "* ]] && { $src/bb/tools/build-os4.sh build/os4/libOSMesa.a >>$log/os4.log 2>&1 || { tail -30 $log/os4.log; exit 1 } }
 [[ -f $src/bb/build/os4/libboingvm.a ]] || { print -u2 "make-kit: no build/os4/libboingvm.a (boing vm needs it)"; exit 1 }
 # The guest SDK's ld (binutils 2.23) doesn't know GCC 11's float-ABI attribute value ("hard float,
 # 64-bit long double", Tag_GNU_Power_ABI_FP 9) and warns "uses unknown floating point ABI 9" for every
 # object of libboing.a in a `boing build` on the Amiga. The guest's GCC 11.5 targets the same ABI, so
 # the attribute adds nothing: the shipped libraries go without .gnu.attributes.
 docker run --rm -v $src/bb/build/os4:/o -w /o $PPC_IMAGE sh -c '
-  for a in libboing.a libboingvm.a; do ppc-amigaos-objcopy --remove-section=.gnu.attributes $a || exit 1; done
-  n=$(for a in libboing.a libboingvm.a; do ppc-amigaos-readelf -A $a; done | grep -c Tag_GNU_Power_ABI_FP); test "$n" = 0' \
+  libs="libboing.a libboingvm.a"; [ -f libOSMesa.a ] && libs="$libs libOSMesa.a"
+  for a in $libs; do ppc-amigaos-objcopy --remove-section=.gnu.attributes $a || exit 1; done
+  n=$(for a in $libs; do ppc-amigaos-readelf -A $a; done | grep -c Tag_GNU_Power_ABI_FP); test "$n" = 0' \
   || { print -u2 "make-kit: removing .gnu.attributes from the libraries failed"; exit 1 }
 print "libboing.a, libboingvm.a: no .gnu.attributes (the guest SDK's ld 2.23 warned about GCC 11's float-ABI tag)"
 grep 'dlmzb=' $log/os4.log | grep -v 'dlmzb=0$' && { print -u2 "make-kit: dlmzb in the OS4 build"; exit 1 }

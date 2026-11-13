@@ -1,0 +1,5 @@
+# Spinner: a lit torus turning in a window, with a HUD (manual chapter 22)
+Name=Spinner
+Startup=Form spinner
+Form=spinner.afg
+Extension=opengl

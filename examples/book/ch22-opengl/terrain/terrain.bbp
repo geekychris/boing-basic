@@ -1,0 +1,5 @@
+# Terrain: a landscape in vertex arrays, recorded into a display list (manual chapter 22)
+Name=Terrain
+Startup=Sub Main
+Module=terrain.bas
+Extension=opengl

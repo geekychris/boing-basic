@@ -1,0 +1,5 @@
+# Labels: where 3D points land on the canvas, for text drawn with the Canvas (manual chapter 22)
+Name=Labels
+Startup=Sub Main
+Module=labels.bas
+Extension=opengl
