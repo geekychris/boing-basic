@@ -814,7 +814,13 @@ static void check_set(Ctx *c, Node *s, NodeList *out)
 static Node *as_call_stmt(Ctx *c, Node *s)
 {
     Node *e = check_expr(c, s->a, M_STMT);
+    /* an extension function called as a statement: its result (converted from the Variant it
+       returns) is not needed */
+    while (e->kind == E_CONV && e->a && (e->a->kind == E_EXTCALL || e->a->kind == E_CONV)) e = e->a;
     switch (e->kind) {
+    case E_EXTCALL:
+        s->a = e;
+        return s;
     case E_CALL: case E_MCALL: case E_BUILTIN: case E_LATE:
         e->flags |= NF_VOIDCALL;
         if (e->kind == E_LATE && e->argc_kind == (BB_INV_GET | BB_INV_METHOD)) e->argc_kind = BB_INV_METHOD;

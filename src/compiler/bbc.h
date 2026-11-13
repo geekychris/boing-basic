@@ -200,6 +200,7 @@ struct Node {
 #define NF_STATIC     0x0008
 #define NF_NEW        0x0010  /* As New */
 Node *late_byref_var(Node *x);
+Node *ext_array_ref(Node *x);
 int decl_nullstr(Node *a);       /* Declare argument: the vbNullString constant (passed as 0) */
 int decl_strvar(Node *a);        /* Declare argument: a String variable passed ByVal (buffer, copied back) */   /* a late-bound call's argument that is passed by reference */
 #define NF_WITHEVENTS 0x0020
@@ -378,6 +379,7 @@ typedef struct ExtMember { char *name; int kind; char *sig; char *type; } ExtMem
 typedef struct ExtClass { char *name; char *ext; ExtMember *m; int nm; struct ExtFunc *ev; int nev; } ExtClass;   /* ev: 'event' lines */
 struct ExtFunc;
 typedef struct ExtFunc { char *name; char *ext; ExtParam *p; int np; char *ret; char *sig; int line, file; } ExtFunc;
+typedef struct ExtConst { char *name; char *ext; int isdbl; int64_t i; double d; } ExtConst;   /* 'const' lines */
 typedef struct ExtInfo { char *name; char *dir; char *src; char *bbx; } ExtInfo;   /* Extension=dir/name */
 
 struct Program {
@@ -408,14 +410,17 @@ struct Program {
     ExtInfo *exts; int nexts;
     ExtClass **xclasses; int nxclasses;
     ExtFunc **xfuncs; int nxfuncs;
+    ExtConst **xconsts; int nxconsts;
     char **csources; int ncsources;
     char **links; int nlinks;           /* .bbx 'link' lines: "lib", "os4:lib" or "host:lib" */
+    int ext_stack;                      /* .bbx 'stack N': native programs get at least N bytes */
 };
 #define IS_REGCLS(c) ((c)->rtcls || (c)->xcls)   /* a registered (runtime or extension) class */
 int bbx_load(Program *p, const char *path, const char *ext);   /* parse name.bbx into p; 0 on error */
 ExtClass *ext_class_find(Program *p, const char *name);
 ExtMember *ext_member_find(ExtClass *c, const char *name);
 ExtFunc *ext_func_find(Program *p, const char *name);
+ExtConst *ext_const_find(Program *p, const char *name);
 
 Program *prog_new(void);
 char *bbx_link_flags(Program *p, int os4);   /* " -lA -lB": the extensions' link libraries for a target */

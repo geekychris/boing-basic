@@ -78,8 +78,16 @@ STDX_LIBS = $(if $(strip $(STD_EXTS)),$(shell sh tools/stdext.sh libs os4 $(STD_
 STDX_LD   = $(if $(filter %.cpp,$(STDX_SRCS)),$(CXX) -athread=native,$(CC))
 BOING_OBJS = $(if $(strip $(STD_EXTS)),$(filter-out $(OUT)/obj/main/vmext_default.o,$(TOOL_OBJS)) $(OUT)/obj/stdext/glue.o $(STDX_OBJS),$(TOOL_OBJS))
 
-$(OUT)/boing: $(BOING_OBJS) $(OUT)/libboing.a
-	$(if $(strip $(STD_EXTS)),$(STDX_LD),$(CC)) $(LDFLAGS) -o $@ $(BOING_OBJS) $(OUT)/libboing.a $(STDX_LIBS) $(LIBS)
+$(OUT)/boing: $(BOING_OBJS) $(OUT)/libboing.a $(if $(filter opengl,$(STD_EXTS)),$(OUT)/libOSMesa.a)
+	$(if $(strip $(STD_EXTS)),$(STDX_LD),$(CC)) $(LDFLAGS) -o $@ $(BOING_OBJS) $(OUT)/libboing.a -L$(OUT) $(STDX_LIBS) $(LIBS)
+
+# OpenGL (ext/opengl, docs/opengl.md): Mesa's software renderer beside libboing.a. Built by
+# third_party/mesa/build.sh os4 (Docker) on the host first: this file runs inside the container
+$(OUT)/libOSMesa.a: third_party/mesa/out/os4/libOSMesa.a
+	@mkdir -p $(dir $@)
+	cp $< $@
+third_party/mesa/out/os4/libOSMesa.a:
+	@echo "build Mesa for AmigaOS 4 first: third_party/mesa/build.sh os4" >&2; exit 1
 
 $(OUT)/obj/stdext/glue.c: FORCE
 	@mkdir -p $(dir $@)

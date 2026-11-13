@@ -9,6 +9,8 @@
  *     property Count As Long ReadOnly
  *   function Clamp(ByVal x As Long, ByVal lo As Long, ByVal hi As Long) As Long
  *   sub Beep2(ByVal hz As Long)
+ *   const GL_TRIANGLES = &H0004          (a Long: decimal or &H hex; with a '.' or 'E' a Double)
+ *   stack 1048576                        (a native program using it gets at least this much stack)
  */
 #include "bbc.h"
 #include <ctype.h>
@@ -113,6 +115,35 @@ int bbx_load(Program *p, const char *path, const char *ext)
             }
             continue;
         }
+        if (!strcasecmp(s, "stack")) {
+            char *end;
+            long n = strtol(rest, &end, 10);
+            if (n <= 0 || *trim(end)) goto bad;
+            if (n > p->ext_stack) p->ext_stack = (int)n;
+            continue;
+        }
+        if (!strcasecmp(s, "const")) {
+            /* const NAME = value */
+            char *eq = strchr(rest, '='), *v, *end;
+            ExtConst *k;
+            if (!eq) goto bad;
+            *eq = 0;
+            name = trim(rest);
+            v = trim(eq + 1);
+            if (!*name || !*v) goto bad;
+            for (end = name; *end; end++) if (!isalnum((unsigned char)*end) && *end != '_') goto bad;
+            k = (ExtConst *)xcalloc(1, sizeof(ExtConst));
+            k->name = xstrdup(name);
+            k->ext = xstrdup(ext);
+            if (!strncasecmp(v, "&H", 2)) k->i = (int64_t)(int32_t)strtoul(v + 2, &end, 16);
+            else if (strpbrk(v, ".eE")) { k->isdbl = 1; k->d = strtod(v, &end); }
+            else k->i = strtoll(v, &end, 10);
+            if (*trim(end)) { free(k->name); free(k->ext); free(k); goto bad; }
+            p->xconsts = (ExtConst **)xrealloc(p->xconsts, sizeof(ExtConst *) * (size_t)(p->nxconsts + 1));
+            p->xconsts[p->nxconsts++] = k;
+            cur = NULL;
+            continue;
+        }
         if (!strcasecmp(s, "class")) {
             if (!*rest) goto bad;
             cur = (ExtClass *)xcalloc(1, sizeof(ExtClass));
@@ -171,7 +202,7 @@ int bbx_load(Program *p, const char *path, const char *ext)
         } else goto bad;
         continue;
     bad:
-        fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: expected 'class', 'method', 'property', 'event', 'function', 'sub' or 'link'\n", path, lineno);
+        fprintf(p->diag_out ? p->diag_out : stderr, "%s:%d: error: expected 'class', 'method', 'property', 'event', 'function', 'sub', 'const', 'stack' or 'link'\n", path, lineno);
         p->nerrors++;
         ok = 0;
     }
@@ -213,5 +244,12 @@ ExtFunc *ext_func_find(Program *p, const char *name)
 {
     int i;
     for (i = 0; i < p->nxfuncs; i++) if (name_eq(p->xfuncs[i]->name, name)) return p->xfuncs[i];
+    return NULL;
+}
+
+ExtConst *ext_const_find(Program *p, const char *name)
+{
+    int i;
+    for (i = 0; i < p->nxconsts; i++) if (name_eq(p->xconsts[i]->name, name)) return p->xconsts[i];
     return NULL;
 }

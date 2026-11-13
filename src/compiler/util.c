@@ -109,6 +109,17 @@ Node *late_byref_var(Node *x)
     return v;
 }
 
+/* an array variable passed to a linked extension's Variant parameter: by reference, as to late-bound
+   calls (no copy, and output arrays such as GLProject's work); NULL for anything else */
+Node *ext_array_ref(Node *x)
+{
+    Node *v = x;
+    if (v->flags & NF_PARENARG) return NULL;
+    while (v->kind == E_CONV && v->ty->kind == T_VARIANT) v = v->a;
+    if (v->kind != E_VAR || (v->flags & NF_PARENARG) || v->ty->kind != T_ARRAY || v->sym->kind != SK_VAR) return NULL;
+    return v;
+}
+
 int decl_nullstr(Node *a)
 {
     return a->kind == E_CONST && a->sym && a->sym->name && name_eq(a->sym->name, "vbNullString");
