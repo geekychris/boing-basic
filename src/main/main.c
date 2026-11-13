@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "../runtime/bb_sys.h"
+#include "../runtime/boing_ext.h"
 #include "../compiler/rtmembers.h"
 
 /* AmigaOS 4's libstdc++ is built with thread support: C++ objects and links need -athread=native */
@@ -32,7 +33,7 @@ static void usage(void)
             "  boing compile prog.bas -o prog.bbc               write a bytecode file\n"
             "  boing emit-c prog.bas [-o prog.c]                write the generated C\n"
             "  boing symbols file.bas|file.cls                  list declarations for an IDE\n"
-            "  boing disasm prog.bas                            show the bytecode\n  boing members [Engine3D|Canvas|Audio|Http]       members of the runtime classes (completion)\n  boing vm [--project P.bbp] [--ext DIR/NAME] [--csource F.c] [--target os4] -o OUT   an interpreter with extensions\n");
+            "  boing disasm prog.bas                            show the bytecode\n  boing extensions                                 the extensions linked into this interpreter\n  boing members [Engine3D|Canvas|Audio|Http]       members of the runtime classes (completion)\n  boing vm [--project P.bbp] [--ext DIR/NAME] [--csource F.c] [--target os4] -o OUT   an interpreter with extensions\n");
     exit(5);
 }
 
@@ -403,6 +404,14 @@ int main(int argc, char **argv)
     if (argc < 2) usage();
     cmd = argv[1];
     if (!strcmp(cmd, "--version") || !strcmp(cmd, "version")) { printf("Boing BASIC " BOING_VERSION "\n"); return 0; }
+    if (!strcmp(cmd, "extensions")) {
+        /* the extensions linked into this interpreter (STD_EXTS, or a `boing vm` one's), one per
+           line: an IDE runs a project whose Extension= lines are all here with this boing,
+           without building an interpreter for it */
+        int i;
+        for (i = 0; i < bb_ext_linked_count(); i++) printf("%s\n", bb_ext_linked_name(i));
+        return 0;
+    }
     if (argc < 3 && strcmp(cmd, "members") && strcmp(cmd, "vm")) usage();
     if (!strcmp(cmd, "vm")) return cmd_vm(argv[0], argc, argv);
     if (!strcmp(cmd, "sources")) {
