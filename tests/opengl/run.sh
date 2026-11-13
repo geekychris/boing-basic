@@ -22,6 +22,22 @@ for p in "$root"/tests/opengl/*/*.bbp; do
         (cd "$d" && BOING_JIT=1 BOING_JIT_THRESHOLD=1 "$tmp/$n.vm" run "$f" >"$tmp/$n.got" 2>&1); check "$n vm jit" "$tmp/$n.got" "$want"
     else echo "FAIL opengl $n vm (boing vm)"; cat "$tmp/$n.log"; fail=1; fi
 done
+# the examples (examples/gl_*): each form program runs headless for 30 frames, natively and in
+# the VM (the interpreter built for tests/opengl/basics); the last picture's hash must be the one
+# in its tests/expected-hash.txt (UPDATE_GL_HASHES=1 rewrites them; an example without the file
+# is not tested)
+for p in "$root"/examples/gl_*/*.bbp; do
+    d=$(dirname "$p"); f=$(basename "$p"); n=${f%.bbp}; hf=$d/tests/expected-hash.txt
+    [ -f "$hf" ] || continue
+    if (cd "$d" && "$B" build "$f" -o "$tmp/$n.nat" >"$tmp/$n.log" 2>&1); then
+        nat=$(cd "$d" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=60 "$tmp/$n.nat" --frames 30 2>&1 | grep -o 'hash [0-9A-F]*')
+    else echo "FAIL opengl example $n native (build)"; cat "$tmp/$n.log"; fail=1; continue; fi
+    vm=$(cd "$d" && BOING_HEADLESS=1 BOING_HEADLESS_SECS=60 "$tmp/basics.vm" run "$f" --frames 30 2>&1 | grep -o 'hash [0-9A-F]*')
+    [ -n "$UPDATE_GL_HASHES" ] && echo "$nat" > "$hf"
+    want=$(cat "$hf")
+    [ -n "$nat" ] && [ "$nat" = "$want" ] || { echo "FAIL opengl example $n native: '$nat', want '$want'"; fail=1; }
+    [ "$vm" = "$want" ] || { echo "FAIL opengl example $n vm: '$vm', want '$want'"; fail=1; }
+done
 # the stock interpreter with OpenGL linked in (STD_EXTS=opengl)
 if (cd "$root" && make -s STD_EXTS=opengl BOING_EXE="$tmp/boing-gl" "$tmp/boing-gl" >/dev/null 2>&1); then
     (cd "$root/tests/opengl/basics" && "$tmp/boing-gl" run basics.bbp >"$tmp/std.got" 2>&1)

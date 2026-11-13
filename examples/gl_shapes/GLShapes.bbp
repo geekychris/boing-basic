@@ -1,0 +1,6 @@
+# Boing BASIC project: OpenGL lighting and materials on the GLUT shapes
+Name=GLShapes
+Title=OpenGL Shapes
+Startup=Form shapes
+Form=shapes.afg
+Extension=opengl

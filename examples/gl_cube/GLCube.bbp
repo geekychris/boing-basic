@@ -1,0 +1,6 @@
+# Boing BASIC project: hello OpenGL - a spinning colour cube
+Name=GLCube
+Title=OpenGL Cube
+Startup=Form cube
+Form=cube.afg
+Extension=opengl

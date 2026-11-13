@@ -1,0 +1,9 @@
+title = "OpenGL Shapes"
+category = "example"
+summary = "Lighting and materials: five GLUT shapes in display lists, two coloured lights, flat/smooth, wireframe."
+shows = ["OpenGL", "Lighting", "Display lists"]
+
+[[shot]]
+file = "gallery/shapes.png"
+caption = "The shapes on the AmigaOS 4 guest (native)"
+run = { project = "GLShapes.bbp", secs = 6, native = true, crop = "auto" }

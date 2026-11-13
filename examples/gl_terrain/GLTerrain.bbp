@@ -1,0 +1,6 @@
+# Boing BASIC project: an OpenGL landscape from vertex arrays in a display list, with fog
+Name=GLTerrain
+Title=OpenGL Terrain
+Startup=Form terrain
+Form=terrain.afg
+Extension=opengl

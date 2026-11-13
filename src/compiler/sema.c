@@ -1109,8 +1109,16 @@ static void check_stmt(Ctx *c, Node *s, NodeList *out)
     case S_RETURN:
         c->proc->has_gosub = 1;
         break;
-    case S_LABEL:
+    case S_LABEL: {
+        /* "glLoadIdentity: glTranslatef ..." at the start of a line is a label, as in VB, so the
+           call is silently lost: warn when a label is named like a Sub or extension function */
+        Sym *ps = scope_find(c->scope, s->name);
+        if ((ps && ps->kind == SK_PROC) || ext_func_find(c->prog, s->name))
+            diag_warn(c->prog, s->file, s->line, s->col,
+                      "'%s:' at the start of a line is a line label, not a call of '%s' (write 'Call %s' or '%s' alone on the line)",
+                      s->name, s->name, s->name, s->name);
         break;
+    }
     case S_ONGOTO:
         s->a = coerce(c, check_value(c, s->a), &ty_long);
         for (i = 0; i < s->list.n; i++) s->list.v[i]->sym = find_label(c, s->list.v[i], s->list.v[i]->name);

@@ -1,0 +1,9 @@
+title = "OpenGL Boing"
+category = "example"
+summary = "A checkered ball bouncing in front of a grid wall, with its shadow: an Amiga homage."
+shows = ["OpenGL", "Display lists"]
+
+[[shot]]
+file = "gallery/boing.png"
+caption = "The ball on the AmigaOS 4 guest (native)"
+run = { project = "GLBoing.bbp", secs = 6, native = true, crop = "auto" }

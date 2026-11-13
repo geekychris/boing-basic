@@ -1,0 +1,9 @@
+title = "OpenGL Starfield"
+category = "example"
+summary = "Stars as points and warp streaks as lines, from BASIC arrays updated every frame."
+shows = ["OpenGL", "Vertex arrays", "Blending"]
+
+[[shot]]
+file = "gallery/stars.png"
+caption = "Warp speed on the AmigaOS 4 guest (native)"
+run = { project = "GLStarfield.bbp", args = "--warp", secs = 6, native = true, crop = "auto" }

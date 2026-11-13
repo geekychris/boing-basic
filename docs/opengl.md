@@ -82,6 +82,10 @@ The largest picture is **1024 x 1024** (the canvas, and each texture). `GLAttach
 error 5 for a bigger canvas. Software rendering costs time per pixel: games on the QEMU guest
 use 320 x 256 shown at `scale=2`, as the examples do.
 
+A trap from the language, not OpenGL: a Sub without arguments followed by `:` **at the start of
+a line** is a line label, so `glLoadIdentity: glTranslatef 0, 0, -5` loses the
+`glLoadIdentity` (the compiler warns). Put it alone on its line, or after another statement.
+
 ## Functions
 
 Every name below is called like a built-in Sub or Function (`glEnable GL_LIGHTING`,
@@ -165,6 +169,13 @@ costs per vertex and per pixel:
 - **`glDepthFunc GL_LESS`** (the default), 16-bit depth, no blending, no alpha test, no
   texture: OSMesa then uses its fast triangle functions (about 20 times faster for big flat
   polygons). `glShadeModel GL_FLAT` where it looks right.
+- **Fog and blending** take Mesa's general triangle path: GL fog made `gl_terrain` about 15
+  times slower on the guest (2 fps). Fade far things yourself (vertex colours towards the sky
+  colour, as `gl_terrain` and `gl_boing_rally` do).
+- **Fast textures**: opaque textures (every alpha 255) are uploaded as RGB, and with
+  `GL_NEAREST` filtering, `glTexEnvi GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE` and
+  `glHint GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST` Mesa uses its fast textured triangles
+  (`gl_texture`: 65 -> 5.5 ms a frame on the guest).
 - **Cull back faces** (`glEnable GL_CULL_FACE`) of closed shapes.
 - Few vertices: a sphere of 16 x 12 is plenty at 320 x 256.
 - Small canvases shown scaled (`scale=2` in the form) rather than big ones.

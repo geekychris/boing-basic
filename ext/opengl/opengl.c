@@ -358,16 +358,30 @@ static void tex_upload(const uint32_t *px, const bb_array *a, int32_t w, int32_t
 {
     unsigned char *rgba = (unsigned char *)malloc((size_t)w * (size_t)h * 4);
     int32_t i, n = w * h;
+    int opaque = 1;
     if (!rgba) bb_raise(7, "OpenGL texture");
     for (i = 0; i < n; i++) {
         uint32_t c = px ? px[i] : (uint32_t)(int64_t)num_at(a, i);
-        rgba[i * 4] = (unsigned char)(c >> 16);
-        rgba[i * 4 + 1] = (unsigned char)(c >> 8);
-        rgba[i * 4 + 2] = (unsigned char)c;
-        rgba[i * 4 + 3] = (unsigned char)(c >> 24);
+        /* GL's first texture row is t = 0, the bottom of a picture: the top row goes last, so a
+           picture shows the right way up (t = 1 at its top, as on glutSolidCube's faces) */
+        unsigned char *d = rgba + ((size_t)(h - 1 - i / w) * (size_t)w + (size_t)(i % w)) * 4;
+        d[0] = (unsigned char)(c >> 16);
+        d[1] = (unsigned char)(c >> 8);
+        d[2] = (unsigned char)c;
+        d[3] = (unsigned char)(c >> 24);
+        opaque &= d[3] == 255;
     }
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+    if (opaque) {
+        /* no transparency: stored as RGB, which Mesa's fast textured triangles need (GL_NEAREST,
+           GL_REPLACE and GL_PERSPECTIVE_CORRECTION_HINT GL_FASTEST: simple_z_textured_triangle) */
+        for (i = 0; i < n; i++) {
+            rgba[i * 3] = rgba[i * 4];
+            rgba[i * 3 + 1] = rgba[i * 4 + 1];
+            rgba[i * 3 + 2] = rgba[i * 4 + 2];
+        }
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, rgba);
+    } else glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
     free(rgba);
 }
 
@@ -495,7 +509,10 @@ static void cube(double size, GLenum mode)
 {
     static const GLfloat n[6][3] = {{-1, 0, 0}, {0, 1, 0}, {1, 0, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
     static const int f[6][4] = {{0, 1, 2, 3}, {3, 2, 6, 7}, {7, 6, 5, 4}, {4, 5, 1, 0}, {5, 6, 2, 1}, {7, 4, 0, 3}};
-    static const GLfloat tc[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+    /* each face's "up" for its texture: +y on the four sides, towards -z on the top (seen from
+       the front, the far edge is up) and +z on the bottom; "right" = up x normal. So a picture
+       is upright and not mirrored on every face, seen from outside */
+    static const GLfloat up[6][3] = {{0, 1, 0}, {0, 0, -1}, {0, 1, 0}, {0, 0, 1}, {0, 1, 0}, {0, 1, 0}};
     GLfloat v[8][3], s = (GLfloat)(size / 2);
     int i, j;
     v[0][0] = v[1][0] = v[2][0] = v[3][0] = -s;
@@ -508,7 +525,11 @@ static void cube(double size, GLenum mode)
         glBegin(mode);
         glNormal3fv(n[i]);
         for (j = 0; j < 4; j++) {
-            if (mode == GL_QUADS) glTexCoord2fv(tc[j]);
+            if (mode == GL_QUADS) {
+                const GLfloat *p = v[f[i][j]], *u = up[i], *nn = n[i];
+                GLfloat r0 = u[1] * nn[2] - u[2] * nn[1], r1 = u[2] * nn[0] - u[0] * nn[2], r2 = u[0] * nn[1] - u[1] * nn[0];
+                glTexCoord2f((p[0] * r0 + p[1] * r1 + p[2] * r2) / (2 * s) + 0.5f, (p[0] * u[0] + p[1] * u[1] + p[2] * u[2]) / (2 * s) + 0.5f);
+            }
             glVertex3fv(v[f[i][j]]);
         }
         glEnd();
@@ -613,8 +634,8 @@ static void cone(double base, double top, double height, int slices, int stacks,
         for (j = 0; j <= slices; j++) {
             double b = 2 * M_PI * j / slices, cb = cos(b), sb = sin(b);
             glNormal3d(cb * nr, sb * nr, nz);
+            glVertex3d(r1 * cb, r1 * sb, z1);       /* this order: the sides face outwards (GL_CULL_FACE) */
             glVertex3d(r0 * cb, r0 * sb, z0);
-            glVertex3d(r1 * cb, r1 * sb, z1);
         }
         glEnd();
     }

@@ -39,6 +39,10 @@ constants their `GL_` names (`GL_TRIANGLES`, `GL_DEPTH_TEST`). A misspelt one is
 the program is compiled, as for any other name. The arguments are numbers: OpenGL's floating
 point arguments take any number, its enumerations and counts a whole number.
 
+One thing to watch for: a call without arguments followed by a colon **at the start of a line**
+(`glLoadIdentity: glTranslatef 0, 0, -5`) is a line label (see [GoTo](06-control-flow.md)),
+so the call is never made. `boing check` warns about it. Put such a call on its own line.
+
 ## A first picture, step by step
 
 This program draws one triangle with a different colour at each corner, on an off-screen
@@ -554,6 +558,8 @@ error 0
   (`GL_LESS`) and without blending, alpha test or textures; textures and blending cost more per
   pixel. `glShadeModel GL_FLAT` where smooth shading doesn't show, and `glEnable GL_CULL_FACE`
   for closed shapes (the faces turned away aren't drawn).
+- **No fog or blending in hot paths.** They take Mesa's slow general path (fog cost one example
+  15 times its speed on the emulator); fade distant things by colouring them yourself.
 - **Small pictures.** A 320 x 256 canvas shown at `scale=2` in the form looks big and costs a
   quarter of 640 x 512.
 

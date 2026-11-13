@@ -1,0 +1,6 @@
+# Boing BASIC project: a bouncing checkered ball in OpenGL, an Amiga homage
+Name=GLBoing
+Title=OpenGL Boing
+Startup=Form boing
+Form=boing.afg
+Extension=opengl
