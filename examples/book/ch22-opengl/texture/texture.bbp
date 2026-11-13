@@ -1,0 +1,5 @@
+# Texture: a checkerboard made in BASIC, and a texture drawn with the Canvas (manual chapter 22)
+Name=Texture
+Startup=Sub Main
+Module=texture.bas
+Extension=opengl

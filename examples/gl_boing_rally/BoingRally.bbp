@@ -1,0 +1,10 @@
+# Boing Rally: the Boing ball rolls down an endless road in the sky (OpenGL, docs/opengl.md)
+Name=BoingRally
+Title=Boing Rally
+Startup=Form rally
+Module=RallyCore.bas
+Module=RallyDraw.bas
+Module=RallySound.bas
+Form=rally.afg
+Extension=opengl
+Stack=1048576

@@ -3,6 +3,7 @@
 #include "boing_ext.h"
 #include "canvas.h"
 #include "audio.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -107,6 +108,13 @@ const char *const *bb_runtime_class_events(const char *name)
     return c ? c->events : NULL;
 }
 
+/* bb_ext_call's cache: call sites pass the same name pointer every time (a string literal in
+   native code, a constant of the bytecode in the VM), so a slot chosen by the pointer holds the
+   function's index and one name comparison confirms it, instead of searching every registered
+   function (an extension like OpenGL registers hundreds, called thousands of times a frame) */
+#define XCACHE 256
+static struct { const char *name; int idx; } xcache[XCACHE];
+
 void bb_register_function(const char *name, bb_ext_fn fn)
 {
     int i;
@@ -168,8 +176,13 @@ int bb_ext_linked(const char *ext)
 
 bb_value bb_ext_call(const char *name, int argc, bb_value *argv)
 {
-    bb_ext_fn f = bb_ext_function(name);
+    unsigned slot = (unsigned)(((uintptr_t)name >> 2) ^ ((uintptr_t)name >> 10)) & (XCACHE - 1);
+    bb_ext_fn f = NULL;
     char msg[160];
+    int i = xcache[slot].idx - 1;
+    if (xcache[slot].name == name && i >= 0 && i < nfuncs && !strcasecmp(funcs[i].name, name)) return funcs[i].fn(argc, argv);
+    for (i = 0; i < nfuncs; i++)
+        if (!strcasecmp(funcs[i].name, name)) { f = funcs[i].fn; xcache[slot].name = name; xcache[slot].idx = i + 1; break; }
     if (!f) {
         snprintf(msg, sizeof msg, "function '%s' is not linked into this program (an extension or CSource missing)", name);
         bb_raise(453, msg);

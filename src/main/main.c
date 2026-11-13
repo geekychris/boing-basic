@@ -453,6 +453,12 @@ int main(int argc, char **argv)
                 ExtFunc *xf = xp->xfuncs[k];
                 printf("\t%s\t%s\t%s\t%s\n", xf->name, xf->ret ? "function" : "sub", xf->sig, xf->ret ? xf->ret : "");
             }
+            /* and their constants: kind "const", the value in the signature field */
+            for (k = 0; !want && k < xp->nxconsts; k++) {
+                ExtConst *xk = xp->xconsts[k];
+                if (xk->isdbl) printf("\t%s\tconst\t%.17g\tDouble\n", xk->name, xk->d);
+                else printf("\t%s\tconst\t%lld\tLong\n", xk->name, (long long)xk->i);
+            }
         }
         for (i = 0; i < sizeof bb_rtmembers / sizeof bb_rtmembers[0]; i++) {
             const bb_class *rc = bb_runtime_class(bb_rtmembers[i].cls);

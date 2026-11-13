@@ -1,0 +1,5 @@
+# First: a first OpenGL picture on an off-screen canvas (manual chapter 22)
+Name=First
+Startup=Sub Main
+Module=first.bas
+Extension=opengl

@@ -1215,7 +1215,19 @@ static Node *resolve_name(Ctx *c, Node *e, NodeList *args, int mode)
     {
         /* a function of a linked extension (its .bbx) or Declare ... Lib "C" */
         ExtFunc *xf = ext_func_find(c->prog, e->name);
+        ExtConst *xk;
         if (xf) return ext_call(c, e, xf, args, mode);
+        /* a constant of a linked extension (.bbx 'const' line) */
+        xk = ext_const_find(c->prog, e->name);
+        if (xk) {
+            CVal v;
+            memset(&v, 0, sizeof v);
+            if (args) ERR(c, e, "'%s' is a constant, not a function or array", xk->name);
+            if (mode == M_LVAL || mode == M_SETLVAL) ERR(c, e, "cannot assign to the constant '%s'", xk->name);
+            if (xk->isdbl) { v.type = T_DOUBLE; v.d = xk->d; }
+            else { v.type = T_LONG; v.i = xk->i; }
+            return mk_const_node(e, &v);
+        }
     }
     /* implicit declaration */
     if (args) {

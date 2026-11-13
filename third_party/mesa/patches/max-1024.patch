@@ -1,0 +1,36 @@
+--- a/src/mesa/main/config.h
++++ b/src/mesa/main/config.h
+@@ -98,16 +98,16 @@
+ #define MAX_COLOR_TABLE_SIZE 256
+ 
+ /** Number of 1D/2D texture mipmap levels */
+-#define MAX_TEXTURE_LEVELS 13
++#define MAX_TEXTURE_LEVELS 11
+ 
+ /** Number of 3D texture mipmap levels */
+ #define MAX_3D_TEXTURE_LEVELS 9
+ 
+ /** Number of cube texture mipmap levels - GL_ARB_texture_cube_map */
+-#define MAX_CUBE_TEXTURE_LEVELS 13
++#define MAX_CUBE_TEXTURE_LEVELS 11
+ 
+ /** Maximum rectangular texture size - GL_NV_texture_rectangle */
+-#define MAX_TEXTURE_RECT_SIZE 4096
++#define MAX_TEXTURE_RECT_SIZE 1024
+ 
+ /** Maximum number of layers in a 1D or 2D array texture - GL_MESA_texture_array */
+ #define MAX_ARRAY_TEXTURE_LAYERS 64
+@@ -140,11 +140,11 @@
+  */
+ 
+ #ifndef MAX_WIDTH
+-#   define MAX_WIDTH 4096
++#   define MAX_WIDTH 1024
+ #endif
+ /** Maximum viewport/image height */
+ #ifndef MAX_HEIGHT
+-#   define MAX_HEIGHT 4096
++#   define MAX_HEIGHT 1024
+ #endif
+ 
+ /** Maxmimum size for CVA.  May be overridden by the drivers.  */

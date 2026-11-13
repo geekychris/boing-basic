@@ -4,7 +4,7 @@
 
 Boing BASIC is a Visual Basic 6 style language for AmigaOS 4.1 (PowerPC). A program runs in the interpreter (a bytecode VM, with an optional PowerPC JIT) for a quick edit-run cycle, or is compiled to C and built with GCC into a native executable. Forms are designed in the [AmiForge](https://github.com/geekychris/amiforge) IDE; the runtime brings a Canvas for 2D graphics, Engine3D for filled 3D, a ProTracker player and sound effects through AHI, menus, dialogs and ReAction gadgets, an ARexx port, and `Declare` for calling any AmigaOS library. See the [README](../README.md) and the [design](DESIGN.md).
 
-Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 15 games, 6 applications and 6 examples and tools.
+Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screenshots are from the QEMU sam460ex guest. 16 games, 6 applications and 12 examples and tools.
 
 **Games**
 
@@ -12,7 +12,7 @@ Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screens
 <tr><td align="center" valign="bottom"><a href="#glimmerfield"><img src="../examples/glimmerfield/docs/guest-2x.png" width="200" alt="Glimmerfield"><br>Glimmerfield</a></td><td align="center" valign="bottom"><a href="#stack-tower"><img src="../examples/stack_tower_bb/screenshots/os4-playing.png" width="200" alt="Stack Tower"><br>Stack Tower</a></td><td align="center" valign="bottom"><a href="#boing-pinball"><img src="../examples/boing_pinball_bb/screenshots/os4-comet.png" width="200" alt="Boing Pinball"><br>Boing Pinball</a></td><td align="center" valign="bottom"><a href="#lander-3d"><img src="../examples/lander_3d_bb/docs/guest-moon.png" width="200" alt="Lander 3D"><br>Lander 3D</a></td></tr>
 <tr><td align="center" valign="bottom"><a href="#ace-pilot-2"><img src="../examples/ace_pilot2_bb/screenshots/os4-strafing.png" width="200" alt="Ace Pilot 2"><br>Ace Pilot 2</a></td><td align="center" valign="bottom"><a href="#orbit-docking"><img src="../examples/orbit_docking_bb/screenshots/os4-approach.png" width="200" alt="Orbit Docking"><br>Orbit Docking</a></td><td align="center" valign="bottom"><a href="#scairy-fun"><img src="../examples/scairy_fun_bb/screenshots/os4-levee.png" width="200" alt="ScAIry Fun"><br>ScAIry Fun</a></td><td align="center" valign="bottom"><a href="#block-breaker-3d"><img src="../examples/block_breaker_3d/docs/play.png" width="200" alt="Block Breaker 3D"><br>Block Breaker 3D</a></td></tr>
 <tr><td align="center" valign="bottom"><a href="#canyon-rail"><img src="../examples/canyon_rail/docs/play.png" width="200" alt="Canyon Rail"><br>Canyon Rail</a></td><td align="center" valign="bottom"><a href="#drone-courier"><img src="../examples/drone_courier/docs/play.png" width="200" alt="Drone Courier"><br>Drone Courier</a></td><td align="center" valign="bottom"><a href="#harbour-crane"><img src="../examples/harbour_crane/docs/play.png" width="200" alt="Harbour Crane"><br>Harbour Crane</a></td><td align="center" valign="bottom"><a href="#marble-tilt"><img src="../examples/marble_tilt/docs/play.png" width="200" alt="Marble Tilt"><br>Marble Tilt</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#ridge-runner"><img src="../examples/ridge_runner/docs/play.png" width="200" alt="Ridge Runner"><br>Ridge Runner</a></td><td align="center" valign="bottom"><a href="#sphere-siege"><img src="../examples/sphere_siege/docs/play.png" width="200" alt="Sphere Siege"><br>Sphere Siege</a></td><td align="center" valign="bottom"><a href="#tank-duel"><img src="../examples/tank_duel/docs/play.png" width="200" alt="Tank Duel"><br>Tank Duel</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#ridge-runner"><img src="../examples/ridge_runner/docs/play.png" width="200" alt="Ridge Runner"><br>Ridge Runner</a></td><td align="center" valign="bottom"><a href="#sphere-siege"><img src="../examples/sphere_siege/docs/play.png" width="200" alt="Sphere Siege"><br>Sphere Siege</a></td><td align="center" valign="bottom"><a href="#tank-duel"><img src="../examples/tank_duel/docs/play.png" width="200" alt="Tank Duel"><br>Tank Duel</a></td><td align="center" valign="bottom"><a href="#boing-rally"><img src="../examples/gl_boing_rally/gallery/window.png" width="200" alt="Boing Rally"><br>Boing Rally</a></td></tr>
 </table>
 
 **Applications**
@@ -26,7 +26,8 @@ Everything below was written in Boing BASIC and runs on AmigaOS 4.1; the screens
 
 <table>
 <tr><td align="center" valign="bottom"><a href="#hello"><img src="../examples/hello/gallery/inputbox.png" width="200" alt="Hello"><br>Hello</a></td><td align="center" valign="bottom"><a href="#calculator"><img src="images/calculator.png" width="200" alt="Calculator"><br>Calculator</a></td><td align="center" valign="bottom"><a href="#file-viewer"><img src="images/fileviewer.png" width="200" alt="File Viewer"><br>File Viewer</a></td><td align="center" valign="bottom"><a href="#sysinfo-declare"><img src="../examples/declare/gallery/sysinfo.png" width="200" alt="SysInfo (Declare)"><br>SysInfo (Declare)</a></td></tr>
-<tr><td align="center" valign="bottom"><a href="#declare-graphics"><img src="../examples/declare_gfx/gallery/declare_gfx.png" width="200" alt="Declare graphics"><br>Declare graphics</a></td><td align="center" valign="bottom"><a href="#engine3d-demo"><img src="../examples/engine3d_demo/gallery/flyover.png" width="200" alt="Engine3D demo"><br>Engine3D demo</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#declare-graphics"><img src="../examples/declare_gfx/gallery/declare_gfx.png" width="200" alt="Declare graphics"><br>Declare graphics</a></td><td align="center" valign="bottom"><a href="#engine3d-demo"><img src="../examples/engine3d_demo/gallery/flyover.png" width="200" alt="Engine3D demo"><br>Engine3D demo</a></td><td align="center" valign="bottom"><a href="#opengl-boing"><img src="../examples/gl_boing/gallery/boing.png" width="200" alt="OpenGL Boing"><br>OpenGL Boing</a></td><td align="center" valign="bottom"><a href="#opengl-cube"><img src="../examples/gl_cube/gallery/cube.png" width="200" alt="OpenGL Cube"><br>OpenGL Cube</a></td></tr>
+<tr><td align="center" valign="bottom"><a href="#opengl-shapes"><img src="../examples/gl_shapes/gallery/shapes.png" width="200" alt="OpenGL Shapes"><br>OpenGL Shapes</a></td><td align="center" valign="bottom"><a href="#opengl-starfield"><img src="../examples/gl_starfield/gallery/stars.png" width="200" alt="OpenGL Starfield"><br>OpenGL Starfield</a></td><td align="center" valign="bottom"><a href="#opengl-terrain"><img src="../examples/gl_terrain/gallery/terrain.png" width="200" alt="OpenGL Terrain"><br>OpenGL Terrain</a></td><td align="center" valign="bottom"><a href="#opengl-textures"><img src="../examples/gl_texture/gallery/textures.png" width="200" alt="OpenGL Textures"><br>OpenGL Textures</a></td></tr>
 </table>
 
 ## Games
@@ -321,6 +322,28 @@ A tank fight in a walled arena seen from the turret: shells bounce once off the 
 
 [README](../examples/tank_duel/README.md) · [source](../examples/tank_duel/)
 
+### Boing Rally
+
+The checkered Boing ball rolls down an endless road in the sky: steer, jump the gaps, ride the ramps, grab the gems, dodge the blocks. Drawn with OpenGL.
+
+**Shows off:** OpenGL (Extension=opengl), Display lists, lighting, GLProject, Canvas HUD over GL, Audio: sound effects, Procedural road from a seed, Autopilot attract mode
+
+**Performance:** 51 fps native, 21 fps in the VM (`--bench 300`, m1c guest); the game runs at its 25 fps timer either way natively.
+
+<img src="../examples/gl_boing_rally/gallery/window.png" width="560" alt="Playing on the AmigaOS 4 guest (native build, 25 fps)">
+
+*Playing on the AmigaOS 4 guest (native build, 25 fps)*
+
+<img src="../examples/gl_boing_rally/gallery/play.png" width="640" alt="The road, rendered by Mesa on the guest">
+
+*The road, rendered by Mesa on the guest*
+
+<img src="../examples/gl_boing_rally/gallery/title.png" width="640" alt="The title: the autopilot plays behind it">
+
+*The title: the autopilot plays behind it*
+
+[README](../examples/gl_boing_rally/README.md) · [source](../examples/gl_boing_rally/)
+
 ## Applications
 
 ### Gridwise
@@ -482,3 +505,79 @@ A terrain flyover with spinning models and an fps counter, in 15 lines of form c
 *The flyover on the AmigaOS 4 guest (VM)*
 
 [source](../examples/engine3d_demo/)
+
+### OpenGL Boing
+
+A checkered ball bouncing in front of a grid wall, with its shadow: an Amiga homage.
+
+**Shows off:** OpenGL, Display lists
+
+<img src="../examples/gl_boing/gallery/boing.png" width="560" alt="The ball on the AmigaOS 4 guest (native)">
+
+*The ball on the AmigaOS 4 guest (native)*
+
+[source](../examples/gl_boing/)
+
+### OpenGL Cube
+
+Hello OpenGL: a spinning cube with a colour on each face, in immediate mode.
+
+**Shows off:** OpenGL, Forms, Timer
+
+<img src="../examples/gl_cube/gallery/cube.png" width="560" alt="The cube on the AmigaOS 4 guest (native)">
+
+*The cube on the AmigaOS 4 guest (native)*
+
+[source](../examples/gl_cube/)
+
+### OpenGL Shapes
+
+Lighting and materials: five GLUT shapes in display lists, two coloured lights, flat/smooth, wireframe.
+
+**Shows off:** OpenGL, Lighting, Display lists
+
+<img src="../examples/gl_shapes/gallery/shapes.png" width="560" alt="The shapes on the AmigaOS 4 guest (native)">
+
+*The shapes on the AmigaOS 4 guest (native)*
+
+[source](../examples/gl_shapes/)
+
+### OpenGL Starfield
+
+Stars as points and warp streaks as lines, from BASIC arrays updated every frame.
+
+**Shows off:** OpenGL, Vertex arrays, Blending
+
+<img src="../examples/gl_starfield/gallery/stars.png" width="560" alt="Warp speed on the AmigaOS 4 guest (native)">
+
+*Warp speed on the AmigaOS 4 guest (native)*
+
+[source](../examples/gl_starfield/)
+
+### OpenGL Terrain
+
+A faceted landscape built once from vertex arrays into a display list, flown over in fog.
+
+**Shows off:** OpenGL, Vertex arrays, Fog
+
+<img src="../examples/gl_terrain/gallery/terrain.png" width="560" alt="The flyover on the AmigaOS 4 guest (native)">
+
+*The flyover on the AmigaOS 4 guest (native)*
+
+[source](../examples/gl_terrain/)
+
+### OpenGL Textures
+
+Textures from a BASIC array and from Canvas drawing, filtering and Mesa's fast textured triangles.
+
+**Shows off:** OpenGL, Textures, Canvas
+
+<img src="../examples/gl_texture/gallery/textures.png" width="560" alt="Both textures on the AmigaOS 4 guest (native)">
+
+*Both textures on the AmigaOS 4 guest (native)*
+
+[source](../examples/gl_texture/)
+
+## Not in the gallery yet
+
+[book](../examples/book/), [chat](../examples/chat/), [csvimport](../examples/csvimport/), [ext_counter](../examples/ext_counter/), [ext_shapes](../examples/ext_shapes/), [jsonview](../examples/jsonview/), [webfetch](../examples/webfetch/), [wordcount](../examples/wordcount/)

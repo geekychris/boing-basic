@@ -1046,7 +1046,9 @@ static R prod(EC *e, Node *n)
         int i, cnt = n->list.n;
         char *arr = varr_temp(e, cnt);
         for (i = 0; i < cnt; i++) {
-            pre(e, "%s[%d] = %s;", arr, i, own(e, n->list.v[i]));
+            Node *rv = ext_array_ref(n->list.v[i]);
+            if (rv) pre(e, "%s[%d] = bb_v_ref(%s, %s);", arr, i, vtname(rv->ty), addr(e, rv));   /* by reference */
+            else pre(e, "%s[%d] = %s;", arr, i, own(e, n->list.v[i]));
             rel(e, xsprintf("bb_v_release(&%s[%d]);", arr, i));
         }
         return mkr(xsprintf("bb_ext_call(%s, %d, %s)", cstrlit(n->name, (int)strlen(n->name)), cnt, arr), n->ty->kind != T_VOID);
@@ -2376,10 +2378,11 @@ int emit_c(Program *p, Buf *outb, int debug)
              "        if (!strcasecmp(bb_globs[i].name, name) && (!mod || !strcasecmp(bb_globs[i].mod, mod))) { *type = bb_globs[i].type; return bb_globs[i].p; }\n"
              "    return NULL;\n}\n"
              "static const bb_program_ops bb_ops = {bb_find_proc_, bb_call_proc_, bb_find_global_};\n");
-    /* the project's stack size (Stack= in the .bbp); this object comes before libboing,
+    /* the project's stack size (Stack= in the .bbp, at least what its extensions ask for: .bbx
+       'stack' lines); this object comes before libboing,
        so the OS4 loader finds this cookie before the library's default */
     buf_printf(outb, "\n#ifdef __amigaos4__\nstatic const char __attribute__((used)) bb_stack_cookie_[] = \"$STACK:%d\";\n#endif\n",
-               e->p->stack > 0 ? e->p->stack : 262144);
+               (e->p->stack > 0 ? e->p->stack : 262144) > e->p->ext_stack ? (e->p->stack > 0 ? e->p->stack : 262144) : e->p->ext_stack);
     /* main */
     {
         /* the project's Title= (else Name=): App.Title, and with Version= the $VER string */

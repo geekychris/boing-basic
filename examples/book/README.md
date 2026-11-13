@@ -530,6 +530,19 @@ native, and checks the others compile.
 | 21.2 | [ch21-extending/mathx/demo.bbp](ch21-extending/mathx/demo.bbp) | Extensions: new objects and functions |
 | 21.3 | [ch21-extending/textutil/demo.bbp](ch21-extending/textutil/demo.bbp) | An extension in C++ |
 
+## 3D graphics: OpenGL
+
+[22-opengl.md](../../docs/manual/22-opengl.md), drawer `ch22-opengl/`
+
+| Listing | File | Section |
+|---|---|---|
+| 22.1 | [ch22-opengl/first/first.bbp](ch22-opengl/first/first.bbp) | A first picture, step by step |
+| 22.2 | [ch22-opengl/spinner/Spinner.bbp](ch22-opengl/spinner/Spinner.bbp) | A program in a window |
+| 22.3 | [ch22-opengl/lighting/lighting.bbp](ch22-opengl/lighting/lighting.bbp) | Light and materials |
+| 22.4 | [ch22-opengl/texture/texture.bbp](ch22-opengl/texture/texture.bbp) | Textures |
+| 22.5 | [ch22-opengl/labels/labels.bbp](ch22-opengl/labels/labels.bbp) | Points on the canvas: GLProject |
+| 22.6 | [ch22-opengl/terrain/terrain.bbp](ch22-opengl/terrain/terrain.bbp) | Speed |
+
 ## Exercises
 
 | Exercise | Drawer |

@@ -12,13 +12,17 @@ cp "$glue" "$work/glue.c"
 cmds="ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc -O2 -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -c $rel/glue.c -o $rel/0.o &&"
 objs="$rel/0.o"; link=ppc-amigaos-gcc; n=0; libs=
 for f in "$@"; do
+    case $f in -lOSMesa) [ -f "$root/build/os4/libOSMesa.a" ] || "$root/tools/build-os4.sh" build/os4/libOSMesa.a >/dev/null ;; esac
     case $f in -l*) libs="$libs $f"; continue ;; esac
     n=$((n+1)); b=$(basename "$f"); cp "$f" "$work/$n-$b"
+    # the headers beside the source (and its subdirectories) for its quoted #includes
+    inc=$work/inc$n; mkdir -p "$inc"
+    (cd "$(dirname "$f")" && find . -maxdepth 3 -name '*.h' | while read -r h; do mkdir -p "$inc/$(dirname "$h")"; cp "$h" "$inc/$h"; done)
     case $b in
     *.cpp|*.cc) cc='ppc-amigaos-g++ -athread=native'; link='ppc-amigaos-g++ -athread=native' ;;
     *) cc=ppc-amigaos-gcc ;;
     esac
-    cmds="$cmds $cc -mcrt=newlib -mcpu=powerpc -O2 -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -c $rel/$n-$b -o $rel/$n.o &&"
+    cmds="$cmds $cc -mcrt=newlib -mcpu=powerpc -O2 -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -I$rel/inc$n -c $rel/$n-$b -o $rel/$n.o &&"
     objs="$objs $rel/$n.o"
 done
 case $(uname -m) in
@@ -27,7 +31,7 @@ arm64|aarch64) img=walkero/amigagccondocker:os4-gcc11-arm64 ;;
 esac
 docker run --rm -v "$root":/src -w /src "${PPC_IMAGE:-$img}" sh -c "
   $cmds
-  $link -mcrt=newlib -mcpu=powerpc -o $rel/boing.exe $objs build/os4/libboingvm.a build/os4/libboing.a$libs -lauto -lm &&
+  $link -mcrt=newlib -mcpu=powerpc -o $rel/boing.exe $objs build/os4/libboingvm.a build/os4/libboing.a -Lbuild/os4$libs -lauto -lm &&
   n=\$(ppc-amigaos-objdump -d $rel/boing.exe | grep -c dlmzb || true); test \"\$n\" = 0 ||
   { echo 'boing-vm-os4: dlmzb instructions found (440-only)' >&2; exit 20; }"
 mv "$work/boing.exe" "$out"

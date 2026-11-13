@@ -1,0 +1,6 @@
+# Boing BASIC project: an OpenGL starfield of points and streaks from arrays made each frame
+Name=GLStarfield
+Title=OpenGL Starfield
+Startup=Form stars
+Form=stars.afg
+Extension=opengl

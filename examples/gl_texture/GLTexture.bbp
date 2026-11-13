@@ -1,0 +1,6 @@
+# Boing BASIC project: OpenGL textures from a BASIC array and from Canvas drawing
+Name=GLTexture
+Title=OpenGL Textures
+Startup=Form texdemo
+Form=texdemo.afg
+Extension=opengl

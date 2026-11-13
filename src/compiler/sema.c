@@ -814,7 +814,13 @@ static void check_set(Ctx *c, Node *s, NodeList *out)
 static Node *as_call_stmt(Ctx *c, Node *s)
 {
     Node *e = check_expr(c, s->a, M_STMT);
+    /* an extension function called as a statement: its result (converted from the Variant it
+       returns) is not needed */
+    while (e->kind == E_CONV && e->a && (e->a->kind == E_EXTCALL || e->a->kind == E_CONV)) e = e->a;
     switch (e->kind) {
+    case E_EXTCALL:
+        s->a = e;
+        return s;
     case E_CALL: case E_MCALL: case E_BUILTIN: case E_LATE:
         e->flags |= NF_VOIDCALL;
         if (e->kind == E_LATE && e->argc_kind == (BB_INV_GET | BB_INV_METHOD)) e->argc_kind = BB_INV_METHOD;
@@ -1103,8 +1109,16 @@ static void check_stmt(Ctx *c, Node *s, NodeList *out)
     case S_RETURN:
         c->proc->has_gosub = 1;
         break;
-    case S_LABEL:
+    case S_LABEL: {
+        /* "glLoadIdentity: glTranslatef ..." at the start of a line is a label, as in VB, so the
+           call is silently lost: warn when a label is named like a Sub or extension function */
+        Sym *ps = scope_find(c->scope, s->name);
+        if ((ps && ps->kind == SK_PROC) || ext_func_find(c->prog, s->name))
+            diag_warn(c->prog, s->file, s->line, s->col,
+                      "'%s:' at the start of a line is a line label, not a call of '%s' (write 'Call %s' or '%s' alone on the line)",
+                      s->name, s->name, s->name, s->name);
         break;
+    }
     case S_ONGOTO:
         s->a = coerce(c, check_value(c, s->a), &ty_long);
         for (i = 0; i < s->list.n; i++) s->list.v[i]->sym = find_label(c, s->list.v[i], s->list.v[i]->name);

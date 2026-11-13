@@ -1,0 +1,12 @@
+size 64  48 
+version 2.1
+renderer Mesa OffScreen
+clear FF0000
+quad 0000FF FF0000
+depth 00FFFF 00FF00
+arrays 0080FF FF0000
+list True FFFFFF FF0000
+project True 32  24 True
+behind False
+lit True
+error 0 

@@ -1,0 +1,5 @@
+# OpenGL extension test: context on an off-screen canvas, clear, depth, matrices, arrays, lists
+Name=GLBasics
+Startup=Sub Main
+Module=basics.bas
+Extension=opengl

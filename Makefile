@@ -43,7 +43,7 @@ $(B)/libboing.a: $(RT_OBJ)
 	ar rcs $@ $^
 
 $(BOING_EXE): $(B)/obj/main/main.o $(EXT_INIT) $(CC_OBJ) $(VM_OBJ) $(B)/libboing.a
-	$(if $(strip $(STD_EXTS)),$(STDX_LD),$(CC)) $(CFLAGS) -o $@ $(B)/obj/main/main.o $(EXT_INIT) $(CC_OBJ) $(VM_OBJ) $(B)/libboing.a $(STDX_LIBS) -lm
+	$(if $(strip $(STD_EXTS)),$(STDX_LD),$(CC)) $(CFLAGS) -o $@ $(B)/obj/main/main.o $(EXT_INIT) $(CC_OBJ) $(VM_OBJ) $(B)/libboing.a -L$(B) $(STDX_LIBS) -lm
 
 # STD_EXTS: the glue (regenerated when the list changes) and each extension's object
 $(B)/obj/stdext/glue.c: FORCE
@@ -65,6 +65,18 @@ $(B)/libboingvm.a: $(B)/obj/main/main.o $(B)/obj/main/vmext_default.o $(CC_OBJ) 
 	@rm -f $@
 	ar rcs $@ $^
 
+# OpenGL (ext/opengl, docs/opengl.md): Mesa's software renderer as build/libOSMesa.a, beside
+# libboing.a where native builds and `boing vm` look for libraries. `make opengl` builds it (and
+# downloads the Mesa source once); STD_EXTS=opengl needs it first.
+MESA_HOST = third_party/mesa/out/host/libOSMesa.a
+$(MESA_HOST):
+	sh third_party/mesa/build.sh host
+$(B)/libOSMesa.a: $(MESA_HOST)
+	@mkdir -p $(B)
+	cp $(MESA_HOST) $@
+opengl: all $(B)/libOSMesa.a
+$(if $(filter opengl,$(STD_EXTS)),$(BOING_EXE): $(B)/libOSMesa.a)
+
 $(B)/include/boing.h: $(wildcard src/runtime/*.h)
 	@mkdir -p $(B)/include
 	cp src/runtime/*.h $(B)/include/
@@ -73,6 +85,7 @@ test: all
 	@sh tools/stackcheck.sh
 	@sh tools/flags-check.sh
 	@python3 tools/genmembers.py --check
+	@python3 tools/gen-opengl.py --check
 	@$(B)/boing members > /dev/null || { echo 'boing members: a listed member does not resolve'; exit 1; }
 	@sh tools/os4-build-check.sh
 	@for f in tests/c/*.c; do $(CC) $(WARN) $(CFLAGS) -I$(B)/include -o $(B)/ctest_$$(basename $$f .c) $$f $(B)/libboing.a -lm && $(B)/ctest_$$(basename $$f .c) || exit 1; done
@@ -84,6 +97,7 @@ test: all
 	@sh tests/break/run.sh $(CURDIR)/build/boing
 	@sh tests/cli/run.sh $(CURDIR)/build/boing
 	@sh tests/ext/run.sh $(CURDIR)/build/boing
+	@sh tests/opengl/run.sh $(CURDIR)/build/boing
 	@sh examples/riffwright/tests/run.sh $(CURDIR)/build/boing
 	@sh examples/stack_tower_bb/tools/test.sh
 	@sh examples/orbit_docking_bb/tools/test.sh
@@ -108,7 +122,7 @@ manual-test: all
 clean:
 	rm -rf $(B)
 
-.PHONY: all test clean FORCE manual-test manual-pdf manual-pdf-test manual-diagrams
+.PHONY: all test clean FORCE opengl manual-test manual-pdf manual-pdf-test manual-diagrams
 
 bench: all
 	python3 tools/bench.py $(BENCH_ARGS)

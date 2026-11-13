@@ -1,0 +1,5 @@
+# Lighting: one light, one lit sphere; how bright is each side? (manual chapter 22)
+Name=Lighting
+Startup=Sub Main
+Module=lighting.bas
+Extension=opengl

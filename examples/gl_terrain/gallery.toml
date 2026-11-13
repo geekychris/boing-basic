@@ -1,0 +1,9 @@
+title = "OpenGL Terrain"
+category = "example"
+summary = "A faceted landscape built once from vertex arrays into a display list, flown over in fog."
+shows = ["OpenGL", "Vertex arrays", "Fog"]
+
+[[shot]]
+file = "gallery/terrain.png"
+caption = "The flyover on the AmigaOS 4 guest (native)"
+run = { project = "GLTerrain.bbp", secs = 6, native = true, crop = "auto" }

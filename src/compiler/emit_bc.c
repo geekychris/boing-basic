@@ -444,7 +444,11 @@ static void call(E *e, Node *n)
         /* Declare ... Lib "C": through the function registry (boing vm --project links the C
            and its glue; otherwise error 453 when called) */
         int i;
-        for (i = 0; i < n->list.n; i++) expr(e, n->list.v[i]);
+        for (i = 0; i < n->list.n; i++) {
+            Node *v = ext_array_ref(n->list.v[i]);
+            if (v) addr(e, v);              /* an array by reference */
+            else expr(e, n->list.v[i]);
+        }
         op3(e, I_CALLX, str_const(e, pr->name, (int)strlen(pr->name)), n->list.n, pr->ret != NULL);
         if (pr->ret) op1(e, I_CVT, vt_of(pr->ret));
         return;
@@ -547,7 +551,11 @@ static void expr(E *e, Node *n)
     case E_BUILTIN: builtin(e, n); return;
     case E_EXTCALL: {
         int i;
-        for (i = 0; i < n->list.n; i++) expr(e, n->list.v[i]);
+        for (i = 0; i < n->list.n; i++) {
+            Node *v = ext_array_ref(n->list.v[i]);
+            if (v) addr(e, v);              /* an array by reference */
+            else expr(e, n->list.v[i]);
+        }
         op3(e, I_CALLX, str_const(e, n->name, (int)strlen(n->name)), n->list.n, n->ty->kind != T_VOID);
         return;
     }

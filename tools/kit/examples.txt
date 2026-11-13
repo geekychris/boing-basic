@@ -200,3 +200,49 @@ kind=app
 about=a word processor: styles, find and replace, live spelling (225 000 words), RTF and HTML
 keys=Type; cursor keys by letter/word/line/page; Backspace/Del by word with Alt/Ctrl
 keys=Menus and toolbar with Amiga-key shortcuts for styles, find/replace, undo/redo, files
+
+[gl_boing_rally]
+title=Boing Rally
+kind=game
+about=roll the Boing ball down an endless sky road: OpenGL (Extension=opengl), lighting, display lists
+keys=Left/Right (A/D) steer, Space (Up/W) jump, P pause, F1 fps, Esc title/quit
+
+[gl_cube]
+title=GL Cube
+kind=demo
+native=0
+about=OpenGL's hello world: a spinning colour cube (Extension=opengl)
+
+[gl_shapes]
+title=GL Shapes
+kind=demo
+native=0
+about=OpenGL lighting and materials on the GLUT shapes
+keys=S smooth/flat, L lighting, W wireframe, Esc quit
+
+[gl_texture]
+title=GL Texture
+kind=demo
+native=0
+about=OpenGL textures from a BASIC array and from Canvas drawing
+keys=F nearest/linear filtering, P perspective correction, Esc quit
+
+[gl_terrain]
+title=GL Terrain
+kind=demo
+native=0
+about=an OpenGL landscape from vertex arrays in a display list
+keys=L OpenGL lighting, F OpenGL fog (slow), Esc quit
+
+[gl_boing]
+title=GL Boing
+kind=demo
+native=0
+about=the bouncing checkered ball in OpenGL
+
+[gl_starfield]
+title=GL Starfield
+kind=demo
+native=0
+about=OpenGL points, lines and blending
+keys=Space warp, B blending, Esc quit

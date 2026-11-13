@@ -1,0 +1,9 @@
+title = "OpenGL Textures"
+category = "example"
+summary = "Textures from a BASIC array and from Canvas drawing, filtering and Mesa's fast textured triangles."
+shows = ["OpenGL", "Textures", "Canvas"]
+
+[[shot]]
+file = "gallery/textures.png"
+caption = "Both textures on the AmigaOS 4 guest (native)"
+run = { project = "GLTexture.bbp", secs = 6, native = true, crop = "auto" }

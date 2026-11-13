@@ -1,0 +1,4 @@
+white light: left 8  right 1  red>blue on the left: False
+orange light: left 8  right 1  red>blue on the left: True
+flat: left 8  right 1  red>blue on the left: True
+error 0 

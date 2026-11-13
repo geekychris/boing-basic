@@ -1,0 +1,9 @@
+title = "OpenGL Cube"
+category = "example"
+summary = "Hello OpenGL: a spinning cube with a colour on each face, in immediate mode."
+shows = ["OpenGL", "Forms", "Timer"]
+
+[[shot]]
+file = "gallery/cube.png"
+caption = "The cube on the AmigaOS 4 guest (native)"
+run = { project = "GLCube.bbp", secs = 6, native = true, crop = "auto" }

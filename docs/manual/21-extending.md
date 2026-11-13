@@ -242,12 +242,17 @@ class Stats
 | `property Name As Type` | a property the program can read and set |
 | `property Name As Type ReadOnly` | a property the program can only read |
 | `event Name(params)` | an event the object raises, handled with `Dim WithEvents` |
+| `const NAME = value` | a constant for the program: a whole number (`&H` hex allowed) or, with a `.`, a Double |
+| `link lib` | the C library a native program needs (`link os4 lib`, `link host lib`: for one system only) |
+| `stack bytes` | a native program that uses the extension gets at least this much stack |
 | `# ...` | a comment |
 
 Parameters are written as in a `Declare`, always `ByVal`. With the descriptor the compiler
 checks every use: a misspelt member, a write to a read-only property or the wrong number of
 arguments is an error when you compile (`boing check` shows the line and column), not when the
-program runs. It also converts function arguments to the declared types, and
+program runs. A `sub` is called like any procedure (`Beep2 440`); an array variable given to an
+`As Variant` parameter is passed by reference, so the C code can fill it in. It also converts
+function arguments to the declared types, and
 `boing members --project demo.bbp` lists the members for editors (AmiForge's completion uses
 it).
 

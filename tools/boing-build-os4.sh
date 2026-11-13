@@ -27,6 +27,9 @@ boing=${BOING:-$root/boing}
 [ -x "$boing" ] || boing=$root/build/host/boing
 [ -x "$boing" ] || { echo "boing-build-os4: build the host boing first (make)" >&2; exit 10; }
 [ -f "$root/build/os4/libboing.a" ] || "$root/tools/build-os4.sh" build/os4/libboing.a >/dev/null
+# Extension=opengl links Mesa (build/os4/libOSMesa.a, beside libboing.a)
+case $src in *.bbp) case " $("${BOING:-$root/build/boing}" links "$src" os4 2>/dev/null) " in *" -lOSMesa "*)
+  [ -f "$root/build/os4/libOSMesa.a" ] || "$root/tools/build-os4.sh" build/os4/libOSMesa.a >/dev/null ;; esac ;; esac
 
 work=$root/build/os4-apps
 mkdir -p "$work"
@@ -46,10 +49,15 @@ case $src in *.bbp)
   n=0
   for f in $("$boing" sources "$src"); do
     n=$((n+1)); b=$(basename "$f"); cp "$f" "$xdir/$n-$b"
+    # the headers beside the source (and in its subdirectories, e.g. ext/opengl/GL/gl.h): its
+    # quoted #includes find them through -I, as they did beside the original
+    inc=$xdir/inc$n; mkdir -p "$inc"
+    (cd "$(dirname "$f")" && find . -maxdepth 3 -name '*.h' | while read -r h; do mkdir -p "$inc/$(dirname "$h")"; cp "$h" "$inc/$h"; done)
+    ci="-Isrc/runtime -Ibuild/os4-apps/$xd/inc$n"
     case $b in
-    *.cpp|*.cc) cmds="$cmds ppc-amigaos-g++ -athread=native -mcrt=newlib -mcpu=powerpc $opt -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -c build/os4-apps/$xd/$n-$b -o build/os4-apps/$xd/$n.o &&"
+    *.cpp|*.cc) cmds="$cmds ppc-amigaos-g++ -athread=native -mcrt=newlib -mcpu=powerpc $opt -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 $ci -c build/os4-apps/$xd/$n-$b -o build/os4-apps/$xd/$n.o &&"
                 link='ppc-amigaos-g++ -athread=native'; progx="-x c" ;;
-    *) cmds="$cmds ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc $opt -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 -Isrc/runtime -c build/os4-apps/$xd/$n-$b -o build/os4-apps/$xd/$n.o &&" ;;
+    *) cmds="$cmds ppc-amigaos-gcc -mcrt=newlib -mcpu=powerpc $opt -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 $ci -c build/os4-apps/$xd/$n-$b -o build/os4-apps/$xd/$n.o &&" ;;
     esac
     xobjs="$xobjs build/os4-apps/$xd/$n.o"
   done ;;
@@ -60,7 +68,7 @@ xlibs=; case $src in *.bbp) xlibs=$("$boing" links "$src" os4) ;; esac     # .bb
 docker run --rm -v "$root":/src -w /src "${PPC_IMAGE:-$img}" sh -c "
   $cmds
   $link -mcrt=newlib -mcpu=powerpc $opt -Wall -Wno-unused -D__USE_OLD_TIMEVAL__ -DBB_PLATFORM_OS4 \
-    -Isrc/runtime ${BOING_CFLAGS:-} -o build/os4-apps/$base.exe $progx build/os4-apps/$base.c $xobjs build/os4/libboing.a $xlibs -lauto -lm &&
+    -Isrc/runtime ${BOING_CFLAGS:-} -o build/os4-apps/$base.exe $progx build/os4-apps/$base.c $xobjs build/os4/libboing.a -Lbuild/os4 $xlibs -lauto -lm &&
   n=\$(ppc-amigaos-objdump -d build/os4-apps/$base.exe | grep -c dlmzb || true); test \"\$n\" = 0 ||
   { echo 'boing-build-os4: dlmzb instructions found (440-only)' >&2; exit 20; }"
 mv "$work/$base.exe" "$out"

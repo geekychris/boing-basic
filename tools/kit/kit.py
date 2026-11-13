@@ -548,6 +548,10 @@ def assemble(o):
     vm = os.path.join(bb, "build", "os4", "libboingvm.a")
     if os.path.exists(vm):
         shutil.copy2(vm, os.path.join(top, "lib", "libboingvm.a"))
+    # Mesa's software OpenGL for native builds of Extension=opengl programs (-lOSMesa, docs/opengl.md)
+    mesa = os.path.join(bb, "build", "os4", "libOSMesa.a")
+    if os.path.exists(mesa):
+        shutil.copy2(mesa, os.path.join(top, "lib", "libOSMesa.a"))
     # the standard extensions (Extension=NAME without a directory): PROGDIR:ext/ beside boing
     if os.path.isdir(os.path.join(bb, "ext")):
         shutil.copytree(os.path.join(bb, "ext"), os.path.join(top, "ext"),

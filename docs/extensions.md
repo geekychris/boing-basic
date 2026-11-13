@@ -36,6 +36,7 @@ class Counter
   property Count As Long ReadOnly
 function Clamp(ByVal x As Long, ByVal lo As Long, ByVal hi As Long) As Long
 sub Beep2(ByVal hz As Long)
+const COUNTER_MAX = 1000
 ```
 
 - `boing_ext.h` (in `build/include`, installed beside `boing.h`): `bb_register_class(name, cls,
@@ -53,6 +54,16 @@ sub Beep2(ByVal hz As Long)
   read-only properties and argument counts (`boing check` gives `file:line:col` errors), converts
   function arguments to the declared types and the result from it, and `boing members --project
   P.bbp` lists the members (fields 4 and 5: signature and type) for AmiForge's completion.
+- `const NAME = value` lines give the program constants (a Long: decimal or `&H` hex; a Double
+  if the value has a `.` or `E`): `ext/opengl/opengl.bbx` declares the 800 `GL_` constants this
+  way. They are compile-time constants, like a `Const` of the program; a program's own name
+  hides one.
+- `stack N`: a native program that uses the extension gets at least N bytes of stack (its
+  `Stack=`, if bigger, wins). For extensions whose C code keeps big stack frames (OpenGL's Mesa).
+- A `sub` (or a `function` whose result isn't needed) is called as a statement, `Beep2 440`
+  or `Call Beep2(440)`. An array variable passed to a `Variant` parameter arrives by reference,
+  as `BB_REF` (no copy; `bb_v_array(&argv[i])` reads through it), so a function can fill an
+  output array (OpenGL's `GLProject`); any other argument is passed by value.
 - Events: `event Tick(ByVal i As Long, ByVal label As String)` lines in a class make it usable
   with `Dim WithEvents t As Ticker` (module level or a class field; handlers `t_Tick`). The
   class raises event *i* (its position among the class's `event` lines, from 0) with

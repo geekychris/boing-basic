@@ -7,4 +7,7 @@ case $(uname -m) in
 arm64|aarch64) img=walkero/amigagccondocker:os4-gcc11-arm64 ;;
 *) img=walkero/amigagccondocker:os4-gcc11-amd64 ;;
 esac
+# OpenGL (STD_EXTS=opengl or build/os4/libOSMesa.a): Mesa is built for OS4 first, in its own run
+case " $* " in *libOSMesa*|*opengl*)
+    [ -f "$root/third_party/mesa/out/os4/libOSMesa.a" ] || sh "$root/third_party/mesa/build.sh" os4 >/dev/null || exit 1 ;; esac
 exec docker run --rm -v "$root":/src -w /src "${PPC_IMAGE:-$img}" make -f mk/os4.mk -j"${JOBS:-4}" "$@"
